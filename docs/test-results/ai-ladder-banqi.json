@@ -1,0 +1,60 @@
+{
+  "date": "2026-10-08T16:30:31.149Z",
+  "gamesPerPair": 10,
+  "banqi": [
+    {
+      "weak": "easy",
+      "strong": "medium",
+      "strongScore": 10,
+      "games": 10,
+      "detail": [
+        "medium-easy:1-0(all_captured)",
+        "easy-medium:0-1(all_captured)",
+        "medium-easy:1-0(all_captured)",
+        "easy-medium:0-1(all_captured)",
+        "medium-easy:1-0(all_captured)",
+        "easy-medium:0-1(all_captured)",
+        "medium-easy:1-0(all_captured)",
+        "easy-medium:0-1(all_captured)",
+        "medium-easy:1-0(all_captured)",
+        "easy-medium:0-1(all_captured)"
+      ]
+    },
+    {
+      "weak": "medium",
+      "strong": "hard",
+      "strongScore": 6,
+      "games": 10,
+      "detail": [
+        "hard-medium:draw(repetition)",
+        "medium-hard:draw(repetition)",
+        "hard-medium:draw(repetition)",
+        "medium-hard:draw(repetition)",
+        "hard-medium:draw(no_progress)",
+        "medium-hard:draw(no_progress)",
+        "hard-medium:draw(no_progress)",
+        "medium-hard:0-1(all_captured)",
+        "hard-medium:draw(no_progress)",
+        "medium-hard:0-1(all_captured)"
+      ]
+    },
+    {
+      "weak": "easy",
+      "strong": "hard",
+      "strongScore": 10,
+      "games": 10,
+      "detail": [
+        "hard-easy:1-0(all_captured)",
+        "easy-hard:0-1(all_captured)",
+        "hard-easy:1-0(all_captured)",
+        "easy-hard:0-1(all_captured)",
+        "hard-easy:1-0(all_captured)",
+        "easy-hard:0-1(all_captured)",
+        "hard-easy:1-0(all_captured)",
+        "easy-hard:0-1(all_captured)",
+        "hard-easy:1-0(all_captured)",
+        "easy-hard:0-1(all_captured)"
+      ]
+    }
+  ]
+}

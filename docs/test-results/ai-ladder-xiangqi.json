@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-08T16:30:30.611Z",
+  "gamesPerPair": 6,
+  "xiangqi": [
+    {
+      "weak": "easy",
+      "strong": "medium",
+      "strongScore": 6,
+      "games": 6,
+      "detail": [
+        "medium-easy:1-0(checkmate)",
+        "easy-medium:0-1(checkmate)",
+        "medium-easy:1-0(checkmate)",
+        "easy-medium:0-1(checkmate)",
+        "medium-easy:1-0(checkmate)",
+        "easy-medium:0-1(checkmate)"
+      ]
+    },
+    {
+      "weak": "medium",
+      "strong": "hard",
+      "strongScore": 6,
+      "games": 6,
+      "detail": [
+        "hard-medium:1-0(checkmate)",
+        "medium-hard:0-1(checkmate)",
+        "hard-medium:1-0(checkmate)",
+        "medium-hard:0-1(checkmate)",
+        "hard-medium:1-0(checkmate)",
+        "medium-hard:0-1(checkmate)"
+      ]
+    },
+    {
+      "weak": "easy",
+      "strong": "hard",
+      "strongScore": 6,
+      "games": 6,
+      "detail": [
+        "hard-easy:1-0(checkmate)",
+        "easy-hard:0-1(checkmate)",
+        "hard-easy:1-0(checkmate)",
+        "easy-hard:0-1(checkmate)",
+        "hard-easy:1-0(checkmate)",
+        "easy-hard:0-1(checkmate)"
+      ]
+    }
+  ]
+}

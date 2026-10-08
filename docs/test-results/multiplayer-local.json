@@ -1,0 +1,126 @@
+{
+  "base": "http://127.0.0.1:8788",
+  "date": "2026-10-08T16:48:41.829Z",
+  "results": [
+    {
+      "name": "guest cookies issued",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "creator seated as white",
+      "pass": true,
+      "info": "0"
+    },
+    {
+      "name": "room waiting",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "game starts when second player joins",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "third person is spectator",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "spectator cannot move",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "out-of-turn move rejected",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "illegal move rejected",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "duplicate submission applied once",
+      "pass": true,
+      "info": "illegal,not_your_turn"
+    },
+    {
+      "name": "simultaneous submissions resolved by server",
+      "pass": true,
+      "info": "e2e4 e7e5"
+    },
+    {
+      "name": "undo with consent",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "disconnect detected",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "reconnect restores seat and state",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "draw by agreement",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "no moves after game end",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "banqi initial state has no hidden identities",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "banqi flip reveals exactly one piece to both",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "banqi colours assigned by first flip",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "banqi full layout revealed only after the game",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "guest cannot create rated room (falls back to unrated)",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "matchmaking pairs players into one room",
+      "pass": true,
+      "info": "FRSHWC FRSHWC"
+    },
+    {
+      "name": "matched room starts with both seats",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "rated matchmaking requires sign-in",
+      "pass": true,
+      "info": "401"
+    },
+    {
+      "name": "unknown room rejected",
+      "pass": true,
+      "info": "404"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+# JY Chess — Cloudflare Pages project (static site + Pages Functions under /functions).
+# Pages Git integration: build command `npm run build`, output directory `dist`.
+name = "jytrvl-chess"
+pages_build_output_dir = "dist"
+compatibility_date = "2025-09-01"
+
+[vars]
+PUBLIC_ORIGIN = "https://chess.jytrvl.com"
+GOOGLE_CLIENT_ID = ""
+# GOOGLE_CLIENT_SECRET is a secret: set it in the Cloudflare dashboard (Settings → Variables and Secrets).
+
+[[d1_databases]]
+binding = "DB"
+database_name = "jytrvl-chess"
+database_id = "0e9c760d-13d1-4926-a9f5-592f6065bb5d"
+
+# Durable Objects live in the separate worker "jytrvl-chess-realtime" (see realtime/wrangler.toml).
+[[durable_objects.bindings]]
+name = "ROOMS"
+class_name = "GameRoom"
+script_name = "jytrvl-chess-realtime"
+
+[[durable_objects.bindings]]
+name = "MATCH"
+class_name = "Matchmaker"
+script_name = "jytrvl-chess-realtime"
+
+[[durable_objects.bindings]]
+name = "LIMITER"
+class_name = "RateLimiter"
+script_name = "jytrvl-chess-realtime"

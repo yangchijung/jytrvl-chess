@@ -1,0 +1,151 @@
+{
+  "base": "http://127.0.0.1:8788",
+  "date": "2026-10-08T16:42:49.337Z",
+  "results": [
+    {
+      "name": "home loads",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "cross-origin isolated",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "home no console errors",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "chess legal hints e2",
+      "pass": true,
+      "info": "e4,e3"
+    },
+    {
+      "name": "chess AI replies",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "chess no errors",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "xiangqi AI replies",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "xiangqi chinese notation",
+      "pass": true,
+      "info": "1.炮二平五馬２進３"
+    },
+    {
+      "name": "xiangqi no errors",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "banqi flip + AI replies",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "banqi no errors",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "lesson page",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "english lessons",
+      "pass": true,
+      "info": "Learn the rules · Xiangqi"
+    },
+    {
+      "name": "room created",
+      "pass": true,
+      "info": "http://127.0.0.1:8788/room/YDJNQ8"
+    },
+    {
+      "name": "online move synced",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "online reply synced",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "no moves offered out of turn",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "state restored after reload",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "resign result propagated",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "online no errors",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "mobile no h-scroll /",
+      "pass": true,
+      "info": "overflow 0"
+    },
+    {
+      "name": "mobile no h-scroll /xiangqi",
+      "pass": true,
+      "info": "overflow 0"
+    },
+    {
+      "name": "mobile no h-scroll /play?game=banqi&mode=local",
+      "pass": true,
+      "info": "overflow 0"
+    },
+    {
+      "name": "mobile no h-scroll /learn/banqi",
+      "pass": true,
+      "info": "overflow 0"
+    },
+    {
+      "name": "mobile no h-scroll /en/leaderboard",
+      "pass": true,
+      "info": "overflow 0"
+    },
+    {
+      "name": "api health",
+      "pass": true,
+      "info": "{\"ok\":true,\"db_ms\":4,\"time\":\"2026-10-08T16:42:48.781Z\",\"auth\":false}"
+    },
+    {
+      "name": "api leaderboard",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "api rejects bad game",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "sitemap",
+      "pass": true,
+      "info": ""
+    }
+  ]
+}

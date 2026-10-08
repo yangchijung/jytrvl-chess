@@ -1,0 +1,8 @@
+node_modules
+dist
+.wrangler
+public/engines/*
+!public/engines/fsf-host.js
+logs
+*.log
+.dev.vars

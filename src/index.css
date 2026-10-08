@@ -1,0 +1,172 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', system-ui, sans-serif;
+  --font-serif: 'Noto Serif TC', 'Songti TC', 'PMingLiU', Georgia, serif;
+  --spacing-13: 3.25rem;
+}
+
+/* Design tokens — Premium minimalist: warm white, deep wood, ink green, navy, a touch of gold. */
+:root {
+  color-scheme: light;
+  --paper: #faf7f0;
+  --navy: #1b2a41;
+  --gold: #c8a24a;
+  --bg: #faf7f0;
+  --surface: #ffffff;
+  --surface-2: #f2ede2;
+  --surface-3: #e6dfcf;
+  --border: #e1d9c7;
+  --text: #1f2328;
+  --muted: #5f6368;
+  --accent: #1f4d3a;
+  --accent-text: #1f4d3a;
+  --accent-soft: #e5efe9;
+  --on-accent: #ffffff;
+  --clock-active: #1f4d3a;
+  --danger: #b3261e;
+  --warn: #b26b00;
+  --ok: #1f7a43;
+  --warn-bg: #fdf0d5;
+  --ok-bg: #e2f3e8;
+  --info-bg: #e8eef7;
+  --focus: #c8a24a;
+  --header-bg: rgba(250, 247, 240, 0.88);
+  --hero-bg: linear-gradient(135deg, #1b2a41 0%, #1f4d3a 100%);
+  --hero-text: #faf7f0;
+  --card-shadow: 0 1px 2px rgba(27, 42, 65, 0.06), 0 8px 24px rgba(27, 42, 65, 0.06);
+  --board-shadow: 0 10px 30px rgba(60, 40, 20, 0.25);
+
+  /* boards */
+  --sq-light: #efe3c8;
+  --sq-dark: #a7794f;
+  --last-move: rgba(200, 162, 74, 0.45);
+  --selected: rgba(31, 77, 58, 0.45);
+  --hint: rgba(46, 117, 214, 0.38);
+  --target: rgba(31, 77, 58, 0.55);
+  --check: rgba(220, 38, 38, 0.85);
+  --xq-board: #e9c98f;
+  --xq-line: #5a3a1c;
+  --xq-red: #b3261e;
+  --xq-black: #1c1c1c;
+  --bq-board: #d8b47a;
+  --bq-line: rgba(90, 58, 28, 0.55);
+  --disc-hi: #fff6e0;
+  --disc-lo: #e8cf9c;
+  --disc-edge: #8b5e34;
+  --back-hi: #6b4423;
+  --back-lo: #4a2d14;
+  --back-ring: #c8a24a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --bg: #111722;
+    --surface: #18202d;
+    --surface-2: #212b3a;
+    --surface-3: #2c3849;
+    --border: #2f3a4c;
+    --text: #ece8df;
+    --muted: #a8b0bc;
+    --accent: #3f8f6b;
+    --accent-text: #7fd0a9;
+    --accent-soft: #1d3a30;
+    --on-accent: #ffffff;
+    --clock-active: #3f8f6b;
+    --warn-bg: #3d2f12;
+    --ok-bg: #173527;
+    --info-bg: #1d2a40;
+    --header-bg: rgba(17, 23, 34, 0.88);
+    --hero-bg: linear-gradient(135deg, #0f1828 0%, #163829 100%);
+    --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --board-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    --sq-light: #d9c8a5;
+    --sq-dark: #8a6240;
+    --xq-board: #cfae74;
+    --bq-board: #b8945c;
+  }
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #111722;
+  --surface: #18202d;
+  --surface-2: #212b3a;
+  --surface-3: #2c3849;
+  --border: #2f3a4c;
+  --text: #ece8df;
+  --muted: #a8b0bc;
+  --accent: #3f8f6b;
+  --accent-text: #7fd0a9;
+  --accent-soft: #1d3a30;
+  --on-accent: #ffffff;
+  --clock-active: #3f8f6b;
+  --warn-bg: #3d2f12;
+  --ok-bg: #173527;
+  --info-bg: #1d2a40;
+  --header-bg: rgba(17, 23, 34, 0.88);
+  --hero-bg: linear-gradient(135deg, #0f1828 0%, #163829 100%);
+  --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --board-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --sq-light: #d9c8a5;
+  --sq-dark: #8a6240;
+  --xq-board: #cfae74;
+  --bq-board: #b8945c;
+}
+
+html {
+  background: var(--bg);
+  color: var(--text);
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  text-rendering: optimizeLegibility;
+}
+button {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+[role='grid'] button {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.prose-jy h2 {
+  font-family: var(--font-serif);
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin-top: 1.5rem;
+}
+.prose-jy ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+}
+.prose-jy li + li {
+  margin-top: 0.35rem;
+}
+
+@keyframes jy-flip {
+  from {
+    transform: rotateY(90deg) scale(0.9);
+  }
+  to {
+    transform: rotateY(0) scale(1);
+  }
+}
+
+:root[data-reduce-motion] *,
+:root[data-reduce-motion] *::before {
+  transition: none !important;
+  animation: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
