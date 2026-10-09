@@ -20,3 +20,9 @@
 
 /en/room/*
   X-Robots-Tag: noindex, nofollow
+
+/territory/room/*
+  X-Robots-Tag: noindex, nofollow
+
+/en/territory/room/*
+  X-Robots-Tag: noindex, nofollow

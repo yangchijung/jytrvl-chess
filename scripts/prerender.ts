@@ -54,6 +54,6 @@ writeFileSync(
 );
 writeFileSync(
   'dist/robots.txt',
-  `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /room/\nDisallow: /en/room/\nDisallow: /profile\nDisallow: /history\nDisallow: /settings\nDisallow: /matchmaking\nDisallow: /play\n\nSitemap: ${ORIGIN}/sitemap.xml\n`,
+  `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /room/\nDisallow: /en/room/\nDisallow: /profile\nDisallow: /history\nDisallow: /settings\nDisallow: /matchmaking\nDisallow: /play\nDisallow: /territory/room/\nDisallow: /en/territory/room/\nDisallow: /territory/play\nDisallow: /territory/match\nDisallow: /territory/new-room\n\nSitemap: ${ORIGIN}/sitemap.xml\n`,
 );
 console.log(`prerendered ${Object.keys(PAGES).length * 2} pages, sitemap ${urls.length} urls`);

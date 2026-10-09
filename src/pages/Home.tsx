@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useI18n } from '../i18n';
 import { LinkButton, Card } from '../components/ui';
 import { DiscPiece, ChessPieceImg } from '../components/board/pieces';
+import { TerritoryPreview } from '../territory/pages';
 import type { GameId } from '../../shared/types';
 
 export function GamePreview({ game }: { game: GameId }) {
@@ -51,7 +52,7 @@ export function GamePreview({ game }: { game: GameId }) {
 
 export function Home() {
   const { t, to } = useI18n();
-  const games: GameId[] = ['chess', 'xiangqi', 'banqi'];
+  const games: (GameId | 'territory')[] = ['chess', 'xiangqi', 'banqi', 'territory'];
   const features = [
     ['🤖', 'home.features.ai', 'home.features.ai.desc'],
     ['🌐', 'home.features.online', 'home.features.online.desc'],
@@ -63,7 +64,7 @@ export function Home() {
       <section className="relative overflow-hidden rounded-3xl px-6 py-12 text-[var(--hero-text)] sm:px-10 sm:py-16" style={{ background: 'var(--hero-bg)' }}>
         <div className="pointer-events-none absolute -right-16 -top-16 h-72 w-72 rounded-full border-[18px] border-[var(--gold)] opacity-15" aria-hidden="true" />
         <div className="pointer-events-none absolute -bottom-24 right-24 h-56 w-56 rounded-full border-[12px] border-[var(--gold)] opacity-10" aria-hidden="true" />
-        <p className="mb-3 text-sm font-semibold uppercase tracking-[0.25em] text-[var(--gold)]">Chess · Xiangqi · Banqi</p>
+        <p className="mb-3 text-sm font-semibold uppercase tracking-[0.25em] text-[var(--gold)]">Chess · Xiangqi · Banqi · Territory Rush</p>
         <h1 className="max-w-2xl font-serif text-4xl font-bold leading-tight sm:text-5xl">{t('home.hero.title')}</h1>
         <p className="mt-4 max-w-xl text-lg opacity-90">{t('home.hero.sub')}</p>
         <div className="mt-8 flex flex-wrap gap-3">
@@ -76,10 +77,10 @@ export function Home() {
         </div>
       </section>
 
-      <section className="grid gap-5 md:grid-cols-3" aria-label={t('nav.play')}>
+      <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4" aria-label={t('nav.play')}>
         {games.map((g) => (
           <Card key={g} className="flex flex-col gap-4">
-            <GamePreview game={g} />
+            {g === 'territory' ? <TerritoryPreview /> : <GamePreview game={g} />}
             <div>
               <h2 className="font-serif text-2xl font-bold">
                 {t(`game.${g}`)} <span className="text-base font-normal text-[var(--muted)]">{t(`game.${g}.en`)}</span>

@@ -10,6 +10,8 @@ interface Env {
   ROOMS: DurableObjectNamespace;
   MATCH: DurableObjectNamespace;
   LIMITER: DurableObjectNamespace;
+  TROOMS: DurableObjectNamespace;
+  TLOBBY: DurableObjectNamespace;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   PUBLIC_ORIGIN?: string;
@@ -199,7 +201,17 @@ export const onRequest = async (ctx: Ctx): Promise<Response> => {
     if (route === 'GET /me') {
       if (me.kind === 'guest') return reply(json({ kind: 'guest', id: me.playerId, nickname: me.nickname }));
       const u = await env.DB.prepare(`SELECT created_at FROM users WHERE id = ?`).bind(me.userId).first<{ created_at: number }>();
-      return reply(json({ kind: 'user', id: me.playerId, nickname: me.nickname, createdAt: u?.created_at, ratings: await ratingsOf(env.DB, me.userId!) }));
+      const ts = await env.DB.prepare(`SELECT games, wins, kills, best_pct, best_score FROM territory_stats WHERE user_id = ?`).bind(me.userId).first();
+      return reply(
+        json({
+          kind: 'user',
+          id: me.playerId,
+          nickname: me.nickname,
+          createdAt: u?.created_at,
+          ratings: await ratingsOf(env.DB, me.userId!),
+          territory: ts ?? { games: 0, wins: 0, kills: 0, best_pct: 0, best_score: 0 },
+        }),
+      );
     }
 
     if (route === 'PATCH /me') {
@@ -217,6 +229,7 @@ export const onRequest = async (ctx: Ctx): Promise<Response> => {
       await env.DB.batch([
         env.DB.prepare(`DELETE FROM sessions WHERE user_id = ?`).bind(me.userId),
         env.DB.prepare(`DELETE FROM ratings WHERE user_id = ?`).bind(me.userId),
+        env.DB.prepare(`DELETE FROM territory_stats WHERE user_id = ?`).bind(me.userId),
         env.DB.prepare(`UPDATE games SET seat0_user = NULL, seat0_name = 'deleted' WHERE seat0_user = ?`).bind(me.userId),
         env.DB.prepare(`UPDATE games SET seat1_user = NULL, seat1_name = 'deleted' WHERE seat1_user = ?`).bind(me.userId),
         env.DB.prepare(`DELETE FROM users WHERE id = ?`).bind(me.userId),
@@ -301,6 +314,50 @@ export const onRequest = async (ctx: Ctx): Promise<Response> => {
       const stub = env.MATCH.get(env.MATCH.idFromName(pool));
       const name = me.kind === 'user' ? me.nickname : cleanGuestName(url.searchParams.get('name'), me.nickname);
       return forwardWs(req, stub, me, { 'x-jy-name': name, 'x-jy-rating': rating }, '/ws', `?game=${game}&rated=${rated ? 1 : 0}&minutes=${minutes}&inc=${inc}`);
+    }
+
+    // ---------- Territory Rush ----------
+    if (route === 'POST /territory/rooms') {
+      if (await limited(env, req, 'troom', 30, 600000)) return err('rate_limited', 429);
+      const body = (await req.json().catch(() => ({}))) as { minutes?: number };
+      const minutes = [2, 3, 5].includes(Number(body.minutes)) ? Number(body.minutes) : 3;
+      for (let i = 0; i < 5; i++) {
+        const id = roomCode();
+        const stub = env.TROOMS.get(env.TROOMS.idFromName(id));
+        const res = await stub.fetch('https://do/init', {
+          method: 'POST',
+          body: JSON.stringify({ meta: { id, kind: 'private', minutes, hostId: me.playerId, createdAt: Date.now() } }),
+        });
+        if (res.ok) return reply(json({ id }));
+      }
+      return err('room_alloc_failed', 500);
+    }
+    if (parts[0] === 'territory' && parts[1] === 'rooms' && parts[2]) {
+      const id = parts[2].toUpperCase();
+      if (!isRoomCode(id)) return err('bad_room', 400);
+      const stub = env.TROOMS.get(env.TROOMS.idFromName(id));
+      if (req.method === 'GET' && parts.length === 3) return reply(new Response((await stub.fetch('https://do/info')).body, { headers: { 'content-type': 'application/json' } }));
+      if (req.method === 'GET' && parts[3] === 'ws') {
+        if (await limited(env, req, 'tws', 120, 60000)) return err('rate_limited', 429);
+        const info = (await (await stub.fetch('https://do/info')).json()) as { exists: boolean };
+        if (!info.exists) return err('room_not_found', 404);
+        const name = me.kind === 'user' ? me.nickname : cleanGuestName(url.searchParams.get('name'), me.nickname);
+        return forwardWs(req, stub, me, { 'x-jy-name': name }, '/ws');
+      }
+    }
+    if (route === 'GET /territory/match/ws') {
+      if (await limited(env, req, 'tmatch', 60, 600000)) return err('rate_limited', 429);
+      const stub = env.TLOBBY.get(env.TLOBBY.idFromName('public'));
+      const name = me.kind === 'user' ? me.nickname : cleanGuestName(url.searchParams.get('name'), me.nickname);
+      return forwardWs(req, stub, me, { 'x-jy-name': name }, '/ws');
+    }
+    if (route === 'GET /territory/leaderboard') {
+      const sort = ({ score: 'best_score', wins: 'wins', kills: 'kills', pct: 'best_pct' } as Record<string, string>)[url.searchParams.get('sort') ?? 'score'] ?? 'best_score';
+      const rows = await env.DB.prepare(
+        `SELECT u.nickname, t.games, t.wins, t.kills, t.best_pct, t.best_score FROM territory_stats t JOIN users u ON u.id = t.user_id
+         WHERE t.games >= 3 AND u.banned = 0 ORDER BY t.${sort} DESC, t.best_score DESC LIMIT 100`,
+      ).all();
+      return json({ sort, rows: rows.results }, 200, { 'cache-control': 'public, max-age=60' });
     }
 
     // ---------- history ----------

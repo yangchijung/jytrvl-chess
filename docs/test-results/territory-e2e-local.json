@@ -1,0 +1,151 @@
+{
+  "base": "http://127.0.0.1:8788",
+  "date": "2026-10-09T11:03:16.141Z",
+  "results": [
+    {
+      "name": "home shows Territory Rush card",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "home lists all four games",
+      "pass": true,
+      "info": "4"
+    },
+    {
+      "name": "/territory loads",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "/territory title",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "/territory has 5 mode options",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "/territory no console errors",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "solo game canvas visible",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "starting land shown",
+      "pass": true,
+      "info": "0.6%"
+    },
+    {
+      "name": "player captures land by looping home",
+      "pass": true,
+      "info": "0.6% → 1%"
+    },
+    {
+      "name": "leaderboard lists live players",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "timer running",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "canvas rendered (multiple colours)",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "end overlay after elimination",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "solo no console errors",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "local 2P shows two HUD cards",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "local 2P no console errors",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "tutorial step 1 completes",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "tutorial no console errors",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "room page opened",
+      "pass": true,
+      "info": "http://127.0.0.1:8788/territory/room/J5ETZT"
+    },
+    {
+      "name": "guest joins lobby (2 players)",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "host adds bot (3 players)",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "both clients enter the match",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "online ticks stream to both clients (~10/s)",
+      "pass": true,
+      "info": "12 → 27"
+    },
+    {
+      "name": "online leaderboard live",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "online no console errors",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "mobile: no horizontal scroll",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "mobile: joystick toggles",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "English hub",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "leaderboard has Territory tab",
+      "pass": true,
+      "info": ""
+    }
+  ]
+}

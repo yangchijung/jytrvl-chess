@@ -26,9 +26,13 @@ describe('i18n', () => {
   });
   it('every reason code produced by the engines has a translation', () => {
     const reasons = new Set<string>();
-    for (const f of files('shared')) for (const m of readFileSync(f, 'utf8').matchAll(/reason: '([a-z_]+)'/g)) reasons.add(m[1]);
+    for (const f of files('shared').filter((f) => !f.includes('territory'))) for (const m of readFileSync(f, 'utf8').matchAll(/reason: '([a-z_]+)'/g)) reasons.add(m[1]);
     for (const f of files('realtime/src')) for (const m of readFileSync(f, 'utf8').matchAll(/reason: '([a-z_]+)'/g)) reasons.add(m[1]);
     for (const r of reasons) expect((zh as Record<string, string>)[`reason.${r}`], r).toBeTruthy();
+  });
+  it('every Territory Rush end reason and death reason has a translation', () => {
+    for (const r of ['last_standing', 'domination', 'time', 'all_dead']) expect((zh as Record<string, string>)[`tr.end.reason.${r}`], r).toBeTruthy();
+    for (const r of ['wall', 'self', 'land', 'collision', 'left']) expect((zh as Record<string, string>)[`tr.ev.died.${r}`], r).toBeTruthy();
   });
   it('every literal t("…") key used in the UI exists', () => {
     const missing: string[] = [];

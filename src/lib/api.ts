@@ -5,6 +5,7 @@ export interface Me {
   id: string;
   nickname: string;
   ratings?: Record<GameId, { rating: number; games: number; wins: number; losses: number; draws: number }>;
+  territory?: { games: number; wins: number; kills: number; best_pct: number; best_score: number };
   createdAt?: number;
 }
 

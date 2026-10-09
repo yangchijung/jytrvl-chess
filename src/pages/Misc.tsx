@@ -167,6 +167,27 @@ export function Profile() {
           );
         })}
       </div>
+      {me.territory && (
+        <Card className="max-w-xl">
+          <h2 className="font-serif text-xl font-bold">{t('tr.profile.title')}</h2>
+          <dl className="mt-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-5">
+            {(
+              [
+                ['tr.lb.games', me.territory.games],
+                ['tr.lb.wins', me.territory.wins],
+                ['tr.lb.kills', me.territory.kills],
+                ['tr.lb.bestPct', `${me.territory.best_pct}%`],
+                ['tr.lb.score', me.territory.best_score],
+              ] as const
+            ).map(([k, v]) => (
+              <div key={k} className="rounded-lg bg-[var(--surface-2)] p-2 text-center">
+                <dt className="text-xs text-[var(--muted)]">{t(k)}</dt>
+                <dd className="text-xl font-bold tabular-nums">{v}</dd>
+              </div>
+            ))}
+          </dl>
+        </Card>
+      )}
       <div className="flex flex-wrap gap-2">
         <Button variant="secondary" onClick={() => void logout()}>
           {t('auth.logout')}
@@ -412,11 +433,84 @@ interface LbRow {
   draws: number;
 }
 
+interface TLbRow {
+  nickname: string;
+  games: number;
+  wins: number;
+  kills: number;
+  best_pct: number;
+  best_score: number;
+}
+
+function TerritoryBoard() {
+  const { t } = useI18n();
+  const [sort, setSort] = useState<'score' | 'wins' | 'kills' | 'pct'>('score');
+  const [rows, setRows] = useState<TLbRow[] | null>(null);
+  useEffect(() => {
+    setRows(null);
+    api<{ rows: TLbRow[] }>(`/territory/leaderboard?sort=${sort}`)
+      .then((r) => setRows(r.rows))
+      .catch(() => setRows([]));
+  }, [sort]);
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-[var(--muted)]">{t('tr.lb.note')}</p>
+      <div className="max-w-xl">
+        <Segmented
+          label={t('lb.rank')}
+          value={sort}
+          onChange={setSort}
+          options={[
+            { value: 'score', label: t('tr.lb.score') },
+            { value: 'wins', label: t('tr.lb.wins') },
+            { value: 'kills', label: t('tr.lb.kills') },
+          ]}
+        />
+      </div>
+      {rows === null ? (
+        <Spinner />
+      ) : rows.length === 0 ? (
+        <p className="text-[var(--muted)]">{t('lb.empty')}</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[32rem] max-w-3xl text-left">
+            <thead className="text-sm text-[var(--muted)]">
+              <tr>
+                <th className="py-2">{t('lb.rank')}</th>
+                <th>{t('lb.player')}</th>
+                <th className="text-right">{t('tr.lb.score')}</th>
+                <th className="text-right">{t('tr.lb.wins')}</th>
+                <th className="text-right">{t('tr.lb.kills')}</th>
+                <th className="text-right">{t('tr.lb.bestPct')}</th>
+                <th className="text-right">{t('tr.lb.games')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, i) => (
+                <tr key={i} className="border-t border-[var(--border)]">
+                  <td className="py-2 font-semibold">{i + 1}</td>
+                  <td>{r.nickname}</td>
+                  <td className="text-right tabular-nums">{r.best_score}</td>
+                  <td className="text-right tabular-nums">{r.wins}</td>
+                  <td className="text-right tabular-nums">{r.kills}</td>
+                  <td className="text-right tabular-nums">{r.best_pct}%</td>
+                  <td className="text-right tabular-nums">{r.games}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function Leaderboard() {
   const { t } = useI18n();
-  const [game, setGame] = useState<GameId>('chess');
+  const [game, setGame] = useState<GameId | 'territory'>('chess');
   const [rows, setRows] = useState<LbRow[] | null>(null);
   useEffect(() => {
+    if (game === 'territory') return;
     setRows(null);
     api<{ rows: LbRow[] }>(`/leaderboard?game=${game}`)
       .then((r) => setRows(r.rows))
@@ -424,11 +518,18 @@ export function Leaderboard() {
   }, [game]);
   return (
     <div className="space-y-4">
-      <PageTitle sub={t('lb.note')}>{t('lb.title')}</PageTitle>
-      <div className="max-w-xl">
-        <Segmented label={t('nav.play')} value={game} onChange={setGame} options={GAME_IDS.map((g) => ({ value: g, label: t(`game.${g}`) }))} />
+      <PageTitle sub={game === 'territory' ? undefined : t('lb.note')}>{t('lb.title')}</PageTitle>
+      <div className="max-w-2xl">
+        <Segmented
+          label={t('nav.play')}
+          value={game}
+          onChange={setGame}
+          options={[...GAME_IDS.map((g) => ({ value: g as GameId | 'territory', label: t(`game.${g}`) })), { value: 'territory', label: t('game.territory') }]}
+        />
       </div>
-      {rows === null ? (
+      {game === 'territory' ? (
+        <TerritoryBoard />
+      ) : rows === null ? (
         <Spinner />
       ) : rows.length === 0 ? (
         <p className="text-[var(--muted)]">{t('lb.empty')}</p>

@@ -30,6 +30,7 @@ export function Layout({ children }: { children: ReactNode }) {
     { to: '/chess', label: t('game.chess') },
     { to: '/xiangqi', label: t('game.xiangqi') },
     { to: '/banqi', label: t('game.banqi') },
+    { to: '/territory', label: t('game.territory') },
     { to: '/leaderboard', label: t('nav.leaderboard') },
     { to: '/history', label: t('nav.history') },
   ];

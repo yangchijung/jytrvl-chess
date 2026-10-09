@@ -1,0 +1,50 @@
+{
+  "date": "2026-10-09T11:04:52.559Z",
+  "matches": 20,
+  "playersPerSide": 2,
+  "easy-medium": {
+    "easy": {
+      "wins": 2,
+      "rankPts": 30,
+      "land": 18413,
+      "deaths": 38
+    },
+    "medium": {
+      "wins": 17,
+      "rankPts": 90,
+      "land": 29256,
+      "deaths": 7
+    },
+    "maxThinkMsPerTick": 16.397841999999855
+  },
+  "medium-hard": {
+    "medium": {
+      "wins": 6,
+      "rankPts": 42,
+      "land": 24102,
+      "deaths": 20
+    },
+    "hard": {
+      "wins": 14,
+      "rankPts": 78,
+      "land": 34492,
+      "deaths": 4
+    },
+    "maxThinkMsPerTick": 11.607962000000043
+  },
+  "easy-hard": {
+    "easy": {
+      "wins": 1,
+      "rankPts": 27,
+      "land": 19547,
+      "deaths": 39
+    },
+    "hard": {
+      "wins": 19,
+      "rankPts": 93,
+      "land": 37389,
+      "deaths": 4
+    },
+    "maxThinkMsPerTick": 6.850142000000233
+  }
+}

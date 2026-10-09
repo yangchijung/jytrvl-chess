@@ -7,6 +7,9 @@ import { Room } from './pages/Room';
 import { Matchmaking } from './pages/Matchmaking';
 import { Learn, Settings, Profile, History, Replay, Leaderboard, NotFound } from './pages/Misc';
 import { About, Privacy, Terms } from './pages/Static';
+import { TerritoryHub, TerritoryPlay, TerritoryNewRoom } from './territory/pages';
+import { TerritoryRoomPage, TerritoryMatchPage } from './territory/online-pages';
+import { TerritoryLearn } from './territory/Learn';
 
 function pages(prefix: string) {
   const p = (s: string) => `${prefix}${s}`;
@@ -15,7 +18,13 @@ function pages(prefix: string) {
     <Route key={p('/chess')} path={p('/chess')} element={<GameHub game="chess" />} />,
     <Route key={p('/xiangqi')} path={p('/xiangqi')} element={<GameHub game="xiangqi" />} />,
     <Route key={p('/banqi')} path={p('/banqi')} element={<GameHub game="banqi" />} />,
+    <Route key={p('/learn/territory')} path={p('/learn/territory')} element={<TerritoryLearn />} />,
     <Route key={p('/learn')} path={p('/learn/:game')} element={<Learn />} />,
+    <Route key={p('/territory')} path={p('/territory')} element={<TerritoryHub />} />,
+    <Route key={p('/territory/play')} path={p('/territory/play')} element={<TerritoryPlay />} />,
+    <Route key={p('/territory/new-room')} path={p('/territory/new-room')} element={<TerritoryNewRoom />} />,
+    <Route key={p('/territory/room')} path={p('/territory/room/:id')} element={<TerritoryRoomPage />} />,
+    <Route key={p('/territory/match')} path={p('/territory/match')} element={<TerritoryMatchPage />} />,
     <Route key={p('/play')} path={p('/play')} element={<Play />} />,
     <Route key={p('/room')} path={p('/room/:id')} element={<Room />} />,
     <Route key={p('/matchmaking')} path={p('/matchmaking')} element={<Matchmaking />} />,

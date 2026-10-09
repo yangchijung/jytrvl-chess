@@ -8,7 +8,8 @@
     "build": "node scripts/copy-engines.mjs && vite build && tsx scripts/prerender.ts",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p .",
-    "ladder": "tsx scripts/ai-ladder.ts"
+    "ladder": "tsx scripts/ai-ladder.ts",
+    "ladder:territory": "tsx scripts/territory-ladder.ts"
   },
   "license": "GPL-3.0-or-later",
   "dependencies": {

@@ -29,3 +29,13 @@ script_name = "jytrvl-chess-realtime"
 name = "LIMITER"
 class_name = "RateLimiter"
 script_name = "jytrvl-chess-realtime"
+
+[[durable_objects.bindings]]
+name = "TROOMS"
+class_name = "TerritoryRoom"
+script_name = "jytrvl-chess-realtime"
+
+[[durable_objects.bindings]]
+name = "TLOBBY"
+class_name = "TerritoryLobby"
+script_name = "jytrvl-chess-realtime"

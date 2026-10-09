@@ -1,0 +1,111 @@
+{
+  "base": "http://127.0.0.1:8788",
+  "date": "2026-10-09T10:37:33.409Z",
+  "results": [
+    {
+      "name": "private room created",
+      "pass": true,
+      "info": "PSWDYC"
+    },
+    {
+      "name": "creator is host in lobby",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "second player seated",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "non-host cannot start",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "host adds a bot",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "host removes a bot",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snapshot sent at countdown",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snapshot has map and two players",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "ticks start after countdown",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "tick rate ~10/s",
+      "pass": true,
+      "info": "9.8"
+    },
+    {
+      "name": "server moves exactly one cell per tick",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "input flood cannot increase speed",
+      "pass": true,
+      "info": "moved 5 cells in 5 ticks"
+    },
+    {
+      "name": "forged messages ignored (connection stays up)",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "late joiner receives snapshot as spectator",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "reconnect restores seat with snapshot",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "match ends when one player is left",
+      "pass": true,
+      "info": "{\"winner\":1,\"reason\":\"last_standing\",\"ranking\":[1,0]}"
+    },
+    {
+      "name": "winner is the survivor",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "stats recorded for signed-in players",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "host can start a rematch lobby",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "matchmaking pairs players",
+      "pass": true,
+      "info": "TZXP6J"
+    },
+    {
+      "name": "matched room filled with bots to 4 and starts",
+      "pass": true,
+      "info": ""
+    }
+  ]
+}
