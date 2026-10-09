@@ -6,3 +6,4 @@ public/engines/*
 logs
 *.log
 .dev.vars
+*.tsbuildinfo

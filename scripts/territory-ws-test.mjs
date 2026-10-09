@@ -139,6 +139,11 @@ try {
     ok('matched room filled with bots to 4 and starts', await until(() => R1.snap && R1.snap.snap.players.length === 4, 8000));
     R1.ws.close();
   }
+  // a lone player is not left waiting forever: the match starts with bots after ~20 s
+  const S = client('/api/territory/match/ws', cc, 'Solo');
+  await S.ready;
+  ok('lone player matched with bots after the solo wait', await until(() => S.matched, 26000), S.matched ?? '');
+  S.ws.close();
 } catch (e) {
   ok('unexpected exception', false, String(e?.stack ?? e));
 } finally {

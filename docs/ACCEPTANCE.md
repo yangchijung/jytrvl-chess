@@ -111,7 +111,7 @@
 | 測試 | 結果 | 檔案 |
 |---|---|---|
 | 引擎單元測試：移動、禁止迴轉、轉向佇列、軌跡、圈地（含包圍敵地）、碰撞與淘汰、正面相撞、邊界、勝負、快照與 RLE、AI 不讀取他人輸入 | ✅ 14／14 | tests/territory.test.ts |
-| 多人連線協定測試（本機完整環境） | ✅ 21／21 | scripts/territory-ws-test.mjs → test-results/territory-multiplayer-local.json |
+| 多人連線協定測試（本機完整環境） | ✅ 22／22 | scripts/territory-ws-test.mjs → test-results/territory-multiplayer-local.json |
 | 瀏覽器端對端測試（本機完整環境） | ✅ 29／29 | scripts/territory-e2e.mjs → test-results/territory-e2e-local.json |
 | AI 難度階梯（無人對局，各 20 場） | ✅ 見 9.3 | scripts/territory-ladder.ts |
 
@@ -122,7 +122,7 @@
 | 單人 vs AI（1–7 個電腦、三級、2／3／5 分鐘）；鍵盤繞圈圈地使占地增加；被淘汰顯示結算 | ✅ e2e |
 | 雙人同機（WASD／方向鍵，雙 HUD） | ✅ e2e |
 | 私人房間：建立、邀請連結、第二人加入、房主加入／移除電腦、非房主無法開始、開局同步 | ✅ 協定＋e2e |
-| 公開配對：兩名玩家配到同一房間，不足 4 人以 AI 補滿並開局 | ✅ 協定 |
+| 公開配對：兩名玩家配到同一房間，不足 4 人以 AI 補滿並開局；單人等待 20 秒後自動以 AI 開局 | ✅ 協定 |
 | 伺服器權威：10 Hz tick（實測 9.9／秒）、每 tick 恰好移動 1 格、灌入 200 個輸入速度不變、偽造訊息被忽略 | ✅ 協定 |
 | 觀戰者中途加入取得快照；斷線重連恢復原座位 | ✅ 協定 |
 | 只剩一人時結束（last_standing）、勝者排名第一；房主可再來一局 | ✅ 協定 |
@@ -132,6 +132,15 @@
 | 手機：無水平捲動、虛擬搖桿、滑動操作 | ✅ e2e（390 px）；🔶 實機手感需確認 |
 | 中英文字串鍵一致、勝負原因皆有翻譯 | ✅ tests/i18n.test.ts |
 | 原創性：程式、角色（方塊頭像）、配色、音效皆自製；名稱為「領地爭奪戰／Territory Rush」 | ✅ |
+
+### 9.2a 正式環境（https://chess.jytrvl.com）
+| 項目 | 結果 |
+|---|---|
+| `/territory` 頁面、標題、深色主題顯示 | ✅ |
+| `/api/territory/leaderboard` 200；`/api/health` auth:true | ✅ |
+| 私人房間：建立 → WebSocket 大廳 → 房主加入困難 AI → 開局快照（48×48） | ✅ |
+| 伺服器 tick 10.0／秒、每 tick 1 格、灌入 200 個輸入 5 tick 只移動 5 格、偽造訊息不斷線 | ✅ |
+| 衝出邊界被淘汰 → last_standing，AI 勝 | ✅ |
 
 ### 9.3 AI 難度（勝場，20 場）
 | 對戰 | 1 對 1 | 2 對 2 |

@@ -1,5 +1,6 @@
 // TerritoryLobby Durable Object — public matchmaking queue for Territory Rush.
-// Starts a match as soon as 8 players wait, or 10 s after the second player joined.
+// Starts a match as soon as 8 players wait, 10 s after the second player joined, or — when nobody else
+// shows up — 20 s after a lone player joined (so a quiet server never leaves anyone waiting forever).
 // Matches with fewer than 4 humans are topped up with Medium bots.
 import { DurableObject } from 'cloudflare:workers';
 import { roomCode } from '../../server/crypto';
@@ -17,6 +18,7 @@ interface Waiter {
 
 const FILL_TO = 4;
 const WAIT_MS = 10_000;
+const SOLO_WAIT_MS = 20_000;
 const BOT_NAMES = ['Nova', 'Pixel', 'Bolt', 'Mochi', 'Echo', 'Kiwi', 'Comet', 'Tofu'];
 
 export class TerritoryLobby extends DurableObject<Env> {
@@ -68,9 +70,11 @@ export class TerritoryLobby extends DurableObject<Env> {
     }
   }
 
-  private async evaluate(fromAlarm = false) {
+  private async evaluate(_fromAlarm = false) {
     const q = this.queue();
-    if (q.length >= 8 || (q.length >= 2 && (fromAlarm || Date.now() - q[1].w.joinedAt >= WAIT_MS))) {
+    const now = Date.now();
+    const due = q.length === 0 ? Infinity : Math.min(q[0].w.joinedAt + SOLO_WAIT_MS, q.length >= 2 ? q[1].w.joinedAt + WAIT_MS : Infinity);
+    if (q.length >= 8 || (q.length >= 1 && now >= due - 50)) {
       const group = q.slice(0, 8);
       const seats: TSeat[] = group.map((x) => ({ playerId: x.w.playerId, userId: x.w.userId, name: x.w.name, bot: false, ipHash: x.w.ipHash }));
       for (let k = 0; seats.length < FILL_TO; k++) seats.push({ playerId: null, userId: null, name: `${BOT_NAMES[k]}🤖`, bot: true, level: 'medium', ipHash: '' });
@@ -79,10 +83,11 @@ export class TerritoryLobby extends DurableObject<Env> {
         x.ws.send(JSON.stringify({ t: 'matched', room } satisfies TServerMsg));
         x.ws.close(1000, 'matched');
       }
-    } else if (q.length >= 2) {
-      const due = q[1].w.joinedAt + WAIT_MS;
+      const rest = this.queue(); // matched sockets are closing and no longer listed
+      if (rest.length) await this.ctx.storage.setAlarm(Math.min(rest[0].w.joinedAt + SOLO_WAIT_MS, now + 1000));
+    } else if (q.length >= 1) {
       const cur = await this.ctx.storage.getAlarm();
-      if (cur === null || cur > due) await this.ctx.storage.setAlarm(due);
+      if (cur === null || cur > due || cur < now) await this.ctx.storage.setAlarm(due);
     }
     this.notify();
   }

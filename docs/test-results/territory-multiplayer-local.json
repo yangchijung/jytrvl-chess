@@ -1,11 +1,11 @@
 {
   "base": "http://127.0.0.1:8788",
-  "date": "2026-10-09T10:37:33.409Z",
+  "date": "2026-10-09T11:15:31.865Z",
   "results": [
     {
       "name": "private room created",
       "pass": true,
-      "info": "PSWDYC"
+      "info": "YQMRKD"
     },
     {
       "name": "creator is host in lobby",
@@ -50,7 +50,7 @@
     {
       "name": "tick rate ~10/s",
       "pass": true,
-      "info": "9.8"
+      "info": "9.9"
     },
     {
       "name": "server moves exactly one cell per tick",
@@ -80,7 +80,7 @@
     {
       "name": "match ends when one player is left",
       "pass": true,
-      "info": "{\"winner\":1,\"reason\":\"last_standing\",\"ranking\":[1,0]}"
+      "info": "{\"winner\":0,\"reason\":\"last_standing\",\"ranking\":[0,1]}"
     },
     {
       "name": "winner is the survivor",
@@ -100,12 +100,17 @@
     {
       "name": "matchmaking pairs players",
       "pass": true,
-      "info": "TZXP6J"
+      "info": "CUUFMR"
     },
     {
       "name": "matched room filled with bots to 4 and starts",
       "pass": true,
       "info": ""
+    },
+    {
+      "name": "lone player matched with bots after the solo wait",
+      "pass": true,
+      "info": "7RVKTD"
     }
   ]
 }

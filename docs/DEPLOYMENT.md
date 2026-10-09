@@ -95,7 +95,7 @@
 | 更新引擎 | 更新 `stockfish`／`fairy-stockfish-nnue.wasm` 套件版本 → `npm run ladder` 驗證難度 → 推送 |
 | 調整 AI 難度 | `shared/ai/uci.ts` 的 `LEVELS`；暗棋在 `shared/ai/banqi-ai.ts`；領地爭奪戰在 `shared/territory/ai.ts`（調整後執行 `npm run ladder:territory`） |
 | 領地爭奪戰排行榜原始資料 | `SELECT u.nickname, t.* FROM territory_stats t JOIN users u ON u.id = t.user_id ORDER BY best_score DESC;` |
-| 調整領地爭奪戰配對 | `realtime/src/TerritoryLobby.ts`：滿 8 人或第 2 人加入 10 秒後開局，不足 4 人以中等 AI 補滿，每場 3 分鐘 |
+| 調整領地爭奪戰配對 | `realtime/src/TerritoryLobby.ts`：滿 8 人、第 2 人加入 10 秒後、或單獨一人等待 20 秒後開局，不足 4 人以中等 AI 補滿，每場 3 分鐘 |
 
 ## 10. 授權義務（GPL-3.0）
 
