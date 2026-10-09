@@ -27,7 +27,7 @@ export const zh = {
   'game.xiangqi.desc': '楚河漢界、九宮對弈。依台灣常見規則，含長將、長捉裁決。',
   'game.banqi.desc': '4 × 8 翻棋對戰，靠運氣也靠判斷。台灣常見玩法，可切換地方規則。',
 
-  'home.hero.title': '三種經典棋藝，一場即時對決',
+  'home.hero.title': '三種經典棋藝＋即時圈地對戰',
   'home.hero.sub': '與電腦對弈、和家人同機對戰，或邀請朋友線上一決高下。從零開始也能學會。',
   'home.cta.play': '開始遊戲',
   'home.cta.learn': '學習規則',
@@ -432,7 +432,7 @@ export const en: Record<StringKey, string> = {
   'game.xiangqi.desc': 'The river, the palace, the cannon. Taiwan-style rules with perpetual check and chase adjudication.',
   'game.banqi.desc': 'Flip-and-capture on a 4 × 8 board — luck meets judgement. Taiwan rules with switchable house rules.',
 
-  'home.hero.title': 'Three classics. One real-time showdown.',
+  'home.hero.title': 'Three classic board games. One real-time land grab.',
   'home.hero.sub': 'Play the computer, play your family on one device, or invite a friend online. Beginners welcome.',
   'home.cta.play': 'Play now',
   'home.cta.learn': 'Learn the rules',
