@@ -3,6 +3,8 @@
 export { GameRoom } from './GameRoom';
 export { Matchmaker } from './Matchmaker';
 export { RateLimiter } from './RateLimiter';
+export { TerritoryRoom } from './TerritoryRoom';
+export { TerritoryLobby } from './TerritoryLobby';
 
 export default {
   async fetch(): Promise<Response> {

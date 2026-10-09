@@ -1,6 +1,6 @@
 // D1 schema. Applied automatically (idempotent) on first use by both the Pages Functions and the
 // realtime worker; the same SQL is in migrations/0001_init.sql for `wrangler d1 migrations apply`.
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export const SCHEMA_SQL = [
   `CREATE TABLE IF NOT EXISTS config (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
@@ -50,6 +50,29 @@ export const SCHEMA_SQL = [
   `CREATE INDEX IF NOT EXISTS idx_games_u0 ON games(seat0_user, ended_at DESC)`,
   `CREATE INDEX IF NOT EXISTS idx_games_u1 ON games(seat1_user, ended_at DESC)`,
   `CREATE INDEX IF NOT EXISTS idx_games_pair ON games(seat0_user, seat1_user, ended_at)`,
+  `CREATE TABLE IF NOT EXISTS territory_stats (
+    user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    games INTEGER NOT NULL DEFAULT 0,
+    wins INTEGER NOT NULL DEFAULT 0,
+    kills INTEGER NOT NULL DEFAULT 0,
+    best_pct REAL NOT NULL DEFAULT 0,
+    best_score INTEGER NOT NULL DEFAULT 0,
+    updated_at INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_tstats_score ON territory_stats(best_score DESC)`,
+  `CREATE TABLE IF NOT EXISTS territory_games (
+    id TEXT PRIMARY KEY,
+    room_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    humans INTEGER NOT NULL,
+    players TEXT NOT NULL,
+    winner_name TEXT,
+    reason TEXT,
+    ticks INTEGER,
+    counted INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    ended_at INTEGER NOT NULL
+  )`,
   `CREATE TABLE IF NOT EXISTS errors (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ts INTEGER NOT NULL,

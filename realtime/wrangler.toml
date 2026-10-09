@@ -24,9 +24,21 @@ class_name = "Matchmaker"
 name = "LIMITER"
 class_name = "RateLimiter"
 
+[[durable_objects.bindings]]
+name = "TROOMS"
+class_name = "TerritoryRoom"
+
+[[durable_objects.bindings]]
+name = "TLOBBY"
+class_name = "TerritoryLobby"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["GameRoom", "Matchmaker", "RateLimiter"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["TerritoryRoom", "TerritoryLobby"]
 
 [[d1_databases]]
 binding = "DB"
