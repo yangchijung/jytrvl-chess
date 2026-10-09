@@ -102,7 +102,7 @@
 | Cloudflare Pages 與 realtime Worker 部署 | ✅ |
 | WebSocket（wss）連線 Durable Object | ✅ |
 | D1 資料儲存（/api/health db 連線） | ✅ |
-| Google 登入 | 🔶 `GOOGLE_CLIENT_SECRET` 已設定、`/api/health` 回報 `auth:true`、已進入 Google 帳號選擇畫面（無 redirect_uri 錯誤）；最後一步「點選帳號」需使用者本人完成確認 |
+| Google 登入 | ✅ 使用者以 Google 帳號登入成功（`/api/me` 回傳會員身分、暱稱與三款棋類積分及領地爭奪戰戰績） |
 | SEO：每頁 title／description／OG／canonical／hreflang、sitemap.xml、robots.txt；私人房間 noindex | ✅ |
 
 ## 9. 領地爭奪戰 Territory Rush（v1.1）
@@ -141,6 +141,8 @@
 | 私人房間：建立 → WebSocket 大廳 → 房主加入困難 AI → 開局快照（48×48） | ✅ |
 | 伺服器 tick 10.0／秒、每 tick 1 格、灌入 200 個輸入 5 tick 只移動 5 格、偽造訊息不斷線 | ✅ |
 | 衝出邊界被淘汰 → last_standing，AI 勝 | ✅ |
+| 公開配對：單人等待 22.5 秒後自動開局，房間由 1 位會員＋3 個 AI 組成 | ✅ |
+| 英文頁 `/en/territory`、已登入會員的個人戰績欄位（/api/me） | ✅ |
 
 ### 9.3 AI 難度（勝場，20 場）
 | 對戰 | 1 對 1 | 2 對 2 |

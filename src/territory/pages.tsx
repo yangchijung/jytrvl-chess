@@ -36,7 +36,7 @@ export function TerritoryPreview() {
 }
 
 export function TerritoryHub() {
-  const { t, to } = useI18n();
+  const { t, to, lang } = useI18n();
   const nav = useNavigate();
   const [code, setCode] = useState('');
   const options = [
@@ -50,7 +50,7 @@ export function TerritoryHub() {
     <div className="space-y-8">
       <div className="grid items-center gap-6 md:grid-cols-[1fr_20rem]">
         <PageTitle sub={t('game.territory.desc')}>
-          {t('game.territory')} <span className="text-xl font-normal text-[var(--muted)]">Territory Rush</span>
+          {t('game.territory')} {lang === 'zh' && <span className="text-xl font-normal text-[var(--muted)]">Territory Rush</span>}
         </PageTitle>
         <TerritoryPreview />
       </div>
