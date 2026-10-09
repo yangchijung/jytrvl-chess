@@ -10,6 +10,12 @@ import { About, Privacy, Terms } from './pages/Static';
 import { TerritoryHub, TerritoryPlay, TerritoryNewRoom } from './territory/pages';
 import { TerritoryRoomPage, TerritoryMatchPage } from './territory/online-pages';
 import { TerritoryLearn } from './territory/Learn';
+import { SnakeHub, SnakePlay, ArenaNewRoom } from './snake/pages';
+import { SnakeRoomPage, SnakeMatchPage } from './snake/online-pages';
+import { SnakeLearn } from './snake/Learn';
+import { BlocksHub, BlocksPlay } from './blocks/pages';
+import { BlocksRoomPage, BlocksMatchPage, BlocksRankedPage } from './blocks/online-pages';
+import { BlocksLearn } from './blocks/Learn';
 
 function pages(prefix: string) {
   const p = (s: string) => `${prefix}${s}`;
@@ -19,7 +25,20 @@ function pages(prefix: string) {
     <Route key={p('/xiangqi')} path={p('/xiangqi')} element={<GameHub game="xiangqi" />} />,
     <Route key={p('/banqi')} path={p('/banqi')} element={<GameHub game="banqi" />} />,
     <Route key={p('/learn/territory')} path={p('/learn/territory')} element={<TerritoryLearn />} />,
+    <Route key={p('/learn/snake')} path={p('/learn/snake')} element={<SnakeLearn />} />,
+    <Route key={p('/learn/blocks')} path={p('/learn/blocks')} element={<BlocksLearn />} />,
     <Route key={p('/learn')} path={p('/learn/:game')} element={<Learn />} />,
+    <Route key={p('/snake')} path={p('/snake')} element={<SnakeHub />} />,
+    <Route key={p('/snake/play')} path={p('/snake/play')} element={<SnakePlay />} />,
+    <Route key={p('/snake/new-room')} path={p('/snake/new-room')} element={<ArenaNewRoom game="snake" />} />,
+    <Route key={p('/snake/room')} path={p('/snake/room/:id')} element={<SnakeRoomPage />} />,
+    <Route key={p('/snake/match')} path={p('/snake/match')} element={<SnakeMatchPage />} />,
+    <Route key={p('/blocks')} path={p('/blocks')} element={<BlocksHub />} />,
+    <Route key={p('/blocks/play')} path={p('/blocks/play')} element={<BlocksPlay />} />,
+    <Route key={p('/blocks/new-room')} path={p('/blocks/new-room')} element={<ArenaNewRoom game="blocks" />} />,
+    <Route key={p('/blocks/room')} path={p('/blocks/room/:id')} element={<BlocksRoomPage />} />,
+    <Route key={p('/blocks/match')} path={p('/blocks/match')} element={<BlocksMatchPage />} />,
+    <Route key={p('/blocks/ranked')} path={p('/blocks/ranked')} element={<BlocksRankedPage />} />,
     <Route key={p('/territory')} path={p('/territory')} element={<TerritoryHub />} />,
     <Route key={p('/territory/play')} path={p('/territory/play')} element={<TerritoryPlay />} />,
     <Route key={p('/territory/new-room')} path={p('/territory/new-room')} element={<TerritoryNewRoom />} />,

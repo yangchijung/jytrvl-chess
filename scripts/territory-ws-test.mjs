@@ -1,4 +1,4 @@
-// Territory Rush multiplayer protocol tests against a running JY Chess (local wrangler or production).
+// Territory Rush multiplayer protocol tests against a running JY Games (local wrangler or production).
 // Requires: npm i ws (outside the project). Usage: node territory-ws-test.mjs <baseUrl> [cookieA] [cookieB]
 // cookieA/B: optional signed-in session cookies (e.g. "jy_sid=…") to verify stats recording.
 import WebSocket from 'ws';

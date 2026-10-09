@@ -26,13 +26,21 @@ describe('i18n', () => {
   });
   it('every reason code produced by the engines has a translation', () => {
     const reasons = new Set<string>();
-    for (const f of files('shared').filter((f) => !f.includes('territory'))) for (const m of readFileSync(f, 'utf8').matchAll(/reason: '([a-z_]+)'/g)) reasons.add(m[1]);
-    for (const f of files('realtime/src')) for (const m of readFileSync(f, 'utf8').matchAll(/reason: '([a-z_]+)'/g)) reasons.add(m[1]);
+    const arena = (f: string) => f.includes('territory') || f.includes('snake') || f.includes('blocks') || f.includes('arena');
+    for (const f of files('shared').filter((f) => !arena(f))) for (const m of readFileSync(f, 'utf8').matchAll(/reason: '([a-z_]+)'/g)) reasons.add(m[1]);
+    for (const f of files('realtime/src').filter((f) => !arena(f))) for (const m of readFileSync(f, 'utf8').matchAll(/reason: '([a-z_]+)'/g)) reasons.add(m[1]);
     for (const r of reasons) expect((zh as Record<string, string>)[`reason.${r}`], r).toBeTruthy();
   });
   it('every Territory Rush end reason and death reason has a translation', () => {
     for (const r of ['last_standing', 'domination', 'time', 'all_dead']) expect((zh as Record<string, string>)[`tr.end.reason.${r}`], r).toBeTruthy();
     for (const r of ['wall', 'self', 'land', 'collision', 'left']) expect((zh as Record<string, string>)[`tr.ev.died.${r}`], r).toBeTruthy();
+  });
+  it('every Snake Arena and Block Puzzle Battle reason has a translation', () => {
+    for (const r of ['last_standing', 'all_dead', 'time', 'crash']) expect((zh as Record<string, string>)[`sn.end.reason.${r}`], r).toBeTruthy();
+    for (const r of ['wall', 'self', 'body', 'head', 'left']) expect((zh as Record<string, string>)[`sn.ev.died.${r}`], r).toBeTruthy();
+    for (const r of ['topout', 'draw', 'time']) expect((zh as Record<string, string>)[`bl.end.reason.${r}`], r).toBeTruthy();
+    for (const k of ['open', 'pillars', 'cross', 'rooms']) expect((zh as Record<string, string>)[`sn.map.${k}`], k).toBeTruthy();
+    for (const k of ['left', 'right', 'soft', 'hard', 'cw', 'ccw', 'r180', 'hold']) expect((zh as Record<string, string>)[`bl.ctl.${k}`], k).toBeTruthy();
   });
   it('every literal t("…") key used in the UI exists', () => {
     const missing: string[] = [];

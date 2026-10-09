@@ -3,6 +3,8 @@ import { useI18n } from '../i18n';
 import { LinkButton, Card } from '../components/ui';
 import { DiscPiece, ChessPieceImg } from '../components/board/pieces';
 import { TerritoryPreview } from '../territory/pages';
+import { SnakePreview } from '../snake/pages';
+import { BlocksPreview } from '../blocks/pages';
 import type { GameId } from '../../shared/types';
 
 export function GamePreview({ game }: { game: GameId }) {
@@ -52,7 +54,13 @@ export function GamePreview({ game }: { game: GameId }) {
 
 export function Home() {
   const { t, to } = useI18n();
-  const games: (GameId | 'territory')[] = ['chess', 'xiangqi', 'banqi', 'territory'];
+  type AnyGame = GameId | 'territory' | 'snake' | 'blocks';
+  const categories: { key: 'home.cat.board' | 'home.cat.realtime' | 'home.cat.puzzle'; icon: string; games: AnyGame[] }[] = [
+    { key: 'home.cat.board', icon: '♟', games: ['chess', 'xiangqi', 'banqi'] },
+    { key: 'home.cat.realtime', icon: '⚡', games: ['territory', 'snake'] },
+    { key: 'home.cat.puzzle', icon: '🧩', games: ['blocks'] },
+  ];
+  const preview = (g: AnyGame) => (g === 'territory' ? <TerritoryPreview /> : g === 'snake' ? <SnakePreview /> : g === 'blocks' ? <BlocksPreview /> : <GamePreview game={g} />);
   const features = [
     ['🤖', 'home.features.ai', 'home.features.ai.desc'],
     ['🌐', 'home.features.online', 'home.features.online.desc'],
@@ -64,7 +72,7 @@ export function Home() {
       <section className="relative overflow-hidden rounded-3xl px-6 py-12 text-[var(--hero-text)] sm:px-10 sm:py-16" style={{ background: 'var(--hero-bg)' }}>
         <div className="pointer-events-none absolute -right-16 -top-16 h-72 w-72 rounded-full border-[18px] border-[var(--gold)] opacity-15" aria-hidden="true" />
         <div className="pointer-events-none absolute -bottom-24 right-24 h-56 w-56 rounded-full border-[12px] border-[var(--gold)] opacity-10" aria-hidden="true" />
-        <p className="mb-3 text-sm font-semibold uppercase tracking-[0.25em] text-[var(--gold)]">Chess · Xiangqi · Banqi · Territory Rush</p>
+        <p className="mb-3 text-sm font-semibold uppercase tracking-[0.25em] text-[var(--gold)]">JY Games · 6 Games</p>
         <h1 className="max-w-2xl font-serif text-4xl font-bold leading-tight sm:text-5xl">{t('home.hero.title')}</h1>
         <p className="mt-4 max-w-xl text-lg opacity-90">{t('home.hero.sub')}</p>
         <div className="mt-8 flex flex-wrap gap-3">
@@ -77,27 +85,36 @@ export function Home() {
         </div>
       </section>
 
-      <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4" aria-label={t('nav.play')}>
-        {games.map((g) => (
-          <Card key={g} className="flex flex-col gap-4">
-            {g === 'territory' ? <TerritoryPreview /> : <GamePreview game={g} />}
-            <div>
-              <h2 className="font-serif text-2xl font-bold">
-                {t(`game.${g}`)} <span className="text-base font-normal text-[var(--muted)]">{t(`game.${g}.en`)}</span>
-              </h2>
-              <p className="mt-2 text-[var(--muted)]">{t(`game.${g}.desc`)}</p>
-            </div>
-            <div className="mt-auto flex gap-2">
-              <LinkButton to={to(`/${g}`)} className="flex-1">
-                {t('home.cta.play')}
-              </LinkButton>
-              <LinkButton to={to(`/learn/${g}`)} variant="secondary" className="flex-1">
-                {t('home.cta.learn')}
-              </LinkButton>
-            </div>
-          </Card>
-        ))}
-      </section>
+      {categories.map((cat) => (
+        <section key={cat.key} aria-labelledby={cat.key} className="space-y-4">
+          <h2 id={cat.key} className="flex items-center gap-2 font-serif text-2xl font-bold">
+            <span aria-hidden="true">{cat.icon}</span>
+            {t(cat.key)}
+            <span className="text-sm font-normal text-[var(--muted)]">{t(`${cat.key}.desc`)}</span>
+          </h2>
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {cat.games.map((g) => (
+              <Card key={g} className="flex flex-col gap-4">
+                {preview(g)}
+                <div>
+                  <h3 className="font-serif text-2xl font-bold">
+                    {t(`game.${g}`)} <span className="text-base font-normal text-[var(--muted)]">{t(`game.${g}.en`)}</span>
+                  </h3>
+                  <p className="mt-2 text-[var(--muted)]">{t(`game.${g}.desc`)}</p>
+                </div>
+                <div className="mt-auto flex gap-2">
+                  <LinkButton to={to(`/${g}`)} className="flex-1">
+                    {t('home.cta.play')}
+                  </LinkButton>
+                  <LinkButton to={to(`/learn/${g}`)} variant="secondary" className="flex-1">
+                    {t('home.cta.learn')}
+                  </LinkButton>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </section>
+      ))}
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {features.map(([icon, h, d]) => (

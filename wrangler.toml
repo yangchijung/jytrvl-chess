@@ -1,4 +1,4 @@
-# JY Chess — Cloudflare Pages project (static site + Pages Functions under /functions).
+# JY Games — Cloudflare Pages project (static site + Pages Functions under /functions).
 # Pages Git integration: build command `npm run build`, output directory `dist`.
 name = "jytrvl-chess"
 pages_build_output_dir = "dist"
@@ -38,4 +38,19 @@ script_name = "jytrvl-chess-realtime"
 [[durable_objects.bindings]]
 name = "TLOBBY"
 class_name = "TerritoryLobby"
+script_name = "jytrvl-chess-realtime"
+
+[[durable_objects.bindings]]
+name = "SROOMS"
+class_name = "SnakeRoom"
+script_name = "jytrvl-chess-realtime"
+
+[[durable_objects.bindings]]
+name = "BROOMS"
+class_name = "BlocksRoom"
+script_name = "jytrvl-chess-realtime"
+
+[[durable_objects.bindings]]
+name = "ALOBBY"
+class_name = "ArenaLobby"
 script_name = "jytrvl-chess-realtime"

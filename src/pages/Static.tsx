@@ -13,12 +13,12 @@ export function About() {
       <PageTitle>{t('about.title')}</PageTitle>
       {lang === 'zh' ? (
         <Prose>
-          <p>JY Chess 是由 JetNet Ltd. 開發的線上棋藝平台，提供西洋棋、中國象棋與台灣暗棋，適合家庭、兒童與進階玩家。</p>
+          <p>JY Games 是由 JetNet Ltd. 開發的線上棋藝平台，提供西洋棋、中國象棋與台灣暗棋，適合家庭、兒童與進階玩家。</p>
           <h2>規則版本</h2>
           <ul>
             <li>西洋棋：FIDE《Laws of Chess》2023 年版。</li>
-            <li>中國象棋：JY Chess 台灣象棋規則 v1.0（含長將、長捉裁決）。</li>
-            <li>台灣暗棋：JY Chess 台灣暗棋規則 v1.0（台灣常見版，可切換地方規則）。</li>
+            <li>中國象棋：JY Games 台灣象棋規則 v1.0（含長將、長捉裁決）。</li>
+            <li>台灣暗棋：JY Games 台灣暗棋規則 v1.0（台灣常見版，可切換地方規則）。</li>
           </ul>
           <h2>開放原始碼與授權</h2>
           <p>
@@ -33,7 +33,7 @@ export function About() {
             <li>chess.js（BSD-2-Clause）— 西洋棋規則。</li>
             <li>西洋棋棋子圖案：Colin M.L. Burnett「cburnett」（GPLv2+）。</li>
             <li>字型：Noto Serif TC、Inter（SIL Open Font License 1.1）。</li>
-            <li>中國象棋、暗棋規則引擎與暗棋 AI 為 JY Chess 自行開發。</li>
+            <li>中國象棋、暗棋規則引擎與暗棋 AI 為 JY Games 自行開發。</li>
           </ul>
           <p>引擎原始碼位置另列於 /engines/SOURCES.txt。</p>
           <h2>聯絡</h2>
@@ -41,12 +41,12 @@ export function About() {
         </Prose>
       ) : (
         <Prose>
-          <p>JY Chess is an online board game platform by JetNet Ltd. for Chess, Xiangqi and Taiwanese Banqi — built for families, children and experienced players alike.</p>
+          <p>JY Games is an online board game platform by JetNet Ltd. for Chess, Xiangqi and Taiwanese Banqi — built for families, children and experienced players alike.</p>
           <h2>Rule versions</h2>
           <ul>
             <li>Chess: FIDE Laws of Chess, 2023 edition.</li>
-            <li>Xiangqi: JY Chess Taiwan Xiangqi Rules v1.0 (with perpetual check / chase adjudication).</li>
-            <li>Banqi: JY Chess Taiwan Banqi Rules v1.0 (Taiwan standard, switchable house rules).</li>
+            <li>Xiangqi: JY Games Taiwan Xiangqi Rules v1.0 (with perpetual check / chase adjudication).</li>
+            <li>Banqi: JY Games Taiwan Banqi Rules v1.0 (Taiwan standard, switchable house rules).</li>
           </ul>
           <h2>Open source & licences</h2>
           <p>
@@ -61,7 +61,7 @@ export function About() {
             <li>chess.js (BSD-2-Clause) — chess rules.</li>
             <li>Chess piece artwork: “cburnett” by Colin M.L. Burnett (GPLv2+).</li>
             <li>Fonts: Noto Serif TC, Inter (SIL Open Font License 1.1).</li>
-            <li>The xiangqi and banqi rule engines and the banqi AI were written for JY Chess.</li>
+            <li>The xiangqi and banqi rule engines and the banqi AI were written for JY Games.</li>
           </ul>
           <p>Engine source locations are listed in /engines/SOURCES.txt.</p>
           <h2>Contact</h2>
@@ -133,7 +133,7 @@ export function Terms() {
       {lang === 'zh' ? (
         <Prose>
           <ol className="list-decimal space-y-3 pl-5">
-            <li>JY Chess 免費提供，服務以現況提供，可能因維護而暫停。</li>
+            <li>JY Games 免費提供，服務以現況提供，可能因維護而暫停。</li>
             <li>公平競賽：計分對局中禁止使用外部引擎、多帳號或與他人串通刷分。系統會自動排除可疑對局，違規帳號可能被停權。</li>
             <li>暱稱不得含有冒犯、歧視或冒充他人的內容。</li>
             <li>禁止干擾服務運作，包括自動化大量請求或嘗試竄改對局資料。</li>
@@ -145,7 +145,7 @@ export function Terms() {
       ) : (
         <Prose>
           <ol className="list-decimal space-y-3 pl-5">
-            <li>JY Chess is free and provided “as is”; it may be unavailable during maintenance.</li>
+            <li>JY Games is free and provided “as is”; it may be unavailable during maintenance.</li>
             <li>Fair play: in rated games, external engines, multiple accounts and collusion are forbidden. Suspicious games are excluded automatically and offending accounts may be suspended.</li>
             <li>Nicknames must not be offensive, discriminatory or impersonate others.</li>
             <li>Do not disrupt the service, including automated mass requests or attempts to tamper with games.</li>

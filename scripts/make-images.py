@@ -14,7 +14,7 @@ for i in range(H):
     t=i/H; c=tuple(int(NAVY[k]*(1-t)+GREEN[k]*t) for k in range(3)); d.line([(0,i),(W,i)],fill=c)
 d.ellipse([820,-120,1320,380],outline=GOLD,width=22)
 ft=ImageFont.truetype(serif,96,index=1); fs=ImageFont.truetype(serif,44,index=1)
-d.text((80,170),'JY Chess',fill=PAPER,font=ft)
+d.text((80,170),'JY Games',fill=PAPER,font=ft)
 d.text((84,300),'西洋棋・中國象棋・台灣暗棋',fill=GOLD,font=fs)
 d.text((84,370),'Chess · Xiangqi · Banqi',fill=PAPER,font=fs)
 for i,(ch,col) in enumerate([('帥',RED),('車',(28,28,28)),('炮',RED)]):

@@ -28,7 +28,7 @@ function knock(freq: number, dur: number, gain: number, type: OscillatorType = '
   o.stop(t0 + dur + 0.02);
 }
 
-export type SoundKind = 'move' | 'capture' | 'check' | 'flip' | 'end' | 'notify' | 'error';
+export type SoundKind = 'move' | 'capture' | 'check' | 'flip' | 'end' | 'notify' | 'error' | 'eat' | 'gold' | 'drop' | 'clear' | 'big' | 'hold' | 'garbage';
 
 export function playSound(kind: SoundKind, enabled: boolean) {
   if (!enabled) return;
@@ -56,6 +56,28 @@ export function playSound(kind: SoundKind, enabled: boolean) {
       break;
     case 'error':
       knock(200, 0.15, 0.15, 'square');
+      break;
+    case 'eat':
+      knock(880, 0.05, 0.14, 'triangle');
+      break;
+    case 'gold':
+      [880, 1175, 1480].forEach((f, i) => knock(f, 0.09, 0.14, 'triangle', i * 0.05));
+      break;
+    case 'drop':
+      knock(160, 0.05, 0.2, 'sine');
+      break;
+    case 'hold':
+      knock(560, 0.05, 0.12, 'sine');
+      break;
+    case 'clear':
+      knock(620, 0.1, 0.18, 'triangle');
+      knock(930, 0.1, 0.14, 'triangle', 0.05);
+      break;
+    case 'big':
+      [523, 784, 1046, 1318].forEach((f, i) => knock(f, 0.16, 0.16, 'triangle', i * 0.06));
+      break;
+    case 'garbage':
+      knock(120, 0.18, 0.25, 'sawtooth');
       break;
   }
 }

@@ -73,7 +73,7 @@ const CHESS: Bi = {
 
 const XIANGQI: Bi = {
   zh: [
-    { h: '規則版本', items: ['JY Chess 台灣象棋規則 v1.0（參考台灣常見對局習慣與亞洲象棋聯合會長將、長捉精神）。'] },
+    { h: '規則版本', items: ['JY Games 台灣象棋規則 v1.0（參考台灣常見對局習慣與亞洲象棋聯合會長將、長捉精神）。'] },
     {
       h: '棋子走法',
       items: [
@@ -101,7 +101,7 @@ const XIANGQI: Bi = {
     { h: '和局', items: ['雙方都沒有可過河攻擊的棋子（俥傌炮兵）。', '連續 60 回合（120 步）沒有吃子。', '雙方同意和棋。'] },
   ],
   en: [
-    { h: 'Rule version', items: ['JY Chess Taiwan Xiangqi Rules v1.0 (Taiwan practice; perpetual check/chase in the spirit of the Asian Xiangqi Federation rules).'] },
+    { h: 'Rule version', items: ['JY Games Taiwan Xiangqi Rules v1.0 (Taiwan practice; perpetual check/chase in the spirit of the Asian Xiangqi Federation rules).'] },
     {
       h: 'How pieces move',
       items: [

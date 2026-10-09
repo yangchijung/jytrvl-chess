@@ -1,4 +1,4 @@
-# JY Chess 西洋棋規則 v1.0
+# JY Games 西洋棋規則 v1.0
 
 採用 FIDE《Laws of Chess》（2023 年 1 月 1 日生效版本）第 1–9 條。走法產生、將軍、將死、王車易位、吃過路兵與升變由 chess.js（BSD-2-Clause）處理；和局判定由 `shared/games/chess/rules.ts` 依 FIDE 條文實作。
 

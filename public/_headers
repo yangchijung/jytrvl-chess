@@ -26,3 +26,15 @@
 
 /en/territory/room/*
   X-Robots-Tag: noindex, nofollow
+
+/blocks/room/*
+  X-Robots-Tag: noindex, nofollow
+
+/en/blocks/room/*
+  X-Robots-Tag: noindex, nofollow
+
+/snake/room/*
+  X-Robots-Tag: noindex, nofollow
+
+/en/snake/room/*
+  X-Robots-Tag: noindex, nofollow

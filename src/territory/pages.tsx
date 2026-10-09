@@ -12,7 +12,7 @@ import { useAuth } from '../lib/auth';
 import type { BotLevel } from '../../shared/territory/ai';
 
 export function TerritoryPreview() {
-  // static illustration in the JY Chess style (not a screenshot of any other game)
+  // static illustration in the JY Games style (not a screenshot of any other game)
   const cells = [
     '..AAAA......',
     '.AAAAAA..bb.',

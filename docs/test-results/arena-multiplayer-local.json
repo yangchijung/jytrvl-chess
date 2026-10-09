@@ -1,0 +1,241 @@
+{
+  "base": "http://127.0.0.1:8788",
+  "date": "2026-10-09T13:17:35.718Z",
+  "results": [
+    {
+      "name": "snake: private room created",
+      "pass": true,
+      "info": "FCHXDX"
+    },
+    {
+      "name": "snake: creator is host",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snake: second player seated",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snake: non-host cannot start",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snake: host adds a bot",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snake: snapshot at countdown with all snakes",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snake: steps stream after countdown",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snake: input flood cannot speed up",
+      "pass": true,
+      "info": "moved 4 in 4 steps"
+    },
+    {
+      "name": "snake: server step rate ~10/s",
+      "pass": true,
+      "info": "9.0"
+    },
+    {
+      "name": "snake: exactly one cell per step",
+      "pass": true,
+      "info": "moved 1"
+    },
+    {
+      "name": "snake: forged messages ignored",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snake: late joiner gets snapshot as spectator",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snake: reconnect restores seat",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snake: match ends (last standing or time)",
+      "pass": true,
+      "info": "\"last_standing\""
+    },
+    {
+      "name": "snake: ranking lists every snake",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snake: stats recorded for signed-in players",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snake: host can reopen the lobby",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snake: matchmaking pairs players",
+      "pass": true,
+      "info": "EWVDLF"
+    },
+    {
+      "name": "snake: matched room has 4 snakes (bot fill)",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "blocks: private room created",
+      "pass": true,
+      "info": "7SD6D3"
+    },
+    {
+      "name": "blocks: room is 1 v 1",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "blocks: third person is a spectator (room full)",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "blocks: both get the same seed and boards",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "blocks: identical piece sequence for both players",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "blocks: server applies inputs (acks advance)",
+      "pass": true,
+      "info": "acks 316/166"
+    },
+    {
+      "name": "blocks: server and client agree on line count",
+      "pass": true,
+      "info": "server 30 client 30"
+    },
+    {
+      "name": "blocks: pieces locked server-side",
+      "pass": true,
+      "info": "pieces 76"
+    },
+    {
+      "name": "blocks: garbage exchanged between players",
+      "pass": true,
+      "info": "received 10"
+    },
+    {
+      "name": "blocks: prediction rarely needs correction",
+      "pass": true,
+      "info": "corrections 4"
+    },
+    {
+      "name": "blocks: withholding input cannot freeze your gravity",
+      "pass": true,
+      "info": "server ticks 1481 → 1606"
+    },
+    {
+      "name": "blocks: bad action / replayed seq ignored",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "blocks: match ends on top-out",
+      "pass": true,
+      "info": "{\"w\":1,\"r\":\"topout\"}"
+    },
+    {
+      "name": "blocks: opponent of the topped-out player wins",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "blocks: stats recorded",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "blocks: quick match pairs two players",
+      "pass": true,
+      "info": "RSJEWU"
+    },
+    {
+      "name": "blocks: lone player matched with a computer after ~20 s",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "blocks: computer seat present",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "blocks: server-side computer plays",
+      "pass": true,
+      "info": "pieces 3"
+    },
+    {
+      "name": "blocks: ranked requires sign-in",
+      "pass": true,
+      "info": "401"
+    },
+    {
+      "name": "blocks: ranked pairs signed-in players",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "solo: server issues a signed seed",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "solo: valid replay accepted with the same score",
+      "pass": true,
+      "info": "{\"ok\":true,\"score\":224,\"ms\":183,\"best\":{\"best_score\":224,\"best_ms\":null}}"
+    },
+    {
+      "name": "solo: a token cannot be used twice",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "solo: incomplete / tampered input log rejected",
+      "pass": true,
+      "info": "{\"ok\":false,\"error\":\"replay_failed\",\"detail\":\"unfinished\"}"
+    },
+    {
+      "name": "solo: forged token rejected",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "solo: a 2-minute game submitted at once is rejected as too fast",
+      "pass": true,
+      "info": "{\"ok\":false,\"error\":\"too_fast\"}"
+    },
+    {
+      "name": "solo: leaderboard lists the verified record",
+      "pass": true,
+      "info": ""
+    }
+  ]
+}

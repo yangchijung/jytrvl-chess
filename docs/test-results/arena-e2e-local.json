@@ -1,0 +1,291 @@
+{
+  "base": "http://127.0.0.1:8788",
+  "date": "2026-10-09T13:47:24.763Z",
+  "results": [
+    {
+      "name": "home: three categories",
+      "pass": true,
+      "info": "♟棋藝策略回合制・動腦思考 | ⚡即時競技反應與走位 | 🧩益智挑戰堆疊與消行"
+    },
+    {
+      "name": "home: six game cards",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "home: brand is JY Games",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "home: no console errors",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snake: hub loads (prerendered, SEO)",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snake: hub lists 8 modes",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snake classic: canvas + score HUD",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snake classic: game starts",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snake classic: ~10 steps per second at normal speed",
+      "pass": true,
+      "info": "10"
+    },
+    {
+      "name": "snake classic: keyboard steering",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snake classic: pause",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snake classic: paused game does not move",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snake classic: resume",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snake classic: crash → game over dialog",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snake classic: no console errors",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snake vs AI: leaderboard lists 4 snakes",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snake local: two score cards",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snake tutorial: step 1 completes",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snake tutorial: no console errors",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snake online: room created",
+      "pass": true,
+      "info": "http://127.0.0.1:8788/snake/room/26ANRW"
+    },
+    {
+      "name": "snake online: guest joins",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snake online: both in the arena",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snake online: both clients in sync",
+      "pass": true,
+      "info": "8/8"
+    },
+    {
+      "name": "snake online: no console errors",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "blocks: hub loads (prerendered, SEO)",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "blocks: hub lists 10 modes",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "blocks marathon: key settings available",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "blocks marathon: starts",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "blocks marathon: hard drop locks pieces",
+      "pass": true,
+      "info": "5"
+    },
+    {
+      "name": "blocks marathon: DAS move, hold, rotate, drop",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "blocks marathon: hard drop scores points",
+      "pass": true,
+      "info": "172"
+    },
+    {
+      "name": "blocks marathon: pause",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "blocks marathon: top-out → result dialog",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "blocks marathon: no console errors",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "blocks vs AI: two boards",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "blocks vs AI: computer is playing",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "blocks local: both keyboards drive their own board",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "blocks tutorial: step 1 completes",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "blocks tutorial: no console errors",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "blocks online: room created",
+      "pass": true,
+      "info": "http://127.0.0.1:8788/blocks/room/GPEHMB"
+    },
+    {
+      "name": "blocks online: guest joins",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "blocks online: both see two boards",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "blocks online: own drops apply instantly",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "blocks online: opponent sees them via the server",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "blocks online: no console errors",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "mobile blocks: touch buttons shown",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "mobile blocks: tap hard drop",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "mobile blocks: no horizontal scroll",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "mobile snake: D-pad shown",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "mobile snake: D-pad steers",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "mobile snake: no horizontal scroll",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "mobile home: no horizontal scroll",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "English snake hub",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "English blocks hub",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "leaderboard: Block Puzzle Battle boards",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "leaderboard: Snake Arena boards",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "leaderboard: no console errors",
+      "pass": true,
+      "info": ""
+    }
+  ]
+}

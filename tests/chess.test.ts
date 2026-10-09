@@ -91,7 +91,7 @@ describe('chess — FIDE rules', () => {
 
   it('PGN round trip and state rebuild', () => {
     const g = play(['e2e4', 'e7e5', 'g1f3', 'b8c6', 'f1b5']);
-    const pgn = g.pgn({ Event: 'JY Chess' });
+    const pgn = g.pgn({ Event: 'JY Games' });
     expect(pgn).toContain('3. Bb5');
     const back = ChessRules.fromPgn(pgn);
     expect(back.fen()).toBe(g.fen());

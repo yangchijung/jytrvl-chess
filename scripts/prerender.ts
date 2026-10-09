@@ -21,7 +21,7 @@ for (const [path, m] of Object.entries(PAGES)) {
       `<link rel="alternate" hreflang="en" href="${ORIGIN + loc('en', path)}" />`,
       `<link rel="alternate" hreflang="x-default" href="${ORIGIN + loc('zh', path)}" />`,
       `<meta property="og:type" content="website" />`,
-      `<meta property="og:site_name" content="JY Chess" />`,
+      `<meta property="og:site_name" content="JY Games" />`,
       `<meta property="og:title" content="${esc(m.title[lang])}" />`,
       `<meta property="og:description" content="${esc(m.description[lang])}" />`,
       `<meta property="og:url" content="${href}" />`,
@@ -54,6 +54,6 @@ writeFileSync(
 );
 writeFileSync(
   'dist/robots.txt',
-  `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /room/\nDisallow: /en/room/\nDisallow: /profile\nDisallow: /history\nDisallow: /settings\nDisallow: /matchmaking\nDisallow: /play\nDisallow: /territory/room/\nDisallow: /en/territory/room/\nDisallow: /territory/play\nDisallow: /territory/match\nDisallow: /territory/new-room\n\nSitemap: ${ORIGIN}/sitemap.xml\n`,
+  `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /room/\nDisallow: /en/room/\nDisallow: /profile\nDisallow: /history\nDisallow: /settings\nDisallow: /matchmaking\nDisallow: /play\nDisallow: /territory/room/\nDisallow: /en/territory/room/\nDisallow: /territory/play\nDisallow: /territory/match\nDisallow: /territory/new-room\nDisallow: /snake/room/\nDisallow: /en/snake/room/\nDisallow: /snake/play\nDisallow: /snake/match\nDisallow: /snake/new-room\nDisallow: /blocks/room/\nDisallow: /en/blocks/room/\nDisallow: /blocks/play\nDisallow: /blocks/match\nDisallow: /blocks/ranked\nDisallow: /blocks/new-room\n\nSitemap: ${ORIGIN}/sitemap.xml\n`,
 );
 console.log(`prerendered ${Object.keys(PAGES).length * 2} pages, sitemap ${urls.length} urls`);

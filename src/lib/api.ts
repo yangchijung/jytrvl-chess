@@ -4,8 +4,10 @@ export interface Me {
   kind: 'user' | 'guest';
   id: string;
   nickname: string;
-  ratings?: Record<GameId, { rating: number; games: number; wins: number; losses: number; draws: number }>;
+  ratings?: Record<GameId, { rating: number; games: number; wins: number; losses: number; draws: number }> & { blocks?: { rating: number; games: number; wins: number; losses: number; draws: number } };
   territory?: { games: number; wins: number; kills: number; best_pct: number; best_score: number };
+  arena?: Partial<Record<'snake' | 'blocks', { games: number; wins: number; kills: number; best_score: number; best_len: number; lines: number; attack: number }>>;
+  solo?: { game: 'snake' | 'blocks'; mode: string; best_score: number; best_ms: number | null; lines: number; plays: number }[];
   createdAt?: number;
 }
 

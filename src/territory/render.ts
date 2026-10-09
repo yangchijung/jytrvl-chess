@@ -1,4 +1,4 @@
-// Canvas 2D renderer for Territory Rush (original JY Chess art style: flat land tiles with a soft
+// Canvas 2D renderer for Territory Rush (original JY Games art style: flat land tiles with a soft
 // inner bevel, translucent trails, rounded "token" runners with direction eyes).
 import { DIRS, type TerritoryGame } from '../../shared/territory/engine';
 import type { TerritoryClient } from './client';

@@ -1,4 +1,4 @@
-# JY Chess 功能驗收報告 v1.1
+# JY Games 功能驗收報告 v1.1
 
 - 驗收日期：2026-10-09
 - 正式網址：<https://chess.jytrvl.com>（Cloudflare Pages，HTTPS：Active／SSL enabled）

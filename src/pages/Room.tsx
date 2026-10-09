@@ -42,7 +42,7 @@ function RoomInner({ c }: { c: OnlineController }) {
             size="sm"
             onClick={async () => {
               try {
-                if (navigator.share) await navigator.share({ title: 'JY Chess', url });
+                if (navigator.share) await navigator.share({ title: 'JY Games', url });
                 else await navigator.clipboard.writeText(url);
                 setCopied(true);
               } catch {

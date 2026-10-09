@@ -1,7 +1,7 @@
 {
-  "name": "JY Chess",
-  "short_name": "JY Chess",
-  "description": "西洋棋・中國象棋・台灣暗棋 — Chess, Xiangqi & Banqi",
+  "name": "JY Games",
+  "short_name": "JY Games",
+  "description": "JY Games：棋藝策略・即時競技・益智挑戰 — six games online",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#faf7f0",

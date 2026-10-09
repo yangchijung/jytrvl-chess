@@ -1,6 +1,6 @@
-# JY Chess 台灣象棋規則 v1.0
+# JY Games 台灣象棋規則 v1.0
 
-本文件固定 JY Chess 中國象棋採用的規則版本。規則引擎 `shared/games/xiangqi/rules.ts` 與自動化測試 `tests/xiangqi.test.ts` 以本文件為準。
+本文件固定 JY Games 中國象棋採用的規則版本。規則引擎 `shared/games/xiangqi/rules.ts` 與自動化測試 `tests/xiangqi.test.ts` 以本文件為準。
 
 參考依據：台灣常見對局習慣，以及亞洲象棋聯合會（AXF）《象棋比賽規則》中長將、長捉的基本精神。完整的 AXF 裁判細則（例如「一將一捉」「多子捉」的逐條例外）需要人工裁判；線上系統採用下列可機器判定的簡化版本，並在遊戲內「規則說明」完整公開。
 

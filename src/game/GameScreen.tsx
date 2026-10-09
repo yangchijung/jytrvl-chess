@@ -249,7 +249,7 @@ export function GameScreen({
       const s = st.serialize();
       if (s.game === 'chess') {
         const { ChessRules } = await import('../../shared/games/chess/rules');
-        text = new ChessRules(s.state).pgn({ Event: 'JY Chess', Site: 'https://chess.jytrvl.com', Date: new Date().toISOString().slice(0, 10).replace(/-/g, '.') });
+        text = new ChessRules(s.state).pgn({ Event: 'JY Games', Site: 'https://chess.jytrvl.com', Date: new Date().toISOString().slice(0, 10).replace(/-/g, '.') });
       }
     } else if (st && st.game === 'xiangqi') {
       text = `[Game "Chinese Chess"]\n[FEN "${st.position().game === 'xiangqi' ? (st.serialize().state as { startFen: string }).startFen : ''}"]\n\n${snap.records

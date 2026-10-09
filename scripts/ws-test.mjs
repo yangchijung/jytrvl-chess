@@ -1,5 +1,5 @@
 // Requires: npm i ws. Usage: node ws-test.mjs <baseUrl> [--timeout]
-// Multiplayer protocol tests (server-authoritative behaviour) against a running JY Chess.
+// Multiplayer protocol tests (server-authoritative behaviour) against a running JY Games.
 // Usage: node ws-test.mjs [baseUrl] [--timeout]
 import WebSocket from 'ws';
 import { writeFileSync } from 'node:fs';
@@ -153,7 +153,7 @@ try {
     const X = client(m1, ca, 'X');
     const Y = client(m1, cb, 'Y');
     await Promise.all([X.ready, Y.ready]);
-    ok('matched room starts with both seats', await until(() => X.state?.status === 'playing' && X.state.mySeat !== null && Y.state?.mySeat !== null && X.state.mySeat !== Y.state.mySeat));
+    ok('matched room starts with both seats', await until(() => X.state?.status === 'playing' && X.state.mySeat !== null && Y.state?.mySeat !== null && Y.state && X.state.mySeat !== Y.state.mySeat));
     X.ws.close();
     Y.ws.close();
   }

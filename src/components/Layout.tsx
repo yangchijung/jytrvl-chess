@@ -31,8 +31,9 @@ export function Layout({ children }: { children: ReactNode }) {
     { to: '/xiangqi', label: t('game.xiangqi') },
     { to: '/banqi', label: t('game.banqi') },
     { to: '/territory', label: t('game.territory') },
+    { to: '/snake', label: t('game.snake') },
+    { to: '/blocks', label: t('game.blocks') },
     { to: '/leaderboard', label: t('nav.leaderboard') },
-    { to: '/history', label: t('nav.history') },
   ];
   const nextTheme = settings.theme === 'dark' ? 'light' : settings.theme === 'light' ? 'system' : 'dark';
   const themeIcon =
@@ -58,17 +59,17 @@ export function Layout({ children }: { children: ReactNode }) {
       </a>
       <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--header-bg)] backdrop-blur">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4">
-          <Link to={to('/')} className="flex items-center gap-2 rounded-lg outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus)]" aria-label="JY Chess">
+          <Link to={to('/')} className="flex items-center gap-2 rounded-lg outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus)]" aria-label="JY Games">
             <Logo />
-            <span className="font-serif text-lg font-bold tracking-wide">JY Chess</span>
+            <span className="font-serif text-lg font-bold tracking-wide">JY Games</span>
           </Link>
-          <nav className="ml-4 hidden items-center gap-1 md:flex" aria-label="main">
+          <nav className="ml-2 hidden items-center gap-0.5 xl:flex" aria-label="main">
             {links.map((l) => (
               <NavLink
                 key={l.to}
                 to={to(l.to)}
                 end={l.end}
-                className={({ isActive }) => `rounded-lg px-3 py-2 text-sm font-medium hover:bg-[var(--surface-2)] ${isActive ? 'text-[var(--accent-text)]' : ''}`}
+                className={({ isActive }) => `whitespace-nowrap rounded-lg px-2.5 py-2 text-sm font-medium hover:bg-[var(--surface-2)] ${isActive ? 'text-[var(--accent-text)]' : ''}`}
               >
                 {l.label}
               </NavLink>
@@ -100,7 +101,7 @@ export function Layout({ children }: { children: ReactNode }) {
             )}
             <button
               type="button"
-              className="h-10 w-10 rounded-lg text-xl hover:bg-[var(--surface-2)] focus-visible:ring-4 focus-visible:ring-[var(--focus)] md:hidden"
+              className="h-10 w-10 rounded-lg text-xl hover:bg-[var(--surface-2)] focus-visible:ring-4 focus-visible:ring-[var(--focus)] xl:hidden"
               aria-expanded={open}
               aria-controls="mobile-nav"
               aria-label={t('nav.menu')}
@@ -111,8 +112,8 @@ export function Layout({ children }: { children: ReactNode }) {
           </div>
         </div>
         {open && (
-          <nav id="mobile-nav" className="border-t border-[var(--border)] px-4 py-2 md:hidden" aria-label="mobile">
-            {[...links, { to: '/settings', label: t('nav.settings') }, { to: '/profile', label: t('nav.profile') }].map((l) => (
+          <nav id="mobile-nav" className="grid grid-cols-2 border-t border-[var(--border)] px-4 py-2 sm:grid-cols-3 xl:hidden" aria-label="mobile">
+            {[...links, { to: '/history', label: t('nav.history') }, { to: '/settings', label: t('nav.settings') }, { to: '/profile', label: t('nav.profile') }].map((l) => (
               <NavLink key={l.to} to={to(l.to)} onClick={() => setOpen(false)} className="block rounded-lg px-3 py-3 font-medium hover:bg-[var(--surface-2)]">
                 {l.label}
               </NavLink>

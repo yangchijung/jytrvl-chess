@@ -1,7 +1,7 @@
 // Browser-side engine coordinator. All engine work happens in Web Workers.
 //   chess   → Stockfish 19 lite (single-threaded WASM, no special headers needed)
 //   xiangqi → Fairy-Stockfish (multi-threaded WASM, needs cross-origin isolation) with a built-in fallback
-//   banqi   → JY Chess determinization AI (ai.worker.ts) — sees only public information
+//   banqi   → JY Games determinization AI (ai.worker.ts) — sees only public information
 import { UciClient, type SearchResult, type Level } from '../../shared/ai/uci';
 import { chooseEngineMove } from '../../shared/ai/choose';
 import type { BanqiView } from '../../shared/games/banqi/rules';

@@ -1,4 +1,4 @@
-# JY Chess 領地爭奪戰（Territory Rush）規則 v1.0
+# JY Games 領地爭奪戰（Territory Rush）規則 v1.0
 
 原創即時圈地遊戲，引擎：`shared/territory/engine.ts`（確定性、固定 tick，瀏覽器與伺服器共用）。
 

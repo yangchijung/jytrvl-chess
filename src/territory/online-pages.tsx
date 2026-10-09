@@ -31,7 +31,7 @@ function Lobby({ c }: { c: OnlineTerritory }) {
                 size="sm"
                 onClick={async () => {
                   try {
-                    if (navigator.share) await navigator.share({ title: 'JY Chess · Territory Rush', url });
+                    if (navigator.share) await navigator.share({ title: 'JY Games · Territory Rush', url });
                     else await navigator.clipboard.writeText(url);
                     setCopied(true);
                   } catch {

@@ -1,5 +1,5 @@
 // Requires: npm i @sparticuz/chromium puppeteer-core (run outside the project). Usage: node e2e.mjs <baseUrl>
-// End-to-end smoke test against a running JY Chess (local wrangler or production).
+// End-to-end smoke test against a running JY Games (local wrangler or production).
 // Usage: node e2e.mjs [baseUrl] [outDir]
 import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer-core';
@@ -52,7 +52,7 @@ try {
   {
     const p = await newPage(ctx);
     const r = await p.goto(BASE + '/', { waitUntil: 'networkidle0' });
-    ok('home loads', r.status() === 200 && (await p.$eval('h1', (e) => e.textContent)).includes('即時圈地'));
+    ok('home loads', r.status() === 200 && (await p.$eval('h1', (e) => e.textContent)).includes('六款'));
     ok('cross-origin isolated', await p.evaluate(() => self.crossOriginIsolated));
     await shot(p, '01-home-desktop');
     ok('home no console errors', p.errors.length === 0, p.errors.join(' | '));

@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-09T13:55:48.877Z",
+  "matches": 30,
+  "perSide": 2,
+  "easy-medium": {
+    "wins": {
+      "easy": 3,
+      "medium": 25,
+      "draw": 2
+    },
+    "maxLen": {
+      "easy": 551,
+      "medium": 1451
+    },
+    "maxThinkMs": 16.599069999999983
+  },
+  "medium-hard": {
+    "wins": {
+      "medium": 5,
+      "hard": 25,
+      "draw": 0
+    },
+    "maxLen": {
+      "medium": 2407,
+      "hard": 4448
+    },
+    "maxThinkMs": 27.42544399999997
+  },
+  "easy-hard": {
+    "wins": {
+      "easy": 0,
+      "hard": 30,
+      "draw": 0
+    },
+    "maxLen": {
+      "easy": 562,
+      "hard": 5901
+    },
+    "maxThinkMs": 12.497126000000208
+  }
+}

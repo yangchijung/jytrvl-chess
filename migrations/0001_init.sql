@@ -1,4 +1,4 @@
--- JY Chess D1 schema v1 (also applied automatically at runtime)
+-- JY Games D1 schema v1 (also applied automatically at runtime)
 CREATE TABLE IF NOT EXISTS config (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 
 CREATE TABLE IF NOT EXISTS users (

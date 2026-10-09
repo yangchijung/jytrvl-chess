@@ -1,9 +1,10 @@
+import { SnakeBoard, BlocksBoard, fmtMs } from '../arena/Leaderboards';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useI18n, type StringKey } from '../i18n';
 import { useAuth } from '../lib/auth';
 import { useSettings } from '../lib/settings';
-import { api } from '../lib/api';
+import { api, type Me } from '../lib/api';
 import { Button, Card, PageTitle, Segmented, Spinner, Toggle } from '../components/ui';
 import { LessonPlayer } from '../learn/LessonPlayer';
 import { listLocalGames, deleteLocalGame } from '../lib/history';
@@ -188,6 +189,7 @@ export function Profile() {
           </dl>
         </Card>
       )}
+      <ArenaProfile me={me} />
       <div className="flex flex-wrap gap-2">
         <Button variant="secondary" onClick={() => void logout()}>
           {t('auth.logout')}
@@ -433,6 +435,45 @@ interface LbRow {
   draws: number;
 }
 
+function ArenaProfile({ me }: { me: Me }) {
+  const { t } = useI18n();
+  const sn = me.arena?.snake;
+  const bl = me.arena?.blocks;
+  const solo = (g: 'snake' | 'blocks', m: string) => me.solo?.find((x) => x.game === g && x.mode === m);
+  const tile = (k: string, v: string | number) => (
+    <div key={k} className="rounded-lg bg-[var(--surface-2)] p-2 text-center">
+      <dt className="text-xs text-[var(--muted)]">{k}</dt>
+      <dd className="text-xl font-bold tabular-nums">{v}</dd>
+    </div>
+  );
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      <Card>
+        <h2 className="font-serif text-xl font-bold">{t('game.snake')}</h2>
+        <dl className="mt-3 grid grid-cols-3 gap-2 text-sm">
+          {tile(t('tr.lb.games'), sn?.games ?? 0)}
+          {tile(t('tr.lb.wins'), sn?.wins ?? 0)}
+          {tile(t('tr.lb.kills'), sn?.kills ?? 0)}
+          {tile(t('lb.col.len'), sn?.best_len ?? 0)}
+          {tile(t('sn.mode.classic'), solo('snake', 'classic')?.best_score ?? 0)}
+          {tile(t('sn.mode.survival'), solo('snake', 'survival')?.best_score ?? 0)}
+        </dl>
+      </Card>
+      <Card>
+        <h2 className="font-serif text-xl font-bold">{t('game.blocks')}</h2>
+        <dl className="mt-3 grid grid-cols-3 gap-2 text-sm">
+          {tile(t('lb.rating'), me.ratings?.blocks?.rating ?? 1200)}
+          {tile(t('tr.lb.wins'), (bl?.wins ?? 0) + '/' + (bl?.games ?? 0))}
+          {tile(t('lb.col.lines'), bl?.lines ?? 0)}
+          {tile(t('bl.mode.marathon'), (solo('blocks', 'marathon')?.best_score ?? 0).toLocaleString())}
+          {tile(t('bl.mode.sprint'), solo('blocks', 'sprint')?.best_ms ? fmtMs(solo('blocks', 'sprint')!.best_ms!) : '—')}
+          {tile(t('bl.mode.ultra'), (solo('blocks', 'ultra')?.best_score ?? 0).toLocaleString())}
+        </dl>
+      </Card>
+    </div>
+  );
+}
+
 interface TLbRow {
   nickname: string;
   games: number;
@@ -507,10 +548,14 @@ function TerritoryBoard() {
 
 export function Leaderboard() {
   const { t } = useI18n();
-  const [game, setGame] = useState<GameId | 'territory'>('chess');
+  const [game, setGame] = useState<GameId | 'territory' | 'snake' | 'blocks'>(() => {
+    const q = new URLSearchParams(location.search).get('game');
+    return (['chess', 'xiangqi', 'banqi', 'territory', 'snake', 'blocks'].includes(q ?? '') ? q : 'chess') as GameId;
+  });
   const [rows, setRows] = useState<LbRow[] | null>(null);
+  const special = game === 'territory' || game === 'snake' || game === 'blocks';
   useEffect(() => {
-    if (game === 'territory') return;
+    if (game === 'territory' || game === 'snake' || game === 'blocks') return;
     setRows(null);
     api<{ rows: LbRow[] }>(`/leaderboard?game=${game}`)
       .then((r) => setRows(r.rows))
@@ -518,17 +563,26 @@ export function Leaderboard() {
   }, [game]);
   return (
     <div className="space-y-4">
-      <PageTitle sub={game === 'territory' ? undefined : t('lb.note')}>{t('lb.title')}</PageTitle>
+      <PageTitle sub={special ? undefined : t('lb.note')}>{t('lb.title')}</PageTitle>
       <div className="max-w-2xl">
         <Segmented
           label={t('nav.play')}
           value={game}
           onChange={setGame}
-          options={[...GAME_IDS.map((g) => ({ value: g as GameId | 'territory', label: t(`game.${g}`) })), { value: 'territory', label: t('game.territory') }]}
+          options={[
+            ...GAME_IDS.map((g) => ({ value: g as GameId | 'territory' | 'snake' | 'blocks', label: t(`game.${g}`) })),
+            { value: 'territory', label: t('game.territory') },
+            { value: 'snake', label: t('game.snake') },
+            { value: 'blocks', label: t('game.blocks') },
+          ]}
         />
       </div>
       {game === 'territory' ? (
         <TerritoryBoard />
+      ) : game === 'snake' ? (
+        <SnakeBoard />
+      ) : game === 'blocks' ? (
+        <BlocksBoard />
       ) : rows === null ? (
         <Spinner />
       ) : rows.length === 0 ? (

@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-09T12:42:56.782Z",
+  "matches": 20,
+  "easy-medium": {
+    "wins": {
+      "easy": 0,
+      "medium": 20,
+      "draw": 0
+    },
+    "avgSeconds": 72.10333333333332,
+    "maxThinkMs": 10.662192000000005
+  },
+  "medium-hard": {
+    "wins": {
+      "medium": 0,
+      "hard": 20,
+      "draw": 0
+    },
+    "avgSeconds": 85.4575,
+    "maxThinkMs": 38.55110699999932
+  },
+  "easy-hard": {
+    "wins": {
+      "easy": 0,
+      "hard": 20,
+      "draw": 0
+    },
+    "avgSeconds": 41.2425,
+    "maxThinkMs": 34.42065499999444
+  }
+}
