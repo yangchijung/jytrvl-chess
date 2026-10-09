@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-09T03:47:53.270Z",
+  "gamesPerPair": 12,
+  "banqi": [
+    {
+      "weak": "medium",
+      "strong": "hard",
+      "strongScore": 7.5,
+      "games": 12,
+      "detail": [
+        "hard-medium:0-1(no_moves)",
+        "medium-hard:draw(no_progress)",
+        "hard-medium:1-0(all_captured)",
+        "medium-hard:draw(repetition)",
+        "hard-medium:1-0(no_moves)",
+        "medium-hard:draw(no_progress)",
+        "hard-medium:draw(no_progress)",
+        "medium-hard:0-1(all_captured)",
+        "hard-medium:1-0(all_captured)",
+        "medium-hard:draw(repetition)",
+        "hard-medium:draw(no_progress)",
+        "medium-hard:draw(repetition)"
+      ]
+    }
+  ]
+}

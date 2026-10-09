@@ -88,8 +88,8 @@ export async function aiMove(
   return ask({ kind: 'xqlite', fen, legal, level });
 }
 
-export function banqiAiMove(view: BanqiView, seat: Seat, level: Level): Promise<string> {
-  return ask({ kind: 'banqi', view, seat, level });
+export function banqiAiMove(view: BanqiView, seat: Seat, level: Level, seen: string[] = []): Promise<string> {
+  return ask({ kind: 'banqi', view, seat, level, seen });
 }
 
 /** Full-strength analysis for the coach (hint, blunder check, review). */

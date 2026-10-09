@@ -3,6 +3,7 @@ import { newRules, restoreRules, truncateState, type AnyState, type Rules } from
 import type { GameResult, Seat } from '../../shared/types';
 import type { GameController, LocalOptions, Snapshot, Offer } from './controller';
 import { aiMove, banqiAiMove } from '../engines/ai';
+import { visibleKey } from '../../shared/ai/banqi-ai';
 
 export interface LocalSave {
   v: 1;
@@ -172,7 +173,7 @@ export class LocalController implements GameController {
     try {
       let mv: string;
       const pos = this.rules.position();
-      if (pos.game === 'banqi') mv = await banqiAiMove(pos.view, seat, this.opts.level);
+      if (pos.game === 'banqi') mv = await banqiAiMove(pos.view, seat, this.opts.level, this.banqiSeen());
       else mv = await aiMove(pos.game, pos.fen, this.rules.legalMoves(), this.opts.level);
       // small minimum delay so moves don't appear instantly (better for children)
       const wait = 350 - (performance.now() - started);
@@ -320,6 +321,17 @@ export class LocalController implements GameController {
 
   explain(sq: string) {
     return this.rules.explainNoMove(sq);
+  }
+
+  /** Visible positions of this banqi game so far (public information only). */
+  private banqiSeen(): string[] {
+    const st = this.rules.serialize();
+    const out: string[] = [];
+    for (let n = 0; n <= st.state.moves.length; n++) {
+      const p = restoreRules(truncateState(st, n)).position();
+      if (p.game === 'banqi') out.push(visibleKey(p.view));
+    }
+    return out;
   }
 
   /** Current rules object (read-only use by the coach). */

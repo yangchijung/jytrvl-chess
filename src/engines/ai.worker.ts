@@ -7,14 +7,14 @@ import type { Level } from '../../shared/ai/uci';
 import type { Seat } from '../../shared/types';
 
 type Req =
-  | { id: number; kind: 'banqi'; view: BanqiView; seat: Seat; level: Level }
+  | { id: number; kind: 'banqi'; view: BanqiView; seat: Seat; level: Level; seen?: string[] }
   | { id: number; kind: 'xqlite'; fen: string; legal: string[]; level: Level };
 
 self.onmessage = async (e: MessageEvent<Req>) => {
   const r = e.data;
   try {
     let move: string;
-    if (r.kind === 'banqi') move = chooseBanqiMove(r.view, r.seat, { level: r.level });
+    if (r.kind === 'banqi') move = chooseBanqiMove(r.view, r.seat, { level: r.level, seen: new Set(r.seen ?? []) });
     else move = await chooseEngineMove('xiangqi', r.fen, r.legal, r.level, null);
     (self as unknown as Worker).postMessage({ id: r.id, move });
   } catch (err) {

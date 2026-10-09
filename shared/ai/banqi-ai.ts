@@ -23,6 +23,13 @@ export interface BanqiAiOptions {
   rand?: () => number;
   /** time budget in ms for hard level */
   budgetMs?: number;
+  /** visible positions already seen in this game (see visibleKey); hard AI avoids repeating them when ahead */
+  seen?: Set<string>;
+}
+
+/** Key of the visible position — identical to what both players can see, so using it is fair. */
+export function visibleKey(view: Pick<BanqiView, 'cells' | 'turn'>): string {
+  return `${view.cells.map((c) => c ?? '.').join('')}|${view.turn}`;
 }
 
 /** Build a concrete game from a public view by assigning random identities to face-down cells. */
@@ -239,8 +246,19 @@ export function chooseBanqiMove(view: BanqiView, seat: Seat, opts: BanqiAiOption
   }
   let best = moves[0];
   let bestV = -Infinity;
+  const repeats = new Set<string>();
+  if (opts.level === 'hard' && opts.seen?.size) {
+    for (const m of moves) {
+      if (m.startsWith('f:')) continue;
+      const h = clone(base);
+      h.play(m);
+      if (opts.seen.has(visibleKey({ cells: Array.from({ length: 32 }, (_, i) => h.cell(i)), turn: h.turn }))) repeats.add(m);
+    }
+  }
   for (const [m, v] of totals) {
-    const avg = v / done + (opts.level === 'medium' ? (rand() - 0.5) * 6 : rand() * 0.6);
+    let avg = v / done + (opts.level === 'medium' ? (rand() - 0.5) * 6 : rand() * 0.6);
+    // When winning, a repeated position is a step toward a repetition draw: steer away from it.
+    if (repeats.has(m) && v / done > 2) avg -= 8;
     if (avg > bestV) {
       bestV = avg;
       best = m;

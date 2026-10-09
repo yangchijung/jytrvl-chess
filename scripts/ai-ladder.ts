@@ -7,7 +7,7 @@ import { ChessRules } from '../shared/games/chess/rules';
 import { XiangqiRules } from '../shared/games/xiangqi/rules';
 import { BanqiRules } from '../shared/games/banqi/rules';
 import { chooseEngineMove, type Level } from '../shared/ai/choose';
-import { chooseBanqiMove } from '../shared/ai/banqi-ai';
+import { chooseBanqiMove, visibleKey } from '../shared/ai/banqi-ai';
 import { nodeStockfish, nodeFairyStockfish } from './node-engines';
 import type { UciClient } from '../shared/ai/uci';
 import type { GameResult } from '../shared/types';
@@ -37,11 +37,13 @@ async function playEngineGame(game: 'chess' | 'xiangqi', white: Level, black: Le
 
 function playBanqiGame(first: Level, second: Level): GameResult {
   const g = BanqiRules.create();
+  const seen = new Set<string>();
   for (let ply = 0; ply < 600; ply++) {
     const r = g.result();
     if (r) return r;
     const seat = g.sideToMove();
-    const mv = chooseBanqiMove(g.publicView(), seat, { level: seat === 0 ? first : second, budgetMs: 600 });
+    seen.add(visibleKey(g.publicView()));
+    const mv = chooseBanqiMove(g.publicView(), seat, { level: seat === 0 ? first : second, budgetMs: 600, seen });
     if (!g.play(mv)) throw new Error(`banqi AI illegal ${mv}`);
   }
   return { kind: 'draw', reason: 'ply_cap' };
