@@ -1,4 +1,4 @@
-// Territory Rush (領地爭奪戰) — real-time territory game engine. Original JY Chess design.
+// Territory Rush (領地爭奪戰) — real-time territory game engine. Original JY Games design.
 //
 // Deterministic, fixed-tick grid simulation shared by the browser (local games, tutorial, rendering of
 // online games) and the TerritoryRoom Durable Object (authoritative online games).

@@ -1,4 +1,4 @@
-// JY Chess — shared types used by the browser, Pages Functions and the realtime worker.
+// JY Games — shared types used by the browser, Pages Functions and the realtime worker.
 // Every game module implements GameModule so the platform (rooms, history, UI shell)
 // never needs to know the rules of a particular game.
 

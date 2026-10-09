@@ -1,4 +1,4 @@
-# JY Chess realtime worker: Durable Objects for game rooms, matchmaking and rate limiting.
+# JY Games realtime worker: Durable Objects for game rooms, matchmaking and rate limiting.
 # Deployed by Cloudflare Workers Builds from the repository root:
 #   build command:  npm ci
 #   deploy command: npx wrangler deploy -c realtime/wrangler.toml
@@ -32,6 +32,18 @@ class_name = "TerritoryRoom"
 name = "TLOBBY"
 class_name = "TerritoryLobby"
 
+[[durable_objects.bindings]]
+name = "SROOMS"
+class_name = "SnakeRoom"
+
+[[durable_objects.bindings]]
+name = "BROOMS"
+class_name = "BlocksRoom"
+
+[[durable_objects.bindings]]
+name = "ALOBBY"
+class_name = "ArenaLobby"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["GameRoom", "Matchmaker", "RateLimiter"]
@@ -39,6 +51,10 @@ new_sqlite_classes = ["GameRoom", "Matchmaker", "RateLimiter"]
 [[migrations]]
 tag = "v2"
 new_sqlite_classes = ["TerritoryRoom", "TerritoryLobby"]
+
+[[migrations]]
+tag = "v3"
+new_sqlite_classes = ["SnakeRoom", "BlocksRoom", "ArenaLobby"]
 
 [[d1_databases]]
 binding = "DB"

@@ -1,5 +1,5 @@
-// Xiangqi (中國象棋) rules engine — written from scratch for JY Chess.
-// Rule set: see docs/rules/xiangqi.md ("JY Chess 台灣象棋規則 v1.0").
+// Xiangqi (中國象棋) rules engine — written from scratch for JY Games.
+// Rule set: see docs/rules/xiangqi.md ("JY Games 台灣象棋規則 v1.0").
 //
 // Coordinates: files a–i (0–8) from Red's left, ranks 1–10 (index 0–9) from Red's side.
 // Square index = rank * 9 + file. Red pieces upper-case, Black lower-case:
