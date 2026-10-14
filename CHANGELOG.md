@@ -1,6 +1,9 @@
 # JY GAMES｜CHANGELOG
 
 ## 2026-10-14
+- 補上產品端設計與規則決策、雙語文案包、五項工程補強驗收清單；此輪為文件及文案交付，未變更正式站程式。
+- 新增下一階段遊戲提案：五子棋、數獨、麻將接龍優先，附台灣 App Store 及瀏覽器遊戲熱門清單來源與查閱日期。
+- 註明初期決策日期為回推紀錄，並將已提供產品方向與待完成工程工作分開記錄。
 - 收錄 ChatGPT × Claude 交接文件 V1.0（`docs/handoff/JY_GAMES_CLAUDE_HANDOFF.md`），新增工程端回覆 `docs/handoff/CLAUDE_RESPONSE.md`。
 - 新增 `STATE.md`、`DECISIONS.md`、`CHANGELOG.md`。
 
