@@ -59,7 +59,7 @@ export function Layout({ children }: { children: ReactNode }) {
       </a>
       <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--header-bg)] backdrop-blur">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4">
-          <Link to={to('/')} className="flex items-center gap-2 rounded-lg outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus)]" aria-label="JY Games">
+          <Link to={to('/')} className="flex min-h-11 items-center gap-2 rounded-lg outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus)]" aria-label="JY Games">
             <Logo />
             <span className="font-serif text-lg font-bold tracking-wide">JY Games</span>
           </Link>
@@ -76,12 +76,12 @@ export function Layout({ children }: { children: ReactNode }) {
             ))}
           </nav>
           <div className="ml-auto flex items-center gap-1">
-            <Link to={switchTo} className="rounded-lg px-2 py-2 text-sm font-medium hover:bg-[var(--surface-2)]" hrefLang={lang === 'zh' ? 'en' : 'zh-Hant-TW'} aria-label={t('lang.label')}>
+            <Link to={switchTo} className="flex min-h-11 min-w-11 items-center justify-center rounded-lg px-2 text-sm font-medium hover:bg-[var(--surface-2)]" hrefLang={lang === 'zh' ? 'en' : 'zh-Hant-TW'} aria-label={t('lang.label')}>
               {t('lang.switch')}
             </Link>
             <button
               type="button"
-              className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-[var(--surface-2)] focus-visible:ring-4 focus-visible:ring-[var(--focus)]"
+              className="flex h-11 w-11 items-center justify-center rounded-lg hover:bg-[var(--surface-2)] focus-visible:ring-4 focus-visible:ring-[var(--focus)]"
               onClick={() => update({ theme: nextTheme })}
               aria-label={`${t('settings.theme')}: ${t(`theme.${settings.theme}`)}`}
               title={t(`theme.${settings.theme}`)}
@@ -101,7 +101,7 @@ export function Layout({ children }: { children: ReactNode }) {
             )}
             <button
               type="button"
-              className="h-10 w-10 rounded-lg text-xl hover:bg-[var(--surface-2)] focus-visible:ring-4 focus-visible:ring-[var(--focus)] xl:hidden"
+              className="h-11 w-11 rounded-lg text-xl hover:bg-[var(--surface-2)] focus-visible:ring-4 focus-visible:ring-[var(--focus)] xl:hidden"
               aria-expanded={open}
               aria-controls="mobile-nav"
               aria-label={t('nav.menu')}

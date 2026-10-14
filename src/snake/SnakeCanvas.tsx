@@ -225,12 +225,12 @@ export function SnakeCanvas({ client, overlay, best }: { client: SnakeClient; ov
       <div className="absolute bottom-2 left-2 flex items-center gap-2">
         <span className="pointer-events-none hidden rounded-lg bg-black/45 px-2 py-1 text-xs text-white sm:inline">{client.me.length === 2 ? t('tr.hud.controls2p') : t('sn.hud.controls')}</span>
         {client.me.length === 1 && (
-          <button type="button" onClick={() => setDpad((d) => !d)} className="rounded-lg bg-black/45 px-2 py-1 text-xs text-white" aria-pressed={dpad}>
+          <button type="button" onClick={() => setDpad((d) => !d)} className="min-h-11 rounded-lg bg-black/45 px-3 text-xs text-white" aria-pressed={dpad}>
             ✚ {t('sn.hud.dpad')}
           </button>
         )}
         {client.canPause() && (client.status === 'playing' || client.status === 'paused') && (
-          <button type="button" onClick={() => client.togglePause()} className="rounded-lg bg-black/55 px-3 py-1 text-xs font-semibold text-white" aria-pressed={client.status === 'paused'}>
+          <button type="button" onClick={() => client.togglePause()} className="min-h-11 rounded-lg bg-black/55 px-3 text-xs font-semibold text-white" aria-pressed={client.status === 'paused'}>
             {client.status === 'paused' ? `▶ ${t('sn.hud.resume')}` : `⏸ ${t('sn.hud.pause')}`}
           </button>
         )}

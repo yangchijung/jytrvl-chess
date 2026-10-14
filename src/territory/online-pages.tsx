@@ -77,7 +77,7 @@ function Lobby({ c }: { c: OnlineTerritory }) {
               <select
                 value={level}
                 onChange={(e) => setLevel(e.target.value as BotLevel)}
-                className="min-h-10 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2"
+                className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2"
                 aria-label={t('tr.setup.level')}
               >
                 {(['easy', 'medium', 'hard'] as BotLevel[]).map((v) => (
@@ -98,7 +98,7 @@ function Lobby({ c }: { c: OnlineTerritory }) {
         ) : (
           <Spinner label={t('tr.room.waitHost')} />
         )}
-        <button type="button" className="w-full text-sm underline" onClick={() => nav(to('/territory'))}>
+        <button type="button" className="min-h-11 w-full text-sm underline" onClick={() => nav(to('/territory'))}>
           {t('ctl.back')}
         </button>
       </Card>

@@ -169,11 +169,11 @@ export function LessonPlayer({ game }: { game: GameId }) {
         </div>
         {allDone && <p className="rounded-lg bg-[var(--ok-bg)] px-3 py-2 font-medium">🎉 {t('learn.allDone')}</p>}
         <details className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
-          <summary className="cursor-pointer font-semibold">{lang === 'zh' ? '全部課程' : 'All lessons'}</summary>
+          <summary className="flex min-h-11 cursor-pointer items-center font-semibold">{lang === 'zh' ? '全部課程' : 'All lessons'}</summary>
           <ol className="mt-2 space-y-1">
             {steps.map((s, i) => (
               <li key={i}>
-                <button type="button" className={`w-full rounded px-2 py-1 text-left hover:bg-[var(--surface-2)] ${i === idx ? 'font-semibold text-[var(--accent-text)]' : ''}`} onClick={() => setIdx(i)}>
+                <button type="button" className={`min-h-11 w-full rounded px-2 py-1 text-left hover:bg-[var(--surface-2)] ${i === idx ? 'font-semibold text-[var(--accent-text)]' : ''}`} onClick={() => setIdx(i)}>
                   {done.includes(i) ? '✓ ' : '○ '}
                   {i + 1}. {pick(s.title)}
                 </button>

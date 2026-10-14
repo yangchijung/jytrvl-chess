@@ -335,12 +335,12 @@ export function BlocksView({ session, overlay, extraHud }: { session: BlocksSess
       <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
         {extraHud}
         {session.canPause() && (session.status === 'playing' || session.status === 'paused') && (
-          <button type="button" className="rounded-lg border border-[var(--border)] px-3 py-1 font-semibold text-[var(--text)]" onClick={() => session.togglePause()} aria-pressed={session.status === 'paused'}>
+          <button type="button" className="min-h-11 rounded-lg border border-[var(--border)] px-3 font-semibold text-[var(--text)]" onClick={() => session.togglePause()} aria-pressed={session.status === 'paused'}>
             {session.status === 'paused' ? `▶ ${t('sn.hud.resume')}` : `⏸ ${t('sn.hud.pause')}`}
           </button>
         )}
         {!local2 && (
-          <button type="button" className="rounded-lg border border-[var(--border)] px-3 py-1" onClick={() => setTouch((v) => !v)} aria-pressed={touch}>
+          <button type="button" className="min-h-11 rounded-lg border border-[var(--border)] px-3" onClick={() => setTouch((v) => !v)} aria-pressed={touch}>
             📱 {t('bl.hud.touch')}
           </button>
         )}

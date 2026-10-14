@@ -1,34 +1,31 @@
 # JY GAMES｜STATE
 
 ```
-Date: 2026-10-14
-Branch/Commit: codex/product-handoff-roadmap-20261014（文件基準 c636693；產品交付，待工程整合）
+Date: 2026-10-15
+Branch/Commit: main（Issue #2 工程補強；提交編號見 Issue #2 回覆）
 Done (with evidence):
-  - 產品端設計／規則決策與驗收清單：docs/handoff/CHATGPT_PRODUCT_FOLLOWUP.md
-  - 可匯入雙語文案：docs/handoff/product-copy-v1.1.json（待工程接線）
-  - 排行榜研究與新遊戲提案：docs/product/NEXT_GAMES_ROADMAP.md
-  - 以下部署與測試為既有工程紀錄，本輪未重新執行：
-  - 六款遊戲上線 https://chess.jytrvl.com（棋類三款、領地爭奪戰、貪食蛇競技場、方塊消除對戰）
-  - 三級 AI 皆有可量化差異：docs/test-results/*ladder*.json、docs/ACCEPTANCE.md §4／§9.3／§10.3
-  - 本機雙人、線上雙人、私人房間、公開配對；Territory Rush／Snake Arena 2–8 人
-  - Google 登入（負責人實際登入驗證）、訪客、戰績、分遊戲排行榜；練習／單人與真人計分分開
-  - 伺服器權威：棋步、暗棋暗子只在伺服器、即時遊戲碰撞與計分、方塊輸入重播、單人紀錄重播驗證
-  - 測試：單元 151／151；棋類協定 24／24、瀏覽器 29／29；領地爭奪戰 22／22、29／29；
-    貪食蛇＋方塊 47／47、57／57（docs/test-results/）；正式站實測紀錄見 docs/ACCEPTANCE.md
-  - 部署：Cloudflare Pages jytrvl-chess＋Worker jytrvl-chess-realtime＋D1；DNS CNAME chess → jytrvl-chess.pages.dev
+  - 六款遊戲上線 https://chess.jytrvl.com；部署：Pages jytrvl-chess＋Worker jytrvl-chess-realtime＋D1
+  - Issue #2（docs/ACCEPTANCE.md §12）：
+    - 重新整理復原六款×等待／進行中／結束後 49／49（refresh-e2e-local.json）；修正即時房間休眠後結果畫面遺失
+    - AI 補位／代打與真人計分隔離核對：電腦座位不計 humans，1 人＋電腦不記錄；規則未變更
+    - 360 px：33 頁面／狀態×中英×淺深 132／132（mobile-360-local.json、screens/360/）；觸控目標 ≥ 44 px
+    - 文案 v1.1 接線＋連線狀態 32／32（copy-shots-local.json、screens/copy/）
+    - 象棋判例 XQ01–XQ09、暗棋 49／50 邊界測試；單元 170／170
+    - docs/LICENSES.md；GitHub Actions CI（.github/workflows/ci.yml）
+  - 既有回歸：棋類 29／29、24／24；領地 29／29、22／22；貪食蛇＋方塊 57／57、47／47
 In Progress:
-  - 對應 ChatGPT 交接文件 V1.0 的差異補強（docs/handoff/CLAUDE_RESPONSE.md §1）
+  - 正式站部署後抽查、Issue #2 回覆（待負責人同意後張貼）
 Blocked / requires decision:
-  - 本輪設計與既有規則方向已提供，五項工程補強及實機驗收尚待完成
+  - 斷線代打的結果計入該真人名下為既有設計；是否調整屬產品決策
   - 新遊戲目前為提案；開發範圍、估時與正式計分規格待確認
 Cost / Security / License alerts:
   - 即時遊戲房間對局中計費；Free 方案每日約 570 場即時對戰上限（docs/DEPLOYMENT.md §11）
   - 尚未設定 Cloudflare 帳單警示（需負責人）
-  - 授權清單 docs/LICENSES.md 尚未建立
+  - cburnett 棋子授權文字待對照 Wikimedia Commons 原頁（docs/LICENSES.md 最末）
 Next actions:
-  - 360 px 自動化驗收、LICENSES.md、GitHub Actions CI、標語、重新整理頁面測試
+  - 實機驗收：iPhone／iPad Safari、Android Chrome、Firefox、Edge
 Need from ChatGPT (content/design):
-  - 本輪設計／規則／狀態色與雙語文案已交付；後續依整合畫面進行文案與視覺回看
+  - 依 screens/360 與 screens/copy 截圖回看文案與視覺
 Need from owner (access/DNS/approval):
   - Cloudflare 帳單警示、確認 Workers 方案、實機測試、隱私權政策／服務條款法律審閱
 ```

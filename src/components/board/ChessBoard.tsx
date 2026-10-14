@@ -144,7 +144,7 @@ export function ChessBoard({ fen, api, flipped, lastMove, checkSquare, hint, int
                 </button>
               );
             })}
-            <button type="button" className="px-2 text-sm underline" onClick={() => sel.choosePromotion(null)}>
+            <button type="button" className="min-h-11 px-2 text-sm underline" onClick={() => sel.choosePromotion(null)}>
               {t('ctl.cancel')}
             </button>
           </div>

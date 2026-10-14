@@ -72,7 +72,7 @@ export function TerritoryHub() {
         ))}
       </div>
       <details className="max-w-3xl rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
-        <summary className="cursor-pointer font-semibold">📖 {t('tr.rules.title')}</summary>
+        <summary className="flex min-h-11 cursor-pointer items-center font-semibold">📖 {t('tr.rules.title')}</summary>
         <ol className="mt-3 list-decimal space-y-2 pl-5">
           {([2, 3, 4, 5] as const).map((n) => (
             <li key={n}>
@@ -181,7 +181,7 @@ export function TerritoryPlay() {
         <Button size="lg" className="w-full" onClick={start}>
           {t('tr.setup.start')}
         </Button>
-        <button type="button" className="w-full text-sm underline" onClick={() => nav(to('/territory'))}>
+        <button type="button" className="min-h-11 w-full text-sm underline" onClick={() => nav(to('/territory'))}>
           {t('ctl.back')}
         </button>
       </Card>

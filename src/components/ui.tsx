@@ -14,7 +14,7 @@ export function Button({
     ghost: 'bg-transparent text-[var(--text)] hover:bg-[var(--surface-2)]',
     danger: 'bg-[#b3261e] text-white hover:brightness-110',
   }[variant];
-  const s = { sm: 'min-h-10 px-3 text-sm', md: 'min-h-11 px-4 text-base', lg: 'min-h-13 px-6 text-lg' }[size];
+  const s = { sm: 'min-h-11 px-3 text-sm', md: 'min-h-11 px-4 text-base', lg: 'min-h-13 px-6 text-lg' }[size];
   return (
     <button
       type="button"
@@ -74,7 +74,7 @@ export function Modal({ open, onClose, title, children, wide }: { open: boolean;
             <h2 id="modal-title" className="font-serif text-xl font-bold">
               {title}
             </h2>
-            <button type="button" onClick={onClose} aria-label={t('ctl.close')} className="-m-2 rounded-lg p-2 text-2xl leading-none hover:bg-[var(--surface-2)] focus-visible:ring-4 focus-visible:ring-[var(--focus)]">
+            <button type="button" onClick={onClose} aria-label={t('ctl.close')} className="-m-2 flex h-11 w-11 items-center justify-center rounded-lg text-2xl leading-none hover:bg-[var(--surface-2)] focus-visible:ring-4 focus-visible:ring-[var(--focus)]">
               ×
             </button>
           </div>
@@ -159,12 +159,14 @@ const NOTICE = {
 export function Notice({ kind, children, className = '', actions }: { kind: keyof typeof NOTICE; children: ReactNode; className?: string; actions?: ReactNode }) {
   const n = NOTICE[kind];
   return (
-    <div role={n.role} className={`flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg px-3 py-2 font-medium ${n.cls} ${className}`}>
-      <span aria-hidden="true" className="font-bold">
-        {n.icon}
-      </span>
-      <span className="min-w-0 flex-1">{children}</span>
-      {actions}
+    <div role={n.role} className={`rounded-lg px-3 py-2 text-left font-medium ${n.cls} ${className}`}>
+      <div className="flex items-start gap-2">
+        <span aria-hidden="true" className="font-bold">
+          {n.icon}
+        </span>
+        <span className="min-w-0 flex-1">{children}</span>
+      </div>
+      {actions && <div className="mt-2 flex flex-wrap justify-end gap-2">{actions}</div>}
     </div>
   );
 }

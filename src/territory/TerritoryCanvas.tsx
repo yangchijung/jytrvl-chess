@@ -290,7 +290,7 @@ export function TerritoryCanvas({ client, overlay }: { client: TerritoryClient; 
       <div className="absolute bottom-2 left-2 flex items-center gap-2">
         <span className="pointer-events-none hidden rounded-lg bg-black/45 px-2 py-1 text-xs text-white sm:inline">{client.me.length === 2 ? t('tr.hud.controls2p') : t('tr.hud.controls')}</span>
         {client.me.length === 1 && (
-          <button type="button" onClick={() => setJoystick((j) => !j)} className="rounded-lg bg-black/45 px-2 py-1 text-xs text-white" aria-pressed={joystick}>
+          <button type="button" onClick={() => setJoystick((j) => !j)} className="min-h-11 rounded-lg bg-black/45 px-3 text-xs text-white" aria-pressed={joystick}>
             🕹 {t('tr.hud.joystick')}
           </button>
         )}

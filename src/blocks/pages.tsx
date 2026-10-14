@@ -64,7 +64,7 @@ export function BlocksHub() {
         ))}
       </div>
       <details className="max-w-3xl rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
-        <summary className="cursor-pointer font-semibold">📖 {t('bl.rules.title')}</summary>
+        <summary className="flex min-h-11 cursor-pointer items-center font-semibold">📖 {t('bl.rules.title')}</summary>
         <ul className="mt-3 list-disc space-y-2 pl-5">
           {([1, 2, 3, 4, 5, 6, 7] as const).map((n) => (
             <li key={n}>{t(`bl.rules.r${n}` as StringKey)}</li>
@@ -100,10 +100,10 @@ export function KeySettings() {
   }, [listening, keys]);
   return (
     <details className="rounded-xl border border-[var(--border)] p-3">
-      <summary className="cursor-pointer text-sm font-semibold">⌨️ {t('bl.keys.title')}</summary>
+      <summary className="flex min-h-11 cursor-pointer items-center text-sm font-semibold">⌨️ {t('bl.keys.title')}</summary>
       <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
         {CONTROLS.map((c) => (
-          <button key={c} type="button" onClick={() => setListening(c)} className={`flex items-center justify-between rounded-lg border px-3 py-2 ${listening === c ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--border)]'}`}>
+          <button key={c} type="button" onClick={() => setListening(c)} className={`flex min-h-11 items-center justify-between rounded-lg border px-3 py-2 ${listening === c ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--border)]'}`}>
             <span>{t(`bl.ctl.${c}` as StringKey)}</span>
             <span className="font-mono">{listening === c ? '…' : keys[c].map(keyLabel).join(' / ') || '—'}</span>
           </button>
@@ -129,7 +129,7 @@ export function KeySettings() {
       </div>
       <button
         type="button"
-        className="mt-2 text-xs underline"
+        className="mt-2 min-h-11 px-1 text-xs underline"
         onClick={() => {
           setKeys(DEFAULT_KEYS);
           saveKeys(DEFAULT_KEYS);
@@ -213,7 +213,7 @@ export function BlocksPlay() {
         <Button size="lg" className="w-full" onClick={start}>
           {t('tr.setup.start')}
         </Button>
-        <button type="button" className="w-full text-sm underline" onClick={() => nav(to('/blocks'))}>
+        <button type="button" className="min-h-11 w-full text-sm underline" onClick={() => nav(to('/blocks'))}>
           {t('ctl.back')}
         </button>
       </Card>

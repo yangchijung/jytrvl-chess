@@ -36,7 +36,7 @@ function RoomInner({ c }: { c: OnlineController }) {
     return (
       <Card className="mx-auto max-w-lg space-y-4 text-center" data-room-status="waiting" data-my-seat={o.mySeat ?? 'spectator'} data-phase={o.phase}>
         <ConnBanner phase={o.phase} recovering={o.recovering} recoveredAt={o.recoveredAt} onRetry={() => c.retryNow()} onLeave={() => nav(to('/'))} />
-        <Spinner label={o.status === 'open' ? t('online.waiting') : t('online.connecting')} />
+        {o.phase !== 'failed' && <Spinner label={o.status === 'open' ? t('online.waiting') : t('online.connecting')} />}
         <p>{t('online.share')}</p>
         <div className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-2">
           <code className="flex-1 truncate text-left text-sm">{url}</code>

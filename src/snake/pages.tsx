@@ -83,7 +83,7 @@ export function SnakeHub() {
         ))}
       </div>
       <details className="max-w-3xl rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
-        <summary className="cursor-pointer font-semibold">📖 {t('sn.rules.title')}</summary>
+        <summary className="flex min-h-11 cursor-pointer items-center font-semibold">📖 {t('sn.rules.title')}</summary>
         <ul className="mt-3 list-disc space-y-2 pl-5">
           {([1, 2, 3, 4, 5, 6] as const).map((n) => (
             <li key={n}>{t(`sn.rules.r${n}` as StringKey)}</li>
@@ -245,7 +245,7 @@ export function SnakePlay() {
         <Button size="lg" className="w-full" onClick={start}>
           {t('tr.setup.start')}
         </Button>
-        <button type="button" className="w-full text-sm underline" onClick={() => nav(to('/snake'))}>
+        <button type="button" className="min-h-11 w-full text-sm underline" onClick={() => nav(to('/snake'))}>
           {t('ctl.back')}
         </button>
       </Card>

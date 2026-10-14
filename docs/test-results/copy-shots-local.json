@@ -1,0 +1,167 @@
+{
+  "base": "http://127.0.0.1:8788",
+  "browser": "HeadlessChrome/153.0.8010.0",
+  "date": "2026-10-14T16:52:43.984Z",
+  "results": [
+    {
+      "name": "360 zh: tagline under the title",
+      "pass": true,
+      "info": "一起玩，一起動腦。"
+    },
+    {
+      "name": "360 zh: onboarding card on first visit",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "360 zh: onboarding stays dismissed",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "360 zh: onboarding can be re-opened",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "360 zh: xiangqi rules summary in setup",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "360 zh: banqi default rules summary in setup",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "360 en: tagline under the title",
+      "pass": true,
+      "info": "Play Together, Think Better."
+    },
+    {
+      "name": "360 en: onboarding card on first visit",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "360 en: onboarding stays dismissed",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "360 en: onboarding can be re-opened",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "360 en: xiangqi rules summary in setup",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "360 en: banqi default rules summary in setup",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "desktop zh: tagline under the title",
+      "pass": true,
+      "info": "一起玩，一起動腦。"
+    },
+    {
+      "name": "desktop zh: onboarding card on first visit",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "desktop zh: onboarding stays dismissed",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "desktop zh: onboarding can be re-opened",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "desktop zh: xiangqi rules summary in setup",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "desktop zh: banqi default rules summary in setup",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "desktop en: tagline under the title",
+      "pass": true,
+      "info": "Play Together, Think Better."
+    },
+    {
+      "name": "desktop en: onboarding card on first visit",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "desktop en: onboarding stays dismissed",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "desktop en: onboarding can be re-opened",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "desktop en: xiangqi rules summary in setup",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "desktop en: banqi default rules summary in setup",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "conn zh: reconnecting → syncing → synced",
+      "pass": true,
+      "info": "reconnecting → syncing → synced"
+    },
+    {
+      "name": "conn zh: reconnect failed shows retry and leave",
+      "pass": true,
+      "info": "failed"
+    },
+    {
+      "name": "conn zh: retry reconnects and resyncs",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "conn zh: notice does not promise the match is paused",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "conn en: reconnecting → syncing → synced",
+      "pass": true,
+      "info": "reconnecting → syncing → synced"
+    },
+    {
+      "name": "conn en: reconnect failed shows retry and leave",
+      "pass": true,
+      "info": "failed"
+    },
+    {
+      "name": "conn en: retry reconnects and resyncs",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "conn en: notice does not promise the match is paused",
+      "pass": true,
+      "info": ""
+    }
+  ]
+}
