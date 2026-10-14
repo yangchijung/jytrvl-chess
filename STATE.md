@@ -2,8 +2,12 @@
 
 ```
 Date: 2026-10-14
-Branch/Commit: main（本次提交前為 2ec96e2）
+Branch/Commit: codex/product-handoff-roadmap-20261014（文件基準 c636693；產品交付，待工程整合）
 Done (with evidence):
+  - 產品端設計／規則決策與驗收清單：docs/handoff/CHATGPT_PRODUCT_FOLLOWUP.md
+  - 可匯入雙語文案：docs/handoff/product-copy-v1.1.json（待工程接線）
+  - 排行榜研究與新遊戲提案：docs/product/NEXT_GAMES_ROADMAP.md
+  - 以下部署與測試為既有工程紀錄，本輪未重新執行：
   - 六款遊戲上線 https://chess.jytrvl.com（棋類三款、領地爭奪戰、貪食蛇競技場、方塊消除對戰）
   - 三級 AI 皆有可量化差異：docs/test-results/*ladder*.json、docs/ACCEPTANCE.md §4／§9.3／§10.3
   - 本機雙人、線上雙人、私人房間、公開配對；Territory Rush／Snake Arena 2–8 人
@@ -15,8 +19,8 @@ Done (with evidence):
 In Progress:
   - 對應 ChatGPT 交接文件 V1.0 的差異補強（docs/handoff/CLAUDE_RESPONSE.md §1）
 Blocked / requires decision:
-  - 設計系統沿用或依新 Tokens 改版（CLAUDE_RESPONSE.md §2.1）
-  - 象棋長捉細則、暗棋預設規則確認（§2.2）
+  - 本輪設計與既有規則方向已提供，五項工程補強及實機驗收尚待完成
+  - 新遊戲目前為提案；開發範圍、估時與正式計分規格待確認
 Cost / Security / License alerts:
   - 即時遊戲房間對局中計費；Free 方案每日約 570 場即時對戰上限（docs/DEPLOYMENT.md §11）
   - 尚未設定 Cloudflare 帳單警示（需負責人）
@@ -24,7 +28,7 @@ Cost / Security / License alerts:
 Next actions:
   - 360 px 自動化驗收、LICENSES.md、GitHub Actions CI、標語、重新整理頁面測試
 Need from ChatGPT (content/design):
-  - 設計方案選擇、狀態色、標語中文版、Logo；如有新教學文案請依 i18n 鍵值格式交付
+  - 本輪設計／規則／狀態色與雙語文案已交付；後續依整合畫面進行文案與視覺回看
 Need from owner (access/DNS/approval):
   - Cloudflare 帳單警示、確認 Workers 方案、實機測試、隱私權政策／服務條款法律審閱
 ```
