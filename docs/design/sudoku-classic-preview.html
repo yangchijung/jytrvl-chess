@@ -1,0 +1,150 @@
+<div id="jy-sudoku-design" class="viz-dotted-background">
+<style>
+#jy-sudoku-design{padding:18px 0;color-scheme:light dark}
+#jy-sudoku-design .jy-app{--jy-bg:light-dark(#faf7f0,#111722);--jy-surface:light-dark(#fff,#18202d);--jy-line:light-dark(#d8d4c8,#405068);--jy-ink:light-dark(#1f2328,#ece8df);--jy-muted:light-dark(#5f6368,#a8b0bc);--jy-green:light-dark(#1f4d3a,#7fd0a9);--jy-fill:light-dark(#1f4d3a,#246548);--jy-soft:light-dark(#e5efe9,#1d3a30);--jy-peer:light-dark(#f3f4ef,#212b3a);--jy-error:light-dark(#991b1b,#fca5a5);--jy-error-bg:light-dark(#fee2e2,#3f1d24);font:400 15px/1.5 Inter,'Noto Sans TC',system-ui,sans-serif;color:var(--jy-ink);background:var(--jy-bg);border:1px solid var(--jy-line);border-radius:24px;max-width:680px;margin:auto;padding:24px;box-sizing:border-box}
+#jy-sudoku-design *{box-sizing:border-box}
+#jy-sudoku-design .jy-top{display:flex;align-items:center;justify-content:space-between;padding-right:72px;gap:12px;margin-bottom:18px}
+#jy-sudoku-design .jy-brand{font-size:13px;letter-spacing:.12em;font-weight:600;color:var(--jy-green)}
+#jy-sudoku-design .jy-tag{font-size:12px;color:var(--jy-muted)}
+#jy-sudoku-design .jy-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:18px}
+#jy-sudoku-design h2{margin:0;font:500 30px/1.25 'Noto Serif TC',Georgia,serif;color:var(--jy-ink)}
+#jy-sudoku-design .jy-sub{margin:5px 0 0;color:var(--jy-muted);font-size:13px}
+#jy-sudoku-design .jy-clock{font-size:22px;font-variant-numeric:tabular-nums;letter-spacing:.04em}
+#jy-sudoku-design .jy-layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:22px}
+#jy-sudoku-design .jy-board-wrap{position:relative}
+#jy-sudoku-design .jy-board{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));border:2px solid var(--jy-ink);border-radius:5px;overflow:hidden;background:var(--jy-surface);aspect-ratio:1}
+#jy-sudoku-design .jy-cell{appearance:none;border:0;border-right:1px solid var(--jy-line);border-bottom:1px solid var(--jy-line);padding:0;min-width:0;background:var(--jy-surface);color:var(--jy-ink);font:500 22px/1 system-ui;position:relative;touch-action:manipulation;aspect-ratio:1}
+#jy-sudoku-design .jy-cell[data-major-col="true"]{border-right:2px solid var(--jy-ink)}
+#jy-sudoku-design .jy-cell[data-major-row="true"]{border-bottom:2px solid var(--jy-ink)}
+#jy-sudoku-design .jy-cell[data-right="true"]{border-right:0}
+#jy-sudoku-design .jy-cell[data-bottom="true"]{border-bottom:0}
+#jy-sudoku-design .jy-cell[data-peer="true"]{background:var(--jy-peer)}
+#jy-sudoku-design .jy-cell[data-user="true"]{color:var(--jy-green);font-weight:400;text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:1px}
+#jy-sudoku-design .jy-cell[data-same="true"]{background:var(--jy-soft)}
+#jy-sudoku-design .jy-cell[data-error="true"]{color:var(--jy-error);background:var(--jy-error-bg)}
+#jy-sudoku-design .jy-cell[data-error="true"]::after{content:'!';position:absolute;right:2px;top:1px;font-size:11px;font-weight:600}
+#jy-sudoku-design .jy-cell[aria-pressed="true"]{background:var(--jy-soft);box-shadow:inset 0 0 0 2px var(--jy-green)}
+#jy-sudoku-design .jy-notes{display:grid;grid-template-columns:repeat(3,1fr);font:400 11px/1.05 system-ui;color:var(--jy-muted);padding:1px;text-decoration:none}
+#jy-sudoku-design .jy-notes span{min-height:10px}
+#jy-sudoku-design button:not(.jy-cell),#jy-sudoku-design select{font-family:inherit;font-weight:500;font-size:14px;line-height:1.3;color:var(--jy-ink);background:var(--jy-surface);border:1px solid var(--jy-line);border-radius:10px;min-height:44px;padding:9px 11px;touch-action:manipulation}
+#jy-sudoku-design button:disabled{opacity:.4}
+#jy-sudoku-design button.jy-primary{background:var(--jy-fill);color:#fff;border-color:var(--jy-fill)}
+#jy-sudoku-design button[aria-pressed="true"]:not(.jy-cell){background:var(--jy-soft);border-color:var(--jy-green);color:var(--jy-green)}
+#jy-sudoku-design .jy-board-tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+#jy-sudoku-design .jy-board-tools button{flex:1}
+#jy-sudoku-design .jy-selection{font-size:14px;color:var(--jy-green);margin:0 0 8px;min-height:22px}
+#jy-sudoku-design .jy-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
+#jy-sudoku-design .jy-actions button{display:flex;align-items:center;justify-content:center;gap:5px}
+#jy-sudoku-design .jy-keypad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+#jy-sudoku-design .jy-keypad button{font:500 22px/1.2 system-ui;min-height:48px;padding:8px 0;color:var(--jy-green)}
+#jy-sudoku-design .jy-keypad button:last-child{grid-column:1/4;font-size:13px}
+#jy-sudoku-design .jy-status{color:var(--jy-muted);font-size:13px;min-height:40px;margin:14px 0 0}
+#jy-sudoku-design .jy-help{background:var(--jy-surface);border-left:3px solid var(--jy-green);padding:12px;margin-top:12px;font-size:14px}
+#jy-sudoku-design .jy-help p{margin:5px 0 12px}
+#jy-sudoku-design .jy-help button{width:100%}
+#jy-sudoku-design .jy-footer{border-top:1px solid var(--jy-line);margin-top:18px;padding-top:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:12px;color:var(--jy-muted)}
+#jy-sudoku-design .jy-cover{background:var(--jy-surface);border:2px solid var(--jy-ink);aspect-ratio:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px;border-radius:5px}
+#jy-sudoku-design .jy-cover strong{font:500 26px/1.4 'Noto Serif TC',serif}
+#jy-sudoku-design .jy-cover p{margin:0;color:var(--jy-muted);font-size:14px}
+#jy-sudoku-design .jy-box-picker{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+#jy-sudoku-design .jy-box-picker select{min-width:90px}
+#jy-sudoku-design .jy-board[data-zoom="true"]{grid-template-columns:repeat(3,minmax(0,1fr))}
+#jy-sudoku-design .jy-board[data-zoom="true"] .jy-cell{font-size:32px}
+#jy-sudoku-design .jy-board[data-zoom="true"] .jy-notes{font-size:15px;line-height:1.4}
+#jy-sudoku-design [hidden]{display:none!important}
+@media(max-width:580px){#jy-sudoku-design .jy-app{padding:16px;border-radius:18px}#jy-sudoku-design .jy-layout{grid-template-columns:1fr;gap:16px}#jy-sudoku-design .jy-board-column{width:100%;max-width:400px;margin:auto}#jy-sudoku-design .jy-actions{grid-template-columns:repeat(4,minmax(0,1fr));margin:8px 0 12px}#jy-sudoku-design .jy-actions button{flex-direction:column;gap:4px;padding:8px 4px;font-size:13px}#jy-sudoku-design .jy-keypad{gap:8px;grid-template-columns:repeat(5,minmax(0,1fr))}#jy-sudoku-design .jy-keypad button{min-height:48px}#jy-sudoku-design .jy-keypad button:last-child{grid-column:auto;padding:4px;font-size:12px}#jy-sudoku-design .jy-top{padding-right:60px}#jy-sudoku-design .jy-status{min-height:22px}#jy-sudoku-design .jy-heading{margin-bottom:14px}}
+</style>
+<section class="jy-app" aria-label="JY Games 經典數獨介面設計">
+  <div class="jy-top"><span class="jy-brand">JY GAMES</span><span class="jy-tag">單人・邏輯</span></div>
+  <div class="jy-heading"><div><h2>經典數獨</h2><p class="jy-sub">簡單 · 9 × 9</p></div><div class="jy-clock" aria-label="遊玩時間">00:00</div></div>
+  <div class="jy-layout">
+    <div class="jy-board-column">
+      <div class="jy-box-picker" hidden><label for="jy-box-select">放大九宮</label><select id="jy-box-select" aria-label="選擇九宮"></select></div>
+      <div class="jy-board-wrap"><div class="jy-board" role="group" aria-label="數獨棋盤"></div><div class="jy-cover" hidden><strong>休息一下</strong><p>棋盤與計時已暫停</p><button class="jy-primary cursor-interaction" data-action="resume">繼續遊戲</button></div></div>
+      <div class="jy-board-tools"><button class="cursor-interaction" data-action="zoom" aria-pressed="false">放大九宮</button><button class="cursor-interaction" data-action="pause">暫停</button></div>
+    </div>
+    <div class="jy-input">
+      <p class="jy-selection" aria-live="polite"></p>
+      <div class="jy-actions">
+        <button class="cursor-interaction" data-action="undo"><i data-lucide="undo-2" aria-hidden="true"></i>復原</button>
+        <button class="cursor-interaction" data-action="erase"><i data-lucide="eraser" aria-hidden="true"></i>清除</button>
+        <button class="cursor-interaction" data-action="notes" aria-pressed="false"><i data-lucide="pencil" aria-hidden="true"></i><span>筆記：關</span></button>
+        <button class="cursor-interaction" data-action="hint"><i data-lucide="lightbulb" aria-hidden="true"></i>提示</button>
+      </div>
+      <div class="jy-keypad" aria-label="數字鍵盤"></div>
+      <p class="jy-status" role="status">先選一格，再填入數字。</p>
+      <div class="jy-help" hidden><strong>下一步的線索</strong><p></p><button class="jy-primary cursor-interaction" data-action="apply">幫我填入</button></div>
+      <div class="jy-help jy-reset" hidden><strong>重新開始這一題？</strong><p>目前的填答與筆記會清除。</p><button class="jy-primary cursor-interaction" data-action="confirm-reset">重新開始</button><button class="cursor-interaction" data-action="cancel-reset">繼續這一局</button></div>
+    </div>
+  </div>
+  <div class="jy-footer"><span>每列、每行、每宮，1–9 不重複</span><span class="jy-assist">未使用提示</span></div>
+</section>
+<script>
+(()=>{
+const root=document.getElementById('jy-sudoku-design');
+const q=s=>root.querySelector(s), qa=s=>[...root.querySelectorAll(s)];
+const givens=[0,0,0,1,0,5,0,0,0,6,5,1,9,7,0,0,2,3,7,0,9,0,0,0,0,0,0,1,0,0,0,9,0,3,0,5,3,0,5,0,1,7,9,0,2,0,4,2,5,3,0,0,0,8,0,0,0,0,2,0,0,0,0,0,3,0,0,0,0,8,9,4,0,0,7,4,8,0,0,3,6];
+const row=i=>Math.floor(i/9), col=i=>i%9, box=i=>Math.floor(row(i)/3)*3+Math.floor(col(i)/3);
+const peers=i=>Array.from({length:81},(_,j)=>j).filter(j=>i!==j&&(row(i)===row(j)||col(i)===col(j)||box(i)===box(j)));
+const candidates=(a,i)=>[1,2,3,4,5,6,7,8,9].filter(n=>!peers(i).some(j=>a[j]===n));
+const solve=a=>{const empty=a.map((v,i)=>v?-1:i).filter(i=>i>=0);if(!empty.length)return a;const i=empty.sort((i,j)=>candidates(a,i).length-candidates(a,j).length)[0];for(const n of candidates(a,i)){const b=a.slice();b[i]=n;const s=solve(b);if(s)return s;}return null;};
+const solution=solve(givens.slice());
+let values=givens.slice(), notes=Array.from({length:81},()=>[]), selected=15, noteMode=false, history=[], hint=null, paused=false, complete=false, seconds=0, used=0, zoom=false, currentBox=2;
+let last=performance.now(), lastSnapshot='';
+let seenHints=new Set();
+function countHint(cell){const key=values.join('')+':'+cell;if(!seenHints.has(key)){seenHints.add(key);used++;}}
+const msg=t=>q('.jy-status').textContent=t;
+const conflicts=()=>values.map((n,i)=>n&&peers(i).some(j=>values[j]===n)?i:-1).filter(i=>i>=0);
+function save(){const privateContent={version:1,values,notes,selected,noteMode,seconds,used,zoom};lastSnapshot=JSON.stringify(privateContent);if(window.openai?.setWidgetState)window.openai.setWidgetState({modelContent:{design:'JY 經典數獨',noteMode,zoom,usedHints:used},privateContent}).catch(()=>{});}
+function restore(state){const s=state?.privateContent;if(!s||JSON.stringify(s)===lastSnapshot||s.version!==1||!Array.isArray(s.values)||s.values.length!==81||!s.values.every((v,i)=>Number.isInteger(v)&&v>=0&&v<=9&&(!givens[i]||givens[i]===v))||!Array.isArray(s.notes)||s.notes.length!==81)return;values=s.values.slice();notes=s.notes.map(ns=>Array.isArray(ns)?ns.filter(n=>Number.isInteger(n)&&n>0&&n<10):[]);selected=Number.isInteger(s.selected)&&s.selected>=0&&s.selected<81?s.selected:15;noteMode=!!s.noteMode;seconds=Math.max(0,Number(s.seconds)||0);used=Math.max(0,Number(s.used)||0);zoom=!!s.zoom;currentBox=box(selected);complete=values.every((v,i)=>v===solution[i]);history=[];hint=null;render();}
+function render(){
+ const bad=conflicts();const board=q('.jy-board');board.dataset.zoom=zoom;board.hidden=paused||complete;q('.jy-cover').hidden=!paused&&!complete;
+ q('.jy-cover strong').textContent=complete?'完成了！':'休息一下';q('.jy-cover p').textContent=complete?(used?'這一局使用過提示':'這一局未使用提示'):'棋盤與計時已暫停';q('[data-action="resume"]').hidden=complete;
+ board.replaceChildren();
+ for(let i=0;i<81;i++){
+  if(zoom&&box(i)!==currentBox)continue;
+  const b=document.createElement('button');b.type='button';b.className='jy-cell cursor-interaction';b.dataset.index=i;b.dataset.majorCol=col(i)%3===2&&col(i)!==8;b.dataset.majorRow=row(i)%3===2&&row(i)!==8;b.dataset.right=zoom?col(i)%3===2:col(i)===8;b.dataset.bottom=zoom?row(i)%3===2:row(i)===8;b.dataset.peer=peers(selected).includes(i);b.dataset.same=!!values[selected]&&values[selected]===values[i];b.dataset.user=!!values[i]&&!givens[i];b.dataset.error=bad.includes(i);b.setAttribute('aria-pressed',String(selected===i));
+  b.setAttribute('aria-label',`第 ${row(i)+1} 列第 ${col(i)+1} 行，${values[i]||'空白'}${givens[i]?'，題目':notes[i].length?'，筆記 '+notes[i].join('、'):''}${bad.includes(i)?'，重複數字':''}`);
+  if(values[i])b.textContent=values[i];else if(notes[i].length){const n=document.createElement('span');n.className='jy-notes';for(let k=1;k<=9;k++){const t=document.createElement('span');t.textContent=notes[i].includes(k)?k:'';n.append(t);}b.append(n);}
+  b.addEventListener('click',()=>{selected=i;hint=null;render();q(`[data-index="${i}"]`)?.focus();save();});board.append(b);
+ }
+ q('.jy-selection').textContent=paused?'遊戲已暫停':complete?'你完成了這一題':`第 ${row(selected)+1} 列 · 第 ${col(selected)+1} 行${givens[selected]?' · 題目':noteMode?' · 筆記':' · 填答'}`;
+ q('[data-action="notes"]').setAttribute('aria-pressed',String(noteMode));q('[data-action="notes"] span').textContent=noteMode?'筆記：開':'筆記：關';q('[data-action="undo"]').disabled=!history.length||paused||complete;
+ qa('[data-digit], [data-action="erase"], [data-action="notes"], [data-action="hint"]').forEach(b=>b.disabled=paused||complete);q('[data-action="pause"]').disabled=paused||complete;
+ q('[data-action="zoom"]').setAttribute('aria-pressed',String(zoom));q('[data-action="zoom"]').textContent=zoom?'完整棋盤':'放大九宮';q('.jy-box-picker').hidden=!zoom||paused||complete;q('#jy-box-select').value=String(currentBox);
+ q('.jy-help:not(.jy-reset)').hidden=!hint||paused||complete;if(hint){q('.jy-help:not(.jy-reset) p').textContent=hint.text;q('[data-action="apply"]').hidden=hint.digit==null;}
+ q('.jy-assist').textContent=used?`提示 ${used} 次`:'未使用提示';q('.jy-clock').textContent=`${Math.floor(seconds/60).toString().padStart(2,'0')}:${Math.floor(seconds%60).toString().padStart(2,'0')}`;
+}
+function record(){history.push({values:values.slice(),notes:notes.map(n=>n.slice())});hint=null;}
+function input(n){if(paused||complete)return;if(givens[selected]){msg('這是題目數字，請選擇空白格。');return;}if(noteMode&&values[selected]){msg('先清除填答，才能在這一格做筆記。');return;}if(!noteMode&&values[selected]===n)return;record();if(noteMode){const a=notes[selected];notes[selected]=a.includes(n)?a.filter(v=>v!==n):[...a,n].sort();msg('筆記只記錄可能的數字，不算完成填答。');}else{values[selected]=n;notes[selected]=[];peers(selected).forEach(i=>notes[i]=notes[i].filter(v=>v!==n));msg(conflicts().length?'有數字重複，請查看標示的格子。':'已填入。你可以繼續下一格。');}complete=values.every((v,i)=>v===solution[i]);render();save();}
+for(let n=1;n<=9;n++){const b=document.createElement('button');b.className='cursor-interaction';b.textContent=n;b.dataset.digit=n;b.addEventListener('click',()=>input(n));q('.jy-keypad').append(b);}
+const reset=document.createElement('button');reset.textContent='重新開始';reset.className='cursor-interaction';reset.dataset.action='reset';q('.jy-keypad').append(reset);
+for(let i=0;i<9;i++){const o=document.createElement('option');o.value=i;o.textContent=`第 ${i+1} 宮`;q('#jy-box-select').append(o);}
+q('#jy-box-select').addEventListener('change',e=>{currentBox=Number(e.target.value);selected=Array.from({length:81},(_,i)=>i).find(i=>box(i)===currentBox);render();save();});
+root.addEventListener('click',e=>{
+ const a=e.target.closest('[data-action]')?.dataset.action;if(!a)return;
+ if(a==='notes'){noteMode=!noteMode;msg(noteMode?'筆記模式：點數字可加入或移除候選。':'填答模式：點數字填入格子。');}
+ if(a==='erase'&&!givens[selected]&&(values[selected]||notes[selected].length)){record();values[selected]=0;notes[selected]=[];msg('已清除這一格。');}
+ if(a==='undo'&&history.length){const s=history.pop();values=s.values;notes=s.notes;hint=null;msg('已復原上一個動作。');}
+ if(a==='pause'){paused=true;hint=null;}
+ if(a==='resume'){paused=false;last=performance.now();}
+ if(a==='zoom'){zoom=!zoom;currentBox=box(selected);}
+ if(a==='reset')q('.jy-reset').hidden=false;
+ if(a==='cancel-reset')q('.jy-reset').hidden=true;
+ if(a==='confirm-reset'){values=givens.slice();notes=Array.from({length:81},()=>[]);history=[];hint=null;paused=false;complete=false;used=0;seenHints.clear();seconds=0;selected=15;currentBox=box(selected);last=performance.now();q('.jy-reset').hidden=true;msg('從頭開始，慢慢找出下一步。');}
+ if(a==='hint'){
+  if(conflicts().length){msg('先處理重複的數字，再取得下一步提示。');}
+  else{const wrong=values.findIndex((v,i)=>v&&v!==solution[i]);if(wrong>=0){countHint(wrong);selected=wrong;hint={text:`第 ${row(wrong)+1} 列第 ${col(wrong)+1} 行的填答，使這一題無法完成。你可以清除後重新推理。`};}
+  else{const i=values.findIndex((v,i)=>!v&&candidates(values,i).length===1);if(i>=0){countHint(i);selected=i;hint={cell:i,digit:candidates(values,i)[0],text:`看看第 ${row(i)+1} 列、第 ${col(i)+1} 行，以及所在的九宮。排除已出現的數字後，這一格只剩 ${candidates(values,i)[0]} 可以填。`};}else msg('目前沒有可顯示的提示。');}currentBox=box(selected);}
+ }
+ if(a==='apply'&&hint?.digit){const h=hint;record();values[h.cell]=h.digit;notes[h.cell]=[];peers(h.cell).forEach(i=>notes[i]=notes[i].filter(v=>v!==h.digit));complete=values.every((v,i)=>v===solution[i]);msg('已依提示填入；這一局標記為使用過提示。');}
+ render();save();
+});
+root.addEventListener('keydown',e=>{if(e.target.tagName==='SELECT'||paused||complete)return;const digit=Number(e.key);if(/^[1-9]$/.test(e.key)){e.preventDefault();input(digit);}else if(e.key==='Backspace'||e.key==='Delete'){e.preventDefault();q('[data-action="erase"]').click();}else if(e.key.toLowerCase()==='n'){e.preventDefault();q('[data-action="notes"]').click();}else if(e.target.matches('.jy-cell')&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();let r=row(selected),c=col(selected);if(e.key==='ArrowLeft')c=Math.max(0,c-1);if(e.key==='ArrowRight')c=Math.min(8,c+1);if(e.key==='ArrowUp')r=Math.max(0,r-1);if(e.key==='ArrowDown')r=Math.min(8,r+1);selected=r*9+c;currentBox=box(selected);render();q(`[data-index="${selected}"]`)?.focus();save();}});
+render();restore(window.openai?.widgetState);
+window.addEventListener('openai:set_globals',e=>{if(e.detail?.globals?.widgetState)restore(e.detail.globals.widgetState);});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&!complete){paused=true;hint=null;render();save();}});
+const timer=setInterval(()=>{if(!root.isConnected){clearInterval(timer);return;}const now=performance.now();if(!paused&&!complete&&!document.hidden)seconds+=(now-last)/1000;last=now;q('.jy-clock').textContent=`${Math.floor(seconds/60).toString().padStart(2,'0')}:${Math.floor(seconds%60).toString().padStart(2,'0')}`;},500);
+})();
+</script>
+</div>

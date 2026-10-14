@@ -1,0 +1,59 @@
+{
+  "date": "2026-10-15",
+  "scope": "design preview only; not production acceptance",
+  "layouts": [
+    {
+      "theme": "light",
+      "width": 320,
+      "fit": true,
+      "keyTargets44": true
+    },
+    {
+      "theme": "light",
+      "width": 360,
+      "fit": true,
+      "keyTargets44": true
+    },
+    {
+      "theme": "light",
+      "width": 736,
+      "fit": true,
+      "keyTargets44": true
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "fit": true,
+      "keyTargets44": true
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "fit": true,
+      "keyTargets44": true
+    },
+    {
+      "theme": "dark",
+      "width": 736,
+      "fit": true,
+      "keyTargets44": true
+    }
+  ],
+  "interactions": [
+    "fill",
+    "undo",
+    "notes",
+    "hint reason",
+    "apply hint",
+    "assistance persists after undo",
+    "enlarge box",
+    "pause hides board and hint",
+    "resume",
+    "conflict",
+    "givens locked",
+    "restart cancel"
+  ],
+  "copyKeys": 87,
+  "matchingPlaceholders": true,
+  "pageErrors": []
+}

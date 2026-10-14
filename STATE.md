@@ -13,11 +13,13 @@ Done (with evidence):
     - 象棋判例 XQ01–XQ09、暗棋 49／50 邊界測試；單元 170／170
     - docs/LICENSES.md；GitHub Actions CI（.github/workflows/ci.yml）
   - 既有回歸：棋類 29／29、24／24；領地 29／29、22／22；貪食蛇＋方塊 57／57、47／47
+  - 經典數獨 v1.0 產品設計交付（docs/product/SUDOKU_CLASSIC_V1.md）：雙語文案、互動設計稿、唯一解樣題及 SU01–SU16 驗收規格；僅設計，未部署
 In Progress:
+  - 下一款經典數獨：已由負責人指定；待 Claude 實作、正式題庫與驗收
   - 正式站部署後抽查、Issue #2 回覆（待負責人同意後張貼）
 Blocked / requires decision:
   - 斷線代打的結果計入該真人名下為既有設計；是否調整屬產品決策
-  - 新遊戲目前為提案；開發範圍、估時與正式計分規格待確認
+  - 數獨首版範圍已交付，工程估時／拆解待回覆；不做正式排行。其他新遊戲仍為提案
 Cost / Security / License alerts:
   - 即時遊戲房間對局中計費；Free 方案每日約 570 場即時對戰上限（docs/DEPLOYMENT.md §11）
   - 尚未設定 Cloudflare 帳單警示（需負責人）
