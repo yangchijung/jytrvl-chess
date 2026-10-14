@@ -1,6 +1,6 @@
 {
   "base": "http://127.0.0.1:8788",
-  "date": "2026-10-09T13:38:36.755Z",
+  "date": "2026-10-14T15:42:25.416Z",
   "results": [
     {
       "name": "home shows Territory Rush card",
@@ -45,7 +45,7 @@
     {
       "name": "player captures land by looping home",
       "pass": true,
-      "info": "0.6% → 0.9%"
+      "info": "0.6% → 1%"
     },
     {
       "name": "leaderboard lists live players",
@@ -95,7 +95,7 @@
     {
       "name": "room page opened",
       "pass": true,
-      "info": "http://127.0.0.1:8788/territory/room/N2HM87"
+      "info": "http://127.0.0.1:8788/territory/room/DK8P29"
     },
     {
       "name": "guest joins lobby (2 players)",

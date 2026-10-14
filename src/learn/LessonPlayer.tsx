@@ -6,7 +6,7 @@ import { RulesReference } from './RulesReference';
 import { ChessBoard } from '../components/board/ChessBoard';
 import { XiangqiBoard } from '../components/board/XiangqiBoard';
 import { BanqiBoard } from '../components/board/BanqiBoard';
-import { Button, Modal } from '../components/ui';
+import { Button, Modal, Notice } from '../components/ui';
 import { useI18n, type StringKey } from '../i18n';
 import { useSettings, loadJSON, saveJSON } from '../lib/settings';
 import { playSound } from '../lib/sound';
@@ -134,17 +134,10 @@ export function LessonPlayer({ game }: { game: GameId }) {
           {pick(step.title)}
         </h2>
         <p className="text-lg leading-relaxed">{pick(step.text)}</p>
-        {status === 'wrong' && (
-          <p className="rounded-lg bg-[var(--warn-bg)] px-3 py-2 font-medium" role="alert">
-            {t('learn.wrong')}
-          </p>
-        )}
-        {status === 'correct' && (
-          <p className="rounded-lg bg-[var(--ok-bg)] px-3 py-2 font-medium" role="status">
-            ✓ {step.success ? pick(step.success) : t('learn.correct')}
-          </p>
-        )}
-        {info && <p className="rounded-lg bg-[var(--info-bg)] px-3 py-2">{t(info as StringKey)}</p>}
+        {status === 'wrong' && <Notice kind="warning">{t('tutorial.tryAgain')}</Notice>}
+        {status === 'correct' && <Notice kind="success">{step.success ? pick(step.success) : t('tutorial.actionDone')}</Notice>}
+        {info && <Notice kind="info">{t(info as StringKey)}</Notice>}
+        {done.length === steps.length && idx === steps.length - 1 && <Notice kind="success">{t('tutorial.finish')}</Notice>}
         {(step.kind === 'move' || step.kind === 'challenge') && status === 'idle' && <p className="text-sm text-[var(--muted)]">{t('learn.try')}</p>}
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" disabled={idx === 0} onClick={() => setIdx(idx - 1)}>

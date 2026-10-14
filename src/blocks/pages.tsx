@@ -1,3 +1,4 @@
+import { Onboarding } from '../components/Onboarding';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useI18n, type StringKey } from '../i18n';
@@ -46,6 +47,7 @@ export function BlocksHub() {
         <PageTitle sub={t('game.blocks.desc')}>{t('game.blocks')}</PageTitle>
         <BlocksPreview />
       </div>
+      <Onboarding game="blocks" />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {options.map((o) => (
           <Link

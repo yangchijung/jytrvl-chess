@@ -1,0 +1,252 @@
+{
+  "base": "http://127.0.0.1:8788",
+  "browser": "HeadlessChrome/153.0.8010.0",
+  "date": "2026-10-14T15:33:13.425Z",
+  "results": [
+    {
+      "name": "chess refresh: waiting → same room, host keeps seat 0",
+      "pass": true,
+      "info": "http://127.0.0.1:8788/room/8LAVFZ seat=0"
+    },
+    {
+      "name": "chess refresh: in progress → both seats restored with all 4 plies",
+      "pass": true,
+      "info": "seats 0/1"
+    },
+    {
+      "name": "chess refresh: in progress → nobody demoted to spectator",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "chess refresh: clock kept running for the side to move during refresh (not paused, not reset)",
+      "pass": true,
+      "info": "elapsed 10022 ms, clock used 10122 ms, opponent 299783→299783"
+    },
+    {
+      "name": "chess refresh: ended → result screen restored for both players",
+      "pass": true,
+      "info": "ended/ended"
+    },
+    {
+      "name": "chess refresh: ended → stored exactly once, refresh adds no record",
+      "pass": true,
+      "info": "rows before/after refresh 1/1"
+    },
+    {
+      "name": "chess refresh: no page errors",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "xiangqi refresh: waiting → same room, host keeps seat 0",
+      "pass": true,
+      "info": "http://127.0.0.1:8788/room/KHJL55 seat=0"
+    },
+    {
+      "name": "xiangqi refresh: in progress → both seats restored with all 4 plies",
+      "pass": true,
+      "info": "seats 0/1"
+    },
+    {
+      "name": "xiangqi refresh: in progress → nobody demoted to spectator",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "xiangqi refresh: clock kept running for the side to move during refresh (not paused, not reset)",
+      "pass": true,
+      "info": "elapsed 3489 ms, clock used 3587 ms, opponent 299779→299778"
+    },
+    {
+      "name": "xiangqi refresh: ended → result screen restored for both players",
+      "pass": true,
+      "info": "ended/ended"
+    },
+    {
+      "name": "xiangqi refresh: ended → stored exactly once, refresh adds no record",
+      "pass": true,
+      "info": "rows before/after refresh 1/1"
+    },
+    {
+      "name": "xiangqi refresh: no page errors",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "banqi refresh: waiting → same room, host keeps seat 0",
+      "pass": true,
+      "info": "http://127.0.0.1:8788/room/SY8EL6 seat=0"
+    },
+    {
+      "name": "banqi refresh: in progress → both seats restored with all 4 plies",
+      "pass": true,
+      "info": "seats 0/1"
+    },
+    {
+      "name": "banqi refresh: in progress → nobody demoted to spectator",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "banqi refresh: clock kept running for the side to move during refresh (not paused, not reset)",
+      "pass": true,
+      "info": "elapsed 3440 ms, clock used 3542 ms, opponent 299717→299717"
+    },
+    {
+      "name": "banqi refresh: hidden pieces never sent to the refreshed browser",
+      "pass": true,
+      "info": "4 state frames, face-up per frame 4"
+    },
+    {
+      "name": "banqi refresh: ended → result screen restored for both players",
+      "pass": true,
+      "info": "ended/ended"
+    },
+    {
+      "name": "banqi refresh: ended → stored exactly once, refresh adds no record",
+      "pass": true,
+      "info": "rows before/after refresh 1/1"
+    },
+    {
+      "name": "banqi refresh: no page errors",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "blocks refresh: waiting → same seats, host kept, no duplicate seat",
+      "pass": true,
+      "info": "seats 0/1, lobby size 2"
+    },
+    {
+      "name": "snake refresh: waiting → same seats, host kept, no duplicate seat",
+      "pass": true,
+      "info": "seats 0/1, lobby size 2"
+    },
+    {
+      "name": "territory refresh: waiting → same seats, host kept, no duplicate seat",
+      "pass": true,
+      "info": "seats 0/1, lobby size 2"
+    },
+    {
+      "name": "territory refresh: in progress → seat restored (not spectator), match still running",
+      "pass": true,
+      "info": "seat=1 status=countdown"
+    },
+    {
+      "name": "blocks refresh: in progress → seat restored (not spectator), match still running",
+      "pass": true,
+      "info": "seat=1 status=playing"
+    },
+    {
+      "name": "blocks refresh: in progress → own board restored from the server",
+      "pass": true,
+      "info": "pieces 0 → 0"
+    },
+    {
+      "name": "territory refresh: in progress → server clock kept running, refreshed client in sync",
+      "pass": true,
+      "info": "tick 0 → 53 (other player 53)"
+    },
+    {
+      "name": "snake refresh: in progress → seat restored (not spectator), match still running",
+      "pass": true,
+      "info": "seat=1 status=playing"
+    },
+    {
+      "name": "snake refresh: in progress → server clock kept running, refreshed client in sync",
+      "pass": true,
+      "info": "tick 0 → 67 (other player 67)"
+    },
+    {
+      "name": "blocks refresh: match ends",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "blocks refresh: ended → result screen restored after refresh",
+      "pass": true,
+      "info": "ended/ended"
+    },
+    {
+      "name": "blocks refresh: ended → stored exactly once, refresh adds no record",
+      "pass": true,
+      "info": "rows before/after refresh 1/1"
+    },
+    {
+      "name": "blocks refresh: stored humans = real people only (no bots)",
+      "pass": true,
+      "info": "humans=2 seats=2 bots=0 counted=1"
+    },
+    {
+      "name": "territory refresh: match ends",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snake refresh: match ends",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "territory refresh: ended → result screen restored after refresh",
+      "pass": true,
+      "info": "ended/ended"
+    },
+    {
+      "name": "territory refresh: ended → stored exactly once, refresh adds no record",
+      "pass": true,
+      "info": "rows before/after refresh 1/1"
+    },
+    {
+      "name": "territory refresh: stored humans = real people only (bot seat excluded)",
+      "pass": true,
+      "info": "humans=2 seats=3 bots=1 counted=1"
+    },
+    {
+      "name": "blocks refresh: no page errors",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snake refresh: ended → result screen restored after refresh",
+      "pass": true,
+      "info": "ended/ended"
+    },
+    {
+      "name": "snake refresh: ended → stored exactly once, refresh adds no record",
+      "pass": true,
+      "info": "rows before/after refresh 1/1"
+    },
+    {
+      "name": "snake refresh: stored humans = real people only (bot seat excluded)",
+      "pass": true,
+      "info": "humans=2 seats=3 bots=1 counted=1"
+    },
+    {
+      "name": "territory refresh: no page errors",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "snake refresh: no page errors",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "name": "isolation snake: 1 person + computer → not recorded (signed-in)",
+      "pass": true,
+      "info": "end.recorded=false humans=1 counted=0 reason=last_standing"
+    },
+    {
+      "name": "isolation territory: 1 person + computer → not recorded (signed-in)",
+      "pass": true,
+      "info": "end.recorded=false humans=1 counted=0 reason=last_standing"
+    },
+    {
+      "name": "isolation blocks: 1 person + computer → not recorded (signed-in)",
+      "pass": true,
+      "info": "end.recorded=false humans=1 counted=0 reason=topout"
+    }
+  ]
+}

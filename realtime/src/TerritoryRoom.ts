@@ -52,6 +52,9 @@ export class TerritoryRoom extends DurableObject<Env> {
   private countdownAt = 0;
   private buckets = new Map<WebSocket, { tokens: number; at: number }>();
   private endedAt = 0;
+  /** Result screen of the last finished match, kept in storage so a refresh after the end (even after the
+   *  object was evicted from memory) shows the same result instead of falling back to the lobby. */
+  private final: { snap: TServerMsg; end: TServerMsg } | null = null;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -60,6 +63,8 @@ export class TerritoryRoom extends DurableObject<Env> {
       if (saved) {
         this.meta = saved.meta;
         this.seats = saved.seats;
+        this.final = (await ctx.storage.get<{ snap: TServerMsg; end: TServerMsg }>('final')) ?? null;
+        if (this.final) this.status = 'ended';
       }
     });
   }
@@ -110,6 +115,8 @@ export class TerritoryRoom extends DurableObject<Env> {
     queueMicrotask(() => {
       this.sendLobby();
       if (this.game) this.sendSnapshot(pair[1], att.playerId);
+      else if (this.status === 'ended' && this.final) this.send(pair[1], { ...this.final.snap, mySeat: this.seatOf(att.playerId) } as TServerMsg);
+      if (this.status === 'ended' && this.final) this.send(pair[1], this.final.end);
     });
     return new Response(null, { status: 101, webSocket: pair[0] });
   }
@@ -165,6 +172,8 @@ export class TerritoryRoom extends DurableObject<Env> {
       this.seats = this.seats.filter((s) => s.bot || this.connected(s.playerId));
       this.status = 'lobby';
       this.game = null;
+      this.final = null;
+      await this.ctx.storage.delete('final');
       await this.save();
       this.sendLobby();
     }
@@ -263,8 +272,11 @@ export class TerritoryRoom extends DurableObject<Env> {
     } catch (e) {
       console.error('[TerritoryRoom] record failed', e);
     }
-    this.broadcast({ t: 'end', result: g.result!, recorded });
+    const end: TServerMsg = { t: 'end', result: g.result!, recorded };
+    this.broadcast(end);
+    this.final = { snap: { t: 'snap', status: 'ended', snap: g.snapshot(), mySeat: null, countdownMs: 0 }, end };
     this.sendLobby();
+    await this.ctx.storage.put('final', this.final);
     await this.save();
   }
 

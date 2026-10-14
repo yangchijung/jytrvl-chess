@@ -72,7 +72,7 @@ function PlayerBar({ snap, seat, flipped }: { snap: Snapshot; seat: Seat; flippe
           </div>
           <div className="text-xs text-[var(--muted)]">
             {seatLabel(t, snap.game, seat, snap)}
-            {p.connected === false && ` · ${t('online.reconnecting').split('，')[0].split(' —')[0]}`}
+            {p.connected === false && ` · ${t('online.away')}`}
           </div>
         </div>
         {snap.thinking && active && p.isAi && <Spinner label={t('board.thinking')} />}

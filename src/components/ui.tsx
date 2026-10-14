@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import { useEffect, useRef, type ButtonHTMLAttributes, type HTMLAttributes, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useI18n } from '../i18n';
 
@@ -9,10 +9,10 @@ export function Button({
   ...rest
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'ghost' | 'danger'; size?: 'sm' | 'md' | 'lg' }) {
   const v = {
-    primary: 'bg-[var(--accent)] text-[var(--on-accent)] hover:brightness-110',
+    primary: 'bg-[var(--accent-fill)] text-[var(--on-accent)] hover:brightness-110',
     secondary: 'bg-[var(--surface-2)] text-[var(--text)] border border-[var(--border)] hover:bg-[var(--surface-3)]',
     ghost: 'bg-transparent text-[var(--text)] hover:bg-[var(--surface-2)]',
-    danger: 'bg-[var(--danger)] text-white hover:brightness-110',
+    danger: 'bg-[#b3261e] text-white hover:brightness-110',
   }[variant];
   const s = { sm: 'min-h-10 px-3 text-sm', md: 'min-h-11 px-4 text-base', lg: 'min-h-13 px-6 text-lg' }[size];
   return (
@@ -25,7 +25,7 @@ export function Button({
 }
 
 export function LinkButton({ to, children, variant = 'primary', className = '' }: { to: string; children: ReactNode; variant?: 'primary' | 'secondary'; className?: string }) {
-  const v = variant === 'primary' ? 'bg-[var(--accent)] text-[var(--on-accent)] hover:brightness-110' : 'bg-[var(--surface-2)] border border-[var(--border)] hover:bg-[var(--surface-3)]';
+  const v = variant === 'primary' ? 'bg-[var(--accent-fill)] text-[var(--on-accent)] hover:brightness-110' : 'bg-[var(--surface-2)] border border-[var(--border)] hover:bg-[var(--surface-3)]';
   return (
     <Link to={to} className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 font-medium outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus)] ${v} ${className}`}>
       {children}
@@ -33,8 +33,12 @@ export function LinkButton({ to, children, variant = 'primary', className = '' }
   );
 }
 
-export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <div className={`rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--card-shadow)] ${className}`}>{children}</div>;
+export function Card({ children, className = '', ...rest }: { children: ReactNode; className?: string } & Omit<HTMLAttributes<HTMLDivElement>, 'className' | 'children'>) {
+  return (
+    <div {...rest} className={`rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--card-shadow)] ${className}`}>
+      {children}
+    </div>
+  );
 }
 
 /** Accessible modal built on <dialog> (focus trap, Esc to close). */
@@ -141,5 +145,26 @@ export function PageTitle({ children, sub }: { children: ReactNode; sub?: ReactN
       <h1 className="font-serif text-3xl font-bold tracking-tight sm:text-4xl">{children}</h1>
       {sub && <p className="mt-2 text-[var(--muted)]">{sub}</p>}
     </header>
+  );
+}
+
+const NOTICE = {
+  success: { icon: '✓', cls: 'bg-[var(--ok-bg)] text-[var(--ok-text)]', role: 'status' },
+  warning: { icon: '⚠', cls: 'bg-[var(--warn-bg)] text-[var(--warn-text)]', role: 'alert' },
+  error: { icon: '✕', cls: 'bg-[var(--err-bg)] text-[var(--err-text)]', role: 'alert' },
+  info: { icon: 'ℹ', cls: 'bg-[var(--info-bg)] text-[var(--info-text)]', role: 'status' },
+} as const;
+
+/** Status message: colour pair + icon + text (never colour alone). */
+export function Notice({ kind, children, className = '', actions }: { kind: keyof typeof NOTICE; children: ReactNode; className?: string; actions?: ReactNode }) {
+  const n = NOTICE[kind];
+  return (
+    <div role={n.role} className={`flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg px-3 py-2 font-medium ${n.cls} ${className}`}>
+      <span aria-hidden="true" className="font-bold">
+        {n.icon}
+      </span>
+      <span className="min-w-0 flex-1">{children}</span>
+      {actions}
+    </div>
   );
 }

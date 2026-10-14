@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { LocalTerritory } from './local';
 import { TerritoryCanvas, useClient } from './TerritoryCanvas';
 import { useI18n, type StringKey } from '../i18n';
-import { Button } from '../components/ui';
+import { Button, Notice } from '../components/ui';
 import type { TerritoryGame } from '../../shared/territory/engine';
 
 type StepId = 1 | 2 | 3 | 4 | 5;
@@ -116,12 +116,9 @@ export function TerritoryLearn() {
         <h2 className="font-serif text-2xl font-bold">{t(`tr.learn.s${step}.title` as StringKey)}</h2>
         <p className="text-lg leading-relaxed">{t(`tr.learn.s${step}.text` as StringKey)}</p>
         {step === 1 && !done && <p className="font-medium">{t('tr.learn.progress', { n: turns })}</p>}
-        {done && (step === 1 || step === 2 || step === 4) && <p className="rounded-lg bg-[var(--ok-bg)] px-3 py-2 font-medium">✓ {t('learn.correct')}</p>}
-        {retry && (
-          <p className="rounded-lg bg-[var(--warn-bg)] px-3 py-2 font-medium" role="alert">
-            {t('tr.learn.retry')}
-          </p>
-        )}
+        {done && (step === 1 || step === 2 || step === 4) && <Notice kind="success">{t('tutorial.actionDone')}</Notice>}
+        {done && step === 5 && <Notice kind="success">{t('tutorial.finish')}</Notice>}
+        {retry && <Notice kind="warning">{t('tr.learn.retry')} {t('tutorial.tryAgain')}</Notice>}
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" disabled={step === 1} onClick={() => setStep((step - 1) as StepId)}>
             ← {t('learn.prev')}

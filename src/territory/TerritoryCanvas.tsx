@@ -262,7 +262,7 @@ export function TerritoryCanvas({ client, overlay }: { client: TerritoryClient; 
         {feed.map((f) => {
           if (f.ev.type === 'capture')
             return (
-              <div key={f.id} className="rounded-full bg-[var(--accent)] px-3 py-1 text-sm font-semibold text-white shadow">
+              <div key={f.id} className="rounded-full bg-[var(--accent-fill)] px-3 py-1 text-sm font-semibold text-white shadow">
                 +{f.ev.cells}
               </div>
             );

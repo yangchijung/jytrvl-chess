@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useI18n } from '../i18n';
-import { Button, Card, PageTitle, Segmented, Toggle } from '../components/ui';
+import { Button, Card, PageTitle, Segmented, Toggle, Notice } from '../components/ui';
 import { LocalController, type LocalSave } from '../game/local';
 import { GameScreen } from '../game/GameScreen';
 import type { LocalOptions } from '../game/controller';
@@ -102,6 +102,8 @@ function SetupForm({ game, mode, onStart }: { game: GameId; mode: SetupMode; onS
           options={(['taiwan', 'taiwan_chain', 'strict_rank'] as Preset[]).map((p) => ({ value: p, label: t(`preset.${p}`) }))}
         />
       )}
+      {game === 'xiangqi' && <Notice kind="info">{t('rules.xiangqi.summary')}</Notice>}
+      {game === 'banqi' && (s.preset === 'taiwan' || (mode === 'room' && s.rated)) && <Notice kind="info">{t('rules.banqi.summary')}</Notice>}
       {mode === 'ai' && (
         <div className="space-y-1">
           <Toggle checked={s.allowUndo} onChange={(v) => up({ allowUndo: v })} label={t('setup.allowUndo')} />

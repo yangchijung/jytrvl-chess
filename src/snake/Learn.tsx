@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { SnakeGame, Dir } from '../../shared/snake/engine';
 import { useI18n, type StringKey } from '../i18n';
-import { Button } from '../components/ui';
+import { Button, Notice } from '../components/ui';
 import { LocalSnake } from './local';
 import { SnakeCanvas, useSnakeClient } from './SnakeCanvas';
 
@@ -104,12 +104,9 @@ export function SnakeLearn() {
         <h2 className="font-serif text-2xl font-bold">{t(`sn.learn.s${step}.title` as StringKey)}</h2>
         <p className="text-lg leading-relaxed">{t(`sn.learn.s${step}.text` as StringKey)}</p>
         {!done && progressText && <p className="font-medium">{progressText}</p>}
-        {done && step < 5 && <p className="rounded-lg bg-[var(--ok-bg)] px-3 py-2 font-medium">✓ {t('learn.correct')}</p>}
-        {failed && (
-          <p className="rounded-lg bg-[var(--warn-bg)] px-3 py-2 font-medium" role="alert">
-            {t('tr.learn.retry')}
-          </p>
-        )}
+        {done && step < 5 && <Notice kind="success">{t('tutorial.actionDone')}</Notice>}
+        {done && step === 5 && <Notice kind="success">{t('tutorial.finish')}</Notice>}
+        {failed && <Notice kind="warning">{t('tr.learn.retry')} {t('tutorial.tryAgain')}</Notice>}
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" disabled={step === 1} onClick={() => setStep((step - 1) as Step)}>
             ← {t('learn.prev')}

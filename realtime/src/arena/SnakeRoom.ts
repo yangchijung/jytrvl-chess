@@ -3,7 +3,7 @@
 import { SnakeGame, SPEEDS, MAPS, MAX_SNAKES, arenaSizeFor, rng, type Dir, type SnakeMap } from '../../../shared/snake/engine';
 import { snakeThink, newSnakeMemory, type SnakeBotMemory } from '../../../shared/snake/ai';
 import { ArenaRoom } from './ArenaRoom';
-import type { ArenaClientMsg, ArenaLevel } from './protocol';
+import type { ArenaClientMsg, ArenaLevel, ArenaServerMsg } from './protocol';
 import { recordArenaMatch } from './persist';
 
 export const SNAKE_STEP_MS = Math.round(1000 / SPEEDS.normal);
@@ -100,7 +100,8 @@ export class SnakeRoom extends ArenaRoom {
       console.error('[SnakeRoom] record failed', e);
     }
     const r = g.result!;
-    this.broadcast({ t: 'end', winner: r.winner, reason: r.reason, ranking: r.ranking, recorded, result: r });
-    this.endMatch();
+    const end: ArenaServerMsg = { t: 'end', winner: r.winner, reason: r.reason, ranking: r.ranking, recorded, result: r };
+    this.broadcast(end);
+    this.endMatch({ state: [{ t: 'ssnap', status: 'ended', snap: g.snapshot(), mySeat: null, countdownMs: 0 }], end });
   }
 }

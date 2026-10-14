@@ -1,11 +1,11 @@
 {
   "base": "http://127.0.0.1:8788",
-  "date": "2026-10-09T13:17:35.718Z",
+  "date": "2026-10-14T16:26:37.667Z",
   "results": [
     {
       "name": "snake: private room created",
       "pass": true,
-      "info": "FCHXDX"
+      "info": "ZAV45J"
     },
     {
       "name": "snake: creator is host",
@@ -45,7 +45,7 @@
     {
       "name": "snake: server step rate ~10/s",
       "pass": true,
-      "info": "9.0"
+      "info": "7.9"
     },
     {
       "name": "snake: exactly one cell per step",
@@ -90,7 +90,7 @@
     {
       "name": "snake: matchmaking pairs players",
       "pass": true,
-      "info": "EWVDLF"
+      "info": "298RVE"
     },
     {
       "name": "snake: matched room has 4 snakes (bot fill)",
@@ -100,7 +100,7 @@
     {
       "name": "blocks: private room created",
       "pass": true,
-      "info": "7SD6D3"
+      "info": "29YBZB"
     },
     {
       "name": "blocks: room is 1 v 1",
@@ -125,32 +125,32 @@
     {
       "name": "blocks: server applies inputs (acks advance)",
       "pass": true,
-      "info": "acks 316/166"
+      "info": "acks 318/165"
     },
     {
       "name": "blocks: server and client agree on line count",
       "pass": true,
-      "info": "server 30 client 30"
+      "info": "server 31 client 31"
     },
     {
       "name": "blocks: pieces locked server-side",
       "pass": true,
-      "info": "pieces 76"
+      "info": "pieces 72"
     },
     {
       "name": "blocks: garbage exchanged between players",
       "pass": true,
-      "info": "received 10"
+      "info": "received 8"
     },
     {
       "name": "blocks: prediction rarely needs correction",
       "pass": true,
-      "info": "corrections 4"
+      "info": "corrections 3"
     },
     {
       "name": "blocks: withholding input cannot freeze your gravity",
       "pass": true,
-      "info": "server ticks 1481 → 1606"
+      "info": "server ticks 1490 → 1608"
     },
     {
       "name": "blocks: bad action / replayed seq ignored",
@@ -175,7 +175,7 @@
     {
       "name": "blocks: quick match pairs two players",
       "pass": true,
-      "info": "RSJEWU"
+      "info": "PWZVYC"
     },
     {
       "name": "blocks: lone player matched with a computer after ~20 s",
@@ -210,7 +210,7 @@
     {
       "name": "solo: valid replay accepted with the same score",
       "pass": true,
-      "info": "{\"ok\":true,\"score\":224,\"ms\":183,\"best\":{\"best_score\":224,\"best_ms\":null}}"
+      "info": "{\"ok\":true,\"score\":230,\"ms\":200,\"best\":{\"best_score\":230,\"best_ms\":null}}"
     },
     {
       "name": "solo: a token cannot be used twice",

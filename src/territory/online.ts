@@ -6,6 +6,7 @@ import { TerritoryGame, type Dir } from '../../shared/territory/engine';
 import type { BotLevel } from '../../shared/territory/ai';
 import type { TClientMsg, TLobbyMsg, TServerMsg } from '../../realtime/src/territoryProtocol';
 import { TerritoryClient } from './client';
+import { ConnTracker } from '../lib/conn';
 
 export class OnlineTerritory extends TerritoryClient {
   lobby: TLobbyMsg | null = null;
@@ -14,6 +15,7 @@ export class OnlineTerritory extends TerritoryClient {
   recorded = false;
   private ws: WebSocket | null = null;
   private retry = 0;
+  readonly tracker = new ConnTracker();
   private disposed = false;
   private ping: ReturnType<typeof setInterval>;
   private lastSent: Dir | null = null;
@@ -36,27 +38,38 @@ export class OnlineTerritory extends TerritoryClient {
     ws.onopen = () => {
       this.conn = 'open';
       this.retry = 0;
+      this.tracker.opened();
       this.emit();
     };
     ws.onmessage = (e) => this.onMessage(JSON.parse(e.data) as TServerMsg);
     ws.onclose = (e) => {
       if (this.disposed) return;
       if (e.code === 1000 && (e.reason === 'matched' || e.reason === 'expired')) {
+        this.tracker.closed();
         this.conn = 'closed';
         if (e.reason === 'expired') this.error = 'room_not_found';
         this.emit();
         return;
       }
       if (!this.lobby && this.retry >= 2) {
+        this.tracker.closed();
         this.conn = 'closed';
         this.error = 'room_not_found';
         this.emit();
         return;
       }
+      this.retry++;
+      const delay = this.tracker.dropped();
       this.conn = 'reconnecting';
       this.emit();
-      setTimeout(() => this.connect(), Math.min(8000, 400 * 2 ** this.retry++));
+      if (delay !== null) setTimeout(() => this.connect(), delay);
     };
+  }
+
+  retryNow() {
+    this.tracker.manualRetry();
+    this.emit();
+    this.connect();
   }
 
   private onMessage(m: TServerMsg) {
@@ -64,6 +77,7 @@ export class OnlineTerritory extends TerritoryClient {
     switch (m.t) {
       case 'lobby':
         this.lobby = m;
+        if (m.status === 'lobby') this.tracker.synced();
         if (m.status === 'lobby') {
           this.status = 'lobby';
           this.game = null;
@@ -75,6 +89,7 @@ export class OnlineTerritory extends TerritoryClient {
         this.me = m.mySeat !== null ? [m.mySeat] : [];
         break;
       case 'snap': {
+        this.tracker.synced();
         const g = TerritoryGame.fromSnapshot(m.snap);
         this.game = g;
         this.resetBuffers(g);

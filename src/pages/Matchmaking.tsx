@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useI18n } from '../i18n';
-import { Button, Card, PageTitle, Segmented, Spinner, Toggle } from '../components/ui';
+import { Button, Card, Notice, PageTitle, Segmented, Spinner, Toggle } from '../components/ui';
 import { useAuth } from '../lib/auth';
 import { GAME_IDS, type GameId } from '../../shared/types';
 import { guestName } from './Room';
@@ -77,6 +77,8 @@ export function Matchmaking() {
         <div>
           <Toggle checked={rated} onChange={setRated} label={t('setup.rated')} />
           <p className="text-sm text-[var(--muted)]">{me?.kind === 'user' ? t('setup.rated.desc') : t('mm.rated.needLogin')}</p>
+          {game === 'xiangqi' && <Notice kind="info" className="mt-2">{t('rules.xiangqi.summary')}</Notice>}
+          {game === 'banqi' && <Notice kind="info" className="mt-2">{t('rules.banqi.summary')}</Notice>}
         </div>
         {searching ? (
           <div className="flex flex-col items-center gap-3">

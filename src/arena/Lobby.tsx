@@ -5,6 +5,7 @@ import { Button, Card, PageTitle, Spinner } from '../components/ui';
 import { PALETTE } from '../territory/render';
 import type { ArenaLevel } from '../../realtime/src/arena/protocol';
 import type { ArenaSocket } from './socket';
+import { ConnBanner } from '../components/ConnBanner';
 
 /** Shared waiting room for arena games (private rooms). */
 export function ArenaLobbyView({ sock, backTo, title }: { sock: ArenaSocket; backTo: string; title: string }) {
@@ -18,7 +19,8 @@ export function ArenaLobbyView({ sock, backTo, title }: { sock: ArenaSocket; bac
   return (
     <div className="space-y-4">
       <PageTitle>{title}</PageTitle>
-      <Card className="mx-auto max-w-xl space-y-5">
+      <Card className="mx-auto max-w-xl space-y-5" data-room-status="waiting" data-my-seat={l.mySeat ?? 'spectator'} data-host={isHost ? 1 : 0} data-phase={sock.tracker.phase}>
+        <ConnBanner phase={sock.tracker.phase} recovering={sock.tracker.recovering} recoveredAt={sock.tracker.recoveredAt} onRetry={() => sock.retryNow()} onLeave={() => nav(to(backTo))} />
         {l.kind === 'private' && (
           <div className="space-y-2">
             <p className="text-sm">{t('online.share')}</p>

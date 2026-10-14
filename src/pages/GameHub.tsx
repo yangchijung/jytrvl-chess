@@ -1,3 +1,4 @@
+import { Onboarding } from '../components/Onboarding';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useI18n } from '../i18n';
@@ -29,6 +30,7 @@ export function GameHub({ game }: { game: GameId }) {
         </PageTitle>
         <GamePreview game={game} />
       </div>
+      <Onboarding game={game} />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {options.map((o) => (
           <Link

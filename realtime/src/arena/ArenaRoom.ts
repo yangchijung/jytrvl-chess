@@ -36,6 +36,9 @@ export abstract class ArenaRoom extends DurableObject<Env> {
   protected seats: ArenaSeat[] = [];
   protected status: ArenaStatus = 'lobby';
   protected countdownAt = 0;
+  /** Result screen of the last finished match (state messages + end message), kept in storage so a refresh
+   *  after the end — even after the object was evicted from memory — shows the result, not the lobby. */
+  protected final: { state: ArenaServerMsg[]; end: ArenaServerMsg } | null = null;
   private buckets = new Map<WebSocket, { tokens: number; at: number }>();
 
   abstract readonly maxSeats: number;
@@ -62,6 +65,8 @@ export abstract class ArenaRoom extends DurableObject<Env> {
       if (saved) {
         this.meta = saved.meta;
         this.seats = saved.seats;
+        this.final = (await ctx.storage.get<{ state: ArenaServerMsg[]; end: ArenaServerMsg }>('final')) ?? null;
+        if (this.final) this.status = 'ended';
       }
     });
   }
@@ -113,6 +118,8 @@ export abstract class ArenaRoom extends DurableObject<Env> {
     queueMicrotask(() => {
       this.sendLobby();
       if (this.hasGame()) this.sendState(pair[1], att.playerId);
+      else if (this.status === 'ended' && this.final) for (const m of this.final.state) this.send(pair[1], 'mySeat' in m ? ({ ...m, mySeat: this.seatOf(att.playerId) } as ArenaServerMsg) : m);
+      if (this.status === 'ended' && this.final) this.send(pair[1], this.final.end);
     });
     return new Response(null, { status: 101, webSocket: pair[0] });
   }
@@ -159,6 +166,8 @@ export abstract class ArenaRoom extends DurableObject<Env> {
       this.seats = this.seats.filter((s) => s.bot || this.connected(s.playerId));
       this.status = 'lobby';
       this.resetGame();
+      this.final = null;
+      await this.ctx.storage.delete('final');
       await this.save();
       this.sendLobby();
     }
@@ -209,9 +218,12 @@ export abstract class ArenaRoom extends DurableObject<Env> {
     }, ms);
   }
 
-  protected endMatch() {
+  /** @param final what a player who reconnects after the end needs to see the result screen */
+  protected endMatch(final: { state: ArenaServerMsg[]; end: ArenaServerMsg }) {
     this.status = 'ended';
+    this.final = final;
     this.sendLobby();
+    void this.ctx.storage.put('final', final);
     void this.save();
   }
 

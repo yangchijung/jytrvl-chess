@@ -1,5 +1,6 @@
 // In-game "rules" panel and the full rules reference. Mirrors docs/rules/*.md.
 import { useI18n } from '../i18n';
+import { Notice } from '../components/ui';
 import type { GameId } from '../../shared/types';
 import type { BanqiOptions } from '../../shared/games/banqi/rules';
 
@@ -189,10 +190,19 @@ function banqiText(o: BanqiOptions): Bi {
 }
 
 export function RulesReference({ game, banqiOptions }: { game: GameId; banqiOptions?: BanqiOptions }) {
-  const { lang } = useI18n();
-  const data = game === 'chess' ? CHESS : game === 'xiangqi' ? XIANGQI : banqiText(banqiOptions ?? (BQ_DEFAULT as BanqiOptions));
+  const { lang, t } = useI18n();
+  const opts = banqiOptions ?? (BQ_DEFAULT as BanqiOptions);
+  const data = game === 'chess' ? CHESS : game === 'xiangqi' ? XIANGQI : banqiText(opts);
+  // the fixed summary only describes the default Taiwan preset; custom rule sets are described below it
+  const banqiDefault = game === 'banqi' && (Object.keys(BQ_DEFAULT) as (keyof typeof BQ_DEFAULT)[]).every((k) => opts[k] === BQ_DEFAULT[k]);
   return (
     <div className="space-y-4 text-[0.95rem] leading-relaxed">
+      {game === 'xiangqi' && (
+        <Notice kind="info">
+          <strong>{t('rules.xiangqi.version')}</strong> — {t('rules.xiangqi.summary')}
+        </Notice>
+      )}
+      {banqiDefault && <Notice kind="info">{t('rules.banqi.summary')}</Notice>}
       {data[lang].map((s) => (
         <section key={s.h}>
           <h3 className="mb-1 font-semibold text-[var(--accent-text)]">{s.h}</h3>

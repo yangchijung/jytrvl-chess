@@ -1,6 +1,6 @@
 {
   "base": "http://127.0.0.1:8788",
-  "date": "2026-10-09T13:34:59.638Z",
+  "date": "2026-10-14T15:35:20.790Z",
   "results": [
     {
       "name": "home loads",
@@ -40,7 +40,7 @@
     {
       "name": "xiangqi chinese notation",
       "pass": true,
-      "info": "1.炮二平五包８平５"
+      "info": "1.炮二平五馬８進７"
     },
     {
       "name": "xiangqi no errors",
@@ -70,7 +70,7 @@
     {
       "name": "room created",
       "pass": true,
-      "info": "http://127.0.0.1:8788/room/DKTSZ2"
+      "info": "http://127.0.0.1:8788/room/AYMW57"
     },
     {
       "name": "online move synced",
@@ -130,7 +130,7 @@
     {
       "name": "api health",
       "pass": true,
-      "info": "{\"ok\":true,\"db_ms\":8,\"time\":\"2026-10-09T13:34:59.143Z\",\"auth\":true}"
+      "info": "{\"ok\":true,\"db_ms\":5,\"time\":\"2026-10-14T15:35:19.986Z\",\"auth\":true}"
     },
     {
       "name": "api leaderboard",

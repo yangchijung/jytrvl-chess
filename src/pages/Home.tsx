@@ -74,6 +74,9 @@ export function Home() {
         <div className="pointer-events-none absolute -bottom-24 right-24 h-56 w-56 rounded-full border-[12px] border-[var(--gold)] opacity-10" aria-hidden="true" />
         <p className="mb-3 text-sm font-semibold uppercase tracking-[0.25em] text-[var(--gold)]">JY Games · 6 Games</p>
         <h1 className="max-w-2xl font-serif text-4xl font-bold leading-tight sm:text-5xl">{t('home.hero.title')}</h1>
+        <p className="mt-3 font-serif text-xl text-[var(--gold)] sm:text-2xl" data-testid="tagline">
+          {t('app.tagline')}
+        </p>
         <p className="mt-4 max-w-xl text-lg opacity-90">{t('home.hero.sub')}</p>
         <div className="mt-8 flex flex-wrap gap-3">
           <LinkButton to={to('/play')} className="!bg-[var(--gold)] !text-[#1b2a41]">

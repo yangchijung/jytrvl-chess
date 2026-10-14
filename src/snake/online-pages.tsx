@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useI18n } from '../i18n';
+import { ConnBanner } from '../components/ConnBanner';
 import { Button, Card, Spinner } from '../components/ui';
 import { useAuth } from '../lib/auth';
 import { useStableName } from '../territory/pages';
@@ -25,13 +26,9 @@ function SnakeRoomView({ c }: { c: OnlineSnake }) {
   if (c.status === 'lobby' || !c.game) return <ArenaLobbyView sock={c.sock} backTo="/snake" title={t('sn.room.title')} />;
   const isHost = l.mySeat !== null && l.mySeat === l.hostSeat;
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" data-room-status="game" data-my-seat={l.mySeat ?? 'spectator'} data-phase={c.sock.tracker.phase}>
       <h1 className="sr-only">{t('game.snake')}</h1>
-      {c.sock.conn === 'reconnecting' && (
-        <p className="rounded-lg bg-[var(--warn-bg)] px-3 py-2 text-center text-sm" role="alert">
-          {t('online.reconnecting')}
-        </p>
-      )}
+      <ConnBanner phase={c.sock.tracker.phase} recovering={c.sock.tracker.recovering} recoveredAt={c.sock.tracker.recoveredAt} onRetry={() => c.sock.retryNow()} onLeave={() => nav(to('/snake'))} />
       {l.mySeat === null && <p className="text-center text-sm text-[var(--muted)]">{t('tr.room.inProgress')}</p>}
       <SnakeCanvas
         client={c}

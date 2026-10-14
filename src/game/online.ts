@@ -6,6 +6,7 @@ import { determinize } from '../../shared/ai/banqi-ai';
 import { CHESS_START_FEN } from '../../shared/games/chess/rules';
 import { XQ_START_FEN } from '../../shared/games/xiangqi/rules';
 import type { Seat } from '../../shared/types';
+import { ConnTracker } from '../lib/conn';
 
 type Room = RoomStateMsg['room'];
 
@@ -16,6 +17,7 @@ export class OnlineController implements GameController {
   private listeners = new Set<() => void>();
   private status: 'connecting' | 'open' | 'reconnecting' | 'closed' = 'connecting';
   private retry = 0;
+  readonly conn = new ConnTracker();
   private disposed = false;
   private pendingPly: number | null = null;
   private mirror: Rules | null = null;
@@ -46,6 +48,7 @@ export class OnlineController implements GameController {
     ws.onopen = () => {
       this.status = 'open';
       this.retry = 0;
+      this.conn.opened();
       this.emit();
     };
     ws.onmessage = (e) => {
@@ -56,6 +59,7 @@ export class OnlineController implements GameController {
         return;
       }
       if (m.t === 'state') {
+        this.conn.synced();
         this.room = m.room;
         this.receivedAt = performance.now();
         this.pendingPly = null;
@@ -71,22 +75,32 @@ export class OnlineController implements GameController {
     ws.onclose = (e) => {
       if (this.disposed) return;
       if (e.code === 1000 && e.reason === 'expired') {
+        this.conn.closed();
         this.status = 'closed';
         this.error = 'room_not_found';
         this.emit();
         return;
       }
       if (!this.room && this.retry >= 2) {
+        this.conn.closed();
         this.status = 'closed';
         this.error = 'room_not_found';
         this.emit();
         return;
       }
+      this.retry++;
+      const delay = this.conn.dropped();
       this.status = 'reconnecting';
       this.emit();
-      const delay = Math.min(10000, 500 * 2 ** this.retry++);
-      setTimeout(() => this.connect(), delay);
+      if (delay !== null) setTimeout(() => this.connect(), delay);
     };
+  }
+
+  /** user pressed "try again" after the automatic retries gave up */
+  retryNow() {
+    this.conn.manualRetry();
+    this.emit();
+    this.connect();
   }
 
   private syncMirror() {
@@ -178,6 +192,9 @@ export class OnlineController implements GameController {
       online: {
         roomId: this.roomId,
         status: this.status,
+        phase: this.conn.phase,
+        recovering: this.conn.recovering,
+        recoveredAt: this.conn.recoveredAt,
         mySeat,
         spectator: !!r && r.status !== 'waiting' && mySeat === null,
         waiting: !r || r.status === 'waiting',

@@ -110,6 +110,57 @@ describe('banqi — Taiwan default rules', () => {
     expect(i).toBe(50);
   });
 
+  it('no-progress boundary: 49 quiet turns is not a draw, the 50th is (one player action = one turn)', () => {
+    const c = empty();
+    c[at('a1')] = 'R';
+    c[at('h4')] = 'r';
+    const g = setup(c, { repetitionLimit: 0 });
+    const cyc = ['a1-a2', 'h4-h3', 'a2-a1', 'h3-h4'];
+    for (let i = 0; i < 49; i++) g.play(cyc[i % 4]);
+    expect(g.noProgress).toBe(49);
+    expect(g.result()).toBeNull();
+    g.play(cyc[49 % 4]);
+    expect(g.noProgress).toBe(50);
+    expect(g.result()).toEqual({ kind: 'draw', reason: 'no_progress' });
+  });
+
+  it('no-progress resets when the 49th action is a capture', () => {
+    const c = empty();
+    c[at('a1')] = 'R';
+    c[at('h4')] = 'r';
+    c[at('b1')] = 'p'; // a soldier cannot capture a chariot; red may capture it whenever it wants
+    const g = setup(c, { repetitionLimit: 0 });
+    const cyc = ['a1-a2', 'h4-h3', 'a2-a1', 'h3-h4'];
+    for (let i = 0; i < 48; i++) g.play(cyc[i % 4]);
+    expect(g.noProgress).toBe(48);
+    expect(g.sideToMove()).toBe(0);
+    expect(g.play('a1-b1')?.capture).toBeTruthy(); // 49th action is a capture
+    expect(g.noProgress).toBe(0);
+    g.play('h4-h3');
+    expect(g.noProgress).toBe(1);
+    expect(g.result()).toBeNull();
+  });
+
+  it('no-progress resets when the 49th action is a flip', () => {
+    const c = empty();
+    c[at('a1')] = 'R';
+    c[at('h4')] = 'r';
+    c[at('d3')] = 'K';
+    const g = setup(c, { repetitionLimit: 0 });
+    g.faceUp[at('d3')] = false; // still face-down
+    const cyc = ['a1-a2', 'h4-h3', 'a2-a1', 'h3-h4'];
+    for (let i = 0; i < 48; i++) g.play(cyc[i % 4]);
+    expect(g.noProgress).toBe(48);
+    expect(g.play('f:d3')).not.toBeNull(); // 49th action is a flip
+    expect(g.noProgress).toBe(0);
+    expect(g.result()).toBeNull();
+  });
+
+  it('rated games always use the fixed Taiwan preset: chain capture off, 50-turn limit', () => {
+    expect(BANQI_PRESETS.taiwan.chainCapture).toBe(false);
+    expect(BANQI_PRESETS.taiwan.noProgressLimit).toBe(50);
+  });
+
   it('repetition draw', () => {
     const c = empty();
     c[at('a1')] = 'R';

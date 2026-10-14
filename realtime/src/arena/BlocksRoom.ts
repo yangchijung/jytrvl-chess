@@ -8,7 +8,7 @@
 import { BlocksGame, ACTIONS, TPS, W, rng } from '../../../shared/blocks/engine';
 import { BlocksBot, type BlocksLevel } from '../../../shared/blocks/ai';
 import { ArenaRoom } from './ArenaRoom';
-import type { ArenaClientMsg } from './protocol';
+import type { ArenaClientMsg, ArenaServerMsg } from './protocol';
 import { recordArenaMatchFull } from './persist';
 
 const LOOP_MS = 50;
@@ -196,7 +196,15 @@ export class BlocksRoom extends ArenaRoom {
     } catch (e) {
       console.error('[BlocksRoom] record failed', e);
     }
-    this.broadcast({ t: 'end', winner, reason, ranking, recorded: res.recorded, ratingChange: res.ratingChange });
-    this.endMatch();
+    const end: ArenaServerMsg = { t: 'end', winner, reason, ranking, recorded: res.recorded, ratingChange: res.ratingChange };
+    this.broadcast(end);
+    const snaps = this.games.map((g) => g.snapshot());
+    this.endMatch({
+      state: [
+        { t: 'bstart', status: 'ended', seed: this.seed, mySeat: null, countdownMs: 0, serverTick: this.serverTick(), snaps },
+        ...snaps.map((snap, k): ArenaServerMsg => ({ t: 'bstate', seat: k, ack: this.acks[k], snap })),
+      ],
+      end,
+    });
   }
 }

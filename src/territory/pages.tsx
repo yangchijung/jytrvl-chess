@@ -1,3 +1,4 @@
+import { Onboarding } from '../components/Onboarding';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useI18n } from '../i18n';
@@ -54,6 +55,7 @@ export function TerritoryHub() {
         </PageTitle>
         <TerritoryPreview />
       </div>
+      <Onboarding game="territory" />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {options.map((o) => (
           <Link

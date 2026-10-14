@@ -47,6 +47,9 @@ export interface Snapshot {
   online?: {
     roomId: string;
     status: 'connecting' | 'open' | 'reconnecting' | 'closed';
+    phase: import('../lib/conn').ConnPhase;
+    recovering: boolean;
+    recoveredAt: number;
     mySeat: Seat | null;
     spectator: boolean;
     waiting: boolean;

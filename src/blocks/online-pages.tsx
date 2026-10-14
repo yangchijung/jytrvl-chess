@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useI18n } from '../i18n';
+import { ConnBanner } from '../components/ConnBanner';
 import { Button, Card, LinkButton, PageTitle, Spinner } from '../components/ui';
 import { useAuth } from '../lib/auth';
 import { useStableName } from '../territory/pages';
@@ -35,13 +36,9 @@ function BlocksRoomView({ s }: { s: OnlineBlocks }) {
   const isHost = l.mySeat !== null && l.mySeat === l.hostSeat;
   const again = l.kind === 'private' && isHost ? () => s.sock.again() : l.kind === 'match' ? () => nav(to('/blocks/match')) : l.kind === 'ranked' ? () => nav(to('/blocks/ranked')) : undefined;
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" data-room-status="game" data-my-seat={l.mySeat ?? 'spectator'} data-phase={s.sock.tracker.phase}>
       <h1 className="sr-only">{t('game.blocks')}</h1>
-      {s.sock.conn === 'reconnecting' && (
-        <p className="rounded-lg bg-[var(--warn-bg)] px-3 py-2 text-center text-sm" role="alert">
-          {t('online.reconnecting')}
-        </p>
-      )}
+      <ConnBanner phase={s.sock.tracker.phase} recovering={s.sock.tracker.recovering} recoveredAt={s.sock.tracker.recoveredAt} onRetry={() => s.sock.retryNow()} onLeave={() => nav(to('/blocks'))} />
       {l.mySeat === null && <p className="text-center text-sm text-[var(--muted)]">{t('tr.room.inProgress')}</p>}
       <BlocksView session={s} extraHud={l.kind === 'ranked' ? <span>🏆 {t('bl.mode.ranked')}</span> : null} overlay={<BlocksEndOverlay session={s} mySlotIdx={s.mySeat} onAgain={again} onBack={() => nav(to('/blocks'))} />} />
     </div>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useI18n } from '../i18n';
+import { ConnBanner } from '../components/ConnBanner';
 import { Button, Card, PageTitle, Spinner } from '../components/ui';
 import { OnlineTerritory } from './online';
 import { TerritoryCanvas, useClient } from './TerritoryCanvas';
@@ -21,7 +22,8 @@ function Lobby({ c }: { c: OnlineTerritory }) {
   return (
     <div className="space-y-4">
       <PageTitle>{t('tr.room.title')}</PageTitle>
-      <Card className="mx-auto max-w-xl space-y-5">
+      <Card className="mx-auto max-w-xl space-y-5" data-room-status="waiting" data-my-seat={l.mySeat ?? 'spectator'} data-host={isHost ? 1 : 0} data-phase={c.tracker.phase}>
+        <ConnBanner phase={c.tracker.phase} recovering={c.tracker.recovering} recoveredAt={c.tracker.recoveredAt} onRetry={() => c.retryNow()} onLeave={() => nav(to('/territory'))} />
         {l.kind === 'private' && (
           <div className="space-y-2">
             <p className="text-sm">{t('online.share')}</p>
@@ -119,13 +121,9 @@ function RoomView({ c }: { c: OnlineTerritory }) {
   if (c.status === 'lobby' || !c.game) return <Lobby c={c} />;
   const isHost = c.lobby.mySeat !== null && c.lobby.mySeat === c.lobby.hostSeat;
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" data-room-status="game" data-my-seat={c.lobby.mySeat ?? 'spectator'} data-phase={c.tracker.phase}>
       <h1 className="sr-only">{t('game.territory')}</h1>
-      {c.conn === 'reconnecting' && (
-        <p className="rounded-lg bg-[var(--warn-bg)] px-3 py-2 text-center text-sm" role="alert">
-          {t('online.reconnecting')}
-        </p>
-      )}
+      <ConnBanner phase={c.tracker.phase} recovering={c.tracker.recovering} recoveredAt={c.tracker.recoveredAt} onRetry={() => c.retryNow()} onLeave={() => nav(to('/territory'))} />
       {c.lobby.mySeat === null && <p className="text-center text-sm text-[var(--muted)]">{t('tr.room.inProgress')}</p>}
       <TerritoryCanvas
         client={c}

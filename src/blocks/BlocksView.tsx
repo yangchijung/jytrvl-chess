@@ -82,7 +82,7 @@ function Board({ p, idx, session, compact, now }: { p: BPlayer; idx: number; ses
           <div className="pointer-events-none absolute inset-x-0 top-1/3 flex flex-col items-center gap-1 text-center" aria-live="polite" style={settings.animation ? { animation: 'jy-pop 0.35s ease-out' } : undefined}>
             {popText && <span className="rounded-full bg-black/65 px-3 py-1 text-lg font-bold text-white">{popText}</span>}
             {pop.b2b && <span className="rounded-full bg-[var(--gold)] px-2 text-xs font-bold text-black">Back-to-Back</span>}
-            {pop.combo > 0 && <span className="rounded-full bg-[var(--accent)] px-2 text-xs font-bold text-white">{t('bl.hud.combo', { n: pop.combo })}</span>}
+            {pop.combo > 0 && <span className="rounded-full bg-[var(--accent-fill)] px-2 text-xs font-bold text-white">{t('bl.hud.combo', { n: pop.combo })}</span>}
             {pop.attack > 0 && <span className="text-xs font-bold text-orange-400">⚔ {pop.attack}</span>}
           </div>
         )}
@@ -100,7 +100,7 @@ function TouchButton({ c, label, aria, className = '', press, accent }: { c: Con
     <button
       type="button"
       aria-label={aria}
-      className={`flex h-14 min-w-14 select-none items-center justify-center rounded-2xl px-3 text-xl font-bold shadow active:scale-95 ${accent ? 'bg-[var(--accent)] text-white' : 'bg-[var(--surface-2)] active:bg-[var(--accent-soft)]'} ${className}`}
+      className={`flex h-14 min-w-14 select-none items-center justify-center rounded-2xl px-3 text-xl font-bold shadow active:scale-95 ${accent ? 'bg-[var(--accent-fill)] text-white' : 'bg-[var(--surface-2)] active:bg-[var(--accent-soft)]'} ${className}`}
       onPointerDown={(e) => {
         e.preventDefault();
         (e.target as HTMLElement).setPointerCapture?.(e.pointerId);

@@ -5,6 +5,7 @@ import { OnlineController } from '../game/online';
 import { GameScreen } from '../game/GameScreen';
 import { Button, Card, Spinner } from '../components/ui';
 import { useAuth } from '../lib/auth';
+import { ConnBanner } from '../components/ConnBanner';
 
 export function guestName(): string {
   try {
@@ -33,7 +34,8 @@ function RoomInner({ c }: { c: OnlineController }) {
   }
   if (o.waiting) {
     return (
-      <Card className="mx-auto max-w-lg space-y-4 text-center">
+      <Card className="mx-auto max-w-lg space-y-4 text-center" data-room-status="waiting" data-my-seat={o.mySeat ?? 'spectator'} data-phase={o.phase}>
+        <ConnBanner phase={o.phase} recovering={o.recovering} recoveredAt={o.recoveredAt} onRetry={() => c.retryNow()} onLeave={() => nav(to('/'))} />
         <Spinner label={o.status === 'open' ? t('online.waiting') : t('online.connecting')} />
         <p>{t('online.share')}</p>
         <div className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-2">
@@ -60,12 +62,8 @@ function RoomInner({ c }: { c: OnlineController }) {
     );
   }
   return (
-    <div className="space-y-3">
-      {o.status === 'reconnecting' && (
-        <p className="rounded-lg bg-[var(--warn-bg)] px-3 py-2 text-center text-sm" role="alert">
-          {t('online.reconnecting')}
-        </p>
-      )}
+    <div className="space-y-3" data-room-status={snap.result ? 'ended' : 'playing'} data-my-seat={o.mySeat ?? 'spectator'} data-plies={snap.records.length} data-phase={o.phase}>
+      <ConnBanner phase={o.phase} recovering={o.recovering} recoveredAt={o.recoveredAt} onRetry={() => c.retryNow()} onLeave={() => nav(to(`/${snap.game}`))} />
       {o.opponentAwaySec !== null && !snap.result && (
         <p className="rounded-lg bg-[var(--warn-bg)] px-3 py-2 text-center text-sm" role="alert">
           {t('online.opponentLeft', { s: o.opponentAwaySec })}

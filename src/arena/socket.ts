@@ -1,5 +1,6 @@
 // WebSocket connection to an arena room (Snake Arena / Block Puzzle Battle) with reconnect and the
 // shared lobby commands. Game-specific clients receive the other messages through `onGame`.
+import { ConnTracker } from '../lib/conn';
 import type { ArenaClientMsg, ArenaLevel, ArenaLobbyMsg, ArenaServerMsg } from '../../realtime/src/arena/protocol';
 
 export class ArenaSocket {
@@ -8,6 +9,7 @@ export class ArenaSocket {
   error: string | null = null;
   private ws: WebSocket | null = null;
   private retry = 0;
+  readonly tracker = new ConnTracker();
   private disposed = false;
   private ping: ReturnType<typeof setInterval>;
   /** round-trip estimate in ms */
@@ -36,6 +38,7 @@ export class ArenaSocket {
     ws.onopen = () => {
       this.conn = 'open';
       this.retry = 0;
+      this.tracker.opened();
       this.pingAt = performance.now();
       this.send({ t: 'ping' });
       this.onOpen?.();
@@ -47,7 +50,11 @@ export class ArenaSocket {
         if (this.pingAt) this.rtt = this.rtt * 0.7 + (performance.now() - this.pingAt) * 0.3;
         return;
       }
-      if (m.t === 'lobby') this.lobby = m;
+      if (m.t === 'lobby') {
+        this.lobby = m;
+        if (m.status === 'lobby') this.tracker.synced();
+      }
+      if (m.t === 'ssnap' || m.t === 'bstart') this.tracker.synced();
       if (m.t === 'error') this.error = m.code;
       this.onGame(m);
       this.onChange();
@@ -55,21 +62,31 @@ export class ArenaSocket {
     ws.onclose = (e) => {
       if (this.disposed) return;
       if (e.code === 1000 && e.reason === 'expired') {
+        this.tracker.closed();
         this.conn = 'closed';
         this.error = 'room_not_found';
         this.onChange();
         return;
       }
       if (!this.lobby && this.retry >= 2) {
+        this.tracker.closed();
         this.conn = 'closed';
         this.error = 'room_not_found';
         this.onChange();
         return;
       }
+      this.retry++;
+      const delay = this.tracker.dropped();
       this.conn = 'reconnecting';
       this.onChange();
-      setTimeout(() => this.connect(), Math.min(8000, 400 * 2 ** this.retry++));
+      if (delay !== null) setTimeout(() => this.connect(), delay);
     };
+  }
+
+  retryNow() {
+    this.tracker.manualRetry();
+    this.onChange();
+    this.connect();
   }
 
   send(m: ArenaClientMsg) {
