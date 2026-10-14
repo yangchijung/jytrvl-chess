@@ -217,7 +217,8 @@ AI 只使用玩家看得到的資訊：貪食蛇有單元測試確認對手尚�
 - 測試日期：2026-10-14 至 2026-10-15（本機完整環境：`wrangler pages dev` + realtime worker + 本機 D1）
 - 瀏覽器：Headless Chromium 153.0.8010.0（@sparticuz/chromium + puppeteer-core）
 - 結果檔：`docs/test-results/*-local.json`；截圖：`docs/test-results/screens/`
-- 正式站結果：部署後以 Claude in Chrome 抽查，見 §12.7
+- 正式站：提交 5946f60 已由 Cloudflare 自動部署；2026-10-14 16:56 UTC 以 Claude in Chrome（Chrome 154，macOS）抽查：首頁標語、象棋首次說明卡、建立暗棋房間→房主座位 0、連線狀態 synced、重新整理後仍為同房同座位
+- CI：https://github.com/yangchijung/jytrvl-chess/actions/runs/38602026310（5946f60，npm ci／typecheck／test／build 全部成功）
 
 ### 12.1 既有測試（本輪回歸重跑，未新增案例）
 
@@ -267,4 +268,4 @@ AI 只使用玩家看得到的資訊：貪食蛇有單元測試確認對手尚�
 ### 12.7 尚待人工／實機
 - Safari（iPhone／iPad）、Firefox、Edge、Android Chrome 實機：觸控、虛擬方向鍵／搖桿、字型與 360 px 版面。
 - 真實行動網路切換（Wi‑Fi ↔ 行動網路）下的重新連線體感。
-- 正式站部署後抽查結果見 Issue #2 回覆。
+- 正式站的即時遊戲重新整理與 360 px 尚未以實機逐項重跑（本輪正式站僅抽查，見上方）。
