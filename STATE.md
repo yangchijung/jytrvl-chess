@@ -5,6 +5,7 @@ Date: 2026-10-15
 Branch/Commit: main（Issue #2 工程補強；提交編號見 Issue #2 回覆）
 Done (with evidence):
   - 七款遊戲上線 https://chess.jytrvl.com（第七款經典數獨，Issue #3，docs/ACCEPTANCE.md §13）；部署：Pages jytrvl-chess＋Worker jytrvl-chess-realtime＋D1
+  - 餐廳一日原型：/restaurant（noindex），RT01–RT14 通過（單元 18、瀏覽器 33／33），docs/ACCEPTANCE.md §14；家庭試玩待安排
   - 數獨：SU01–SU16 自動化通過（單元 18、瀏覽器 66／66）；VoiceOver／TalkBack 與實機觸控待人工
   - Issue #2（docs/ACCEPTANCE.md §12）：
     - 重新整理復原六款×等待／進行中／結束後 49／49（refresh-e2e-local.json）；修正即時房間休眠後結果畫面遺失

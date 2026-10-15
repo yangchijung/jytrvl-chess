@@ -21,6 +21,7 @@ import { BlocksLearn } from './blocks/Learn';
 
 const SudokuPage = lazy(() => import('./sudoku/pages').then((m) => ({ default: m.SudokuPage })));
 const SudokuLearn = lazy(() => import('./sudoku/Learn').then((m) => ({ default: m.SudokuLearn })));
+const RestaurantPage = lazy(() => import('./restaurant/pages').then((m) => ({ default: m.RestaurantPage })));
 const lazyEl = (el: ReactElement) => <Suspense fallback={<Spinner />}>{el}</Suspense>;
 
 function pages(prefix: string) {
@@ -36,6 +37,7 @@ function pages(prefix: string) {
     <Route key={p('/learn/sudoku')} path={p('/learn/sudoku')} element={lazyEl(<SudokuLearn />)} />,
     <Route key={p('/learn')} path={p('/learn/:game')} element={<Learn />} />,
     <Route key={p('/sudoku')} path={p('/sudoku')} element={lazyEl(<SudokuPage />)} />,
+    <Route key={p('/restaurant')} path={p('/restaurant')} element={lazyEl(<RestaurantPage />)} />,
     <Route key={p('/snake')} path={p('/snake')} element={<SnakeHub />} />,
     <Route key={p('/snake/play')} path={p('/snake/play')} element={<SnakePlay />} />,
     <Route key={p('/snake/new-room')} path={p('/snake/new-room')} element={<ArenaNewRoom game="snake" />} />,

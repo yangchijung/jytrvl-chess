@@ -73,6 +73,11 @@ export const PAGES: Record<string, PageMeta> = {
     },
     index: true,
   },
+  '/restaurant': {
+    title: { zh: '餐廳當老闆（一日原型）｜JY Games', en: 'Little Restaurant Owner (one-day prototype) | JY Games' },
+    description: { zh: '選菜單、合併採買共用食材、分批備餐，打烊後看懂帳本。試玩原型。', en: 'Pick a menu, buy shared ingredients together, cook in batches and read the books. Playtest prototype.' },
+    index: false,
+  },
   '/learn/sudoku': {
     title: { zh: '數獨規則教學｜JY Games', en: 'How to Play Sudoku | JY Games' },
     description: { zh: '五個互動步驟：每列、每行、每宮 1–9，單一候選，以及筆記與提示。', en: 'Five interactive steps: rows, columns and boxes 1–9, single candidates, notes and hints.' },

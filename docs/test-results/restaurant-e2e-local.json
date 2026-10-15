@@ -1,0 +1,205 @@
+{
+  "base": "http://127.0.0.1:8788",
+  "browser": "HeadlessChrome/153.0.8010.0",
+  "date": "2026-10-15T13:33:42.363Z",
+  "results": [
+    {
+      "id": "UI",
+      "name": "prototype page loads with default plan (two rice dishes ×3)",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "UI",
+      "name": "tapping an ingredient lists every dish using it (text, not colour only)",
+      "pass": true,
+      "info": "蛋 用在：番茄蛋飯、蔬菜蛋炒飯、起司蛋吐司（未上架）"
+    },
+    {
+      "id": "RT01",
+      "name": "shopping list sums needs (rice 6, egg 6, tomato 3, veg 3, boxes 6) → 117",
+      "pass": true,
+      "info": "{\"rice\":[6,6,1],\"egg\":[6,6,1],\"tomato\":[3,3,1],\"vegetable\":[3,3,1],\"packaging\":[6,6,6]}"
+    },
+    {
+      "id": "UI",
+      "name": "comparison explains 201 vs 117 and that 84 is stock/cash, not a discount",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "RT12",
+      "name": "purchase charged once (500 → 383)",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "RT12",
+      "name": "refresh after purchase restores the same plan, stock and cash without charging again",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "RT05",
+      "name": "fifth serving in a batch refused with a message; nothing changes",
+      "pass": true,
+      "info": "這一批最多做 4 份。"
+    },
+    {
+      "id": "RT12",
+      "name": "refresh after cooking keeps meals, stock and batch capacity",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "UI",
+      "name": "first batch shows only guests 1–3",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "RT12",
+      "name": "refresh after a sale keeps the money once and the guest handled",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "RT11",
+      "name": "“nothing suitable” is unavailable while a suitable meal is ready",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "RT07",
+      "name": "ledger: revenue 201, cost 117, waste 0, result 34, cash 534",
+      "pass": true,
+      "info": "{\"testid\":\"r-ledger\",\"revenue\":\"201\",\"cogs\":\"117\",\"waste\":\"0\",\"result\":\"34\",\"cash\":\"534\"}"
+    },
+    {
+      "id": "RT07",
+      "name": "buying the 120 decoration leaves 414; marked decoration only",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "RT12",
+      "name": "refresh at the end keeps 414 and the single decoration purchase",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "UI",
+      "name": "no page errors",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "RT13",
+      "name": "menu change re-sums needs: rice 3, egg 6, bread 3, cheese 3; no vegetables",
+      "pass": true,
+      "info": "{\"rice\":3,\"egg\":6,\"tomato\":3,\"bread\":3,\"cheese\":3,\"packaging\":6}"
+    },
+    {
+      "id": "RT14",
+      "name": "not enough cash (fixed costs reserved): explains the gap, purchase disabled, no charge",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "UI",
+      "name": "360-zh-light: no horizontal overflow, controls ≥ 44 px (shopping table scrolls inside its box)",
+      "pass": true,
+      "info": "menu: buy: prep:"
+    },
+    {
+      "id": "UI",
+      "name": "360-zh-dark: no horizontal overflow, controls ≥ 44 px (shopping table scrolls inside its box)",
+      "pass": true,
+      "info": "menu: buy: prep:"
+    },
+    {
+      "id": "UI",
+      "name": "360-en-light: no horizontal overflow, controls ≥ 44 px (shopping table scrolls inside its box)",
+      "pass": true,
+      "info": "menu: buy: prep:"
+    },
+    {
+      "id": "UI",
+      "name": "360-en-dark: no horizontal overflow, controls ≥ 44 px (shopping table scrolls inside its box)",
+      "pass": true,
+      "info": "menu: buy: prep:"
+    },
+    {
+      "id": "UI",
+      "name": "390-zh-light: no horizontal overflow, controls ≥ 44 px (shopping table scrolls inside its box)",
+      "pass": true,
+      "info": "menu: buy: prep:"
+    },
+    {
+      "id": "UI",
+      "name": "390-zh-dark: no horizontal overflow, controls ≥ 44 px (shopping table scrolls inside its box)",
+      "pass": true,
+      "info": "menu: buy: prep:"
+    },
+    {
+      "id": "UI",
+      "name": "390-en-light: no horizontal overflow, controls ≥ 44 px (shopping table scrolls inside its box)",
+      "pass": true,
+      "info": "menu: buy: prep:"
+    },
+    {
+      "id": "UI",
+      "name": "390-en-dark: no horizontal overflow, controls ≥ 44 px (shopping table scrolls inside its box)",
+      "pass": true,
+      "info": "menu: buy: prep:"
+    },
+    {
+      "id": "UI",
+      "name": "768-zh-light: no horizontal overflow, controls ≥ 44 px (shopping table scrolls inside its box)",
+      "pass": true,
+      "info": "menu: buy: prep:"
+    },
+    {
+      "id": "UI",
+      "name": "768-zh-dark: no horizontal overflow, controls ≥ 44 px (shopping table scrolls inside its box)",
+      "pass": true,
+      "info": "menu: buy: prep:"
+    },
+    {
+      "id": "UI",
+      "name": "768-en-light: no horizontal overflow, controls ≥ 44 px (shopping table scrolls inside its box)",
+      "pass": true,
+      "info": "menu: buy: prep:"
+    },
+    {
+      "id": "UI",
+      "name": "768-en-dark: no horizontal overflow, controls ≥ 44 px (shopping table scrolls inside its box)",
+      "pass": true,
+      "info": "menu: buy: prep:"
+    },
+    {
+      "id": "UI",
+      "name": "1280-zh-light: no horizontal overflow, controls ≥ 44 px (shopping table scrolls inside its box)",
+      "pass": true,
+      "info": "menu: buy: prep:"
+    },
+    {
+      "id": "UI",
+      "name": "1280-zh-dark: no horizontal overflow, controls ≥ 44 px (shopping table scrolls inside its box)",
+      "pass": true,
+      "info": "menu: buy: prep:"
+    },
+    {
+      "id": "UI",
+      "name": "1280-en-light: no horizontal overflow, controls ≥ 44 px (shopping table scrolls inside its box)",
+      "pass": true,
+      "info": "menu: buy: prep:"
+    },
+    {
+      "id": "UI",
+      "name": "1280-en-dark: no horizontal overflow, controls ≥ 44 px (shopping table scrolls inside its box)",
+      "pass": true,
+      "info": "menu: buy: prep:"
+    }
+  ]
+}
