@@ -1,0 +1,113 @@
+{
+  "version": "2.0-design",
+  "date": "2026-10-15",
+  "source": "Original vector artwork created for JY Games by Codex and edited/inspected in Figma",
+  "license": "GPL-3.0, following repository LICENSE",
+  "figmaFile": "6UZHsNJju4YXGGjOimMkJK",
+  "sceneNode": "14:2",
+  "assetSheetNode": "14:162",
+  "assets": [
+    {
+      "path": "assets/restaurant-background.svg",
+      "use": "可分層餐廳背景",
+      "figmaNode": null,
+      "note": "Background is also editable within scene 14:2"
+    },
+    {
+      "path": "assets/restaurant-scene.svg",
+      "use": "完整場景構圖參考",
+      "figmaNode": "14:2",
+      "note": ""
+    },
+    {
+      "path": "assets/chef.svg",
+      "use": "小熊主廚",
+      "figmaNode": "14:164",
+      "note": ""
+    },
+    {
+      "path": "assets/bunny.svg",
+      "use": "兔子客人",
+      "figmaNode": "14:187",
+      "note": ""
+    },
+    {
+      "path": "assets/fox.svg",
+      "use": "橘色動物客人",
+      "figmaNode": "14:205",
+      "note": ""
+    },
+    {
+      "path": "assets/dish-tomato.svg",
+      "use": "番茄蛋飯",
+      "figmaNode": "14:224",
+      "note": ""
+    },
+    {
+      "path": "assets/dish-vegetable.svg",
+      "use": "蔬菜蛋炒飯",
+      "figmaNode": "14:243",
+      "note": ""
+    },
+    {
+      "path": "assets/dish-toast.svg",
+      "use": "起司蛋吐司",
+      "figmaNode": "14:266",
+      "note": ""
+    },
+    {
+      "path": "assets/rice.svg",
+      "use": "米",
+      "figmaNode": "14:276",
+      "note": ""
+    },
+    {
+      "path": "assets/egg.svg",
+      "use": "蛋",
+      "figmaNode": "14:281",
+      "note": ""
+    },
+    {
+      "path": "assets/tomato.svg",
+      "use": "番茄",
+      "figmaNode": "14:284",
+      "note": ""
+    },
+    {
+      "path": "assets/vegetable.svg",
+      "use": "青菜",
+      "figmaNode": "14:288",
+      "note": ""
+    },
+    {
+      "path": "assets/bread.svg",
+      "use": "吐司",
+      "figmaNode": "14:294",
+      "note": ""
+    },
+    {
+      "path": "assets/cheese.svg",
+      "use": "起司",
+      "figmaNode": "14:298",
+      "note": ""
+    },
+    {
+      "path": "assets/packaging.svg",
+      "use": "餐盒",
+      "figmaNode": "14:303",
+      "note": ""
+    },
+    {
+      "path": "assets/plant.svg",
+      "use": "盆栽",
+      "figmaNode": "14:308",
+      "note": ""
+    },
+    {
+      "path": "assets/coin.svg",
+      "use": "遊戲幣",
+      "figmaNode": "14:313",
+      "note": ""
+    }
+  ]
+}
