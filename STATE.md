@@ -14,13 +14,15 @@ Done (with evidence):
     - 象棋判例 XQ01–XQ09、暗棋 49／50 邊界測試；單元 170／170
     - docs/LICENSES.md；GitHub Actions CI（.github/workflows/ci.yml）
   - 既有回歸：棋類 29／29、24／24；領地 29／29、22／22；貪食蛇＋方塊 57／57、47／47
-  - 經典數獨 v1.0 產品設計交付（docs/product/SUDOKU_CLASSIC_V1.md）：雙語文案、互動設計稿、唯一解樣題及 SU01–SU16 驗收規格；僅設計，未部署
+  - 經典數獨 v1.0 產品設計交付（docs/product/SUDOKU_CLASSIC_V1.md）；其後實作／部署狀態以上方 Issue #3 工程證據為準
+  - 兒童能力五款企劃與 Figma 概念板交付：docs/product/KIDS_LEARNING_GAMES_V1.md、KIDS_GAMES_ART_BRIEF_V1.md；五款尚未實作
 In Progress:
-  - 下一款經典數獨：已由負責人指定；待 Claude 實作、正式題庫與驗收
+  - 數獨：已部署，實機及讀屏驗收依 Issue #3 持續收尾
+  - 兒童遊戲：待工程拆解餐廳一日原型；其餘四款為逐款驗證提案
   - Issue #2 回覆已張貼；數獨部署後抽查與 Issue #3 回報
 Blocked / requires decision:
   - 斷線代打的結果計入該真人名下為既有設計；是否調整屬產品決策
-  - 數獨首版範圍已交付，工程估時／拆解待回覆；不做正式排行。其他新遊戲仍為提案
+  - 兒童遊戲年齡暫以 8–12 歲；餐廳先做一日原型為產品建議，正式實作範圍與估時待工程拆解。數獨維持不做正式排行
 Cost / Security / License alerts:
   - 即時遊戲房間對局中計費；Free 方案每日約 570 場即時對戰上限（docs/DEPLOYMENT.md §11）
   - 尚未設定 Cloudflare 帳單警示（需負責人）
