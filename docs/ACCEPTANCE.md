@@ -310,7 +310,8 @@ AI 只使用玩家看得到的資訊：貪食蛇有單元測試確認對手尚�
 - 規格：`docs/product/RESTAURANT_MENU_INVENTORY_V1.md`（RT01–RT14）
 - 網址：`/restaurant`、`/en/restaurant`；原型不列入首頁、導覽與 sitemap，`noindex` 並由 robots 排除；不改變首頁「七款」
 - 程式：`shared/restaurant/data.ts`（食譜、食材包裝、客人、常數）、`shared/restaurant/engine.ts`（純規則核心，每個動作帶唯一 id）、`src/restaurant/`（介面、存檔、雙語文案）
-- 測試：單元 `tests/restaurant.test.ts` 18 項；瀏覽器 `scripts/restaurant-e2e.mjs` 33／33（`restaurant-e2e-local.json`，截圖 `screens/restaurant/`）
+- 測試：單元 `tests/restaurant.test.ts` 18 項；瀏覽器 `scripts/restaurant-e2e.mjs` 33／33（`restaurant-e2e-local.json`，截圖 `screens/restaurant/`）；回歸：單元全套 206、棋類 e2e 29／29；[CI](https://github.com/yangchijung/jytrvl-chess/actions/runs/38743942086)（c52ef63）
+- 正式站：2026-10-15 13:36 UTC 以 Chrome 抽查 /restaurant：標題、`noindex,nofollow`、預設計畫採買 117、確認後現金 383；抽查後已清除測試存檔
 
 ### 14.1 RT01–RT14
 
