@@ -425,7 +425,50 @@ function close(s: State, id: string): State {
   return { ...s, phase: 'closed', servings: [], lots, cash, results: [...s.results, r], ledger: [...s.ledger, { id, day: s.day, kind: 'fixed', amount: -FIXED_FEE }] };
 }
 
+/** Full structural check of a saved state (anything off → treated as unreadable, never half-loaded). */
 export function validState(x: unknown): x is State {
   const s = x as State;
-  return !!s && s.version === STATE_VERSION && Number.isFinite(s.cash) && s.cash >= 0 && Array.isArray(s.lots) && Array.isArray(s.servings) && Array.isArray(s.orders) && Array.isArray(s.customers) && s.orders.length === s.customers.length && Array.isArray(s.applied) && Array.isArray(s.menu);
+  const num = (v: unknown, min = 0) => typeof v === 'number' && Number.isFinite(v) && v >= min;
+  const int = (v: unknown, min = 0, max = Infinity) => Number.isInteger(v) && (v as number) >= min && (v as number) <= max;
+  const dish = (d: unknown) => DISH_IDS.includes(d as DishId);
+  const item = (i: unknown) => ITEM_IDS.includes(i as ItemId);
+  try {
+    return (
+      !!s &&
+      s.version === STATE_VERSION &&
+      int(s.day, 1) &&
+      ['plan', 'buy', 'prep', 'serve', 'closed', 'done'].includes(s.phase) &&
+      (s.batch === 1 || s.batch === 2) &&
+      num(s.cash) &&
+      num(s.cashOpen) &&
+      Array.isArray(s.menu) &&
+      s.menu.every(dish) &&
+      new Set(s.menu).size === s.menu.length &&
+      !!s.plan &&
+      DISH_IDS.every((d) => int(s.plan[d], 0, DAY_CAPACITY)) &&
+      Array.isArray(s.lots) &&
+      s.lots.every((l) => typeof l.id === 'string' && item(l.item) && int(l.qty, 1) && num(l.unitCost) && int(l.boughtDay) && (l.lastDay === null || int(l.lastDay))) &&
+      Array.isArray(s.servings) &&
+      s.servings.every((v) => typeof v.id === 'string' && dish(v.dish) && num(v.cost) && int(v.day, 1)) &&
+      int(s.madeToday, 0, DAY_CAPACITY) &&
+      int(s.madeThisBatch, 0, BATCH_CAPACITY) &&
+      Array.isArray(s.customers) &&
+      s.customers.length === BATCH_ORDERS.flat().length &&
+      s.customers.every((c) => dish(c.likes) && (c.alsoAccepts === null || dish(c.alsoAccepts)) && num(c.budget)) &&
+      Array.isArray(s.orders) &&
+      s.orders.length === s.customers.length &&
+      s.orders.every((o) => o.status === 'pending' || o.status === 'no_match' || (o.status === 'sold' && dish(o.dish) && num(o.price) && num(o.cost))) &&
+      num(s.revenue) &&
+      num(s.cogs) &&
+      num(s.purchases) &&
+      Array.isArray(s.ledger) &&
+      Array.isArray(s.results) &&
+      Array.isArray(s.decor) &&
+      Array.isArray(s.applied) &&
+      s.applied.every((a) => typeof a === 'string') &&
+      int(s.seq)
+    );
+  } catch {
+    return false;
+  }
 }

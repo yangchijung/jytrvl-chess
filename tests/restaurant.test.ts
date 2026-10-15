@@ -242,3 +242,19 @@ describe('capacity and rules', () => {
     expect(Object.keys(DISHES).sort()).toEqual(['cheese_egg_toast', 'tomato_egg_rice', 'vegetable_egg_rice'] as DishId[]);
   });
 });
+
+describe('saved state validation (V2-08)', () => {
+  it('accepts a real saved day and rejects damaged structures', () => {
+    let s = run(newGame(), { t: 'toBuy' });
+    s = run(s, { t: 'purchase', packs: suggested(s) });
+    expect(validState(JSON.parse(JSON.stringify(s)))).toBe(true);
+    const bad = (patch: Record<string, unknown>) => validState({ ...JSON.parse(JSON.stringify(s)), ...patch });
+    expect(bad({ cash: -1 })).toBe(false);
+    expect(bad({ phase: 'nope' })).toBe(false);
+    expect(bad({ menu: ['pizza'] })).toBe(false);
+    expect(bad({ lots: [{ id: 'x', item: 'egg', qty: 'many', unitCost: 8, boughtDay: 1, lastDay: 3 }] })).toBe(false);
+    expect(bad({ orders: [] })).toBe(false);
+    expect(bad({ plan: { tomato_egg_rice: 99, vegetable_egg_rice: 0, cheese_egg_toast: 0 } })).toBe(false);
+    expect(validState(null)).toBe(false);
+  });
+});

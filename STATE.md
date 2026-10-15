@@ -6,7 +6,7 @@ Branch/Commit: main（Issue #2 工程補強；提交編號見 Issue #2 回覆）
 Done (with evidence):
   - 七款遊戲上線 https://chess.jytrvl.com（第七款經典數獨，Issue #3，docs/ACCEPTANCE.md §13）；部署：Pages jytrvl-chess＋Worker jytrvl-chess-realtime＋D1
   - 產品端正式站一日抽查：營收 201／結餘 34／現金 534／裝飾後 414，重整保持 414；樣稿另核對相同數值，非正式站 V2 部署證據
-  - 餐廳一日原型：/restaurant（noindex），RT01–RT14 通過（單元 18、瀏覽器 33／33），docs/ACCEPTANCE.md §14；家庭試玩待安排
+  - 餐廳 V2 場景版：/restaurant（noindex），V2-01–V2-09 通過（瀏覽器 42／42）、RT01–RT14 保留，docs/ACCEPTANCE.md §15；V2-10 家庭試玩（5–7／8–12 歲）待安排
   - 數獨：SU01–SU16 自動化通過（單元 18、瀏覽器 66／66）；VoiceOver／TalkBack 與實機觸控待人工
   - Issue #2（docs/ACCEPTANCE.md §12）：
     - 重新整理復原六款×等待／進行中／結束後 49／49（refresh-e2e-local.json）；修正即時房間休眠後結果畫面遺失
@@ -21,8 +21,8 @@ Done (with evidence):
   - 餐廳菜單／共用食材／庫存規格與 Figma 關係圖交付：docs/product/RESTAURANT_MENU_INVENTORY_V1.md；含 RT01–RT14，工程已回報通過，計算樣例已核對
 In Progress:
   - 數獨：已部署，實機及讀屏驗收依 Issue #3 持續收尾
-  - 餐廳 V2：負責人確認 5–12 歲，改為低文字、場景式動畫；產品動態樣稿、Figma 角色／場景及 17 個 SVG 已交付，待 Claude 依 docs/product/RESTAURANT_SCENE_V2.md 接入現有一日原型
-  - Issue #2 回覆已張貼；數獨部署後抽查與 Issue #3 回報
+  - 餐廳 V2：場景版已接入並部署（ACCEPTANCE §15）；待 V2-10 家庭試玩與 Issue #4 回報
+  - #2、#3 已回報；實機（Safari／Android）與讀屏驗收待人工
 Blocked / requires decision:
   - 斷線代打的結果計入該真人名下為既有設計；是否調整屬產品決策
   - 餐廳 5–12 歲已確認；其餘四款年齡仍暫 8–12 歲。餐廳先完成場景動畫與家庭試玩，再決定七日版；數獨維持不做正式排行

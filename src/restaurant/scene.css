@@ -1,0 +1,56 @@
+/* Restaurant scene (V2). Positions are % of the 1280×760 design canvas; the canvas is scaled by height and
+   cropped at the sides on narrow screens, while overlays (prompt, tray, progress) are placed on the stage. */
+.rs-stage { position: relative; overflow: hidden; isolation: isolate; background: #efc994; height: clamp(300px, 92vw, 470px); }
+@media (min-width: 768px) { .rs-stage { height: auto; aspect-ratio: 1280 / 760; } }
+.rs-canvas { position: absolute; top: 0; bottom: 0; left: 50%; aspect-ratio: 1280 / 760; transform: translateX(-50%); }
+.rs-canvas > img, .rs-canvas > div { position: absolute; }
+.rs-bg { inset: 0; width: 100%; height: 100%; }
+.rs-chef { left: 41.5%; top: 13%; width: 17%; height: 37%; object-fit: contain; object-position: top; clip-path: inset(0 0 23% 0); transform-origin: 50% 65%; }
+.rs-guest { left: 57%; top: 52%; width: 16%; height: 42%; object-fit: contain; transform-origin: bottom; }
+.rs-guest.flip { transform: scaleX(-1); }
+.rs-bubble { right: 38%; top: 36%; display: flex; align-items: center; gap: 4px; padding: 8px 12px; border-radius: 22px 22px 22px 6px; background: #fffaf0; color: #4f5941; box-shadow: 0 5px 0 #c9ab7c55; font-weight: 800; }
+.rs-bubble img { width: clamp(44px, 6vw, 72px); height: auto; }
+.rs-counter-dish { left: 53%; top: 32%; width: 12%; }
+.rs-plant { left: 22%; top: 46%; width: 8%; }
+.rs-steam { left: 46%; top: 22%; display: flex; gap: 10px; opacity: 0; pointer-events: none; }
+.rs-steam i { height: 40px; width: 9px; border-radius: 50%; background: #fff5dfcc; transform: rotate(14deg); }
+.rs-coins { left: 66%; top: 40%; opacity: 0; color: #715021; font-size: clamp(20px, 3vw, 30px); font-weight: 900; text-shadow: 0 2px #ffedb4; pointer-events: none; }
+.rs-night { inset: 0; background: linear-gradient(#1e2a4a99, #2b223a66); opacity: 0; pointer-events: none; transition: opacity .5s; }
+.rs-stage[data-night='true'] .rs-night { opacity: 1; }
+.rs-overlay { position: absolute; z-index: 2; }
+.rs-prompt { left: 50%; top: 4%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; max-width: 94%; background: #fff7e9; color: #3e4636; border-radius: 24px; padding: 6px 8px 6px 18px; box-shadow: 0 5px 0 #bc955833; font-size: clamp(16px, 2.6vw, 24px); font-weight: 800; line-height: 1.25; width: max-content; }
+.rs-progress { right: 3%; bottom: 5%; display: flex; gap: 6px; background: #fff9e6e6; border-radius: 16px; padding: 8px 10px; color: #3e4636; font-size: 12px; font-weight: 800; }
+.rs-progress span { width: 14px; height: 14px; border-radius: 50%; background: #d0bea0; display: grid; place-items: center; }
+.rs-progress span[data-s='sold'] { background: #5e916c; color: #fff; }
+.rs-progress span[data-s='no_match'] { background: #b59c76; color: #fff; }
+.rs-tray { left: 3%; bottom: 5%; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; max-width: 62%; background: #fff9e8f2; border-radius: 18px; padding: 6px 10px; color: #3e4636; box-shadow: 0 5px 0 #a97b4933; font-weight: 800; font-variant-numeric: tabular-nums; }
+.rs-tray span { display: inline-flex; align-items: center; gap: 2px; }
+.rs-tray img { width: 30px; height: 30px; }
+@media (min-width: 768px) { .rs-tray { max-width: 70%; } .rs-tray img { width: 36px; height: 36px; } }
+.rs-tray .empty { opacity: .45; text-decoration: line-through; }
+.rs-truck { left: -40%; bottom: 10%; display: flex; gap: 3px; padding: 8px 14px; background: #e6b478; border-radius: 16px; border-bottom: 8px solid #6b7253; opacity: 0; pointer-events: none; }
+.rs-truck img { width: 42px; height: 42px; }
+.rs-pause { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; align-content: center; gap: 16px; background: #233727cc; color: #fff8e7; font-size: 30px; font-weight: 800; }
+.rs-skip { right: 3%; top: 22%; }
+@media (min-width: 768px) { .rs-progress { left: 3%; right: auto; top: 4%; bottom: auto; } .rs-skip { top: 4%; } }
+
+[data-fx='cook'] .rs-chef { animation: rs-cook .2s ease-in-out 4; }
+[data-fx='cook'] .rs-steam { animation: rs-steam .8s ease-out; }
+[data-fx='arrive'] .rs-guest { animation: rs-arrive .5s ease-out; }
+[data-fx='serve'] .rs-counter-dish { animation: rs-serve .7s ease-in-out forwards; }
+[data-fx='serve'] .rs-guest { animation: rs-cheer .3s ease-in-out 2; }
+[data-fx='serve'] .rs-coins { animation: rs-coins .75s ease-out; }
+[data-fx='nomatch'] .rs-guest { animation: rs-leave .5s ease-in forwards; }
+[data-fx='deliver'] .rs-truck { animation: rs-deliver .85s ease-in-out; }
+[data-fx='plant'] .rs-plant { animation: rs-plant .6s ease-out; }
+@keyframes rs-cook { 50% { transform: rotate(-4deg) translateY(-3px); } }
+@keyframes rs-steam { 0% { opacity: 0; transform: translateY(10px); } 40% { opacity: 1; } 100% { opacity: 0; transform: translateY(-30px); } }
+@keyframes rs-arrive { from { transform: translateX(60%); opacity: 0; } }
+@keyframes rs-serve { from { left: 53%; top: 32%; } to { left: 62%; top: 60%; } }
+@keyframes rs-cheer { 50% { transform: translateY(-8px); } }
+@keyframes rs-coins { 0% { opacity: 0; transform: translateY(10px); } 30% { opacity: 1; } 100% { opacity: 0; transform: translateY(-40px); } }
+@keyframes rs-leave { to { transform: translateX(80%); opacity: 0; } }
+@keyframes rs-deliver { 0% { left: -40%; opacity: 1; } 60% { left: 30%; opacity: 1; } 100% { left: 110%; opacity: 0; } }
+@keyframes rs-plant { from { transform: scale(.3); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .rs-stage *, .rs-stage { animation: none !important; transition: none !important; } }
+:root[data-reduce-motion] .rs-stage * { animation: none !important; transition: none !important; }

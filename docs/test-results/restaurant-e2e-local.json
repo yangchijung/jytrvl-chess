@@ -1,205 +1,259 @@
 {
   "base": "http://127.0.0.1:8788",
   "browser": "HeadlessChrome/153.0.8010.0",
-  "date": "2026-10-15T13:33:42.363Z",
+  "date": "2026-10-15T15:26:46.391Z",
   "results": [
     {
-      "id": "UI",
-      "name": "prototype page loads with default plan (two rice dishes ×3)",
+      "id": "V2-01",
+      "name": "first screen: short prompt, picture cards, ledger closed",
       "pass": true,
-      "info": ""
+      "info": "prompt 5 chars"
     },
     {
-      "id": "UI",
-      "name": "tapping an ingredient lists every dish using it (text, not colour only)",
+      "id": "V2-02",
+      "name": "shared ingredients named on the menu step (rice & egg used by 2 dishes)",
       "pass": true,
-      "info": "蛋 用在：番茄蛋飯、蔬菜蛋炒飯、起司蛋吐司（未上架）"
+      "info": ""
     },
     {
       "id": "RT01",
-      "name": "shopping list sums needs (rice 6, egg 6, tomato 3, veg 3, boxes 6) → 117",
+      "name": "one rice box and one egg box for both dishes; Buy for 117",
       "pass": true,
-      "info": "{\"rice\":[6,6,1],\"egg\":[6,6,1],\"tomato\":[3,3,1],\"vegetable\":[3,3,1],\"packaging\":[6,6,6]}"
+      "info": "{\"rice\":[6,1],\"egg\":[6,1],\"tomato\":[3,1],\"vegetable\":[3,1],\"packaging\":[6,6]}"
     },
     {
-      "id": "UI",
-      "name": "comparison explains 201 vs 117 and that 84 is stock/cash, not a discount",
+      "id": "V2-06",
+      "name": "390 px: shopping needs no sideways scrolling (pack counts visible on cards)",
       "pass": true,
       "info": ""
     },
     {
-      "id": "RT12",
-      "name": "purchase charged once (500 → 383)",
+      "id": "V2-03",
+      "name": "before cooking: this batch’s three first choices shown as pictures",
       "pass": true,
       "info": ""
     },
     {
-      "id": "RT12",
-      "name": "refresh after purchase restores the same plan, stock and cash without charging again",
+      "id": "V2-04",
+      "name": "tapping again during the animation does not cook twice",
       "pass": true,
       "info": ""
     },
     {
-      "id": "RT05",
-      "name": "fifth serving in a batch refused with a message; nothing changes",
-      "pass": true,
-      "info": "這一批最多做 4 份。"
-    },
-    {
-      "id": "RT12",
-      "name": "refresh after cooking keeps meals, stock and batch capacity",
+      "id": "V2-04",
+      "name": "reload during the animation shows the committed state once (1 meal, cash 383)",
       "pass": true,
       "info": ""
     },
     {
-      "id": "UI",
-      "name": "first batch shows only guests 1–3",
+      "id": "V2-04",
+      "name": "skipping the animation keeps the result (4 meals) and unlocks input",
       "pass": true,
       "info": ""
     },
     {
-      "id": "RT12",
-      "name": "refresh after a sale keeps the money once and the guest handled",
+      "id": "V2-04",
+      "name": "pause covers the scene and blocks actions",
       "pass": true,
       "info": ""
     },
     {
-      "id": "RT11",
-      "name": "“nothing suitable” is unavailable while a suitable meal is ready",
+      "id": "V2-03",
+      "name": "serving: the guest bubble shows every acceptable dish (pictures joined by “or”)",
       "pass": true,
       "info": ""
     },
     {
-      "id": "RT07",
-      "name": "ledger: revenue 201, cost 117, waste 0, result 34, cash 534",
-      "pass": true,
-      "info": "{\"testid\":\"r-ledger\",\"revenue\":\"201\",\"cogs\":\"117\",\"waste\":\"0\",\"result\":\"34\",\"cash\":\"534\"}"
-    },
-    {
-      "id": "RT07",
-      "name": "buying the 120 decoration leaves 414; marked decoration only",
+      "id": "V2-04",
+      "name": "reload during the serving animation: paid once, guest handled once",
       "pass": true,
       "info": ""
     },
     {
-      "id": "RT12",
-      "name": "refresh at the end keeps 414 and the single decoration purchase",
+      "id": "V2-05",
+      "name": "all six sold: result 34, cash 534 (RT07 via the scene)",
+      "pass": true,
+      "info": "{\"testid\":\"r-result\",\"result\":\"34\",\"cash\":\"534\",\"sold\":\"6\"}"
+    },
+    {
+      "id": "V2-09",
+      "name": "reflection matches the real result (no leftovers → no “still usable” question) and can be skipped",
+      "pass": true,
+      "info": "🤔 剛剛好！哪個食材最多菜在用？略過"
+    },
+    {
+      "id": "V2-09",
+      "name": "plant appears in the shop; cash 414; ledger lists the upgrade separately and the day result stays 34",
       "pass": true,
       "info": ""
     },
     {
-      "id": "UI",
-      "name": "no page errors",
+      "id": "V2-07",
+      "name": "no page errors and nothing spoken automatically",
       "pass": true,
       "info": ""
     },
     {
-      "id": "RT13",
-      "name": "menu change re-sums needs: rice 3, egg 6, bread 3, cheese 3; no vegetables",
+      "id": "V2-05",
+      "name": "only five sold: 169 / 98 / waste 19 / result 2 / cash 502 (RT08)",
       "pass": true,
-      "info": "{\"rice\":3,\"egg\":6,\"tomato\":3,\"bread\":3,\"cheese\":3,\"packaging\":6}"
+      "info": "{\"testid\":\"r-books\",\"revenue\":\"169\",\"cogs\":\"98\",\"waste\":\"19\",\"result\":\"2\",\"cash\":\"502\"}"
     },
     {
-      "id": "RT14",
-      "name": "not enough cash (fixed costs reserved): explains the gap, purchase disabled, no charge",
+      "id": "V2-07",
+      "name": "reduced motion: no animation state is ever entered",
       "pass": true,
       "info": ""
     },
     {
-      "id": "UI",
-      "name": "360-zh-light: no horizontal overflow, controls ≥ 44 px (shopping table scrolls inside its box)",
+      "id": "V2-03",
+      "name": "no stock and no meals: “Skip cooking” and “Not today” lead to closing (no dead end)",
       "pass": true,
-      "info": "menu: buy: prep:"
+      "info": ""
     },
     {
-      "id": "UI",
-      "name": "360-zh-dark: no horizontal overflow, controls ≥ 44 px (shopping table scrolls inside its box)",
+      "id": "V2-07",
+      "name": "not enough coins: icon + short text, Buy disabled, nothing charged (RT14)",
       "pass": true,
-      "info": "menu: buy: prep:"
+      "info": ""
     },
     {
-      "id": "UI",
-      "name": "360-en-light: no horizontal overflow, controls ≥ 44 px (shopping table scrolls inside its box)",
+      "id": "V2-02",
+      "name": "egg shortage lists every affected dish before buying",
       "pass": true,
-      "info": "menu: buy: prep:"
+      "info": ""
     },
     {
-      "id": "UI",
-      "name": "360-en-dark: no horizontal overflow, controls ≥ 44 px (shopping table scrolls inside its box)",
+      "id": "V2-02",
+      "name": "empty egg box: every egg dish shows “No eggs” with an icon, not colour only",
       "pass": true,
-      "info": "menu: buy: prep:"
+      "info": "[[true,\"番茄蛋飯做好 0⚠ 缺 蛋\"],[true,\"蔬菜蛋炒飯做好 0⚠ 缺 蛋\"]]"
     },
     {
-      "id": "UI",
-      "name": "390-zh-light: no horizontal overflow, controls ≥ 44 px (shopping table scrolls inside its box)",
+      "id": "V2-07",
+      "name": "keyboard only (English, sound off, reduced motion): full day to cash 534",
       "pass": true,
-      "info": "menu: buy: prep:"
+      "info": ""
     },
     {
-      "id": "UI",
-      "name": "390-zh-dark: no horizontal overflow, controls ≥ 44 px (shopping table scrolls inside its box)",
+      "id": "V2-08",
+      "name": "unsent shopping draft (manual packs) survives a reload",
       "pass": true,
-      "info": "menu: buy: prep:"
+      "info": ""
     },
     {
-      "id": "UI",
-      "name": "390-en-light: no horizontal overflow, controls ≥ 44 px (shopping table scrolls inside its box)",
+      "id": "V2-08",
+      "name": "restart asks first; “keep playing” changes nothing",
       "pass": true,
-      "info": "menu: buy: prep:"
+      "info": ""
     },
     {
-      "id": "UI",
-      "name": "390-en-dark: no horizontal overflow, controls ≥ 44 px (shopping table scrolls inside its box)",
+      "id": "V2-08",
+      "name": "restart in one tab is adopted by the other (sequence keeps growing, not reset to 0)",
       "pass": true,
-      "info": "menu: buy: prep:"
+      "info": "seq 1 → 2"
     },
     {
-      "id": "UI",
-      "name": "768-zh-light: no horizontal overflow, controls ≥ 44 px (shopping table scrolls inside its box)",
+      "id": "V2-08",
+      "name": "damaged save: notice shown, original kept as backup, a fresh day starts",
       "pass": true,
-      "info": "menu: buy: prep:"
+      "info": ""
     },
     {
-      "id": "UI",
-      "name": "768-zh-dark: no horizontal overflow, controls ≥ 44 px (shopping table scrolls inside its box)",
+      "id": "V2-06",
+      "name": "360-zh-light: no sideways scroll; controls ≥ 44 px; main actions ≥ 56 px",
       "pass": true,
-      "info": "menu: buy: prep:"
+      "info": "menu: buy: cook: serve: ledger:"
     },
     {
-      "id": "UI",
-      "name": "768-en-light: no horizontal overflow, controls ≥ 44 px (shopping table scrolls inside its box)",
+      "id": "V2-06",
+      "name": "360-zh-dark: no sideways scroll; controls ≥ 44 px; main actions ≥ 56 px",
       "pass": true,
-      "info": "menu: buy: prep:"
+      "info": "menu: buy: cook: serve: ledger:"
     },
     {
-      "id": "UI",
-      "name": "768-en-dark: no horizontal overflow, controls ≥ 44 px (shopping table scrolls inside its box)",
+      "id": "V2-06",
+      "name": "360-en-light: no sideways scroll; controls ≥ 44 px; main actions ≥ 56 px",
       "pass": true,
-      "info": "menu: buy: prep:"
+      "info": "menu: buy: cook: serve: ledger:"
     },
     {
-      "id": "UI",
-      "name": "1280-zh-light: no horizontal overflow, controls ≥ 44 px (shopping table scrolls inside its box)",
+      "id": "V2-06",
+      "name": "360-en-dark: no sideways scroll; controls ≥ 44 px; main actions ≥ 56 px",
       "pass": true,
-      "info": "menu: buy: prep:"
+      "info": "menu: buy: cook: serve: ledger:"
     },
     {
-      "id": "UI",
-      "name": "1280-zh-dark: no horizontal overflow, controls ≥ 44 px (shopping table scrolls inside its box)",
+      "id": "V2-06",
+      "name": "390-zh-light: no sideways scroll; controls ≥ 44 px; main actions ≥ 56 px",
       "pass": true,
-      "info": "menu: buy: prep:"
+      "info": "menu: buy: cook: serve: ledger:"
     },
     {
-      "id": "UI",
-      "name": "1280-en-light: no horizontal overflow, controls ≥ 44 px (shopping table scrolls inside its box)",
+      "id": "V2-06",
+      "name": "390-zh-dark: no sideways scroll; controls ≥ 44 px; main actions ≥ 56 px",
       "pass": true,
-      "info": "menu: buy: prep:"
+      "info": "menu: buy: cook: serve: ledger:"
     },
     {
-      "id": "UI",
-      "name": "1280-en-dark: no horizontal overflow, controls ≥ 44 px (shopping table scrolls inside its box)",
+      "id": "V2-06",
+      "name": "390-en-light: no sideways scroll; controls ≥ 44 px; main actions ≥ 56 px",
       "pass": true,
-      "info": "menu: buy: prep:"
+      "info": "menu: buy: cook: serve: ledger:"
+    },
+    {
+      "id": "V2-06",
+      "name": "390-en-dark: no sideways scroll; controls ≥ 44 px; main actions ≥ 56 px",
+      "pass": true,
+      "info": "menu: buy: cook: serve: ledger:"
+    },
+    {
+      "id": "V2-06",
+      "name": "768-zh-light: no sideways scroll; controls ≥ 44 px; main actions ≥ 56 px",
+      "pass": true,
+      "info": "menu: buy: cook: serve: ledger:"
+    },
+    {
+      "id": "V2-06",
+      "name": "768-zh-dark: no sideways scroll; controls ≥ 44 px; main actions ≥ 56 px",
+      "pass": true,
+      "info": "menu: buy: cook: serve: ledger:"
+    },
+    {
+      "id": "V2-06",
+      "name": "768-en-light: no sideways scroll; controls ≥ 44 px; main actions ≥ 56 px",
+      "pass": true,
+      "info": "menu: buy: cook: serve: ledger:"
+    },
+    {
+      "id": "V2-06",
+      "name": "768-en-dark: no sideways scroll; controls ≥ 44 px; main actions ≥ 56 px",
+      "pass": true,
+      "info": "menu: buy: cook: serve: ledger:"
+    },
+    {
+      "id": "V2-06",
+      "name": "1280-zh-light: no sideways scroll; controls ≥ 44 px; main actions ≥ 56 px",
+      "pass": true,
+      "info": "menu: buy: cook: serve: ledger:"
+    },
+    {
+      "id": "V2-06",
+      "name": "1280-zh-dark: no sideways scroll; controls ≥ 44 px; main actions ≥ 56 px",
+      "pass": true,
+      "info": "menu: buy: cook: serve: ledger:"
+    },
+    {
+      "id": "V2-06",
+      "name": "1280-en-light: no sideways scroll; controls ≥ 44 px; main actions ≥ 56 px",
+      "pass": true,
+      "info": "menu: buy: cook: serve: ledger:"
+    },
+    {
+      "id": "V2-06",
+      "name": "1280-en-dark: no sideways scroll; controls ≥ 44 px; main actions ≥ 56 px",
+      "pass": true,
+      "info": "menu: buy: cook: serve: ledger:"
     }
   ]
 }
