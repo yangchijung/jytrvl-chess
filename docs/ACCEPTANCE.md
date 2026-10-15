@@ -345,7 +345,8 @@ AI 只使用玩家看得到的資訊：貪食蛇有單元測試確認對手尚�
 - 規格：`docs/product/RESTAURANT_SCENE_V2.md`（V2-01–V2-10）；規則仍只有 `shared/restaurant/engine.ts`（RT01–RT14 保留）
 - 介面：`src/restaurant/pages.tsx`（場景＋圖卡操作列＋可選小帳本）、`scene.css`（動畫）、`game.ts`（先提交保存、再播動畫）、`copy.ts`（短雙語文案）
 - 素材：`src/restaurant/assets/` 16 個 SVG，取自 `docs/design/restaurant-v2/assets/`（完整構圖 scene.svg 未使用）
-- 測試：單元 19 項（新增存檔結構驗證）、全套 207；瀏覽器 `scripts/restaurant-e2e.mjs` 42／42（`restaurant-e2e-local.json`，截圖 `screens/restaurant/`）；棋類回歸 29／29
+- 測試：單元 19 項（新增存檔結構驗證）、全套 207；瀏覽器 `scripts/restaurant-e2e.mjs` 42／42（`restaurant-e2e-local.json`，截圖 `screens/restaurant/`）；棋類回歸 29／29；[CI](https://github.com/yangchijung/jytrvl-chess/actions/runs/38760759167)（a9efcf9）
+- 正式站：2026-10-15 15:30 UTC 以 Chrome 抽查 /restaurant 場景版：提示「選今天的菜」、按「買齊 117」、現金 383、食材箱 6／6／3／3、提示改為「點餐點，做一份」；抽查後已清除測試存檔
 
 | ID | 結果 | 證據 |
 |---|---|---|
