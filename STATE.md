@@ -16,18 +16,20 @@ Done (with evidence):
   - 既有回歸：棋類 29／29、24／24；領地 29／29、22／22；貪食蛇＋方塊 57／57、47／47
   - 經典數獨 v1.0 產品設計交付（docs/product/SUDOKU_CLASSIC_V1.md）；其後實作／部署狀態以上方 Issue #3 工程證據為準
   - 兒童能力五款企劃與 Figma 概念板交付：docs/product/KIDS_LEARNING_GAMES_V1.md、KIDS_GAMES_ART_BRIEF_V1.md；五款尚未實作
+  - 餐廳菜單／共用食材／庫存規格與 Figma 關係圖交付：docs/product/RESTAURANT_MENU_INVENTORY_V1.md；含十四項待工程驗收情境，計算樣例已核對
 In Progress:
   - 數獨：已部署，實機及讀屏驗收依 Issue #3 持續收尾
-  - 兒童遊戲：待工程拆解餐廳一日原型；其餘四款為逐款驗證提案
+  - 餐廳優先已由負責人確認：待 Claude 依 Issue #4 的菜單／庫存規格拆解並實作一日原型；其餘四款仍為提案
   - Issue #2 回覆已張貼；數獨部署後抽查與 Issue #3 回報
 Blocked / requires decision:
   - 斷線代打的結果計入該真人名下為既有設計；是否調整屬產品決策
-  - 兒童遊戲年齡暫以 8–12 歲；餐廳先做一日原型為產品建議，正式實作範圍與估時待工程拆解。數獨維持不做正式排行
+  - 兒童遊戲年齡暫以 8–12 歲；餐廳一日原型範圍已定義，工程估時與七日版擴充待回覆／試玩。數獨維持不做正式排行
 Cost / Security / License alerts:
   - 即時遊戲房間對局中計費；Free 方案每日約 570 場即時對戰上限（docs/DEPLOYMENT.md §11）
   - 尚未設定 Cloudflare 帳單警示（需負責人）
   - cburnett 棋子授權文字待對照 Wikimedia Commons 原頁（docs/LICENSES.md 最末）
 Next actions:
+  - 餐廳：合併採買與共用庫存規則、分批備餐、結算及重整恢復；依 RT01–RT14 回報證據
   - 實機驗收：iPhone／iPad Safari、Android Chrome、Firefox、Edge；數獨螢幕閱讀器朗讀
 Need from ChatGPT (content/design):
   - 依 screens/360 與 screens/copy 截圖回看文案與視覺
