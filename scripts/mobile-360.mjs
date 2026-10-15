@@ -135,6 +135,18 @@ const PAGES = [
     },
   },
   { id: 'error-room-not-found', path: '/room/ZZZZZZ', wait: 2500 },
+  { id: 'hub-sudoku', path: '/sudoku' },
+  { id: 'learn-sudoku', path: '/learn/sudoku' },
+  {
+    id: 'game-sudoku',
+    path: '/sudoku',
+    prep: async (p) => {
+      await p.click('[data-testid=sudoku-start]');
+      await p.waitForSelector('[data-testid=sudoku-game]');
+      await p.click('[data-testid=sudoku-hint]');
+      await sleep(300);
+    },
+  },
   { id: 'leaderboard', path: '/leaderboard' },
   { id: 'settings', path: '/settings' },
 ];

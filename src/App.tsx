@@ -1,4 +1,6 @@
+import { lazy, Suspense, type ReactElement } from 'react';
 import { Route, Routes } from 'react-router-dom';
+import { Spinner } from './components/ui';
 import { Layout } from './components/Layout';
 import { Home } from './pages/Home';
 import { GameHub } from './pages/GameHub';
@@ -17,6 +19,10 @@ import { BlocksHub, BlocksPlay } from './blocks/pages';
 import { BlocksRoomPage, BlocksMatchPage, BlocksRankedPage } from './blocks/online-pages';
 import { BlocksLearn } from './blocks/Learn';
 
+const SudokuPage = lazy(() => import('./sudoku/pages').then((m) => ({ default: m.SudokuPage })));
+const SudokuLearn = lazy(() => import('./sudoku/Learn').then((m) => ({ default: m.SudokuLearn })));
+const lazyEl = (el: ReactElement) => <Suspense fallback={<Spinner />}>{el}</Suspense>;
+
 function pages(prefix: string) {
   const p = (s: string) => `${prefix}${s}`;
   return [
@@ -27,7 +33,9 @@ function pages(prefix: string) {
     <Route key={p('/learn/territory')} path={p('/learn/territory')} element={<TerritoryLearn />} />,
     <Route key={p('/learn/snake')} path={p('/learn/snake')} element={<SnakeLearn />} />,
     <Route key={p('/learn/blocks')} path={p('/learn/blocks')} element={<BlocksLearn />} />,
+    <Route key={p('/learn/sudoku')} path={p('/learn/sudoku')} element={lazyEl(<SudokuLearn />)} />,
     <Route key={p('/learn')} path={p('/learn/:game')} element={<Learn />} />,
+    <Route key={p('/sudoku')} path={p('/sudoku')} element={lazyEl(<SudokuPage />)} />,
     <Route key={p('/snake')} path={p('/snake')} element={<SnakeHub />} />,
     <Route key={p('/snake/play')} path={p('/snake/play')} element={<SnakePlay />} />,
     <Route key={p('/snake/new-room')} path={p('/snake/new-room')} element={<ArenaNewRoom game="snake" />} />,

@@ -9,10 +9,10 @@ export interface PageMeta {
 
 export const PAGES: Record<string, PageMeta> = {
   '/': {
-    title: { zh: 'JY Games｜西洋棋・象棋・暗棋・領地爭奪戰・貪食蛇・方塊消除', en: 'JY Games | Chess, Xiangqi, Banqi, Territory Rush, Snake Arena & Block Puzzle Battle' },
+    title: { zh: 'JY Games｜西洋棋・象棋・暗棋・領地爭奪戰・貪食蛇・方塊消除・數獨', en: 'JY Games | Chess, Xiangqi, Banqi, Territory Rush, Snake Arena, Block Puzzle Battle & Sudoku' },
     description: {
-      zh: '免費線上遊戲平台：棋藝策略（西洋棋、中國象棋、台灣暗棋）、即時競技（領地爭奪戰、貪食蛇競技場）與益智挑戰（方塊消除對戰）。三級電腦 AI、線上對戰、互動教學。',
-      en: 'Free online game platform: strategy (Chess, Xiangqi, Banqi), real-time action (Territory Rush, Snake Arena) and puzzles (Block Puzzle Battle). Three AI levels, online play and interactive lessons.',
+      zh: '免費線上遊戲平台：棋藝策略（西洋棋、中國象棋、台灣暗棋）、即時競技（領地爭奪戰、貪食蛇競技場）與益智挑戰（方塊消除對戰、經典數獨）。三級電腦 AI、線上對戰、互動教學。',
+      en: 'Free online game platform: strategy (Chess, Xiangqi, Banqi), real-time action (Territory Rush, Snake Arena) and puzzles (Block Puzzle Battle, Classic Sudoku). Three AI levels, online play and interactive lessons.',
     },
     index: true,
   },
@@ -63,6 +63,19 @@ export const PAGES: Record<string, PageMeta> = {
       zh: '原創落下方塊消行遊戲：經典、無盡、40 行快速消行、限時挑戰、三級電腦、雙人同機、線上對戰與積分排行。',
       en: 'An original falling-block puzzle: classic, marathon, 40-line sprint, time attack, three AI levels, local and online battles with ranked ratings.',
     },
+    index: true,
+  },
+  '/sudoku': {
+    title: { zh: '經典數獨｜線上數獨，三種難度｜JY Games', en: 'Classic Sudoku | Play Sudoku Online, Three Levels | JY Games' },
+    description: {
+      zh: '免登入的經典 9×9 數獨：簡單、中等、困難三種邏輯難度，每題唯一解；筆記、復原、可解釋的提示與本機自動保存。',
+      en: 'Classic 9×9 Sudoku with no sign-in: easy, medium and hard logic levels, every puzzle with one solution; notes, undo, explained hints and local autosave.',
+    },
+    index: true,
+  },
+  '/learn/sudoku': {
+    title: { zh: '數獨規則教學｜JY Games', en: 'How to Play Sudoku | JY Games' },
+    description: { zh: '五個互動步驟：每列、每行、每宮 1–9，單一候選，以及筆記與提示。', en: 'Five interactive steps: rows, columns and boxes 1–9, single candidates, notes and hints.' },
     index: true,
   },
   '/learn/blocks': {

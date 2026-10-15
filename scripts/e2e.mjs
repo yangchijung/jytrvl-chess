@@ -52,7 +52,7 @@ try {
   {
     const p = await newPage(ctx);
     const r = await p.goto(BASE + '/', { waitUntil: 'networkidle0' });
-    ok('home loads', r.status() === 200 && (await p.$eval('h1', (e) => e.textContent)).includes('六款'));
+    ok('home loads', r.status() === 200 && (await p.$eval('h1', (e) => e.textContent)).includes('七款'));
     ok('cross-origin isolated', await p.evaluate(() => self.crossOriginIsolated));
     await shot(p, '01-home-desktop');
     ok('home no console errors', p.errors.length === 0, p.errors.join(' | '));

@@ -1,0 +1,403 @@
+{
+  "base": "http://127.0.0.1:8788",
+  "browser": "HeadlessChrome/153.0.8010.0",
+  "date": "2026-10-15T01:55:14.228Z",
+  "results": [
+    {
+      "id": "SU15",
+      "name": "lobby served (prerendered title), playable without sign-in",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU13",
+      "name": "board renders 81 cells with grid/row/gridcell roles",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU14",
+      "name": "single Tab stop on the board (roving focus)",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU03",
+      "name": "givens unchanged by keyboard, erase, notes; message shown",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU04",
+      "name": "duplicate marks every involved cell with “!” and readable text",
+      "pass": true,
+      "info": "0,1"
+    },
+    {
+      "id": "SU04",
+      "name": "a wrong but non-duplicate entry is not revealed (no conflict, no lives)",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU08",
+      "name": "contradiction hint points at the entry, counts once, does not auto-correct",
+      "pass": true,
+      "info": "0→1"
+    },
+    {
+      "id": "SU08",
+      "name": "duplicate → hint asks to fix it first, not counted",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU05",
+      "name": "notes shown in fixed 3×3 positions, toggle labelled 筆記：開 with pressed state",
+      "pass": true,
+      "info": "149 ✎筆記：開|true"
+    },
+    {
+      "id": "SU05",
+      "name": "filling removes the digit from peer notes; undo restores exactly",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU11",
+      "name": "refresh keeps the game: lobby offers 繼續遊戲",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU11",
+      "name": "entries, notes, hints and history restored after refresh",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU06",
+      "name": "undo works after a refresh and never refunds hints",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU07",
+      "name": "step hint explains the technique and cells; 幫我填入 fills only when pressed",
+      "pass": true,
+      "info": "nakedSingle: "
+    },
+    {
+      "id": "SU10",
+      "name": "manual pause hides board and hints, timer stops",
+      "pass": true,
+      "info": "545.1350000000093 → 545.1350000000093"
+    },
+    {
+      "id": "SU10",
+      "name": "resume continues the timer",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU10",
+      "name": "backgrounding the page pauses and saves",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU10",
+      "name": "system clock jump does not change active time (monotonic clock)",
+      "pass": true,
+      "info": "1772.494999999879 → 2380.809999999823"
+    },
+    {
+      "id": "SU10",
+      "name": "over one hour shows h:mm:ss",
+      "pass": true,
+      "info": "1:00:02"
+    },
+    {
+      "id": "SU11",
+      "name": "switching language continues the same game (one save)",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU11",
+      "name": "another tab taking the game pauses this one with a notice",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU11",
+      "name": "the paused tab does not overwrite the active tab’s save",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU12",
+      "name": "cancelling a new game keeps the full state",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU12",
+      "name": "restart keeps the puzzle, clears progress, resets time/hints and marks 重玩",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU14",
+      "name": "arrow keys stop at the edge (no wrap-around)",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU09",
+      "name": "a full board with a wrong digit does not complete",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU14",
+      "name": "a whole game completed with the keyboard only (arrows without wrap-around, digits)",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU09",
+      "name": "valid full board completes once; result shows time, hints, replay mark",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU09",
+      "name": "completion recorded exactly once; refresh does not add another",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU12",
+      "name": "a new puzzle starts fresh and the old record stays single",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU15",
+      "name": "plays offline once loaded (hint + fill work with the network off)",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU15",
+      "name": "no network requests during play (no room / AI / hint API)",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU16",
+      "name": "no page errors",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU11",
+      "name": "storage blocked: game stays playable and says it cannot save",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU11",
+      "name": "unreadable save: message shown, original kept as a backup, new game possible",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU13",
+      "name": "360 px: full-board cells are a select-only dense area; zoomed box has 9 cells ≥ 44 px",
+      "pass": true,
+      "info": "full 36.9 px, zoom 111 px"
+    },
+    {
+      "id": "SU13",
+      "name": "choosing another box keeps answers and notes, labels keep global row/column",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU13",
+      "name": "tutorial: 5 steps, each needs a real action, ends with the done screen",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU13",
+      "name": "360-zh-light: no horizontal overflow, keypad/tools ≥ 44 px",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU13",
+      "name": "360-zh-dark: no horizontal overflow, keypad/tools ≥ 44 px",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU13",
+      "name": "360-en-light: no horizontal overflow, keypad/tools ≥ 44 px",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU13",
+      "name": "360-en-dark: no horizontal overflow, keypad/tools ≥ 44 px",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU13",
+      "name": "390-zh-light: no horizontal overflow, keypad/tools ≥ 44 px",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU13",
+      "name": "390-zh-dark: no horizontal overflow, keypad/tools ≥ 44 px",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU13",
+      "name": "390-en-light: no horizontal overflow, keypad/tools ≥ 44 px",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU13",
+      "name": "390-en-dark: no horizontal overflow, keypad/tools ≥ 44 px",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU13",
+      "name": "768-zh-light: no horizontal overflow, keypad/tools ≥ 44 px",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU13",
+      "name": "768-zh-dark: no horizontal overflow, keypad/tools ≥ 44 px",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU13",
+      "name": "768-en-light: no horizontal overflow, keypad/tools ≥ 44 px",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU13",
+      "name": "768-en-dark: no horizontal overflow, keypad/tools ≥ 44 px",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU13",
+      "name": "1280-zh-light: no horizontal overflow, keypad/tools ≥ 44 px",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU13",
+      "name": "1280-zh-dark: no horizontal overflow, keypad/tools ≥ 44 px",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU13",
+      "name": "1280-en-light: no horizontal overflow, keypad/tools ≥ 44 px",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU13",
+      "name": "1280-en-dark: no horizontal overflow, keypad/tools ≥ 44 px",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU14",
+      "name": "light: text contrast ≥ 4.5 and box borders ≥ 3 (measured)",
+      "pass": true,
+      "info": "{\"given\":13.53,\"entry\":9.63,\"entryOnPeer\":8.25,\"entryOnSelected\":8.19,\"conflict\":6.8,\"notes\":6.05,\"boxBorder\":15.8,\"thinLine\":1.4}"
+    },
+    {
+      "id": "SU14",
+      "name": "light: reduced motion — no running animations",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU14",
+      "name": "light: 200% text — no horizontal overflow, keypad reachable",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU14",
+      "name": "dark: text contrast ≥ 4.5 and box borders ≥ 3 (measured)",
+      "pass": true,
+      "info": "{\"given\":11.67,\"entry\":8.96,\"entryOnPeer\":7.81,\"entryOnSelected\":6.76,\"conflict\":7.83,\"notes\":7.48,\"boxBorder\":13.38,\"thinLine\":1.43}"
+    },
+    {
+      "id": "SU14",
+      "name": "dark: reduced motion — no running animations",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU14",
+      "name": "dark: 200% text — no horizontal overflow, keypad reachable",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU16",
+      "name": "home shows 7 games incl. Sudoku card in 益智挑戰",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU16",
+      "name": "existing hub /chess still loads",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU16",
+      "name": "existing hub /territory still loads",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU16",
+      "name": "existing hub /snake still loads",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU16",
+      "name": "existing hub /blocks still loads",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SU16",
+      "name": "no page errors on home and hubs",
+      "pass": true,
+      "info": ""
+    }
+  ]
+}

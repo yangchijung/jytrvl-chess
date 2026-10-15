@@ -33,6 +33,7 @@ export function Layout({ children }: { children: ReactNode }) {
     { to: '/territory', label: t('game.territory') },
     { to: '/snake', label: t('game.snake') },
     { to: '/blocks', label: t('game.blocks') },
+    { to: '/sudoku', label: t('game.sudoku') },
     { to: '/leaderboard', label: t('nav.leaderboard') },
   ];
   const nextTheme = settings.theme === 'dark' ? 'light' : settings.theme === 'light' ? 'system' : 'dark';

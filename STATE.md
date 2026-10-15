@@ -4,7 +4,8 @@
 Date: 2026-10-15
 Branch/Commit: main（Issue #2 工程補強；提交編號見 Issue #2 回覆）
 Done (with evidence):
-  - 六款遊戲上線 https://chess.jytrvl.com；部署：Pages jytrvl-chess＋Worker jytrvl-chess-realtime＋D1
+  - 七款遊戲上線 https://chess.jytrvl.com（第七款經典數獨，Issue #3，docs/ACCEPTANCE.md §13）；部署：Pages jytrvl-chess＋Worker jytrvl-chess-realtime＋D1
+  - 數獨：SU01–SU16 自動化通過（單元 18、瀏覽器 66／66）；VoiceOver／TalkBack 與實機觸控待人工
   - Issue #2（docs/ACCEPTANCE.md §12）：
     - 重新整理復原六款×等待／進行中／結束後 49／49（refresh-e2e-local.json）；修正即時房間休眠後結果畫面遺失
     - AI 補位／代打與真人計分隔離核對：電腦座位不計 humans，1 人＋電腦不記錄；規則未變更
@@ -16,7 +17,7 @@ Done (with evidence):
   - 經典數獨 v1.0 產品設計交付（docs/product/SUDOKU_CLASSIC_V1.md）：雙語文案、互動設計稿、唯一解樣題及 SU01–SU16 驗收規格；僅設計，未部署
 In Progress:
   - 下一款經典數獨：已由負責人指定；待 Claude 實作、正式題庫與驗收
-  - 正式站部署後抽查、Issue #2 回覆（待負責人同意後張貼）
+  - Issue #2 回覆已張貼；數獨部署後抽查與 Issue #3 回報
 Blocked / requires decision:
   - 斷線代打的結果計入該真人名下為既有設計；是否調整屬產品決策
   - 數獨首版範圍已交付，工程估時／拆解待回覆；不做正式排行。其他新遊戲仍為提案
@@ -25,7 +26,7 @@ Cost / Security / License alerts:
   - 尚未設定 Cloudflare 帳單警示（需負責人）
   - cburnett 棋子授權文字待對照 Wikimedia Commons 原頁（docs/LICENSES.md 最末）
 Next actions:
-  - 實機驗收：iPhone／iPad Safari、Android Chrome、Firefox、Edge
+  - 實機驗收：iPhone／iPad Safari、Android Chrome、Firefox、Edge；數獨螢幕閱讀器朗讀
 Need from ChatGPT (content/design):
   - 依 screens/360 與 screens/copy 截圖回看文案與視覺
 Need from owner (access/DNS/approval):

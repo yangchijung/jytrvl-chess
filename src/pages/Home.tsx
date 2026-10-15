@@ -5,6 +5,7 @@ import { DiscPiece, ChessPieceImg } from '../components/board/pieces';
 import { TerritoryPreview } from '../territory/pages';
 import { SnakePreview } from '../snake/pages';
 import { BlocksPreview } from '../blocks/pages';
+import { SudokuPreview } from '../sudoku/preview';
 import type { GameId } from '../../shared/types';
 
 export function GamePreview({ game }: { game: GameId }) {
@@ -54,13 +55,13 @@ export function GamePreview({ game }: { game: GameId }) {
 
 export function Home() {
   const { t, to } = useI18n();
-  type AnyGame = GameId | 'territory' | 'snake' | 'blocks';
+  type AnyGame = GameId | 'territory' | 'snake' | 'blocks' | 'sudoku';
   const categories: { key: 'home.cat.board' | 'home.cat.realtime' | 'home.cat.puzzle'; icon: string; games: AnyGame[] }[] = [
     { key: 'home.cat.board', icon: '♟', games: ['chess', 'xiangqi', 'banqi'] },
     { key: 'home.cat.realtime', icon: '⚡', games: ['territory', 'snake'] },
-    { key: 'home.cat.puzzle', icon: '🧩', games: ['blocks'] },
+    { key: 'home.cat.puzzle', icon: '🧩', games: ['blocks', 'sudoku'] },
   ];
-  const preview = (g: AnyGame) => (g === 'territory' ? <TerritoryPreview /> : g === 'snake' ? <SnakePreview /> : g === 'blocks' ? <BlocksPreview /> : <GamePreview game={g} />);
+  const preview = (g: AnyGame) => (g === 'territory' ? <TerritoryPreview /> : g === 'snake' ? <SnakePreview /> : g === 'blocks' ? <BlocksPreview /> : g === 'sudoku' ? <SudokuPreview /> : <GamePreview game={g} />);
   const features = [
     ['🤖', 'home.features.ai', 'home.features.ai.desc'],
     ['🌐', 'home.features.online', 'home.features.online.desc'],
@@ -72,7 +73,7 @@ export function Home() {
       <section className="relative overflow-hidden rounded-3xl px-6 py-12 text-[var(--hero-text)] sm:px-10 sm:py-16" style={{ background: 'var(--hero-bg)' }}>
         <div className="pointer-events-none absolute -right-16 -top-16 h-72 w-72 rounded-full border-[18px] border-[var(--gold)] opacity-15" aria-hidden="true" />
         <div className="pointer-events-none absolute -bottom-24 right-24 h-56 w-56 rounded-full border-[12px] border-[var(--gold)] opacity-10" aria-hidden="true" />
-        <p className="mb-3 text-sm font-semibold uppercase tracking-[0.25em] text-[var(--gold)]">JY Games · 6 Games</p>
+        <p className="mb-3 text-sm font-semibold uppercase tracking-[0.25em] text-[var(--gold)]">JY Games · 7 Games</p>
         <h1 className="max-w-2xl font-serif text-4xl font-bold leading-tight sm:text-5xl">{t('home.hero.title')}</h1>
         <p className="mt-3 font-serif text-xl text-[var(--gold)] sm:text-2xl" data-testid="tagline">
           {t('app.tagline')}

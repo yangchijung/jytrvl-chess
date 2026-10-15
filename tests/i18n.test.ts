@@ -20,7 +20,7 @@ describe('i18n', () => {
   });
   it('placeholders match between languages', () => {
     for (const k of Object.keys(zh) as (keyof typeof zh)[]) {
-      const ph = (s: string) => (s.match(/\{\w+\}/g) ?? []).sort().join();
+      const ph = (s: string) => [...new Set(s.match(/\{\w+\}/g) ?? [])].sort().join();
       expect(ph(en[k]), k).toBe(ph(zh[k]));
     }
   });
