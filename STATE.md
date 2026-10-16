@@ -1,7 +1,7 @@
 # JY GAMES｜STATE
 
 ```
-Date: 2026-10-15
+Date: 2026-10-16
 Branch/Commit: main（Issue #2 工程補強；提交編號見 Issue #2 回覆）
 Done (with evidence):
   - 七款遊戲上線 https://chess.jytrvl.com（第七款經典數獨，Issue #3，docs/ACCEPTANCE.md §13）；部署：Pages jytrvl-chess＋Worker jytrvl-chess-realtime＋D1
@@ -21,7 +21,7 @@ Done (with evidence):
   - 餐廳菜單／共用食材／庫存規格與 Figma 關係圖交付：docs/product/RESTAURANT_MENU_INVENTORY_V1.md；含 RT01–RT14，工程已回報通過，計算樣例已核對
 In Progress:
   - 數獨：已部署，實機及讀屏驗收依 Issue #3 持續收尾
-  - 機器人快遞站：規則引擎與暫定 6 關完成（tests/robot.test.ts）；產品／美術／文案交接 ChatGPT（docs/handoff/KIDS_GAMES_HANDOFF_TO_CHATGPT.md），試玩頁開發中
+  - 機器人快遞站：試玩原型 /robot（noindex，不列首頁）——圖片指令、機器人移動／撞牆搖晃／送達動畫、一步一步、6 關暫定關卡與暫定美術；單元 7、瀏覽器 21／21（docs/ACCEPTANCE.md §16）；待負責人與孩子試玩，以及 ChatGPT 交付正式關卡／美術／文案（Issue #5）
   - 餐廳：2026-10-16 負責人決定暫停開發（試玩後認為偏難）；V2 場景版維持在 /restaurant（noindex），不再擴充
   - #2、#3 已回報；實機（Safari／Android）與讀屏驗收待人工
 Blocked / requires decision:

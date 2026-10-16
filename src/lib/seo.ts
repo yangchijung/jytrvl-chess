@@ -73,6 +73,11 @@ export const PAGES: Record<string, PageMeta> = {
     },
     index: true,
   },
+  '/robot': {
+    title: { zh: '機器人快遞站（試玩原型）｜JY Games', en: 'Robot Delivery Lab (prototype) | JY Games' },
+    description: { zh: '用圖片指令排順序，讓機器人把包裹送到同色的門。兒童程式思維試玩原型。', en: 'Line up picture blocks so the robot delivers each parcel to its matching door. Kids coding playtest prototype.' },
+    index: false,
+  },
   '/restaurant': {
     title: { zh: '餐廳當老闆（一日原型）｜JY Games', en: 'Little Restaurant Owner (one-day prototype) | JY Games' },
     description: { zh: '選菜單、合併採買共用食材、分批備餐，打烊後看懂帳本。試玩原型。', en: 'Pick a menu, buy shared ingredients together, cook in batches and read the books. Playtest prototype.' },

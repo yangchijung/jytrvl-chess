@@ -1,0 +1,128 @@
+[
+  {
+    "id": "R-01",
+    "name": "zh page loads, noindex",
+    "pass": true,
+    "info": "noindex,nofollow"
+  },
+  {
+    "id": "R-02",
+    "name": "not linked from home",
+    "pass": true,
+    "info": "0"
+  },
+  {
+    "id": "R-03",
+    "name": "robots.txt disallows /robot",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "R-04",
+    "name": "en page loads",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "R-05",
+    "name": "program shows 6 picture blocks",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "R-06",
+    "name": "robot animates step by step, then delivers",
+    "pass": true,
+    "info": "{\"mid\":{\"x\":2,\"y\":1,\"dir\":\"E\"},\"end\":{\"x\":4,\"y\":1,\"dir\":\"E\"}}"
+  },
+  {
+    "id": "R-07",
+    "name": "win prompt + shortest star",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "R-08",
+    "name": "level 2 unlocked, next button",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "R-09",
+    "name": "progress saved, survives reload",
+    "pass": true,
+    "info": "{\"unlocked\":2,\"programs\":{\"R01\":[\"forward\",\"forward\",\"pick\",\"forward\",\"forward\",\"drop\"]},\"done\":{\"R01\":6}}"
+  },
+  {
+    "id": "R-10",
+    "name": "wall bump: step 4 named and highlighted",
+    "pass": true,
+    "info": "⚠ 第 4 步：前面有牆\n🔊"
+  },
+  {
+    "id": "R-11",
+    "name": "robot stops before the wall",
+    "pass": true,
+    "info": "{\"x\":0,\"y\":0,\"dir\":\"N\"}"
+  },
+  {
+    "id": "R-12",
+    "name": "clear empties program",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "R-13",
+    "name": "move block earlier",
+    "pass": true,
+    "info": "forward,forward,pick,right,forward,forward,drop"
+  },
+  {
+    "id": "R-14",
+    "name": "one-step mode moves one block at a time",
+    "pass": true,
+    "info": "[{\"x\":0,\"y\":2,\"dir\":\"N\"},{\"x\":0,\"y\":1,\"dir\":\"N\"}]"
+  },
+  {
+    "id": "R-15",
+    "name": "restart returns robot to start",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "R-16",
+    "name": "level 2 solved after fixing",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "R-17",
+    "name": "remove a block",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "R-18",
+    "name": "incomplete program: not delivered yet",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "R-19",
+    "name": "no console errors",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "R-20",
+    "name": "reduced motion shows result at once",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "R-21",
+    "name": "360/390/768/1280 × zh/en × light/dark: no overflow, targets ≥44px, map visible",
+    "pass": true,
+    "info": ""
+  }
+]
