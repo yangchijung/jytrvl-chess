@@ -1,0 +1,550 @@
+{
+  "version": "1.0",
+  "date": "2026-10-16",
+  "status": "calculated-token-pairs-only-not-rendered-ui",
+  "formula": {
+    "sRGB": "For each normalized channel c: c/12.92 when c <= 0.04045, otherwise ((c+0.055)/1.055)^2.4",
+    "luminance": "0.2126 R + 0.7152 G + 0.0722 B",
+    "contrast": "(lighter luminance + 0.05) / (darker luminance + 0.05)"
+  },
+  "limitations": "Opaque specified pairs only; no browser, alpha overlay, illustration or actual computed CSS verification performed. Ratios rounded to 3 decimals for display; pass evaluated before rounding. Check HU09 after implementation.",
+  "validation": {
+    "date": "2026-10-16",
+    "sourceCommit": "5a0fe7239cbdd06588bea13846973755c50b5326",
+    "languageKeys": 19,
+    "catalogGames": 7,
+    "catalogDestinations": 14,
+    "contrastPairs": 66,
+    "errors": []
+  },
+  "results": [
+    {
+      "mode": "light",
+      "foreground": "text",
+      "background": "bg",
+      "minimum": 4.5,
+      "ratio": 14.765,
+      "passed": true
+    },
+    {
+      "mode": "light",
+      "foreground": "muted",
+      "background": "bg",
+      "minimum": 4.5,
+      "ratio": 6.662,
+      "passed": true
+    },
+    {
+      "mode": "light",
+      "foreground": "accentText",
+      "background": "bg",
+      "minimum": 4.5,
+      "ratio": 9,
+      "passed": true
+    },
+    {
+      "mode": "light",
+      "foreground": "alertText",
+      "background": "bg",
+      "minimum": 4.5,
+      "ratio": 7.921,
+      "passed": true
+    },
+    {
+      "mode": "light",
+      "foreground": "controlBorder",
+      "background": "bg",
+      "minimum": 3,
+      "ratio": 4.009,
+      "passed": true
+    },
+    {
+      "mode": "light",
+      "foreground": "focus",
+      "background": "bg",
+      "minimum": 3,
+      "ratio": 9,
+      "passed": true
+    },
+    {
+      "mode": "light",
+      "foreground": "text",
+      "background": "surface",
+      "minimum": 4.5,
+      "ratio": 15.798,
+      "passed": true
+    },
+    {
+      "mode": "light",
+      "foreground": "muted",
+      "background": "surface",
+      "minimum": 4.5,
+      "ratio": 7.128,
+      "passed": true
+    },
+    {
+      "mode": "light",
+      "foreground": "accentText",
+      "background": "surface",
+      "minimum": 4.5,
+      "ratio": 9.629,
+      "passed": true
+    },
+    {
+      "mode": "light",
+      "foreground": "alertText",
+      "background": "surface",
+      "minimum": 4.5,
+      "ratio": 8.475,
+      "passed": true
+    },
+    {
+      "mode": "light",
+      "foreground": "controlBorder",
+      "background": "surface",
+      "minimum": 3,
+      "ratio": 4.289,
+      "passed": true
+    },
+    {
+      "mode": "light",
+      "foreground": "focus",
+      "background": "surface",
+      "minimum": 3,
+      "ratio": 9.629,
+      "passed": true
+    },
+    {
+      "mode": "light",
+      "foreground": "text",
+      "background": "surface2",
+      "minimum": 4.5,
+      "ratio": 13.531,
+      "passed": true
+    },
+    {
+      "mode": "light",
+      "foreground": "muted",
+      "background": "surface2",
+      "minimum": 4.5,
+      "ratio": 6.105,
+      "passed": true
+    },
+    {
+      "mode": "light",
+      "foreground": "accentText",
+      "background": "surface2",
+      "minimum": 4.5,
+      "ratio": 8.248,
+      "passed": true
+    },
+    {
+      "mode": "light",
+      "foreground": "alertText",
+      "background": "surface2",
+      "minimum": 4.5,
+      "ratio": 7.259,
+      "passed": true
+    },
+    {
+      "mode": "light",
+      "foreground": "controlBorder",
+      "background": "surface2",
+      "minimum": 3,
+      "ratio": 3.674,
+      "passed": true
+    },
+    {
+      "mode": "light",
+      "foreground": "focus",
+      "background": "surface2",
+      "minimum": 3,
+      "ratio": 8.248,
+      "passed": true
+    },
+    {
+      "mode": "light",
+      "foreground": "text",
+      "background": "surface3",
+      "minimum": 4.5,
+      "ratio": 11.901,
+      "passed": true
+    },
+    {
+      "mode": "light",
+      "foreground": "muted",
+      "background": "surface3",
+      "minimum": 4.5,
+      "ratio": 5.37,
+      "passed": true
+    },
+    {
+      "mode": "light",
+      "foreground": "accentText",
+      "background": "surface3",
+      "minimum": 4.5,
+      "ratio": 7.254,
+      "passed": true
+    },
+    {
+      "mode": "light",
+      "foreground": "alertText",
+      "background": "surface3",
+      "minimum": 4.5,
+      "ratio": 6.385,
+      "passed": true
+    },
+    {
+      "mode": "light",
+      "foreground": "controlBorder",
+      "background": "surface3",
+      "minimum": 3,
+      "ratio": 3.231,
+      "passed": true
+    },
+    {
+      "mode": "light",
+      "foreground": "focus",
+      "background": "surface3",
+      "minimum": 3,
+      "ratio": 7.254,
+      "passed": true
+    },
+    {
+      "mode": "light",
+      "foreground": "onAccent",
+      "background": "accentFill",
+      "minimum": 4.5,
+      "ratio": 9.629,
+      "passed": true
+    },
+    {
+      "mode": "light",
+      "foreground": "onAccent",
+      "background": "accentHover",
+      "minimum": 4.5,
+      "ratio": 12.205,
+      "passed": true
+    },
+    {
+      "mode": "light",
+      "foreground": "onDanger",
+      "background": "dangerFill",
+      "minimum": 4.5,
+      "ratio": 7.206,
+      "passed": true
+    },
+    {
+      "mode": "light",
+      "foreground": "onDanger",
+      "background": "dangerHover",
+      "minimum": 4.5,
+      "ratio": 9.32,
+      "passed": true
+    },
+    {
+      "mode": "light",
+      "foreground": "alertText",
+      "background": "alertBg",
+      "minimum": 4.5,
+      "ratio": 7.175,
+      "passed": true
+    },
+    {
+      "mode": "light",
+      "foreground": "accentText",
+      "background": "accentSoft",
+      "minimum": 4.5,
+      "ratio": 8.187,
+      "passed": true
+    },
+    {
+      "mode": "light",
+      "foreground": "disabledText",
+      "background": "disabledBg",
+      "minimum": 4.5,
+      "ratio": 5.37,
+      "passed": true
+    },
+    {
+      "mode": "light",
+      "foreground": "focus",
+      "background": "accentSoft",
+      "minimum": 3,
+      "ratio": 8.187,
+      "passed": true
+    },
+    {
+      "mode": "light",
+      "foreground": "focus",
+      "background": "alertBg",
+      "minimum": 3,
+      "ratio": 8.152,
+      "passed": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "text",
+      "background": "bg",
+      "minimum": 4.5,
+      "ratio": 15.449,
+      "passed": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "muted",
+      "background": "bg",
+      "minimum": 4.5,
+      "ratio": 9.851,
+      "passed": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "accentText",
+      "background": "bg",
+      "minimum": 4.5,
+      "ratio": 12.213,
+      "passed": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "alertText",
+      "background": "bg",
+      "minimum": 4.5,
+      "ratio": 11.288,
+      "passed": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "controlBorder",
+      "background": "bg",
+      "minimum": 3,
+      "ratio": 6.029,
+      "passed": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "focus",
+      "background": "bg",
+      "minimum": 3,
+      "ratio": 10.505,
+      "passed": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "text",
+      "background": "surface",
+      "minimum": 4.5,
+      "ratio": 13.672,
+      "passed": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "muted",
+      "background": "surface",
+      "minimum": 4.5,
+      "ratio": 8.718,
+      "passed": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "accentText",
+      "background": "surface",
+      "minimum": 4.5,
+      "ratio": 10.808,
+      "passed": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "alertText",
+      "background": "surface",
+      "minimum": 4.5,
+      "ratio": 9.989,
+      "passed": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "controlBorder",
+      "background": "surface",
+      "minimum": 3,
+      "ratio": 5.335,
+      "passed": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "focus",
+      "background": "surface",
+      "minimum": 3,
+      "ratio": 9.296,
+      "passed": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "text",
+      "background": "surface2",
+      "minimum": 4.5,
+      "ratio": 11.686,
+      "passed": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "muted",
+      "background": "surface2",
+      "minimum": 4.5,
+      "ratio": 7.452,
+      "passed": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "accentText",
+      "background": "surface2",
+      "minimum": 4.5,
+      "ratio": 9.238,
+      "passed": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "alertText",
+      "background": "surface2",
+      "minimum": 4.5,
+      "ratio": 8.538,
+      "passed": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "controlBorder",
+      "background": "surface2",
+      "minimum": 3,
+      "ratio": 4.56,
+      "passed": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "focus",
+      "background": "surface2",
+      "minimum": 3,
+      "ratio": 7.946,
+      "passed": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "text",
+      "background": "surface3",
+      "minimum": 4.5,
+      "ratio": 9.576,
+      "passed": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "muted",
+      "background": "surface3",
+      "minimum": 4.5,
+      "ratio": 6.106,
+      "passed": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "accentText",
+      "background": "surface3",
+      "minimum": 4.5,
+      "ratio": 7.57,
+      "passed": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "alertText",
+      "background": "surface3",
+      "minimum": 4.5,
+      "ratio": 6.997,
+      "passed": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "controlBorder",
+      "background": "surface3",
+      "minimum": 3,
+      "ratio": 3.737,
+      "passed": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "focus",
+      "background": "surface3",
+      "minimum": 3,
+      "ratio": 6.511,
+      "passed": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "onAccent",
+      "background": "accentFill",
+      "minimum": 4.5,
+      "ratio": 8.336,
+      "passed": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "onAccent",
+      "background": "accentHover",
+      "minimum": 4.5,
+      "ratio": 9.526,
+      "passed": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "onDanger",
+      "background": "dangerFill",
+      "minimum": 4.5,
+      "ratio": 8.133,
+      "passed": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "onDanger",
+      "background": "dangerHover",
+      "minimum": 4.5,
+      "ratio": 10.435,
+      "passed": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "alertText",
+      "background": "alertBg",
+      "minimum": 4.5,
+      "ratio": 8.76,
+      "passed": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "accentText",
+      "background": "accentSoft",
+      "minimum": 4.5,
+      "ratio": 8.484,
+      "passed": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "disabledText",
+      "background": "disabledBg",
+      "minimum": 4.5,
+      "ratio": 6.106,
+      "passed": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "focus",
+      "background": "accentSoft",
+      "minimum": 3,
+      "ratio": 7.297,
+      "passed": true
+    },
+    {
+      "mode": "dark",
+      "foreground": "focus",
+      "background": "alertBg",
+      "minimum": 3,
+      "ratio": 8.152,
+      "passed": true
+    }
+  ]
+}
