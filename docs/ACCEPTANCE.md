@@ -368,7 +368,8 @@ AI 只使用玩家看得到的資訊：貪食蛇有單元測試確認對手尚�
 - 交接：`docs/handoff/KIDS_GAMES_HANDOFF_TO_CHATGPT.md`（產品範圍、關卡 JSON、美術、文案由 ChatGPT 交付；目前關卡與美術皆為工程暫定）
 - 規則：`shared/robot/engine.ts`（執行、遇錯即停、BFS 最短解、關卡格式驗證）；關卡 `shared/robot/levels.ts`（R01–R06，皆經測試可解且重播成功）
 - 介面：`src/robot/pages.tsx`、`src/robot/art.tsx`（暫定 SVG：機器人、包裹、彩色門、牆、指令圖示）
-- 測試：單元 `tests/robot.test.ts` 7 項；瀏覽器 `scripts/robot-e2e.mjs` 21／21（`robot-e2e-local.json`，截圖 `screens/robot/`）
+- 測試：單元 `tests/robot.test.ts` 7 項；瀏覽器 `scripts/robot-e2e.mjs` 21／21（`robot-e2e-local.json`，截圖 `screens/robot/`）；[CI](https://github.com/yangchijung/jytrvl-chess/actions/runs/38841672270)（635f8e9）
+- 正式站：2026-10-16 以 Chrome 抽查 /robot：noindex、robots.txt 排除 /robot 與 /en/robot；第 1 關排六個指令按出發，中途 x=2、最後「送到了！」；抽查後已清除測試存檔
 
 | ID | 結果 | 證據 |
 |---|---|---|
