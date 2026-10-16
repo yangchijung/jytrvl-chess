@@ -47,3 +47,7 @@ The board or playfield is the visual authority. Everything else supports the nex
 - Keep input and first move fast. Sound/motion are optional and may never delay play.
 - Explain AI modes plainly: 簡單、中等、困難, plus the practical difference. Do not overclaim AI ability.
 - Tutorials show one board state, one instruction, one testable action, and immediate specific feedback—not a prose wall inside a match.
+
+## Existing UI follow-up
+
+See [2026-10-16 UI/UX audit](docs/design/UI_UX_AUDIT_2026-10-16.md) for source-backed gaps and the review order. Historical mockups and longer animation contracts must be reconciled with this policy before reuse. The audit records pending work, not proof that the current interfaces comply.

@@ -1,5 +1,7 @@
 # 餐廳 V2 原創美術與互動參考
 
+> 2026-10-16：餐廳已暫停開發。這批素材與樣稿保留為歷史設計來源，不能視為最新視覺標準；再使用前依 [DESIGN.md](../../../DESIGN.md) 與 [UI／UX 檢查](../UI_UX_AUDIT_2026-10-16.md) 調整過大圓角、陰影及動態。這項紀錄不恢復餐廳開發。
+
 配合 [場景式 V2 交接](../../product/RESTAURANT_SCENE_V2.md)，供 Claude 接入既有餐廳規則引擎。這個目錄是設計來源，不會自動替換 `/restaurant`。
 
 - [Figma 場景](https://www.figma.com/design/6UZHsNJju4YXGGjOimMkJK?node-id=14-2)
