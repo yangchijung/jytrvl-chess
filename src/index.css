@@ -6,7 +6,8 @@
   --spacing-13: 3.25rem;
 }
 
-/* Design tokens — Premium minimalist: warm white, deep wood, ink green, navy, a touch of gold. */
+/* Design tokens. Shared interface: paper / ink / forest green, red only for warnings (DESIGN.md,
+   docs/handoff/HOME_SHARED_UI_V1.md §4). Game boards keep their own functional colours below. */
 :root {
   color-scheme: light;
   --paper: #faf7f0;
@@ -16,9 +17,9 @@
   --surface: #ffffff;
   --surface-2: #f2ede2;
   --surface-3: #e6dfcf;
-  --border: #e1d9c7;
+  --border: #d8d9d1; /* dividers only — controls use --ui-control-border */
   --text: #1f2328;
-  --muted: #5f6368;
+  --muted: #535a50;
   --accent: #1f4d3a;
   --accent-text: #1f4d3a;
   --accent-soft: #e5efe9;
@@ -37,11 +38,25 @@
   --err-bg: #fee2e2;
   --info-text: #1e40af;
   --info-bg: #dbeafe;
-  --focus: #c8a24a;
-  --header-bg: rgba(250, 247, 240, 0.88);
-  --hero-bg: linear-gradient(135deg, #1b2a41 0%, #1f4d3a 100%);
-  --hero-text: #faf7f0;
-  --card-shadow: 0 1px 2px rgba(27, 42, 65, 0.06), 0 8px 24px rgba(27, 42, 65, 0.06);
+  --focus: #1f4d3a;
+  --header-bg: var(--bg);
+  --hero-bg: var(--bg);
+  --hero-text: var(--text);
+  --card-shadow: none;
+  /* shared UI control / status pairs (text on background, each checked ≥ 4.5:1; borders ≥ 3:1) */
+  --ui-primary-bg: #1f4d3a;
+  --ui-primary-fg: #ffffff;
+  --ui-primary-hover: #173c2d;
+  --ui-control-border: #767c72;
+  --ui-accent-text: #1f4d3a;
+  --ui-accent-soft: #e5efe9;
+  --ui-danger-bg: #9f2f2a;
+  --ui-danger-fg: #ffffff;
+  --ui-danger-hover: #84241f;
+  --ui-alert-text: #8e2823;
+  --ui-alert-bg: #f8e9e5;
+  --ui-disabled-fg: #535a50;
+  --ui-disabled-bg: #e6dfcf;
   --board-shadow: 0 10px 30px rgba(60, 40, 20, 0.25);
 
   /* boards */
@@ -66,25 +81,23 @@
   --back-ring: #c8a24a;
 }
 
+/* dark: identical values for the system setting and the explicit choice */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     color-scheme: dark;
-    --bg: #111722;
-    --surface: #18202d;
-    --surface-2: #212b3a;
-    --surface-3: #2c3849;
-    --border: #2f3a4c;
-    --text: #ece8df;
-    --muted: #a8b0bc;
+    --bg: #171c19;
+    --surface: #202722;
+    --surface-2: #2a332c;
+    --surface-3: #354137;
+    --border: #465347;
+    --text: #f2f3eb;
+    --muted: #bec6bb;
     --accent: #3f8f6b;
-    --accent-text: #7fd0a9;
-    --accent-soft: #1d3a30;
+    --accent-text: #bde2c6;
+    --accent-soft: #273b2e;
     --on-accent: #ffffff;
     --clock-active: #3f8f6b;
     --accent-fill: #246548;
-  --danger: #fca5a5;
-  --ok: #86efac;
-  --warn: #fde68a;
     --danger: #fca5a5;
     --ok: #86efac;
     --warn: #fde68a;
@@ -96,31 +109,49 @@
     --err-bg: #3f1d24;
     --info-text: #93c5fd;
     --info-bg: #172f4d;
-    --header-bg: rgba(17, 23, 34, 0.88);
-    --hero-bg: linear-gradient(135deg, #0f1828 0%, #163829 100%);
-    --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --focus: #a9d4b6;
+    --header-bg: var(--bg);
+    --hero-bg: var(--bg);
+    --hero-text: var(--text);
+    --card-shadow: none;
     --board-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     --sq-light: #d9c8a5;
     --sq-dark: #8a6240;
     --xq-board: #cfae74;
     --bq-board: #b8945c;
+    --ui-primary-bg: #a9d4b6;
+    --ui-primary-fg: #173322;
+    --ui-primary-hover: #bfdfc8;
+    --ui-control-border: #8c9d8f;
+    --ui-accent-text: #bde2c6;
+    --ui-accent-soft: #273b2e;
+    --ui-danger-bg: #e8aaa2;
+    --ui-danger-fg: #341b18;
+    --ui-danger-hover: #f3c7bf;
+    --ui-alert-text: #f3c7bf;
+    --ui-alert-bg: #432824;
+    --ui-disabled-fg: #bec6bb;
+    --ui-disabled-bg: #354137;
   }
 }
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --bg: #111722;
-  --surface: #18202d;
-  --surface-2: #212b3a;
-  --surface-3: #2c3849;
-  --border: #2f3a4c;
-  --text: #ece8df;
-  --muted: #a8b0bc;
+  --bg: #171c19;
+  --surface: #202722;
+  --surface-2: #2a332c;
+  --surface-3: #354137;
+  --border: #465347;
+  --text: #f2f3eb;
+  --muted: #bec6bb;
   --accent: #3f8f6b;
-  --accent-text: #7fd0a9;
-  --accent-soft: #1d3a30;
+  --accent-text: #bde2c6;
+  --accent-soft: #273b2e;
   --on-accent: #ffffff;
   --clock-active: #3f8f6b;
   --accent-fill: #246548;
+  --danger: #fca5a5;
+  --ok: #86efac;
+  --warn: #fde68a;
   --ok-text: #86efac;
   --ok-bg: #123225;
   --warn-text: #fde68a;
@@ -129,14 +160,29 @@
   --err-bg: #3f1d24;
   --info-text: #93c5fd;
   --info-bg: #172f4d;
-  --header-bg: rgba(17, 23, 34, 0.88);
-  --hero-bg: linear-gradient(135deg, #0f1828 0%, #163829 100%);
-  --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --focus: #a9d4b6;
+  --header-bg: var(--bg);
+  --hero-bg: var(--bg);
+  --hero-text: var(--text);
+  --card-shadow: none;
   --board-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   --sq-light: #d9c8a5;
   --sq-dark: #8a6240;
   --xq-board: #cfae74;
   --bq-board: #b8945c;
+  --ui-primary-bg: #a9d4b6;
+  --ui-primary-fg: #173322;
+  --ui-primary-hover: #bfdfc8;
+  --ui-control-border: #8c9d8f;
+  --ui-accent-text: #bde2c6;
+  --ui-accent-soft: #273b2e;
+  --ui-danger-bg: #e8aaa2;
+  --ui-danger-fg: #341b18;
+  --ui-danger-hover: #f3c7bf;
+  --ui-alert-text: #f3c7bf;
+  --ui-alert-bg: #432824;
+  --ui-disabled-fg: #bec6bb;
+  --ui-disabled-bg: #354137;
 }
 
 html {
@@ -155,6 +201,21 @@ body {
 button {
   cursor: pointer;
   touch-action: manipulation;
+}
+/* Visible focus everywhere: 3 px solid outline with 3 px offset (HOME_SHARED_UI_V1 §4). */
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+/* shared interface transitions: colour only, 160 ms, none when motion is reduced */
+.ui-t {
+  transition-property: color, background-color, border-color, opacity;
+  transition-duration: 160ms;
+  transition-timing-function: ease-out;
+}
+/* home catalogue previews: small radius frame regardless of the preview's own corners */
+.home-preview > * {
+  border-radius: 6px !important;
 }
 [role='grid'] button {
   -webkit-user-select: none;

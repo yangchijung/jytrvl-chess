@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useI18n } from '../i18n';
-import { LinkButton, Card } from '../components/ui';
+import { LinkButton } from '../components/ui';
 import { DiscPiece, ChessPieceImg } from '../components/board/pieces';
 import { TerritoryPreview } from '../territory/pages';
 import { SnakePreview } from '../snake/pages';
@@ -53,89 +53,60 @@ export function GamePreview({ game }: { game: GameId }) {
   );
 }
 
+// Home = game catalogue (HOME_SHARED_UI_V1 §2). Task: pick a game and go straight in.
+// Primary action per game: "Play" (its own entry); secondary: "How to play" (its tutorial).
 export function Home() {
   const { t, to } = useI18n();
   type AnyGame = GameId | 'territory' | 'snake' | 'blocks' | 'sudoku';
-  const categories: { key: 'home.cat.board' | 'home.cat.realtime' | 'home.cat.puzzle'; icon: string; games: AnyGame[] }[] = [
-    { key: 'home.cat.board', icon: '♟', games: ['chess', 'xiangqi', 'banqi'] },
-    { key: 'home.cat.realtime', icon: '⚡', games: ['territory', 'snake'] },
-    { key: 'home.cat.puzzle', icon: '🧩', games: ['blocks', 'sudoku'] },
+  const categories: { key: 'home.cat.board' | 'home.cat.realtime' | 'home.cat.puzzle'; games: AnyGame[] }[] = [
+    { key: 'home.cat.board', games: ['chess', 'xiangqi', 'banqi'] },
+    { key: 'home.cat.realtime', games: ['territory', 'snake'] },
+    { key: 'home.cat.puzzle', games: ['blocks', 'sudoku'] },
   ];
   const preview = (g: AnyGame) => (g === 'territory' ? <TerritoryPreview /> : g === 'snake' ? <SnakePreview /> : g === 'blocks' ? <BlocksPreview /> : g === 'sudoku' ? <SudokuPreview /> : <GamePreview game={g} />);
-  const features = [
-    ['🤖', 'home.features.ai', 'home.features.ai.desc'],
-    ['🌐', 'home.features.online', 'home.features.online.desc'],
-    ['🧩', 'home.features.learn', 'home.features.learn.desc'],
-    ['🎓', 'home.features.coach', 'home.features.coach.desc'],
-  ] as const;
   return (
-    <div className="space-y-12">
-      <section className="relative overflow-hidden rounded-3xl px-6 py-12 text-[var(--hero-text)] sm:px-10 sm:py-16" style={{ background: 'var(--hero-bg)' }}>
-        <div className="pointer-events-none absolute -right-16 -top-16 h-72 w-72 rounded-full border-[18px] border-[var(--gold)] opacity-15" aria-hidden="true" />
-        <div className="pointer-events-none absolute -bottom-24 right-24 h-56 w-56 rounded-full border-[12px] border-[var(--gold)] opacity-10" aria-hidden="true" />
-        <p className="mb-3 text-sm font-semibold uppercase tracking-[0.25em] text-[var(--gold)]">JY Games · 7 Games</p>
-        <h1 className="max-w-2xl font-serif text-4xl font-bold leading-tight sm:text-5xl">{t('home.hero.title')}</h1>
-        <p className="mt-3 font-serif text-xl text-[var(--gold)] sm:text-2xl" data-testid="tagline">
+    <div className="pb-4" data-testid="home">
+      <header className="py-6">
+        <h1 className="font-serif text-[1.75rem] font-bold leading-[2.25rem] md:text-[2.25rem] md:leading-[2.75rem]" data-testid="tagline">
           {t('app.tagline')}
-        </p>
-        <p className="mt-4 max-w-xl text-lg opacity-90">{t('home.hero.sub')}</p>
-        <div className="mt-8 flex flex-wrap gap-3">
-          <LinkButton to={to('/play')} className="!bg-[var(--gold)] !text-[#1b2a41]">
-            {t('home.cta.play')}
-          </LinkButton>
-          <LinkButton to={to('/learn/chess')} variant="secondary" className="!border-white/30 !bg-white/10 !text-white">
-            {t('home.cta.learn')}
-          </LinkButton>
-        </div>
-      </section>
-
-      {categories.map((cat) => (
-        <section key={cat.key} aria-labelledby={cat.key} className="space-y-4">
-          <h2 id={cat.key} className="flex items-center gap-2 font-serif text-2xl font-bold">
-            <span aria-hidden="true">{cat.icon}</span>
-            {t(cat.key)}
-            <span className="text-sm font-normal text-[var(--muted)]">{t(`${cat.key}.desc`)}</span>
-          </h2>
-          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {cat.games.map((g) => (
-              <Card key={g} className="flex flex-col gap-4">
-                {preview(g)}
-                <div>
-                  <h3 className="font-serif text-2xl font-bold">
-                    {t(`game.${g}`)} <span className="text-base font-normal text-[var(--muted)]">{t(`game.${g}.en`)}</span>
-                  </h3>
-                  <p className="mt-2 text-[var(--muted)]">{t(`game.${g}.desc`)}</p>
-                </div>
-                <div className="mt-auto flex gap-2">
-                  <LinkButton to={to(`/${g}`)} className="flex-1">
-                    {t('home.cta.play')}
-                  </LinkButton>
-                  <LinkButton to={to(`/learn/${g}`)} variant="secondary" className="flex-1">
-                    {t('home.cta.learn')}
-                  </LinkButton>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </section>
-      ))}
-
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {features.map(([icon, h, d]) => (
-          <div key={h} className="rounded-2xl border border-[var(--border)] p-5">
-            <div className="text-3xl" aria-hidden="true">
-              {icon}
-            </div>
-            <h3 className="mt-2 font-semibold">{t(h)}</h3>
-            <p className="mt-1 text-sm text-[var(--muted)]">{t(d)}</p>
-          </div>
+        </h1>
+        <p className="mt-2 text-base text-[var(--muted)]">{t('home.v2.intro')}</p>
+      </header>
+      <div className="space-y-8">
+        {categories.map((cat) => (
+          <section key={cat.key} aria-labelledby={`h-${cat.key}`}>
+            <h2 id={`h-${cat.key}`} className="mb-4 font-serif text-[1.375rem] font-bold leading-[1.875rem]">
+              {t(cat.key)}
+            </h2>
+            <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {cat.games.map((g) => {
+                const name = t(`game.${g}`);
+                return (
+                  <li key={g} className="@container rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4" data-testid={`home-card-${g}`}>
+                    <div className="grid gap-4 @min-[17rem]:max-md:grid-cols-[7rem_minmax(0,1fr)]">
+                      <div className="home-preview overflow-hidden rounded-md" aria-hidden="true">
+                        {preview(g)}
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="text-xl font-bold leading-7">{name}</h3>
+                        <p className="mt-1 text-base leading-6 text-[var(--muted)]">{t(`home.v2.${g}.desc`)}</p>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex flex-wrap items-center gap-2">
+                      <LinkButton to={to(`/${g}`)} className="min-h-12 px-5" aria-label={t('home.v2.playLabel', { game: name })} data-testid={`play-${g}`}>
+                        {t('home.v2.play')}
+                      </LinkButton>
+                      <Link to={to(`/learn/${g}`)} className="ui-t inline-flex min-h-11 items-center rounded-md px-3 font-medium text-[var(--ui-accent-text)] underline underline-offset-4 hover:bg-[var(--surface-2)]" aria-label={t('home.v2.rulesLabel', { game: name })} data-testid={`rules-${g}`}>
+                        {t('home.v2.rules')}
+                      </Link>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
         ))}
-      </section>
-      <p className="text-center text-sm text-[var(--muted)]">
-        <Link to={to('/about')} className="underline">
-          {t('nav.about')}
-        </Link>
-      </p>
+      </div>
     </div>
   );
 }

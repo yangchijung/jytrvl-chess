@@ -1,4 +1,6 @@
-import { useState, type ReactNode } from 'react';
+// Shared page frame (HOME_SHARED_UI_V1 §3): opaque header with a divider, short desktop links, one site
+// menu on every width (a plain disclosure, not role="menu"), skip link, footer.
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useI18n } from '../i18n';
 import { useAuth } from '../lib/auth';
@@ -18,6 +20,13 @@ function Logo() {
   );
 }
 
+const GAMES = ['chess', 'xiangqi', 'banqi', 'territory', 'snake', 'blocks', 'sudoku'] as const;
+const iconBtn = 'ui-t flex h-11 min-w-11 items-center justify-center rounded-md px-2 hover:bg-[var(--surface-2)]';
+const navLink = ({ isActive }: { isActive: boolean }) =>
+  `ui-t flex min-h-11 items-center rounded-md px-3 text-sm font-medium hover:bg-[var(--surface-2)] ${isActive ? 'underline decoration-2 underline-offset-[6px]' : ''}`;
+const menuLink = ({ isActive }: { isActive: boolean }) =>
+  `ui-t flex min-h-11 items-center rounded-md px-3 font-medium hover:bg-[var(--surface-2)] ${isActive ? 'border-l-4 border-[var(--ui-accent-text)] bg-[var(--surface-2)] pl-2' : ''}`;
+
 export function Layout({ children }: { children: ReactNode }) {
   usePageMeta();
   const { t, to, switchTo, lang } = useI18n();
@@ -25,17 +34,32 @@ export function Layout({ children }: { children: ReactNode }) {
   const { settings, update } = useSettings();
   const [open, setOpen] = useState(false);
   const loc = useLocation();
-  const links = [
-    { to: '/', label: t('nav.home'), end: true },
-    { to: '/chess', label: t('game.chess') },
-    { to: '/xiangqi', label: t('game.xiangqi') },
-    { to: '/banqi', label: t('game.banqi') },
-    { to: '/territory', label: t('game.territory') },
-    { to: '/snake', label: t('game.snake') },
-    { to: '/blocks', label: t('game.blocks') },
-    { to: '/sudoku', label: t('game.sudoku') },
-    { to: '/leaderboard', label: t('nav.leaderboard') },
-  ];
+  const menuId = useId();
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
+
+  // close the menu on navigation (route or language change)
+  useEffect(() => setOpen(false), [loc.pathname]);
+  // Esc closes and returns focus to the button; a click outside closes without moving focus
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpen(false);
+        btnRef.current?.focus();
+      }
+    };
+    const onDown = (e: PointerEvent) => {
+      if (headerRef.current && !headerRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('pointerdown', onDown);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('pointerdown', onDown);
+    };
+  }, [open]);
+
   const nextTheme = settings.theme === 'dark' ? 'light' : settings.theme === 'light' ? 'system' : 'dark';
   const themeIcon =
     settings.theme === 'dark' ? (
@@ -52,109 +76,160 @@ export function Layout({ children }: { children: ReactNode }) {
       </g>
     );
   const authError = new URLSearchParams(loc.search).get('auth_error');
+  const user = me?.kind === 'user' ? me : null;
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-[var(--surface)] focus:p-2">
+      <a href="#main" className="sr-only rounded-md bg-[var(--surface)] px-3 py-2 font-medium focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50">
         {t('nav.skip')}
       </a>
-      <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--header-bg)] backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4">
-          <Link to={to('/')} className="flex min-h-11 items-center gap-2 rounded-lg outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus)]" aria-label="JY Games">
+      <header ref={headerRef} className={`${open ? 'relative' : 'sticky top-0'} z-30 border-b border-[var(--border)] bg-[var(--header-bg)]`} data-testid="site-header">
+        <div className="mx-auto flex min-h-14 max-w-6xl flex-wrap items-center gap-x-2 gap-y-1 px-4 py-1 md:px-6">
+          <Link to={to('/')} className="flex min-h-11 items-center gap-2 rounded-md" aria-label="JY Games">
             <Logo />
             <span className="font-serif text-lg font-bold tracking-wide">JY Games</span>
           </Link>
-          <nav className="ml-2 hidden items-center gap-0.5 xl:flex" aria-label="main">
-            {links.map((l) => (
-              <NavLink
-                key={l.to}
-                to={to(l.to)}
-                end={l.end}
-                className={({ isActive }) => `whitespace-nowrap rounded-lg px-2.5 py-2 text-sm font-medium hover:bg-[var(--surface-2)] ${isActive ? 'text-[var(--accent-text)]' : ''}`}
-              >
-                {l.label}
-              </NavLink>
-            ))}
+          <nav className="ml-2 hidden items-center gap-1 lg:flex" aria-label={t('nav.primaryLabel')}>
+            <NavLink to={to('/')} end className={navLink}>
+              {t('nav.allGames')}
+            </NavLink>
+            <NavLink to={to('/leaderboard')} className={navLink}>
+              {t('nav.leaderboard')}
+            </NavLink>
           </nav>
           <div className="ml-auto flex items-center gap-1">
-            <Link to={switchTo} className="flex min-h-11 min-w-11 items-center justify-center rounded-lg px-2 text-sm font-medium hover:bg-[var(--surface-2)]" hrefLang={lang === 'zh' ? 'en' : 'zh-Hant-TW'} aria-label={t('lang.label')}>
+            <Link to={switchTo} className={`${iconBtn} text-sm font-medium`} hrefLang={lang === 'zh' ? 'en' : 'zh-Hant-TW'} aria-label={t('lang.label')} data-testid="lang-switch">
               {t('lang.switch')}
             </Link>
             <button
               type="button"
-              className="flex h-11 w-11 items-center justify-center rounded-lg hover:bg-[var(--surface-2)] focus-visible:ring-4 focus-visible:ring-[var(--focus)]"
+              className={iconBtn}
               onClick={() => update({ theme: nextTheme })}
-              aria-label={`${t('settings.theme')}: ${t(`theme.${settings.theme}`)}`}
+              aria-label={t('theme.changeLabel', { current: t(`theme.${settings.theme}`), next: t(`theme.${nextTheme}`) })}
               title={t(`theme.${settings.theme}`)}
+              data-testid="theme-toggle"
+              data-theme-setting={settings.theme}
             >
               <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
                 {themeIcon}
               </svg>
             </button>
-            {me?.kind === 'user' ? (
-              <Link to={to('/profile')} className="hidden max-w-32 truncate rounded-lg px-2 py-2 text-sm font-medium hover:bg-[var(--surface-2)] sm:block">
-                {me.nickname}
+            {user ? (
+              <Link to={to('/profile')} className={`${iconBtn} hidden max-w-40 text-sm font-medium lg:flex`}>
+                <span className="truncate">{user.nickname}</span>
               </Link>
             ) : (
-              <button type="button" onClick={() => login()} className="hidden rounded-lg px-3 py-2 text-sm font-medium hover:bg-[var(--surface-2)] sm:block">
+              <button type="button" onClick={() => login()} className={`${iconBtn} hidden text-sm font-medium lg:flex`}>
                 {t('auth.login')}
               </button>
             )}
             <button
+              ref={btnRef}
               type="button"
-              className="h-11 w-11 rounded-lg text-xl hover:bg-[var(--surface-2)] focus-visible:ring-4 focus-visible:ring-[var(--focus)] xl:hidden"
+              className={iconBtn}
               aria-expanded={open}
-              aria-controls="mobile-nav"
-              aria-label={t('nav.menu')}
+              aria-controls={menuId}
+              aria-label={open ? t('nav.closeMenu') : t('nav.openMenu')}
               onClick={() => setOpen((o) => !o)}
+              data-testid="menu-button"
             >
-              ☰
+              <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+                {open ? <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /> : <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />}
+              </svg>
             </button>
           </div>
         </div>
-        {open && (
-          <nav id="mobile-nav" className="grid grid-cols-2 border-t border-[var(--border)] px-4 py-2 sm:grid-cols-3 xl:hidden" aria-label="mobile">
-            {[...links, { to: '/history', label: t('nav.history') }, { to: '/settings', label: t('nav.settings') }, { to: '/profile', label: t('nav.profile') }].map((l) => (
-              <NavLink key={l.to} to={to(l.to)} onClick={() => setOpen(false)} className="block rounded-lg px-3 py-3 font-medium hover:bg-[var(--surface-2)]">
-                {l.label}
-              </NavLink>
-            ))}
-            {me?.kind === 'user' ? (
-              <button type="button" className="block w-full rounded-lg px-3 py-3 text-left font-medium hover:bg-[var(--surface-2)]" onClick={() => void logout()}>
-                {t('auth.logout')}
-              </button>
-            ) : (
-              <button type="button" className="block w-full rounded-lg px-3 py-3 text-left font-medium hover:bg-[var(--surface-2)]" onClick={() => login()}>
-                {t('auth.login')}
-              </button>
-            )}
-          </nav>
-        )}
+        <nav id={menuId} hidden={!open} aria-label={t('nav.menuLabel')} className="border-t border-[var(--border)]" data-testid="site-menu">
+          <div className="mx-auto grid max-w-6xl gap-x-6 gap-y-4 px-4 py-4 sm:grid-cols-2 md:px-6 lg:grid-cols-3">
+            <section aria-labelledby={`${menuId}-g`}>
+              <h2 id={`${menuId}-g`} className="mb-1 px-3 text-sm font-semibold text-[var(--muted)]">
+                {t('nav.group.games')}
+              </h2>
+              <ul>
+                <li>
+                  <NavLink to={to('/')} end className={menuLink}>
+                    {t('nav.allGames')}
+                  </NavLink>
+                </li>
+                {GAMES.map((g) => (
+                  <li key={g}>
+                    <NavLink to={to(`/${g}`)} className={menuLink}>
+                      {t(`game.${g}`)}
+                    </NavLink>
+                  </li>
+                ))}
+              </ul>
+            </section>
+            <section aria-labelledby={`${menuId}-m`}>
+              <h2 id={`${menuId}-m`} className="mb-1 px-3 text-sm font-semibold text-[var(--muted)]">
+                {t('nav.group.more')}
+              </h2>
+              <ul>
+                {(
+                  [
+                    ['/leaderboard', 'nav.leaderboard'],
+                    ['/history', 'nav.history'],
+                    ['/settings', 'nav.settings'],
+                  ] as const
+                ).map(([p, k]) => (
+                  <li key={p}>
+                    <NavLink to={to(p)} className={menuLink}>
+                      {t(k)}
+                    </NavLink>
+                  </li>
+                ))}
+              </ul>
+            </section>
+            <section aria-labelledby={`${menuId}-a`}>
+              <h2 id={`${menuId}-a`} className="mb-1 px-3 text-sm font-semibold text-[var(--muted)]">
+                {t('nav.group.account')}
+              </h2>
+              <ul>
+                <li>
+                  <NavLink to={to('/profile')} className={menuLink}>
+                    {user ? user.nickname : t('nav.profile')}
+                  </NavLink>
+                </li>
+                <li>
+                  {user ? (
+                    <button type="button" className="ui-t flex min-h-11 w-full items-center rounded-md px-3 text-left font-medium hover:bg-[var(--surface-2)]" onClick={() => void logout()} data-testid="menu-logout">
+                      {t('auth.logout')}
+                    </button>
+                  ) : (
+                    <button type="button" className="ui-t flex min-h-11 w-full items-center rounded-md px-3 text-left font-medium hover:bg-[var(--surface-2)]" onClick={() => login()} data-testid="menu-login">
+                      {t('auth.login')}
+                    </button>
+                  )}
+                </li>
+              </ul>
+            </section>
+          </div>
+        </nav>
       </header>
       {authError && (
-        <div className="bg-[var(--warn-bg)] px-4 py-2 text-center text-sm" role="alert">
+        <div className="bg-[var(--ui-alert-bg)] px-4 py-2 text-center text-sm text-[var(--ui-alert-text)]" role="alert">
           {t('auth.error')}
         </div>
       )}
-      <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-3 py-4 sm:px-4 sm:py-6">
+      <main id="main" tabIndex={-1} className="mx-auto w-full max-w-6xl flex-1 scroll-mt-16 px-4 py-4 sm:py-6 md:px-6">
         {children}
       </main>
-      <footer className="border-t border-[var(--border)] py-6 text-sm text-[var(--muted)]">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4">
-          <span>{t('footer.copyright', { y: new Date().getFullYear() })}</span>
-          <Link to={to('/about')} className="hover:underline">
-            {t('nav.about')}
-          </Link>
-          <Link to={to('/privacy')} className="hover:underline">
-            {t('nav.privacy')}
-          </Link>
-          <Link to={to('/terms')} className="hover:underline">
-            {t('nav.terms')}
-          </Link>
-          <Link to={to('/settings')} className="hover:underline">
-            {t('nav.settings')}
-          </Link>
-          <span className="ml-auto">{t('footer.license')}</span>
+      <footer className="border-t border-[var(--border)] py-4 text-sm text-[var(--muted)]">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-2 px-4 md:px-6">
+          <span className="py-3 pr-2">{t('footer.copyright', { y: new Date().getFullYear() })}</span>
+          {(
+            [
+              ['/about', 'nav.about'],
+              ['/privacy', 'nav.privacy'],
+              ['/terms', 'nav.terms'],
+              ['/settings', 'nav.settings'],
+            ] as const
+          ).map(([p, k]) => (
+            <Link key={p} to={to(p)} className="ui-t inline-flex min-h-11 items-center rounded-md px-2 underline-offset-4 hover:underline">
+              {t(k)}
+            </Link>
+          ))}
+          <span className="py-3 sm:ml-auto">{t('footer.license')}</span>
         </div>
       </footer>
     </div>

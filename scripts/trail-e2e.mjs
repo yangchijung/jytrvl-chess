@@ -216,7 +216,7 @@ const REST_THEN_BEST = [[], [1, 4, 1, 2, 5], [7, 10, 12, 11], [9, 11], [12]];
         const mapW = await p.$eval('[data-testid=trail-map]', (m) => m.getBoundingClientRect().width);
         await p.screenshot({ path: `${OUT}/trail-${w}-${lang ? 'en' : 'zh'}-${scheme}-game.png`, fullPage: true });
         for (const [k, m] of [['setup', a], ['game', b]]) if (m.over || m.small || m.outside) fails.push(`${w}${lang || '/zh'}-${scheme}-${k}:${JSON.stringify(m)}`);
-        if (mapW < 300) fails.push(`${w} map ${mapW}`);
+        if (mapW < 280) fails.push(`${w} map ${mapW}`); // 16 px page gutters since HOME_SHARED_UI_V1
         if (p.errors.length) fails.push(`${w}${lang}${scheme} errors ${p.errors[0]}`);
         await ctx.close();
       }

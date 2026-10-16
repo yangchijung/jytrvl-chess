@@ -122,7 +122,7 @@ try {
       await p.keyboard.press(k);
       await sleep(350);
     }
-    ok('snake tutorial: step 1 completes', await waitFor(() => p.evaluate(() => document.body.innerText.includes('✓')), 6000));
+    ok('snake tutorial: step 1 completes', await waitFor(() => p.evaluate(() => [...document.querySelectorAll('[role=status]')].some((e) => e.innerText.includes('做到了'))), 6000));
     await shot(p, 's06-learn');
     ok('snake tutorial: no console errors', p.errors.length === 0, p.errors.join(' | '));
     await p.close();
@@ -218,7 +218,7 @@ try {
     await p.keyboard.press('ArrowUp');
     await p.keyboard.press('ArrowLeft');
     await sleep(300);
-    ok('blocks tutorial: step 1 completes', await waitFor(() => p.evaluate(() => document.body.innerText.includes('✓')), 5000));
+    ok('blocks tutorial: step 1 completes', await waitFor(() => p.evaluate(() => [...document.querySelectorAll('[role=status]')].some((e) => e.innerText.includes('做到了'))), 5000));
     await shot(p, 'b06-learn');
     ok('blocks tutorial: no console errors', p.errors.length === 0, p.errors.join(' | '));
     await p.close();

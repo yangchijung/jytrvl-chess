@@ -136,7 +136,7 @@ try {
       await p.keyboard.press(k);
       await sleep(400);
     }
-    ok('tutorial step 1 completes', await waitFor(() => p.evaluate(() => document.body.innerText.includes('✓')), 5000));
+    ok('tutorial step 1 completes', await waitFor(() => p.evaluate(() => [...document.querySelectorAll('[role=status]')].some((e) => e.innerText.includes('做到了'))), 5000));
     await shot(p, 't05-learn');
     ok('tutorial no console errors', p.errors.length === 0, p.errors.join(' | '));
     await p.close();

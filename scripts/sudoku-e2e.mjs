@@ -460,7 +460,7 @@ try {
     const p = await page(ctx);
     await p.goto(`${BASE}/`, { waitUntil: 'networkidle0' });
     const hrefs = await p.$$eval('main a[href]', (as) => [...new Set(as.map((a) => a.getAttribute('href')))]);
-    ok('SU16', 'home shows 7 games incl. Sudoku card in 益智挑戰', ['/chess', '/xiangqi', '/banqi', '/territory', '/snake', '/blocks', '/sudoku'].every((h) => hrefs.includes(h)) && (await text(p)).toUpperCase().includes('7 GAMES'));
+    ok('SU16', 'home shows 7 games incl. Sudoku card in 益智挑戰', ['/chess', '/xiangqi', '/banqi', '/territory', '/snake', '/blocks', '/sudoku'].every((h) => hrefs.includes(h)) && (await p.$$('[data-testid^=home-card-]')).length === 7 && !!(await p.$('[data-testid=home-card-sudoku]')));
     for (const g of ['chess', 'territory', 'snake', 'blocks']) {
       const r = await p.goto(`${BASE}/${g}`, { waitUntil: 'networkidle0' });
       ok('SU16', `existing hub /${g} still loads`, r.status() === 200);
