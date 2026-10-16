@@ -389,7 +389,8 @@ AI 只使用玩家看得到的資訊：貪食蛇有單元測試確認對手尚�
 - 企劃：`docs/product/KIDS_LEARNING_GAMES_V1.md` §3；簡化首版與待 ChatGPT 交付項目：`docs/handoff/KIDS_GAMES_HANDOFF_TO_CHATGPT.md` ②
 - 規則：`shared/trail/engine.ts`（公開規則、無隨機；動作紀錄重播；最佳路線搜尋；兩種電腦；回看轉折）；地圖 `shared/trail/maps.ts`（3 張暫定）
 - 介面：`src/trail/pages.tsx`、`src/trail/art.tsx`（暫定 SVG）、`src/trail/trail.css`（動畫）
-- 測試：單元 `tests/trail.test.ts` 7 項（能量／泥巴／蘋果／存 1、公平與平手、較佳路線不論先後手都贏、地圖可解且電腦會完成、重播與本回合重來、回看轉折、地圖驗證）；瀏覽器 `scripts/trail-e2e.mjs` 24／24（`trail-e2e-local.json`，截圖 `screens/trail/`）
+- 測試：單元 `tests/trail.test.ts` 7 項（能量／泥巴／蘋果／存 1、公平與平手、較佳路線不論先後手都贏、地圖可解且電腦會完成、重播與本回合重來、回看轉折、地圖驗證）；瀏覽器 `scripts/trail-e2e.mjs` 24／24（`trail-e2e-local.json`，截圖 `screens/trail/`）；[CI](https://github.com/yangchijung/jytrvl-chess/actions/runs/38845159809)（dc6025c）
+- 正式站：2026-10-16 以 Chrome 抽查 /trail：noindex；第一回合走起點→小路→蘋果（能量 +2）→小路→森林章，電腦接著逐步走，回到你時為第 2 回合；抽查後已清除測試存檔
 
 | ID | 結果 | 證據 |
 |---|---|---|
