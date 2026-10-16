@@ -8,6 +8,7 @@ export { TerritoryLobby } from './TerritoryLobby';
 export { SnakeRoom } from './arena/SnakeRoom';
 export { BlocksRoom } from './arena/BlocksRoom';
 export { ArenaLobby } from './arena/ArenaLobby';
+export { RescueRoom } from './RescueRoom';
 
 export default {
   async fetch(): Promise<Response> {

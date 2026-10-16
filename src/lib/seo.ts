@@ -160,6 +160,7 @@ export const PAGES: Record<string, PageMeta> = {
 };
 
 export function metaFor(path: string): PageMeta {
+  if (path.startsWith('/rescue/room/')) return { title: { zh: '星球救援隊房間｜JY Games', en: 'Planet Rescue Crew room | JY Games' }, description: { zh: '邀請你一起修好基地！', en: 'You are invited to help fix the base!' }, index: false };
   if (path.startsWith('/territory/room/')) return { title: { zh: '領地爭奪戰房間｜JY Games', en: 'Territory Rush room | JY Games' }, description: { zh: '邀請你來搶地盤！', en: 'You are invited to a Territory Rush match!' }, index: false };
   if (path.startsWith('/snake/room/')) return { title: { zh: '貪食蛇房間｜JY Games', en: 'Snake Arena room | JY Games' }, description: { zh: '邀請你來貪食蛇競技場對戰！', en: 'You are invited to a Snake Arena match!' }, index: false };
   if (path.startsWith('/blocks/room/')) return { title: { zh: '方塊對戰房間｜JY Games', en: 'Block Puzzle Battle room | JY Games' }, description: { zh: '邀請你來方塊消除對戰！', en: 'You are invited to a Block Puzzle Battle!' }, index: false };

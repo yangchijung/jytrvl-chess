@@ -6,6 +6,7 @@ import type { TerritoryLobby } from './TerritoryLobby';
 import type { SnakeRoom } from './arena/SnakeRoom';
 import type { BlocksRoom } from './arena/BlocksRoom';
 import type { ArenaLobby } from './arena/ArenaLobby';
+import type { RescueRoom } from './RescueRoom';
 
 export interface Env {
   DB: D1Database;
@@ -17,4 +18,5 @@ export interface Env {
   SROOMS: DurableObjectNamespace<SnakeRoom>;
   BROOMS: DurableObjectNamespace<BlocksRoom>;
   ALOBBY: DurableObjectNamespace<ArenaLobby>;
+  RROOMS: DurableObjectNamespace<RescueRoom>;
 }

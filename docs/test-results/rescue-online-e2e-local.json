@@ -1,0 +1,86 @@
+[
+  {
+    "id": "O-01",
+    "name": "create a room: code, waiting-for-team hint, go disabled",
+    "pass": true,
+    "info": "W797TS"
+  },
+  {
+    "id": "O-02",
+    "name": "three people, three devices: each sees only their own card",
+    "pass": true,
+    "info": "Amy,Ben,Cleo [[\"navigator\"],[\"engineer\"],[\"supplier\"]]"
+  },
+  {
+    "id": "O-03",
+    "name": "plan edits from any teammate appear on every device",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "O-04",
+    "name": "only the holder can confirm a role; go waits for all three",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "O-05",
+    "name": "the run plays on every device and the base lights up for all",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "O-06",
+    "name": "a fourth person can watch but has no seat or card",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "O-07",
+    "name": "non-host sees \"waiting for the host\"",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "O-08",
+    "name": "host moves everyone to the next mission",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "O-09",
+    "name": "swap roles: everyone gets a different card",
+    "pass": true,
+    "info": "supplier|navigator|engineer"
+  },
+  {
+    "id": "O-10",
+    "name": "reload: same seat and role come back",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "O-11",
+    "name": "two people: one holds two cards, the other one",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "O-12",
+    "name": "unknown room code: clear \"room not found\"",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "O-13",
+    "name": "room on 360/390/768 (zh/en, light/dark): no overflow, targets ≥44px",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "O-14",
+    "name": "no console errors on any device",
+    "pass": true,
+    "info": ""
+  }
+]

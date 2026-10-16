@@ -50,6 +50,7 @@
 | 2026-10-16 | 逆風探險賽簡化首版：探險者互不阻擋；先走者每局輪換、同回合到達平手；電腦兩級依公開規則（快快狐狸不刻意拿蘋果）；回看只指一個轉折，練習不改原局 | Claude（待 ChatGPT 檢視） | docs/handoff/KIDS_GAMES_HANDOFF_TO_CHATGPT.md ② |
 | 2026-10-16 | 逆風探險賽負責人試玩「OK」，開始第三款星球救援隊 | 專案負責人 | docs/ACCEPTANCE.md §17 T-25 |
 | 2026-10-16 | 星球救援隊簡化首版：同一台平板遮罩輪流看卡、三角色確認後才出發、失敗只顯示因果鏈；計畫板暫不含「誰負責哪一趟」 | Claude（待 ChatGPT 檢視） | docs/handoff/KIDS_GAMES_HANDOFF_TO_CHATGPT.md ③ |
+| 2026-10-16 | 星球救援隊新增連線房間（各自帳號、各自裝置），回應負責人試玩回饋；不記錄成績、不寫資料庫、沿用既有 Durable Object 架構（新增 RescueRoom 類別） | 專案負責人回饋，Claude 實作 | docs/ACCEPTANCE.md §18.1 |
 
 ## 待決策
 - 斷線代打期間的結果算在該真人名下（既有設計，見 docs/ACCEPTANCE.md §12.4）；是否改為不計分屬產品決策。

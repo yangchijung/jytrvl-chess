@@ -44,6 +44,10 @@ class_name = "BlocksRoom"
 name = "ALOBBY"
 class_name = "ArenaLobby"
 
+[[durable_objects.bindings]]
+name = "RROOMS"
+class_name = "RescueRoom"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["GameRoom", "Matchmaker", "RateLimiter"]
@@ -55,6 +59,10 @@ new_sqlite_classes = ["TerritoryRoom", "TerritoryLobby"]
 [[migrations]]
 tag = "v3"
 new_sqlite_classes = ["SnakeRoom", "BlocksRoom", "ArenaLobby"]
+
+[[migrations]]
+tag = "v4"
+new_sqlite_classes = ["RescueRoom"]
 
 [[d1_databases]]
 binding = "DB"

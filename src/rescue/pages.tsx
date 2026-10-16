@@ -1,9 +1,14 @@
 // Planet Rescue Crew — playable prototype (same-device team play). Each role sees a different card behind a
 // "pass the tablet" cover; the team writes one plan on a shared board, everyone confirms, then the rover runs it.
 // Art, missions and copy are provisional (docs/handoff/KIDS_GAMES_HANDOFF_TO_CHATGPT.md).
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { format, useI18n } from '../i18n';
 import { Button } from '../components/ui';
+import { api } from '../lib/api';
+import { useAuth } from '../lib/auth';
+import { MIN_TO_GO, missionOf, rolesOf } from '../../shared/rescue/room';
+import { OnlineRescue } from './online';
 import { HEAVY, ITEMS, ROLES, ROUTE_IDS, run, type Ev, type Item, type Mission, type Role, type RouteId, type RouteKind, type RunResult, type Trip } from '../../shared/rescue/engine';
 import { MISSIONS } from '../../shared/rescue/missions';
 import { BaseArt, DepotArt, ItemIcon, RoleArt, RouteKindIcon, RoverArt } from './art';
@@ -44,6 +49,26 @@ const T = {
   saved: { zh: '已儲存在此瀏覽器', en: 'Saved in this browser' },
   back: { zh: '換任務', en: 'Missions' },
   listen: { zh: '聽', en: 'Listen' },
+  onlineMode: { zh: '各自用自己的裝置', en: 'Each on their own device' },
+  onlineDesc: { zh: '建立房間，用自己的帳號或暱稱加入；每人只看到自己的卡', en: 'Create a room and join with your own account or name; each person sees only their own card' },
+  create: { zh: '建立房間', en: 'Create a room' },
+  joinCode: { zh: '輸入房間代碼', en: 'Room code' },
+  join: { zh: '加入', en: 'Join' },
+  room: { zh: '房間 {id}', en: 'Room {id}' },
+  share: { zh: '複製邀請連結', en: 'Copy invite link' },
+  copied: { zh: '已複製', en: 'Copied' },
+  team2: { zh: '隊員', en: 'Team' },
+  youAre: { zh: '你是', en: 'You are' },
+  watch: { zh: '隊伍滿了，你在旁邊觀看', en: 'The team is full; you are watching' },
+  waitTeam: { zh: '至少 2 人才能出發，把邀請連結傳給隊友', en: 'You need at least 2 people; send the invite link' },
+  rotateBtn: { zh: '換角色', en: 'Swap roles' },
+  hostPick: { zh: '房主選任務', en: 'Host picks the mission' },
+  waitHost: { zh: '等房主選下一個任務', en: 'Waiting for the host to pick the next mission' },
+  offline: { zh: '離線', en: 'offline' },
+  host: { zh: '房主', en: 'host' },
+  notFound: { zh: '找不到這個房間（可能已過期）', en: 'Room not found (it may have expired)' },
+  reconnecting: { zh: '連線中斷，重新連線中…', en: 'Connection lost, reconnecting…' },
+  onlyYours: { zh: '只能確認自己的角色', en: 'You can only confirm your own role' },
   role: { navigator: { zh: '導航員', en: 'navigator' }, engineer: { zh: '工程師', en: 'engineer' }, supplier: { zh: '補給員', en: 'supplier' } } as Record<Role, L>,
   roleCap: { navigator: { zh: '導航員', en: 'Navigator' }, engineer: { zh: '工程師', en: 'Engineer' }, supplier: { zh: '補給員', en: 'Supplier' } } as Record<Role, L>,
   route: { red: { zh: '紅色路', en: 'the red road' }, yellow: { zh: '黃色路', en: 'the yellow road' }, blue: { zh: '藍色路', en: 'the blue road' } } as Record<RouteId, L>,
@@ -103,6 +128,8 @@ function store(s: Saved) {
   }
 }
 const reduced = () => typeof window !== 'undefined' && (document.documentElement.hasAttribute('data-reduce-motion') || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+const noSub = () => () => {};
+const zero = () => 0;
 const emptyPlan = (m: Mission): Trip[] => Array.from({ length: m.time }, () => ({ route: null, cargo: [] }));
 
 // ------------------------------------------------------------ rover path (viewBox 0 0 100 50)
@@ -157,21 +184,32 @@ function framesFor(res: RunResult, plan: Trip[]): Frame[] {
   return f;
 }
 
-export function RescuePage() {
-  const { lang } = useI18n();
+export function RescuePage({ online }: { online?: OnlineRescue } = {}) {
+  const { lang, to } = useI18n();
+  const nav = useNavigate();
   const tr = (l: L, v?: Record<string, string | number>) => format(l[lang], v);
   const [saved, setSaved] = useState<Saved>(load);
-  const mission = MISSIONS.find((m) => m.id === saved.missionId) ?? MISSIONS[0];
-  const [screen, setScreen] = useState<'setup' | 'mission'>('setup');
-  const plan = saved.plans[mission.id]?.length === mission.time ? saved.plans[mission.id] : emptyPlan(mission);
-  const [sel, setSel] = useState(0); // selected trip for loading
-  const [oks, setOks] = useState<Role[]>([]);
+  useSyncExternalStore(online?.subscribe ?? noSub, online?.snapshot ?? zero, online?.snapshot ?? zero);
+  const st = online?.st ?? null;
+  const mission = st ? missionOf(st.missionId) : (MISSIONS.find((m) => m.id === saved.missionId) ?? MISSIONS[0]);
+  const [localScreen, setScreen] = useState<'setup' | 'mission'>('setup');
+  const screen = online ? 'mission' : localScreen;
+  const plan = st ? st.plan : saved.plans[mission.id]?.length === mission.time ? saved.plans[mission.id] : emptyPlan(mission);
+  const [sel, setSel0] = useState(0); // selected trip for loading
+  const setSel = (k: number) => setSel0(Math.min(k, plan.length - 1));
+  const [localOks, setOks] = useState<Role[]>([]);
+  const oks = st ? st.oks : localOks;
+  const myRoles = st ? rolesOf({ roles: st.roles } as never, st.mySeat) : [];
+  const isHost = !!st && st.mySeat !== null && st.mySeat === st.hostSeat;
+  const [code, setCode] = useState('');
+  const [copied, setCopied] = useState(false);
+  const lastRun = useRef<number | null>(null);
   const [peek, setPeek] = useState<{ role: Role; open: boolean } | null>(null);
   const [result, setResult] = useState<RunResult | null>(null);
   const [frames, setFrames] = useState<Frame[]>([]);
   const [fi, setFi] = useState(-1);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
-  const solo = saved.mode === 'solo';
+  const solo = !online && saved.mode === 'solo';
   const playing = fi >= 0 && fi < frames.length - 1;
   const finished = result !== null && !playing;
 
@@ -180,11 +218,12 @@ export function RescuePage() {
     store(n);
   };
   useEffect(() => {
-    (window as unknown as { __rescue?: unknown }).__rescue = { saved, mission, plan, result, fi, frames: frames.length, oks };
+    (window as unknown as { __rescue?: unknown }).__rescue = { saved, mission, plan, result, fi, frames: frames.length, oks, st, myRoles };
   });
   useEffect(() => () => void (timer.current && clearInterval(timer.current)), []);
 
   const setPlan = (p: Trip[]) => {
+    if (online) return st?.mySeat === null ? undefined : online.send({ t: 'plan', plan: p });
     setOks([]);
     setResult(null);
     setFi(-1);
@@ -192,13 +231,12 @@ export function RescuePage() {
   };
   const setTrip = (k: number, t: Partial<Trip>) => setPlan(plan.map((x, i) => (i === k ? { ...x, ...t } : x)));
 
-  const go = () => {
-    const res = run(mission, plan);
-    const fr = framesFor(res, plan);
+  const animate = (res: RunResult, p: Trip[], instant = false) => {
+    const fr = framesFor(res, p);
     setResult(res);
     setFrames(fr);
     if (timer.current) clearInterval(timer.current);
-    if (reduced()) {
+    if (instant || reduced()) {
       setFi(fr.length - 1);
     } else {
       setFi(0);
@@ -209,14 +247,48 @@ export function RescuePage() {
         if (i >= fr.length - 1 && timer.current) clearInterval(timer.current);
       }, 180);
     }
+  };
+  const go = () => {
+    if (online) return online.send({ t: 'go' });
+    const res = run(mission, plan);
+    animate(res, plan);
     if (res.ok && !saved.done.includes(mission.id)) update({ ...saved, done: [...saved.done, mission.id] });
   };
+  // online: play each new run once; a run already on screen when joining is shown at its end
+  useEffect(() => {
+    if (!st) return;
+    if (!st.result) {
+      if (result) (setResult(null), setFi(-1));
+      lastRun.current = st.runId;
+      return;
+    }
+    if (lastRun.current !== st.runId) {
+      animate(st.result, st.plan, lastRun.current === null);
+      lastRun.current = st.runId;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [st?.runId, st?.result]);
+  const toggleOk = (r: Role) => {
+    const on = oks.includes(r);
+    if (online) return online.send({ t: 'ok', role: r, on: !on });
+    setOks(on ? oks.filter((x) => x !== r) : [...oks, r]);
+  };
+  const createRoom = async () => {
+    try {
+      const r = await api<{ id: string }>('/rescue/rooms', { method: 'POST', body: JSON.stringify({ missionId: saved.missionId }) });
+      nav(to(`/rescue/room/${r.id}`));
+    } catch {
+      /* the button stays; the network error is rare */
+    }
+  };
   const retry = () => {
+    if (online) return online.send({ t: 'retry' });
     setResult(null);
     setFi(-1);
     setOks([]);
   };
   const startMission = (id: string) => {
+    if (online) return online.send({ t: 'mission', id });
     update({ ...saved, missionId: id });
     setResult(null);
     setFi(-1);
@@ -271,7 +343,7 @@ export function RescuePage() {
           🚀 {tr(T.title)} <span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 align-middle text-xs font-semibold text-[var(--muted)]">{tr(T.proto)}</span>
         </h1>
         {screen === 'mission' && (
-          <button type="button" className="min-h-11 rounded-full px-3 text-sm font-bold text-[var(--muted)]" disabled={playing} onClick={() => setScreen('setup')} data-testid="rescue-back">
+          <button type="button" className="min-h-11 rounded-full px-3 text-sm font-bold text-[var(--muted)]" disabled={playing} onClick={() => (online ? nav(to('/rescue')) : setScreen('setup'))} data-testid="rescue-back">
             ☰ {tr(T.back)}
           </button>
         )}
@@ -394,6 +466,36 @@ export function RescuePage() {
             </button>
           ))}
         </div>
+        <div className="space-y-2 rounded-2xl border-2 border-[var(--border)] p-3" data-testid="rescue-online">
+          <h2 className="font-extrabold">🌐 {tr(T.onlineMode)}</h2>
+          <p className="text-sm text-[var(--muted)]">{tr(T.onlineDesc)}</p>
+          <div className="flex flex-wrap gap-2">
+            <Button size="lg" className="min-h-12" onClick={createRoom} data-testid="rescue-create">
+              ➕ {tr(T.create)}
+            </Button>
+            <form
+              className="flex gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const c = code.trim().toUpperCase();
+                if (/^[A-HJ-NP-Z2-9]{6}$/.test(c)) nav(to(`/rescue/room/${c}`));
+              }}
+            >
+              <input value={code} onChange={(e) => setCode(e.target.value)} maxLength={6} placeholder={tr(T.joinCode)} aria-label={tr(T.joinCode)} className="min-h-12 w-36 rounded-xl border-2 border-[var(--border)] bg-[var(--surface)] px-3 font-mono uppercase" data-testid="rescue-code" />
+              <Button size="lg" variant="secondary" className="min-h-12" type="submit" data-testid="rescue-join">
+                {tr(T.join)}
+              </Button>
+            </form>
+          </div>
+        </div>
+      </div>,
+    );
+  }
+
+  if (online && !st) {
+    return shell(
+      <div className="px-4 pb-6 text-center font-bold" data-testid="rescue-connecting">
+        {online.error ? `⚠ ${tr(T.notFound)}` : '…'}
       </div>,
     );
   }
@@ -426,6 +528,65 @@ export function RescuePage() {
         </span>
         <Listen text={prompt} />
       </div>
+
+      {st && (
+        <div className="space-y-2 rounded-2xl bg-[var(--surface-2)] p-3" data-testid="rescue-team">
+          {online!.tracker.phase === 'reconnecting' && <p className="font-bold text-[var(--warn-text)]">📶 {tr(T.reconnecting)}</p>}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="font-extrabold" data-testid="rescue-room-id">
+              🌐 {tr(T.room, { id: st.id })}
+            </span>
+            <button
+              type="button"
+              className="min-h-11 rounded-full border-2 border-[var(--border)] px-3 text-sm font-bold"
+              onClick={() => {
+                try {
+                  void navigator.clipboard?.writeText(location.origin + to(`/rescue/room/${st.id}`));
+                } catch {
+                  /* optional */
+                }
+                setCopied(true);
+              }}
+              data-testid="rescue-share"
+            >
+              🔗 {copied ? tr(T.copied) : tr(T.share)}
+            </button>
+          </div>
+          <ul className="grid gap-1 sm:grid-cols-3" aria-label={tr(T.team2)}>
+            {st.seats.map((x, i) => (
+              <li key={i} className={`flex items-center gap-2 rounded-xl px-2 py-1 font-bold ${i === st.mySeat ? 'bg-[var(--accent-soft)]' : 'bg-[var(--surface)]'}`} data-testid={`seat-${i}`}>
+                <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${x.connected ? 'bg-[#2e9d57]' : 'bg-[#b5ae9d]'}`} aria-label={x.connected ? '' : tr(T.offline)} />
+                <span className="truncate">
+                  {x.name || '—'}
+                  {i === st.hostSeat ? ` · ${tr(T.host)}` : ''}
+                </span>
+                <span className="ml-auto flex">
+                  {ROLES.filter((r) => st.roles[r] === i).map((r) => (
+                    <span key={r} className="h-7 w-7" title={tr(T.roleCap[r])}>
+                      <RoleArt r={r} />
+                    </span>
+                  ))}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {st.mySeat === null && <p className="font-bold">👀 {tr(T.watch)}</p>}
+          {st.seats.length < MIN_TO_GO && <p className="font-bold text-[var(--warn-text)]">👥 {tr(T.waitTeam)}</p>}
+          {isHost && !playing && (
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" className="min-h-11 rounded-full border-2 border-[var(--border)] px-3 text-sm font-bold" onClick={() => online!.send({ t: 'rotate' })} data-testid="rescue-rotate">
+                🔄 {tr(T.rotateBtn)}
+              </button>
+              <span className="text-sm font-bold text-[var(--muted)]">{tr(T.hostPick)}</span>
+              {MISSIONS.map((m, i) => (
+                <button key={m.id} type="button" aria-pressed={m.id === st.missionId} className={`h-11 w-11 rounded-full border-2 text-sm font-bold ${m.id === st.missionId ? 'border-[var(--accent-text)] bg-[var(--accent-soft)]' : 'border-[var(--border)]'}`} onClick={() => online!.send({ t: 'mission', id: m.id })} aria-label={m.name[lang]} data-testid={`pick-${m.id}`}>
+                  {st.done.includes(m.id) ? '⭐' : i + 1}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* scene */}
       <div className="relative mx-auto w-full max-w-2xl overflow-hidden rounded-2xl border-4 border-[#8aa3b5] bg-[linear-gradient(#cfe8f5,#e8f1e1)]" style={{ aspectRatio: '2 / 1' }} data-testid="rescue-scene">
@@ -479,7 +640,8 @@ export function RescuePage() {
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {lit ? (
             <>
-              {MISSIONS.indexOf(mission) < MISSIONS.length - 1 && (
+              {online && !isHost && <p className="self-center text-center font-bold">⏳ {tr(T.waitHost)}</p>}
+              {(!online || isHost) && MISSIONS.indexOf(mission) < MISSIONS.length - 1 && (
                 <Button size="lg" className="min-h-14 text-lg" onClick={() => startMission(MISSIONS[MISSIONS.indexOf(mission) + 1].id)} data-testid="rescue-next">
                   ➜ {tr(T.next)}
                 </Button>
@@ -496,7 +658,20 @@ export function RescuePage() {
         !playing && (
           <>
             {/* role cards */}
-            {solo ? (
+            {online ? (
+              myRoles.length > 0 && (
+                <div className="space-y-2" data-testid="rescue-mycards">
+                  <p className="font-extrabold">
+                    {tr(T.youAre)} {myRoles.map((r) => tr(T.roleCap[r])).join(lang === 'zh' ? '＋' : ' + ')}
+                  </p>
+                  <div className="grid gap-2 md:grid-cols-2">
+                    {myRoles.map((r) => (
+                      <Card key={r} r={r} />
+                    ))}
+                  </div>
+                </div>
+              )
+            ) : solo ? (
               <div className="grid gap-2 md:grid-cols-3">
                 {ROLES.map((r) => (
                   <Card key={r} r={r} />
@@ -568,25 +743,27 @@ export function RescuePage() {
                 <div className="grid grid-cols-3 gap-2">
                   {ROLES.map((r) => {
                     const on = oks.includes(r);
+                    const mine = !online || myRoles.includes(r);
+                    const holder = st && st.roles[r] !== null ? st.seats[st.roles[r]!]?.name : null;
                     return (
-                      <button key={r} type="button" disabled={!anything} aria-pressed={on} onClick={() => setOks(on ? oks.filter((x) => x !== r) : [...oks, r])} className={`flex min-h-12 items-center justify-center gap-1 rounded-xl border-2 px-1 text-xs font-bold disabled:opacity-40 sm:text-sm ${on ? 'border-[var(--ok-text)] bg-[var(--ok-bg)] text-[var(--ok-text)]' : 'border-[var(--border)]'}`} data-testid={`ok-${r}`}>
+                      <button key={r} type="button" disabled={!anything || !mine} aria-pressed={on} title={mine ? undefined : tr(T.onlyYours)} onClick={() => toggleOk(r)} className={`flex min-h-12 items-center justify-center gap-1 rounded-xl border-2 px-1 text-xs font-bold disabled:opacity-40 sm:text-sm ${on ? 'border-[var(--ok-text)] bg-[var(--ok-bg)] text-[var(--ok-text)]' : 'border-[var(--border)]'}`} data-testid={`ok-${r}`}>
                         <span className="h-7 w-7">
                           <RoleArt r={r} />
                         </span>
-                        {on ? '✓' : ''} {tr(T.ok)}
+                        {on ? '✓' : ''} {holder && !mine ? <span className="truncate">{holder}</span> : tr(T.ok)}
                       </button>
                     );
                   })}
                 </div>
               </div>
             )}
-            <Button size="lg" className="min-h-14 w-full text-xl" disabled={!anything || !allOk} onClick={go} data-testid="rescue-go">
+            <Button size="lg" className="min-h-14 w-full text-xl" disabled={!anything || !allOk || (!!st && (st.seats.length < MIN_TO_GO || st.mySeat === null))} onClick={go} data-testid="rescue-go">
               🚀 {tr(T.go)}
             </Button>
           </>
         )
       )}
-      <p className="text-xs text-[var(--muted)]">✓ {tr(T.saved)}</p>
+      {!online && <p className="text-xs text-[var(--muted)]">✓ {tr(T.saved)}</p>}
 
       {/* pass-the-tablet cover */}
       {peek && (
@@ -619,3 +796,24 @@ export function RescuePage() {
   );
 }
 
+
+export function RescueRoomPage() {
+  const { id } = useParams();
+  const { me, loading } = useAuth();
+  const [ctl, setCtl] = useState<OnlineRescue | null>(null);
+  useEffect(() => {
+    if (!id || loading) return;
+    let name = '';
+    try {
+      name = me?.kind === 'user' ? me.nickname : (localStorage.getItem('jychess.guestName') ?? '');
+    } catch {
+      /* ignore */
+    }
+    const c = new OnlineRescue(`/api/rescue/rooms/${id.toUpperCase()}/ws`, name);
+    setCtl(c);
+    return () => c.dispose();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, loading]);
+  if (!ctl) return null;
+  return <RescuePage key={ctl ? id : 'x'} online={ctl} />;
+}

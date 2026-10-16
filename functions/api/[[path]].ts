@@ -16,6 +16,7 @@ interface Env {
   SROOMS: DurableObjectNamespace;
   BROOMS: DurableObjectNamespace;
   ALOBBY: DurableObjectNamespace;
+  RROOMS: DurableObjectNamespace;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   PUBLIC_ORIGIN?: string;
@@ -325,6 +326,33 @@ export const onRequest = async (ctx: Ctx): Promise<Response> => {
       const stub = env.MATCH.get(env.MATCH.idFromName(pool));
       const name = me.kind === 'user' ? me.nickname : cleanGuestName(url.searchParams.get('name'), me.nickname);
       return forwardWs(req, stub, me, { 'x-jy-name': name, 'x-jy-rating': rating }, '/ws', `?game=${game}&rated=${rated ? 1 : 0}&minutes=${minutes}&inc=${inc}`);
+    }
+
+    // ---------- Planet Rescue Crew (kids prototype, separate devices) ----------
+    if (route === 'POST /rescue/rooms') {
+      if (await limited(env, req, 'rroom', 30, 600000)) return err('rate_limited', 429);
+      const body = (await req.json().catch(() => ({}))) as { missionId?: string };
+      const missionId = typeof body.missionId === 'string' && /^M\d{1,2}$/.test(body.missionId) ? body.missionId : 'M1';
+      for (let i = 0; i < 5; i++) {
+        const id = roomCode();
+        const stub = env.RROOMS.get(env.RROOMS.idFromName(id));
+        const res = await stub.fetch('https://do/init', { method: 'POST', body: JSON.stringify({ id, hostId: me.playerId, missionId }) });
+        if (res.ok) return reply(json({ id }));
+      }
+      return err('room_alloc_failed', 500);
+    }
+    if (parts[0] === 'rescue' && parts[1] === 'rooms' && parts[2]) {
+      const id = parts[2].toUpperCase();
+      if (!isRoomCode(id)) return err('bad_room', 400);
+      const stub = env.RROOMS.get(env.RROOMS.idFromName(id));
+      if (req.method === 'GET' && parts.length === 3) return reply(new Response((await stub.fetch('https://do/info')).body, { headers: { 'content-type': 'application/json' } }));
+      if (req.method === 'GET' && parts[3] === 'ws') {
+        if (await limited(env, req, 'rws', 120, 60000)) return err('rate_limited', 429);
+        const info = (await (await stub.fetch('https://do/info')).json()) as { exists: boolean };
+        if (!info.exists) return err('room_not_found', 404);
+        const name = me.kind === 'user' ? me.nickname : cleanGuestName(url.searchParams.get('name'), me.nickname);
+        return forwardWs(req, stub, me, { 'x-jy-name': name }, '/ws');
+      }
     }
 
     // ---------- Territory Rush ----------

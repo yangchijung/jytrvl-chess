@@ -51,6 +51,11 @@ class_name = "BlocksRoom"
 script_name = "jytrvl-chess-realtime"
 
 [[durable_objects.bindings]]
+name = "RROOMS"
+class_name = "RescueRoom"
+script_name = "jytrvl-chess-realtime"
+
+[[durable_objects.bindings]]
 name = "ALOBBY"
 class_name = "ArenaLobby"
 script_name = "jytrvl-chess-realtime"
