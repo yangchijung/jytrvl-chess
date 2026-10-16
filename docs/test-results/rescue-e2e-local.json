@@ -1,0 +1,128 @@
+[
+  {
+    "id": "P-01",
+    "name": "zh setup: story, three roles, team size, 4 missions, noindex",
+    "pass": true,
+    "info": "noindex,nofollow"
+  },
+  {
+    "id": "P-02",
+    "name": "not linked from home",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "P-03",
+    "name": "robots.txt disallows /rescue",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "P-04",
+    "name": "en setup loads",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "P-05",
+    "name": "cards are hidden on the shared screen; roads show \"?\"",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "P-06",
+    "name": "pass-the-tablet cover: hand over first, then the navigator card (roads)",
+    "pass": true,
+    "info": "導航員  我知道每條路的樣子  紅色路：落石擋住，不能走 黃色路：橋壞了，要 1 片木板修（修一次就好） 藍色路：很遠，要用 2 段時間"
+  },
+  {
+    "id": "P-07",
+    "name": "engineer sees needs; supplier sees storage, capacity and heavy items",
+    "pass": true,
+    "info": "工程師  基地需要這些才能亮燈  ×1 ×1 ×1 | 補給員  倉庫裡有這些  ×1 ×1 ×1 ×1 ×1  救援車一趟最多載 2 件  🏋️ 電池是重物"
+  },
+  {
+    "id": "P-08",
+    "name": "go needs a plan and all three confirmations",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "P-09",
+    "name": "changing the plan clears confirmations",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "P-10",
+    "name": "rover animates, stops at the bridge; story is a chain of causes",
+    "pass": true,
+    "info": "第 1 趟：走黃色路 → 黃色路的橋壞了，車上沒有木板，所以過不去"
+  },
+  {
+    "id": "P-11",
+    "name": "the road feature is revealed after the run",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "P-12",
+    "name": "change the plan keeps what was written",
+    "pass": true,
+    "info": "battery,panel"
+  },
+  {
+    "id": "P-13",
+    "name": "plan survives reload",
+    "pass": true,
+    "info": "[{\"route\":\"yellow\",\"cargo\":[\"battery\",\"plank\"]},{\"route\":\"yellow\",\"cargo\":[\"panel\",\"cable\"]}]"
+  },
+  {
+    "id": "P-14",
+    "name": "fixed plan: bridge repaired, parts delivered, base lights up",
+    "pass": true,
+    "info": "第 1 趟：走黃色路 → 用木板修好了橋 → 送到基地：電池×1 → 第 2 趟：走黃色路 → 送到基地：太陽能板×1、電線×1"
+  },
+  {
+    "id": "P-15",
+    "name": "success: star saved, swap-roles tip, next mission",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "P-16",
+    "name": "over capacity and \"still missing\" messages",
+    "pass": true,
+    "info": "第 1 趟：載了 3 件，車子一次只能載 2 件 | 第 1 趟：走黃色路 → 送到基地：電池×2 → 基地還缺：太陽能板×2，所以還不能亮燈"
+  },
+  {
+    "id": "P-17",
+    "name": "long road (2 time) + shortcut without heavy items completes mission 3",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "P-18",
+    "name": "no console errors",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "P-19",
+    "name": "solo: all three cards visible, no confirmation needed",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "P-20",
+    "name": "reduced motion: result at once",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "P-21",
+    "name": "360/390/768/1280 × zh/en × light/dark: no overflow, targets ≥44px (setup, plan, cover)",
+    "pass": true,
+    "info": ""
+  }
+]

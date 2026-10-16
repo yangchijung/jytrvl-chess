@@ -73,6 +73,11 @@ export const PAGES: Record<string, PageMeta> = {
     },
     index: true,
   },
+  '/rescue': {
+    title: { zh: '星球救援隊（試玩原型）｜JY Games', en: 'Planet Rescue Crew (prototype) | JY Games' },
+    description: { zh: '三個角色各看一張不同的資料卡，同一台平板一起排計畫，把零件送回基地。兒童合作與邏輯試玩原型。', en: 'Three roles each see a different card and plan together on one tablet to get the parts to the base. Kids teamwork and logic prototype.' },
+    index: false,
+  },
   '/trail': {
     title: { zh: '逆風探險賽（試玩原型）｜JY Games', en: 'Try Again Trail (prototype) | JY Games' },
     description: { zh: '在公開地圖上安排能量與路線，集滿三個徽章先到營地；結束後回看一個轉折再練習。兒童策略試玩原型。', en: 'Plan energy and routes on an open map, collect three badges and reach camp first; then look back at one turn and practise. Kids strategy prototype.' },
