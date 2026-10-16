@@ -443,6 +443,8 @@ AI 只使用玩家看得到的資訊：貪食蛇有單元測試確認對手尚�
 - 介面：`/rescue` 開始畫面新增「各自用自己的裝置」（建立房間／輸入代碼）；房間 `/rescue/room/:id`（noindex）：隊員名單與在線狀態、每人只看到自己角色的卡、共用計畫板即時同步、確認按鈕只有持有者可按、出發後所有裝置同步播放；房間 6 小時無活動自動清除
 - 登入帳號用帳號暱稱；未登入以訪客暱稱加入
 - 測試：單元 `tests/rescue-room.test.ts` 5 項；瀏覽器 `scripts/rescue-online-e2e.mjs` 14／14（`rescue-online-e2e-local.json`，截圖 `screens/rescue-online/`；每個瀏覽器情境是不同的人）
+- 部署：[CI](https://github.com/yangchijung/jytrvl-chess/actions/runs/38878534361)（4a45d4e）；Cloudflare Pages 與 Workers Builds（jytrvl-chess-realtime，含 RescueRoom）皆成功
+- 正式站：2026-10-16 以 Chrome 抽查：/rescue 有「建立房間」，建立後進入 /rescue/room/CEY8W9（noindex），1 人時三張卡皆歸本人、出發停用並提示至少 2 人；多人分卡已在本機以多個瀏覽器情境驗證（O-02），正式站多帳號實測待負責人（O-15）。測試房間無人使用 6 小時後自動清除
 
 | ID | 結果 | 證據 |
 |---|---|---|
