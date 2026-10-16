@@ -1,0 +1,4 @@
+/* Try Again Trail animations (skipped under reduced motion via motion-safe utilities and the site setting) */
+@keyframes trail-hop { 0% { transform: translateY(0); } 40% { transform: translateY(-22%); } 100% { transform: translateY(0); } }
+@keyframes trail-float { 0% { opacity: 0; transform: translate(-50%, 6px) scale(.8); } 25% { opacity: 1; transform: translate(-50%, 0) scale(1.15); } 100% { opacity: 0; transform: translate(-50%, -28px) scale(1); } }
+@keyframes trail-dash { to { stroke-dashoffset: -9; } }

@@ -1,0 +1,146 @@
+[
+  {
+    "id": "T-01",
+    "name": "zh setup loads (goal, rules, modes, 3 maps), noindex",
+    "pass": true,
+    "info": "noindex,nofollow"
+  },
+  {
+    "id": "T-02",
+    "name": "not linked from home",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "T-03",
+    "name": "robots.txt disallows /trail",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "T-04",
+    "name": "en setup loads",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "T-05",
+    "name": "first game: you go first",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "T-06",
+    "name": "glowing reachable spots with energy cost",
+    "pass": true,
+    "info": "node-1"
+  },
+  {
+    "id": "T-07",
+    "name": "step moves explorer, apple gives +2 with floating effect",
+    "pass": true,
+    "info": "at=4 e=2"
+  },
+  {
+    "id": "T-08",
+    "name": "redo this turn returns to the turn start",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "T-09",
+    "name": "computer moves one step at a time",
+    "pass": true,
+    "info": "0->1"
+  },
+  {
+    "id": "T-10",
+    "name": "reload keeps the game exactly",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "T-11",
+    "name": "best route beats the easy computer; result first",
+    "pass": true,
+    "info": "0"
+  },
+  {
+    "id": "T-12",
+    "name": "ending offers break / look back / try again (+ optional thanks)",
+    "pass": true,
+    "info": "☕ 休息一下|🔍 回看一個轉折|🔁 再試一次|👋 謝謝一起玩"
+  },
+  {
+    "id": "T-13",
+    "name": "perfect game: review says every turn was great",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "T-14",
+    "name": "try again alternates who goes first (computer now)",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "T-15",
+    "name": "review finds round 1 (rested) and shows the faster route",
+    "pass": true,
+    "info": "🔍 第 1 回合：可以試試綠色虛線 這樣可以快 1 回合 🔊 line-better saved=1"
+  },
+  {
+    "id": "T-16",
+    "name": "\"what would you change\" answer saved locally (optional)",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "T-17",
+    "name": "practice branch starts at the turning point",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "T-18",
+    "name": "practice shows the new round vs before",
+    "pass": true,
+    "info": "🏁 練習：第 4 回合到營地（原本第 5 回合）\n🔊"
+  },
+  {
+    "id": "T-19",
+    "name": "back to result: the real result is unchanged",
+    "pass": true,
+    "info": "{\"screen\":\"review\",\"winner\":0,\"log\":23,\"practice\":null}"
+  },
+  {
+    "id": "T-20",
+    "name": "take a break returns to the start screen",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "T-21",
+    "name": "no console errors",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "T-22",
+    "name": "two players take turns on one device",
+    "pass": true,
+    "info": "輪到 紫隊：點發亮的路\n🔊"
+  },
+  {
+    "id": "T-23",
+    "name": "reduced motion: computer turn finishes at once",
+    "pass": true,
+    "info": "14ms"
+  },
+  {
+    "id": "T-24",
+    "name": "360/390/768/1280 × zh/en × light/dark: no overflow, targets ≥44px",
+    "pass": true,
+    "info": ""
+  }
+]

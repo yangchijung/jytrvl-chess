@@ -73,6 +73,11 @@ export const PAGES: Record<string, PageMeta> = {
     },
     index: true,
   },
+  '/trail': {
+    title: { zh: '逆風探險賽（試玩原型）｜JY Games', en: 'Try Again Trail (prototype) | JY Games' },
+    description: { zh: '在公開地圖上安排能量與路線，集滿三個徽章先到營地；結束後回看一個轉折再練習。兒童策略試玩原型。', en: 'Plan energy and routes on an open map, collect three badges and reach camp first; then look back at one turn and practise. Kids strategy prototype.' },
+    index: false,
+  },
   '/robot': {
     title: { zh: '機器人快遞站（試玩原型）｜JY Games', en: 'Robot Delivery Lab (prototype) | JY Games' },
     description: { zh: '用圖片指令排順序，讓機器人把包裹送到同色的門。兒童程式思維試玩原型。', en: 'Line up picture blocks so the robot delivers each parcel to its matching door. Kids coding playtest prototype.' },
