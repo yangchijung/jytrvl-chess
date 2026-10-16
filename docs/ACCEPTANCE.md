@@ -417,7 +417,8 @@ AI 只使用玩家看得到的資訊：貪食蛇有單元測試確認對手尚�
 - 企劃：`docs/product/KIDS_LEARNING_GAMES_V1.md` §4；簡化首版與待 ChatGPT 交付：`docs/handoff/KIDS_GAMES_HANDOFF_TO_CHATGPT.md` ③
 - 規則：`shared/rescue/engine.ts`（遇到第一個問題即停、因果事件、可解性搜尋、任務驗證）；任務 `shared/rescue/missions.ts`（M1–M4 暫定）
 - 介面：`src/rescue/pages.tsx`、`src/rescue/art.tsx`（暫定 SVG）
-- 測試：單元 `tests/rescue.test.ts` 6 項（成功流程、九種問題各有原因、橋修一次、任務可解、每張卡都缺一不可、任務驗證）；瀏覽器 `scripts/rescue-e2e.mjs` 21／21（`rescue-e2e-local.json`，截圖 `screens/rescue/`）
+- 測試：單元 `tests/rescue.test.ts` 6 項（成功流程、九種問題各有原因、橋修一次、任務可解、每張卡都缺一不可、任務驗證）；瀏覽器 `scripts/rescue-e2e.mjs` 21／21（`rescue-e2e-local.json`，截圖 `screens/rescue/`）；[CI](https://github.com/yangchijung/jytrvl-chess/actions/runs/38856584201)（b9b722c）
+- 正式站：2026-10-16 以 Chrome 抽查 /rescue：noindex；3 人模式任務 2，遮罩打開前看不到導航員卡、打開後有斷橋；排兩趟黃色路（木板＋電池、太陽能板＋電線）、三人確認後出發，修橋、送達、基地亮燈；抽查後已清除測試存檔
 
 | ID | 結果 | 證據 |
 |---|---|---|
