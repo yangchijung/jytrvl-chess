@@ -21,7 +21,7 @@ Done (with evidence):
   - 餐廳菜單／共用食材／庫存規格與 Figma 關係圖交付：docs/product/RESTAURANT_MENU_INVENTORY_V1.md；含 RT01–RT14，工程已回報通過，計算樣例已核對
 In Progress:
   - 數獨：已部署，實機及讀屏驗收依 Issue #3 持續收尾
-  - 餐廳 V2：場景版已接入並部署（ACCEPTANCE §15）；待 V2-10 家庭試玩與 Issue #4 回報
+  - 餐廳：2026-10-16 負責人決定暫停開發（試玩後認為偏難）；V2 場景版維持在 /restaurant（noindex），不再擴充
   - #2、#3 已回報；實機（Safari／Android）與讀屏驗收待人工
 Blocked / requires decision:
   - 斷線代打的結果計入該真人名下為既有設計；是否調整屬產品決策
