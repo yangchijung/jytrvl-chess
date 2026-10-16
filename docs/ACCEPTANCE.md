@@ -484,7 +484,7 @@ AI 只使用玩家看得到的資訊：貪食蛇有單元測試確認對手尚�
 | HU11 | ✅ | 一般過渡皆 ≤ 220 ms；OS 減少動態與站內設定下 .ui-t 過渡移除；Spinner 停轉但保留「載入中」 |
 | HU12 | ✅ | 回歸：棋類 e2e 29／29、數獨 66／66、360 px 全站 144／144、文案與連線狀態 32／32、領地 29／29、貪食蛇＋方塊 57／57；淺深色遊戲畫面截圖存各套件資料夾 |
 | HU13 | ✅ | /robot 21／21、/trail 24／24、/rescue 21／21、連線房間 14／14、暫停中的 /restaurant 42／42（隔離瀏覽器情境，不動負責人資料；原型 noindex 不變） |
-| HU14 | 見下 | CI 與部署 commit 於提交後補上 |
+| HU14 | ✅ | 實作 commit 0e843be；[CI](https://github.com/yangchijung/jytrvl-chess/actions/runs/38904039118) build-and-test、Cloudflare Pages、Workers Builds 皆成功；正式站 https://chess.jytrvl.com 以 Chrome 抽查：H1 標語、7 卡、三分類、頁首不透明 rgb(250,247,240) 無 blur、選單開啟 12 個連結、數獨「開始玩」→/sudoku、「玩法」→/learn/sudoku、主題輔助名稱「目前：跟隨系統；切換為：深色」 |
 
 測試調整（隨規格變動，非刪除驗收）：`e2e.mjs` 首頁檢查改為標語 H1＋7 卡；`sudoku-e2e.mjs` SU16 改數 7 張卡（移除的「7 Games」眉標）；`territory-e2e.mjs`、`arena-e2e.mjs` 教學完成改看成功通知文字（Notice 的勾改為線條圖示，不再是 ✓ 字元）；`trail-e2e.mjs` 地圖寬下限 280 px（左右留白改 16 px）。
 
