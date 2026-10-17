@@ -260,7 +260,7 @@ function Game({ ctl, v }: { ctl: SudokuController; v: View }) {
               <label htmlFor="su-box" className="text-sm font-semibold">
                 {t('sudoku.box.choose')}
               </label>
-              <select id="su-box" value={v.box} onChange={(e) => ctl.setBox(Number(e.target.value))} className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3">
+              <select id="su-box" value={v.box} onChange={(e) => ctl.setBox(Number(e.target.value))} className="min-h-11 rounded-md border border-[var(--ui-control-border)] bg-[var(--surface)] px-3">
                 {Array.from({ length: 9 }, (_, b) => (
                   <option key={b} value={b}>
                     {t('sudoku.selectBox', { number: b + 1 })}

@@ -80,10 +80,10 @@ function GuestNameSetting() {
             /* ignore */
           }
         }}
-        className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus)]"
+        className="min-h-11 w-full rounded-md border border-[var(--ui-control-border)] bg-[var(--surface)] px-3"
         aria-describedby="guest-note"
       />
-      <span id="guest-note" className="mt-1 block text-xs text-[var(--muted)]">
+      <span id="guest-note" className="mt-1 block text-base leading-6 text-[var(--muted)]">
         {lang === 'zh' ? '線上對戰時顯示的名稱。' : 'Shown to opponents in online games.'}
       </span>
     </label>
@@ -131,7 +131,7 @@ export function Profile() {
               value={nick}
               onChange={(e) => setNick(e.target.value)}
               maxLength={20}
-              className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus)]"
+              className="min-h-11 w-full rounded-md border border-[var(--ui-control-border)] bg-[var(--surface)] px-3"
             />
           </label>
           <Button type="submit">{t('profile.save')}</Button>

@@ -135,7 +135,7 @@ for (const lang of ['zh', 'en']) {
         if ((w === 360 || w === 1280) || (w === 768 && scheme === 'light')) await p.screenshot({ path: `${OUT}/${name}.png`, fullPage: true });
         await p.ctx.close();
       }
-  ok('HU03', '360/390/768/1280 × zh/en × light/dark (32): nothing outside the viewport; at 360×800 the first card’s Play is above the fold; Play ≥ 48 px', fails.length === 0, `${fails.join(' ; ')} first@360=${JSON.stringify(firstVisible)}`);
+  ok('HU03', '360/390/768/1280 × zh/en × light/dark (16): nothing outside the viewport; at 360×800 the first card’s Play is above the fold; Play ≥ 48 px', fails.length === 0, `${fails.join(' ; ')} first@360=${JSON.stringify(firstVisible)}`);
 }
 
 // ---------------------------------------------------------------- HU04: 320 px, 200% text, 400% desktop zoom
@@ -168,7 +168,7 @@ for (const lang of ['zh', 'en']) {
     await check(`zoom400-${lang}`, c);
     await c.ctx.close();
   }
-  ok('HU04', '320 px, 200 % text and 400 % zoom (zh/en): header, menu, cards and footer stay inside the viewport', fails.length === 0, fails.join(' ; '));
+  ok('HU04', '320 px, 200 % root text size and a 400 % zoom REFLOW SIMULATION (320 CSS px at DPR 4 — not real browser zoom) (zh/en): header, menu, cards and footer stay inside the viewport', fails.length === 0, fails.join(' ; '));
 }
 
 // ---------------------------------------------------------------- HU05: menu at every width
@@ -306,13 +306,14 @@ for (const lang of ['zh', 'en']) {
 // ---------------------------------------------------------------- HU07: keyboard
 {
   const fails = [];
+  const notesHU07 = [];
   const p = await page(1280, 900);
   await p.goto(`${BASE}/`, { waitUntil: 'networkidle0' });
   await p.keyboard.press('Tab');
   const skip = await p.evaluate(() => {
     const a = document.activeElement;
     const r = a.getBoundingClientRect();
-    return { text: a.textContent, visible: r.width > 20 && r.height > 20, href: a.getAttribute('href') };
+    return { text: a.textContent, visible: r.width >= 44 && r.height >= 44, w: Math.round(r.width), h: Math.round(r.height), href: a.getAttribute('href') };
   });
   await p.keyboard.press('Enter');
   await sleep(80);
@@ -335,21 +336,33 @@ for (const lang of ['zh', 'en']) {
   if (!reached || !/solid 3px/.test(reached.outline)) fails.push(`tab to play-chess ${JSON.stringify(reached)}`);
   await p.keyboard.press('Enter');
   await p.waitForFunction(() => location.pathname === '/chess');
-  // radio group (sudoku difficulty): arrow keys move the selection inside one group
-  await p.goto(`${BASE}/sudoku`, { waitUntil: 'networkidle0' });
-  const radio = await p.$('main fieldset input[type=radio]:checked');
+  // radio groups: on a page with several Segmented groups, each group has its own name and arrow keys stay inside it
   let radioOk = false;
-  if (radio) {
-    const name = await radio.evaluate((r) => r.name);
-    await radio.focus();
-    const v0 = await p.evaluate((n) => [...document.getElementsByName(n)].findIndex((r) => r.checked), name);
+  let radioInfo = 'no page with 2+ radio groups';
+  for (const path of ['/play?game=chess&mode=ai', '/play?game=xiangqi&mode=ai', '/sudoku']) {
+    await p.goto(`${BASE}${path}`, { waitUntil: 'networkidle0' });
+    const groups = await p.evaluate(() =>
+      [...document.querySelectorAll('main fieldset')]
+        .map((f) => [...f.querySelectorAll('input[type=radio]')].map((r) => r.name))
+        .filter((g) => g.length > 1),
+    );
+    if (groups.length < 2) continue;
+    const oneNameEach = groups.every((g) => g.every((n) => n && n === g[0]));
+    const distinct = new Set(groups.map((g) => g[0])).size === groups.length;
+    const snap = () => p.evaluate(() => [...document.querySelectorAll('main fieldset')].map((f) => [...f.querySelectorAll('input[type=radio]')].findIndex((r) => r.checked)));
+    const before = await snap();
+    const first = await p.$('main fieldset input[type=radio]:checked');
+    await first.focus();
     await p.keyboard.press('ArrowRight');
     await sleep(80);
-    const v1 = await p.evaluate((n) => [...document.getElementsByName(n)].findIndex((r) => r.checked), name);
-    const uniq = await p.evaluate(() => new Set([...document.querySelectorAll('fieldset input[type=radio]')].map((r) => r.name)).size === document.querySelectorAll('fieldset').length || true);
-    radioOk = v1 !== v0 && !!name && uniq;
+    const after = await snap();
+    const changed = before.map((v, i) => (v !== after[i] ? i : -1)).filter((i) => i >= 0);
+    radioOk = oneNameEach && distinct && changed.length === 1;
+    radioInfo = `${path}: ${groups.length} groups, names ${groups.map((g) => g[0]).join('/')}, changed groups ${changed}`;
+    break;
   }
-  if (!radioOk) fails.push('radio arrows');
+  if (!radioOk) fails.push(`radio ${radioInfo}`);
+  else notesHU07.push(radioInfo);
   // switch on settings toggles with Space
   await p.goto(`${BASE}/settings`, { waitUntil: 'networkidle0' });
   const sw = await p.$('input[role=switch]');
@@ -384,7 +397,7 @@ for (const lang of ['zh', 'en']) {
     // the opener sits in a drop-down that closes when the dialog opens, so focus returns to <main>, never <body>
     if (!open?.name || !open.inside || !back.closed || !(back.tag === 'BUTTON' || back.id === 'main')) fails.push(`dialog ${JSON.stringify(open)} ${JSON.stringify(back)}`);
   } else fails.push('no dialog opener found on sudoku');
-  ok('HU07', 'keyboard: skip link to main, tab order with 3 px focus outline, radio arrows, switch with Space, dialog name/Esc/focus return, unique dialog title ids', fails.length === 0, fails.join(' ; '));
+  ok('HU07', 'keyboard: skip link to main, tab order with 3 px focus outline, several radio groups on one page (own name each, arrows stay in group), switch with Space, dialog name/Esc/focus return, unique dialog title ids', fails.length === 0, `${fails.join(' ; ')} ${notesHU07.join(' ; ')}`);
   await p.ctx.close();
 }
 
@@ -524,19 +537,97 @@ for (const lang of ['zh', 'en']) {
   if (reduced) fails.push(`OS reduced motion: ${reduced} elements still transition`);
   await r.evaluate(() => document.documentElement.setAttribute('data-reduce-motion', ''));
   const site = await r.evaluate(() => [...document.querySelectorAll('.ui-t')].map((e) => getComputedStyle(e).transitionProperty).filter((x) => x !== 'none' && x !== 'all').length);
-  // spinner keeps a readable name and stops spinning
-  const spin = await r.evaluate(() => {
-    const host = document.createElement('div');
-    host.innerHTML = '<span role="status"><span class="h-4 w-4 animate-spin motion-reduce:animate-none"></span><span class="sr-only">載入中</span></span>';
-    document.body.appendChild(host);
-    const s = getComputedStyle(host.querySelector('.animate-spin')).animationName;
-    host.remove();
-    return s;
-  });
   if (site) fails.push(`site setting: ${site} elements keep transitions`);
-  if (spin !== 'none') fails.push(`spinner animation under reduced motion: ${spin}`);
   await r.ctx.close();
-  ok('HU11', 'normal transitions ≤ 220 ms; OS reduced motion and the site setting remove them; spinner stops but keeps its label', fails.length === 0, fails.join(' ; '));
+  ok('HU11', 'normal transitions ≤ 220 ms; OS reduced motion and the site setting remove them (real Spinner: see HU-R)', fails.length === 0, fails.join(' ; '));
+}
+
+// ---------------------------------------------------------------- R1–R4 (product review 2026-10-17): measured on the real elements
+{
+  const fails = [];
+  const notes = [];
+  for (const scheme of ['light', 'dark']) {
+    const p = await page(1280, 900, { scheme });
+    // R1: real form fields — border vs. the background they sit on, and the focus outline
+    for (const [path, sel] of [['/settings', 'main input:not([type=radio]):not([type=checkbox]):not([type=range])'], ['/chess', 'main input:not([type=radio]):not([type=checkbox])'], ['/play?game=chess&mode=ai', 'main select']]) {
+      await p.goto(`${BASE}${path}`, { waitUntil: 'networkidle0' });
+      const el = await p.$(sel);
+      if (!el) {
+        fails.push(`${scheme} ${path}: no field`);
+        continue;
+      }
+      await el.focus();
+      await p.keyboard.press('Shift');
+      const m = await p.evaluate(`(() => { ${CONTRAST_LIB}
+        const el = document.querySelector(${JSON.stringify(sel)});
+        const cs = getComputedStyle(el);
+        const around = bgOf(el.parentElement);
+        return { border: +ratio(parse(cs.borderTopColor), around).toFixed(2), borderOnField: +ratio(parse(cs.borderTopColor), bgOf(el)).toFixed(2), outline: cs.outlineStyle + ' ' + cs.outlineWidth, focus: +ratio(parse(cs.outlineColor), around).toFixed(2), color: cs.borderTopColor };
+      })()`);
+      if (m.border < 3 || m.borderOnField < 3 || m.focus < 3 || !/solid 3px/.test(m.outline)) fails.push(`${scheme} ${path} ${JSON.stringify(m)}`);
+      notes.push(`${scheme} ${path} border ${m.border}/${m.borderOnField} focus ${m.focus}`);
+    }
+    // R2: form descriptions are 16 px
+    await p.goto(`${BASE}/settings`, { waitUntil: 'networkidle0' });
+    const note = await p.$eval('#guest-note', (e) => getComputedStyle(e).fontSize);
+    await p.goto(`${BASE}/sudoku`, { waitUntil: 'networkidle0' });
+    const descs = await p.$$eval('main fieldset label span.block + span.block', (a) => a.map((e) => getComputedStyle(e).fontSize));
+    if (note !== '16px' || !descs.length || descs.some((f) => f !== '16px')) fails.push(`${scheme} R2 note ${note} descs ${descs}`);
+    await p.ctx.close();
+  }
+  // R2 on narrow screens / long English / 200 % text: no overflow on settings and the sudoku lobby
+  for (const [w, lang, big] of [[360, 'en', false], [320, 'en', false], [390, 'zh', true], [390, 'en', true]]) {
+    const p = await page(w, 800);
+    for (const path of ['/settings', '/sudoku']) {
+      await p.goto(`${BASE}${pre(lang)}${path}`, { waitUntil: 'networkidle0' });
+      if (big) await p.evaluate(() => (document.documentElement.style.fontSize = '200%'));
+      await sleep(100);
+      const o = await p.evaluate(OVERFLOW);
+      if (o.n || o.docW > o.W) fails.push(`${w}/${lang}${big ? '/200%' : ''} ${path} ${JSON.stringify(o)}`);
+    }
+    if (w === 390 && big && lang === 'en') await p.screenshot({ path: `${OUT}/r2-sudoku-390-en-text200.png`, fullPage: true });
+    await p.ctx.close();
+  }
+  // R3: the real Spinner (route fallback while a page chunk is still downloading), normal and reduced motion
+  for (const reduce of [false, true]) {
+    const p = await page(1280, 900, { reduce });
+    await p.goto(`${BASE}/`, { waitUntil: 'networkidle0' });
+    await p.setRequestInterception(true);
+    p.on('request', (r) => (/\.js(\?|$)/.test(r.url()) ? setTimeout(() => r.continue(), 2500) : r.continue()));
+    await p.click('[data-testid=play-sudoku]');
+    const sp = await p
+      .waitForFunction(() => [...document.querySelectorAll('main [role=status]')].find((e) => e.querySelector('.animate-spin')), { timeout: 2000 })
+      .then(() =>
+        p.evaluate(() => {
+          const st = [...document.querySelectorAll('main [role=status]')].filter((e) => e.querySelector('.animate-spin'));
+          const e = st[0];
+          const txt = e.innerText.trim();
+          const ring = getComputedStyle(e.querySelector('.animate-spin')).animationName;
+          const r = e.getBoundingClientRect();
+          return { count: st.length, txt, ring, visible: r.width > 30 && r.height > 10 };
+        }),
+      )
+      .catch(() => null);
+    if (!sp || sp.count !== 1 || !/載入中/.test(sp.txt) || !sp.visible || (reduce ? sp.ring !== 'none' : sp.ring === 'none')) fails.push(`R3 reduce=${reduce} ${JSON.stringify(sp)}`);
+    else notes.push(`spinner reduce=${reduce}: "${sp.txt}" ring=${sp.ring}`);
+    if (reduce) await p.screenshot({ path: `${OUT}/r3-spinner-reduced.png` });
+    await p.ctx.close();
+  }
+  // R4: skip link shown on focus is at least 44×44
+  for (const w of [360, 1280]) {
+    const p = await page(w, 800);
+    await p.goto(`${BASE}/`, { waitUntil: 'networkidle0' });
+    await p.keyboard.press('Tab');
+    const r = await p.$eval('[data-testid=skip-link]', (a) => {
+      const b = a.getBoundingClientRect();
+      return { w: Math.round(b.width), h: Math.round(b.height), focused: document.activeElement === a };
+    });
+    if (!r.focused || r.w < 44 || r.h < 44) fails.push(`R4 ${w}: ${JSON.stringify(r)}`);
+    else notes.push(`skip ${w}: ${r.w}×${r.h}`);
+    if (w === 360) await p.screenshot({ path: `${OUT}/r4-skip-link.png` });
+    await p.ctx.close();
+  }
+  ok('HU-R', 'R1 real input/select borders ≥ 3:1 with 3 px focus (light/dark); R2 descriptions 16 px, no overflow at 320/360/200 %; R3 real route Spinner shows 「載入中」 and stops spinning under reduced motion; R4 skip link ≥ 44×44', fails.length === 0, `${fails.join(' ; ')} || ${notes.join(' ; ')}`);
 }
 
 ok('HU-err', 'no console errors during the run', errors.length === 0, errors.slice(0, 4).join(' | '));

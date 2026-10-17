@@ -25,7 +25,7 @@
   },
   {
     "id": "HU04",
-    "name": "320 px, 200 % text and 400 % zoom (zh/en): header, menu, cards and footer stay inside the viewport",
+    "name": "320 px, 200 % root text size and a 400 % zoom REFLOW SIMULATION (320 CSS px at DPR 4 — not real browser zoom) (zh/en): header, menu, cards and footer stay inside the viewport",
     "pass": true,
     "info": ""
   },
@@ -43,9 +43,9 @@
   },
   {
     "id": "HU07",
-    "name": "keyboard: skip link to main, tab order with 3 px focus outline, radio arrows, switch with Space, dialog name/Esc/focus return, unique dialog title ids",
+    "name": "keyboard: skip link to main, tab order with 3 px focus outline, several radio groups on one page (own name each, arrows stay in group), switch with Space, dialog name/Esc/focus return, unique dialog title ids",
     "pass": true,
-    "info": ""
+    "info": " /play?game=chess&mode=ai: 2 groups, names _r_1_/_r_2_, changed groups 0"
   },
   {
     "id": "HU08",
@@ -67,9 +67,15 @@
   },
   {
     "id": "HU11",
-    "name": "normal transitions ≤ 220 ms; OS reduced motion and the site setting remove them; spinner stops but keeps its label",
+    "name": "normal transitions ≤ 220 ms; OS reduced motion and the site setting remove them (real Spinner: see HU-R)",
     "pass": true,
     "info": ""
+  },
+  {
+    "id": "HU-R",
+    "name": "R1 real input/select borders ≥ 3:1 with 3 px focus (light/dark); R2 descriptions 16 px, no overflow at 320/360/200 %; R3 real route Spinner shows 「載入中」 and stops spinning under reduced motion; R4 skip link ≥ 44×44",
+    "pass": true,
+    "info": " || light /settings border 4.29/4.29 focus 9.63 ; light /chess border 4.01/4.29 focus 9 ; light /play?game=chess&mode=ai border 4.29/4.29 focus 9.63 ; dark /settings border 5.34/5.34 focus 9.3 ; dark /chess border 6.03/5.34 focus 10.5 ; dark /play?game=chess&mode=ai border 5.34/5.34 focus 9.3 ; spinner reduce=false: \"載入中\" ring=spin ; spinner reduce=true: \"載入中\" ring=none ; skip 360: 130×44 ; skip 1280: 130×44"
   },
   {
     "id": "HU-err",

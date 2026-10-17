@@ -85,7 +85,7 @@ function SetupForm({ game, mode, onStart }: { game: GameId; mode: SetupMode; onS
         <select
           value={s.time}
           onChange={(e) => up({ time: Number(e.target.value) })}
-          className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus)]"
+          className="min-h-11 w-full rounded-md border border-[var(--ui-control-border)] bg-[var(--surface)] px-3"
         >
           {times.map((tc, i) => (
             <option key={i} value={i}>

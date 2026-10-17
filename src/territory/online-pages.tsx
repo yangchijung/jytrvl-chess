@@ -77,7 +77,7 @@ function Lobby({ c }: { c: OnlineTerritory }) {
               <select
                 value={level}
                 onChange={(e) => setLevel(e.target.value as BotLevel)}
-                className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2"
+                className="min-h-11 rounded-md border border-[var(--ui-control-border)] bg-[var(--surface)] px-2"
                 aria-label={t('tr.setup.level')}
               >
                 {(['easy', 'medium', 'hard'] as BotLevel[]).map((v) => (

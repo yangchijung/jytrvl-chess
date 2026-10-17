@@ -73,7 +73,7 @@ export function ArenaLobbyView({ sock, backTo, title }: { sock: ArenaSocket; bac
         {isHost ? (
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              <select value={level} onChange={(e) => setLevel(e.target.value as ArenaLevel)} className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2" aria-label={t('tr.setup.level')}>
+              <select value={level} onChange={(e) => setLevel(e.target.value as ArenaLevel)} className="min-h-11 rounded-md border border-[var(--ui-control-border)] bg-[var(--surface)] px-2" aria-label={t('tr.setup.level')}>
                 {(['easy', 'medium', 'hard'] as ArenaLevel[]).map((v) => (
                   <option key={v} value={v}>
                     {t(`level.${v}`)}

@@ -94,7 +94,7 @@ export function TerritoryHub() {
           <input
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 6))}
-            className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 font-mono text-lg tracking-widest uppercase outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus)]"
+            className="min-h-11 w-full rounded-md border border-[var(--ui-control-border)] bg-[var(--surface)] px-3 font-mono text-lg tracking-widest uppercase"
             placeholder="ABCD12"
             autoComplete="off"
             aria-label={t('online.code')}

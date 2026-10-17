@@ -143,7 +143,7 @@ export function Segmented<T extends string>({
                 </svg>
               )}
               <span className="block">{o.label}</span>
-              {o.desc && <span className="mt-1 block text-xs font-normal text-[var(--muted)]">{o.desc}</span>}
+              {o.desc && <span className="mt-1 block text-base font-normal leading-6 text-[var(--muted)]">{o.desc}</span>}
             </label>
           );
         })}
@@ -166,13 +166,13 @@ export function Toggle({ checked, onChange, label }: { checked: boolean; onChang
   );
 }
 
-/** Loading indicator with a readable name; the spinning ring stops when motion is reduced. */
+/** Loading indicator: visible text (default 「載入中」/ Loading) plus a ring that stops spinning when motion is reduced. */
 export function Spinner({ label }: { label?: string }) {
   const { t } = useI18n();
   return (
     <span role="status" className="inline-flex items-center gap-2 text-sm text-[var(--muted)]">
       <span className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--ui-accent-text)] motion-reduce:animate-none" aria-hidden="true" />
-      {label ?? <span className="sr-only">{t('common.loadingLabel')}</span>}
+      {label ?? t('common.loadingLabel')}
     </span>
   );
 }
