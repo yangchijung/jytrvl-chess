@@ -511,3 +511,6 @@ AI 只使用玩家看得到的資訊：貪食蛇有單元測試確認對手尚�
 | 其餘 | ✅ | `home-shared-e2e.mjs` 14／14（HU01–HU11＋HU-R＋無主控台錯誤；HU06 已登入以本機 D1 測試帳號）；回歸：360 px 全站 144／144、數獨 66／66、文案／連線 32／32、棋類 29／29 |
 
 未驗證：真實瀏覽器 400 % 縮放、實機與讀屏。
+
+- 部署：commit 63b4b13；[CI](https://github.com/yangchijung/jytrvl-chess/actions/runs/39039108514) build-and-test、Cloudflare Pages、Workers Builds 皆成功
+- 正式站（2026-10-17，Chrome，system 主題解析為淺色）：設定頁暱稱框邊線 rgb(118,124,114)，對周圍 4.29:1；暱稱說明 16px；skip link 聚焦 130×44；`/play?game=chess&mode=ai` 兩組 radio 各自 name、5 個選項說明皆 16px、時間下拉邊線 rgb(118,124,114)。數獨頁因瀏覽器內有負責人進行中的存檔，未操作。
