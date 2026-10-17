@@ -1,0 +1,587 @@
+{
+  "date": "2026-10-18",
+  "initialTheme": "system",
+  "checks": [
+    {
+      "id": "R4-zh-360",
+      "data": {
+        "focused": true,
+        "height": 44,
+        "outline": "rgb(31, 77, 58) solid 3px",
+        "text": "跳到主要內容",
+        "width": 130
+      }
+    },
+    {
+      "id": "R1-明亮",
+      "data": {
+        "around": "rgb(255, 255, 255)",
+        "bg": "rgb(255, 255, 255)",
+        "border": "rgb(118, 124, 114)",
+        "borderRatio": 4.288907303065138,
+        "focusRatio": 9.629008886275145,
+        "outline": "rgb(31, 77, 58) solid 3px"
+      }
+    },
+    {
+      "id": "R1-深色",
+      "data": {
+        "around": "rgb(32, 39, 34)",
+        "bg": "rgb(32, 39, 34)",
+        "border": "rgb(140, 157, 143)",
+        "borderRatio": 5.335271405284845,
+        "focusRatio": 9.2963386743935,
+        "outline": "rgb(169, 212, 182) solid 3px"
+      }
+    },
+    {
+      "id": "R2-settings",
+      "data": {
+        "font": "16px",
+        "line": "24px"
+      }
+    },
+    {
+      "id": "R2-settings-en-320",
+      "data": {
+        "doc": 320,
+        "overflow": [],
+        "width": 320
+      }
+    },
+    {
+      "id": "R2-settings-en-360",
+      "data": {
+        "doc": 360,
+        "overflow": [],
+        "width": 360
+      }
+    },
+    {
+      "id": "R2-sudoku-en",
+      "data": [
+        {
+          "font": "16px",
+          "line": "24px",
+          "text": "Start with naked and hidden singles."
+        },
+        {
+          "font": "16px",
+          "line": "24px",
+          "text": "Practice candidate elimination and pairs."
+        },
+        {
+          "font": "16px",
+          "line": "24px",
+          "text": "Try hidden pairs and X-Wing patterns."
+        }
+      ]
+    },
+    {
+      "id": "R2-sudoku-en-320",
+      "data": {
+        "doc": 320,
+        "overflow": [],
+        "width": 320
+      }
+    },
+    {
+      "id": "R2-sudoku-en-360",
+      "data": {
+        "doc": 360,
+        "overflow": [],
+        "width": 360
+      }
+    },
+    {
+      "id": "R3-live-reduced",
+      "data": [
+        {
+          "height": 20,
+          "ring": "none",
+          "text": "載入中",
+          "width": 66
+        }
+      ]
+    },
+    {
+      "id": "radio-two-groups",
+      "before": [
+        {
+          "checked": true,
+          "name": "_r_6_",
+          "value": "easy"
+        },
+        {
+          "checked": false,
+          "name": "_r_6_",
+          "value": "medium"
+        },
+        {
+          "checked": false,
+          "name": "_r_6_",
+          "value": "hard"
+        },
+        {
+          "checked": true,
+          "name": "_r_7_",
+          "value": "first"
+        },
+        {
+          "checked": false,
+          "name": "_r_7_",
+          "value": "second"
+        },
+        {
+          "checked": false,
+          "name": "_r_7_",
+          "value": "random"
+        }
+      ],
+      "after": [
+        {
+          "checked": false,
+          "name": "_r_6_",
+          "value": "easy"
+        },
+        {
+          "checked": true,
+          "name": "_r_6_",
+          "value": "medium"
+        },
+        {
+          "checked": false,
+          "name": "_r_6_",
+          "value": "hard"
+        },
+        {
+          "checked": true,
+          "name": "_r_7_",
+          "value": "first"
+        },
+        {
+          "checked": false,
+          "name": "_r_7_",
+          "value": "second"
+        },
+        {
+          "checked": false,
+          "name": "_r_7_",
+          "value": "random"
+        }
+      ]
+    },
+    {
+      "id": "R4-en-1280",
+      "data": {
+        "focused": true,
+        "height": 44,
+        "width": 188.5
+      }
+    }
+  ],
+  "initialAnimation": true,
+  "homeMatrix": [
+    {
+      "lang": "zh",
+      "theme": "light",
+      "cards": 7,
+      "categories": 3,
+      "doc": 360,
+      "firstPlayBottom": 396,
+      "links": 14,
+      "overflow": 0,
+      "primaryMinHeight": 48,
+      "prototypeLinks": 0,
+      "width": 360
+    },
+    {
+      "lang": "zh",
+      "theme": "light",
+      "cards": 7,
+      "categories": 3,
+      "doc": 390,
+      "firstPlayBottom": 396,
+      "links": 14,
+      "overflow": 0,
+      "primaryMinHeight": 48,
+      "prototypeLinks": 0,
+      "width": 390
+    },
+    {
+      "lang": "zh",
+      "theme": "light",
+      "cards": 7,
+      "categories": 3,
+      "doc": 768,
+      "firstPlayBottom": 563,
+      "links": 14,
+      "overflow": 0,
+      "primaryMinHeight": 48,
+      "prototypeLinks": 0,
+      "width": 768
+    },
+    {
+      "lang": "zh",
+      "theme": "light",
+      "cards": 7,
+      "categories": 3,
+      "doc": 1280,
+      "firstPlayBottom": 565.6640625,
+      "links": 14,
+      "overflow": 0,
+      "primaryMinHeight": 48,
+      "prototypeLinks": 0,
+      "width": 1280
+    },
+    {
+      "lang": "zh",
+      "theme": "dark",
+      "cards": 7,
+      "categories": 3,
+      "doc": 360,
+      "firstPlayBottom": 396,
+      "links": 14,
+      "overflow": 0,
+      "primaryMinHeight": 48,
+      "prototypeLinks": 0,
+      "width": 360
+    },
+    {
+      "lang": "zh",
+      "theme": "dark",
+      "cards": 7,
+      "categories": 3,
+      "doc": 390,
+      "firstPlayBottom": 396,
+      "links": 14,
+      "overflow": 0,
+      "primaryMinHeight": 48,
+      "prototypeLinks": 0,
+      "width": 390
+    },
+    {
+      "lang": "zh",
+      "theme": "dark",
+      "cards": 7,
+      "categories": 3,
+      "doc": 768,
+      "firstPlayBottom": 563,
+      "links": 14,
+      "overflow": 0,
+      "primaryMinHeight": 48,
+      "prototypeLinks": 0,
+      "width": 768
+    },
+    {
+      "lang": "zh",
+      "theme": "dark",
+      "cards": 7,
+      "categories": 3,
+      "doc": 1280,
+      "firstPlayBottom": 565.6640625,
+      "links": 14,
+      "overflow": 0,
+      "primaryMinHeight": 48,
+      "prototypeLinks": 0,
+      "width": 1280
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "cards": 7,
+      "categories": 3,
+      "doc": 360,
+      "firstPlayBottom": 456,
+      "links": 14,
+      "overflow": 0,
+      "primaryMinHeight": 48,
+      "prototypeLinks": 0,
+      "width": 360
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "cards": 7,
+      "categories": 3,
+      "doc": 390,
+      "firstPlayBottom": 456,
+      "links": 14,
+      "overflow": 0,
+      "primaryMinHeight": 48,
+      "prototypeLinks": 0,
+      "width": 390
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "cards": 7,
+      "categories": 3,
+      "doc": 768,
+      "firstPlayBottom": 587,
+      "links": 14,
+      "overflow": 0,
+      "primaryMinHeight": 48,
+      "prototypeLinks": 0,
+      "width": 768
+    },
+    {
+      "lang": "en",
+      "theme": "light",
+      "cards": 7,
+      "categories": 3,
+      "doc": 1280,
+      "firstPlayBottom": 589.6640625,
+      "links": 14,
+      "overflow": 0,
+      "primaryMinHeight": 48,
+      "prototypeLinks": 0,
+      "width": 1280
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "cards": 7,
+      "categories": 3,
+      "doc": 360,
+      "firstPlayBottom": 456,
+      "links": 14,
+      "overflow": 0,
+      "primaryMinHeight": 48,
+      "prototypeLinks": 0,
+      "width": 360
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "cards": 7,
+      "categories": 3,
+      "doc": 390,
+      "firstPlayBottom": 456,
+      "links": 14,
+      "overflow": 0,
+      "primaryMinHeight": 48,
+      "prototypeLinks": 0,
+      "width": 390
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "cards": 7,
+      "categories": 3,
+      "doc": 768,
+      "firstPlayBottom": 587,
+      "links": 14,
+      "overflow": 0,
+      "primaryMinHeight": 48,
+      "prototypeLinks": 0,
+      "width": 768
+    },
+    {
+      "lang": "en",
+      "theme": "dark",
+      "cards": 7,
+      "categories": 3,
+      "doc": 1280,
+      "firstPlayBottom": 589.6640625,
+      "links": 14,
+      "overflow": 0,
+      "primaryMinHeight": 48,
+      "prototypeLinks": 0,
+      "width": 1280
+    }
+  ],
+  "menus": [
+    {
+      "width": 360,
+      "height": 800,
+      "headerPosition": "relative",
+      "links": 12,
+      "targets": [
+        {
+          "height": 44,
+          "width": 328
+        },
+        {
+          "height": 44,
+          "width": 328
+        },
+        {
+          "height": 44,
+          "width": 328
+        },
+        {
+          "height": 44,
+          "width": 328
+        },
+        {
+          "height": 44,
+          "width": 328
+        },
+        {
+          "height": 44,
+          "width": 328
+        },
+        {
+          "height": 44,
+          "width": 328
+        },
+        {
+          "height": 44,
+          "width": 328
+        },
+        {
+          "height": 44,
+          "width": 328
+        },
+        {
+          "height": 44,
+          "width": 328
+        },
+        {
+          "height": 44,
+          "width": 328
+        },
+        {
+          "height": 44,
+          "width": 328
+        },
+        {
+          "height": 44,
+          "width": 328
+        }
+      ],
+      "closed": "false",
+      "focusReturned": true
+    },
+    {
+      "width": 768,
+      "height": 800,
+      "headerPosition": "relative",
+      "links": 12,
+      "targets": [
+        {
+          "height": 44,
+          "width": 348
+        },
+        {
+          "height": 44,
+          "width": 348
+        },
+        {
+          "height": 44,
+          "width": 348
+        },
+        {
+          "height": 44,
+          "width": 348
+        },
+        {
+          "height": 44,
+          "width": 348
+        },
+        {
+          "height": 44,
+          "width": 348
+        },
+        {
+          "height": 44,
+          "width": 348
+        },
+        {
+          "height": 44,
+          "width": 348
+        },
+        {
+          "height": 44,
+          "width": 348
+        },
+        {
+          "height": 44,
+          "width": 348
+        },
+        {
+          "height": 44,
+          "width": 348
+        },
+        {
+          "height": 44,
+          "width": 348
+        },
+        {
+          "height": 44,
+          "width": 348
+        }
+      ],
+      "closed": "false",
+      "focusReturned": true
+    },
+    {
+      "width": 1280,
+      "height": 480,
+      "headerPosition": "relative",
+      "links": 12,
+      "targets": [
+        {
+          "height": 44,
+          "width": 352
+        },
+        {
+          "height": 44,
+          "width": 352
+        },
+        {
+          "height": 44,
+          "width": 352
+        },
+        {
+          "height": 44,
+          "width": 352
+        },
+        {
+          "height": 44,
+          "width": 352
+        },
+        {
+          "height": 44,
+          "width": 352
+        },
+        {
+          "height": 44,
+          "width": 352
+        },
+        {
+          "height": 44,
+          "width": 352
+        },
+        {
+          "height": 44,
+          "width": 352
+        },
+        {
+          "height": 44,
+          "width": 352
+        },
+        {
+          "height": 44,
+          "width": 352
+        },
+        {
+          "height": 44,
+          "width": 352
+        },
+        {
+          "height": 44,
+          "width": 352
+        }
+      ],
+      "closed": "false",
+      "focusReturned": true
+    }
+  ],
+  "restored": {
+    "theme": "system",
+    "reduceMotion": false
+  },
+  "consoleErrors": []
+}

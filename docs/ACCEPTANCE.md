@@ -464,6 +464,8 @@ AI 只使用玩家看得到的資訊：貪食蛇有單元測試確認對手尚�
 
 ## 19. 首頁與共用介面 v1（Issue #6，2026-10-16）
 
+> **2026-10-18 最新複驗：R1–R4 已通過。** 首頁重新驗 16 組、正式站共用介面抽查通過；完整證據與尚未驗證範圍見 [複驗報告](design/HOME_SHARED_UI_RECHECK_2026-10-18.md)。下方 2026-10-17 的待修文字為歷史狀態；Issue #6 現僅保留縮放／實機／讀屏追蹤，餐廳暫停。
+
 > 2026-10-17 獨立複驗更新：以下保留 Claude 當時的工程回報，不代表產品端已全數驗收。首頁矩陣應為 16 組（4×2×2），不是下列歷史記錄中的 32；400% 為 320 CSS px＋DPR 4 的重排模擬，實際瀏覽器縮放未驗證。共用介面 R1–R4 與測試缺口見 [獨立驗收](design/HOME_SHARED_UI_ACCEPTANCE_2026-10-17.md)，Issue #6 保持 open。
 
 - 規格：`docs/handoff/HOME_SHARED_UI_V1.md`、`docs/design/home-shared-ui-v1/`（tokens／copy）；上位規範 `DESIGN.md`
