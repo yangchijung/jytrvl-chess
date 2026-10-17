@@ -464,6 +464,8 @@ AI 只使用玩家看得到的資訊：貪食蛇有單元測試確認對手尚�
 
 ## 19. 首頁與共用介面 v1（Issue #6，2026-10-16）
 
+> 2026-10-17 獨立複驗更新：以下保留 Claude 當時的工程回報，不代表產品端已全數驗收。首頁矩陣應為 16 組（4×2×2），不是下列歷史記錄中的 32；400% 為 320 CSS px＋DPR 4 的重排模擬，實際瀏覽器縮放未驗證。共用介面 R1–R4 與測試缺口見 [獨立驗收](design/HOME_SHARED_UI_ACCEPTANCE_2026-10-17.md)，Issue #6 保持 open。
+
 - 規格：`docs/handoff/HOME_SHARED_UI_V1.md`、`docs/design/home-shared-ui-v1/`（tokens／copy）；上位規範 `DESIGN.md`
 - 改動：`src/index.css`（紙／墨／森林綠共用值、淺深與 system 深色一致、`--ui-*` 控制色對、header/hero 改純色、card-shadow 取消、3 px 焦點外框、160 ms 顏色過渡）、`src/components/ui.tsx`（Button／LinkButton 6 px 圓角與明確停用色、busy；Card 8 px 無陰影；Modal useId 標題、無陰影、45 % 黑遮罩、開啟者消失時焦點回 main；Segmented 唯一 name、勾號、自動換欄；Toggle 控制邊線、無把手陰影、焦點畫在軌道；Spinner 在地化名稱、減少動態停轉；Notice 線條圖示、綠／紅兩組色對）、`src/components/Layout.tsx`（不透明頁首；桌機「所有遊戲／排行榜」；各寬度都有選單：遊戲／其他／帳號三組 disclosure；Esc 回焦點、點外面關閉、換頁關閉、展開時頁首不 sticky；頁尾連結 ≥ 44 px；頁面左右留白 16／24 px）、`src/pages/Home.tsx`（標語 H1＋一句說明＋三分類七張卡；預覽→名稱→一句玩法→「開始玩」／「玩法」；手機預覽在左、320 px 或放大字級時改上下；字級用 rem）、`src/i18n/strings.ts`（copy.json 19 組＋選單分組 3 組）
 - 未改：棋規、AI、登入／OAuth、房間與儲存、遊戲棋盤／棋子／時鐘色、餐廳（暫停）與兒童原型專屬畫面；Logo 保留

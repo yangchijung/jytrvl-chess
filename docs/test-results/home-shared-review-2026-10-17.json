@@ -1,0 +1,896 @@
+{
+  "date": "2026-10-17",
+  "timezone": "Asia/Taipei",
+  "environment": "Codex in-app browser; production site; viewport overrides; signed-out guest",
+  "sourceCommit": "57ef425f355e9ba6cc08faaef7ff2af61634bc3b",
+  "implementationCommit": "0e843be1976e7fd8138e93d4a7cc812ce769cdfc",
+  "disposition": "Homepage checked scope passes; shared UI needs follow-up; Issue #6 remains open; restaurant paused",
+  "limits": [
+    "No real iOS/Android device or screen-reader test",
+    "No real browser zoom at 200%/400% in this independent audit",
+    "No sign-in/OAuth, destructive dialog, game completion or multiplayer mutation",
+    "No full unit/game regression rerun",
+    "Reduced motion checked through site setting, not OS preference"
+  ],
+  "matrix": [
+    {
+      "cards": 7,
+      "categories": 3,
+      "effects": [],
+      "firstPlayBottom": 396,
+      "h1": "一起玩，一起動腦。",
+      "header": {
+        "bg": "rgb(23, 28, 25)",
+        "blur": "none",
+        "shadow": "none"
+      },
+      "height": 800,
+      "lang": "zh-Hant-TW",
+      "overflow": [],
+      "small": [],
+      "theme": "dark",
+      "width": 360,
+      "linkCount": 14
+    },
+    {
+      "cards": 7,
+      "categories": 3,
+      "effects": [],
+      "firstPlayBottom": 396,
+      "h1": "一起玩，一起動腦。",
+      "header": {
+        "bg": "rgb(23, 28, 25)",
+        "blur": "none",
+        "shadow": "none"
+      },
+      "height": 800,
+      "lang": "zh-Hant-TW",
+      "overflow": [],
+      "small": [],
+      "theme": "dark",
+      "width": 390,
+      "linkCount": 14
+    },
+    {
+      "cards": 7,
+      "categories": 3,
+      "effects": [],
+      "firstPlayBottom": 563,
+      "h1": "一起玩，一起動腦。",
+      "header": {
+        "bg": "rgb(23, 28, 25)",
+        "blur": "none",
+        "shadow": "none"
+      },
+      "height": 800,
+      "lang": "zh-Hant-TW",
+      "overflow": [],
+      "small": [],
+      "theme": "dark",
+      "width": 768,
+      "linkCount": 14
+    },
+    {
+      "cards": 7,
+      "categories": 3,
+      "effects": [],
+      "firstPlayBottom": 565.6640625,
+      "h1": "一起玩，一起動腦。",
+      "header": {
+        "bg": "rgb(23, 28, 25)",
+        "blur": "none",
+        "shadow": "none"
+      },
+      "height": 800,
+      "lang": "zh-Hant-TW",
+      "overflow": [],
+      "small": [],
+      "theme": "dark",
+      "width": 1280,
+      "linkCount": 14
+    },
+    {
+      "cards": 7,
+      "categories": 3,
+      "effects": [],
+      "firstPlayBottom": 396,
+      "h1": "一起玩，一起動腦。",
+      "header": {
+        "bg": "rgb(250, 247, 240)",
+        "blur": "none",
+        "shadow": "none"
+      },
+      "height": 800,
+      "lang": "zh-Hant-TW",
+      "overflow": [],
+      "small": [],
+      "theme": "light",
+      "width": 360,
+      "linkCount": 14
+    },
+    {
+      "cards": 7,
+      "categories": 3,
+      "effects": [],
+      "firstPlayBottom": 396,
+      "h1": "一起玩，一起動腦。",
+      "header": {
+        "bg": "rgb(250, 247, 240)",
+        "blur": "none",
+        "shadow": "none"
+      },
+      "height": 800,
+      "lang": "zh-Hant-TW",
+      "overflow": [],
+      "small": [],
+      "theme": "light",
+      "width": 390,
+      "linkCount": 14
+    },
+    {
+      "cards": 7,
+      "categories": 3,
+      "effects": [],
+      "firstPlayBottom": 563,
+      "h1": "一起玩，一起動腦。",
+      "header": {
+        "bg": "rgb(250, 247, 240)",
+        "blur": "none",
+        "shadow": "none"
+      },
+      "height": 800,
+      "lang": "zh-Hant-TW",
+      "overflow": [],
+      "small": [],
+      "theme": "light",
+      "width": 768,
+      "linkCount": 14
+    },
+    {
+      "cards": 7,
+      "categories": 3,
+      "effects": [],
+      "firstPlayBottom": 565.6640625,
+      "h1": "一起玩，一起動腦。",
+      "header": {
+        "bg": "rgb(250, 247, 240)",
+        "blur": "none",
+        "shadow": "none"
+      },
+      "height": 800,
+      "lang": "zh-Hant-TW",
+      "overflow": [],
+      "small": [],
+      "theme": "light",
+      "width": 1280,
+      "linkCount": 14
+    },
+    {
+      "cards": 7,
+      "categories": 3,
+      "effects": [],
+      "firstPlayBottom": 456,
+      "h1": "Play Together, Think Better.",
+      "header": {
+        "bg": "rgb(250, 247, 240)",
+        "blur": "none",
+        "shadow": "none"
+      },
+      "height": 800,
+      "lang": "en",
+      "overflow": [],
+      "small": [],
+      "theme": "light",
+      "width": 360,
+      "linkCount": 14
+    },
+    {
+      "cards": 7,
+      "categories": 3,
+      "effects": [],
+      "firstPlayBottom": 456,
+      "h1": "Play Together, Think Better.",
+      "header": {
+        "bg": "rgb(250, 247, 240)",
+        "blur": "none",
+        "shadow": "none"
+      },
+      "height": 800,
+      "lang": "en",
+      "overflow": [],
+      "small": [],
+      "theme": "light",
+      "width": 390,
+      "linkCount": 14
+    },
+    {
+      "cards": 7,
+      "categories": 3,
+      "effects": [],
+      "firstPlayBottom": 587,
+      "h1": "Play Together, Think Better.",
+      "header": {
+        "bg": "rgb(250, 247, 240)",
+        "blur": "none",
+        "shadow": "none"
+      },
+      "height": 800,
+      "lang": "en",
+      "overflow": [],
+      "small": [],
+      "theme": "light",
+      "width": 768,
+      "linkCount": 14
+    },
+    {
+      "cards": 7,
+      "categories": 3,
+      "effects": [],
+      "firstPlayBottom": 589.6640625,
+      "h1": "Play Together, Think Better.",
+      "header": {
+        "bg": "rgb(250, 247, 240)",
+        "blur": "none",
+        "shadow": "none"
+      },
+      "height": 800,
+      "lang": "en",
+      "overflow": [],
+      "small": [],
+      "theme": "light",
+      "width": 1280,
+      "linkCount": 14
+    },
+    {
+      "cards": 7,
+      "categories": 3,
+      "effects": [],
+      "firstPlayBottom": 456,
+      "h1": "Play Together, Think Better.",
+      "header": {
+        "bg": "rgb(23, 28, 25)",
+        "blur": "none",
+        "shadow": "none"
+      },
+      "height": 800,
+      "lang": "en",
+      "overflow": [],
+      "small": [],
+      "theme": "dark",
+      "width": 360,
+      "linkCount": 14
+    },
+    {
+      "cards": 7,
+      "categories": 3,
+      "effects": [],
+      "firstPlayBottom": 456,
+      "h1": "Play Together, Think Better.",
+      "header": {
+        "bg": "rgb(23, 28, 25)",
+        "blur": "none",
+        "shadow": "none"
+      },
+      "height": 800,
+      "lang": "en",
+      "overflow": [],
+      "small": [],
+      "theme": "dark",
+      "width": 390,
+      "linkCount": 14
+    },
+    {
+      "cards": 7,
+      "categories": 3,
+      "effects": [],
+      "firstPlayBottom": 587,
+      "h1": "Play Together, Think Better.",
+      "header": {
+        "bg": "rgb(23, 28, 25)",
+        "blur": "none",
+        "shadow": "none"
+      },
+      "height": 800,
+      "lang": "en",
+      "overflow": [],
+      "small": [],
+      "theme": "dark",
+      "width": 768,
+      "linkCount": 14
+    },
+    {
+      "cards": 7,
+      "categories": 3,
+      "effects": [],
+      "firstPlayBottom": 589.6640625,
+      "h1": "Play Together, Think Better.",
+      "header": {
+        "bg": "rgb(23, 28, 25)",
+        "blur": "none",
+        "shadow": "none"
+      },
+      "height": 800,
+      "lang": "en",
+      "overflow": [],
+      "small": [],
+      "theme": "dark",
+      "width": 1280,
+      "linkCount": 14
+    }
+  ],
+  "routes": [
+    {
+      "expected": "/en/chess",
+      "heading": "Chess Chess",
+      "lang": "en",
+      "mainText": "Chess ChessProtect your king and checkmate your opponent. Learn the basic moves,",
+      "path": "/en/chess",
+      "passed": true
+    },
+    {
+      "expected": "/en/learn/chess",
+      "heading": "Learn the rules · Chess",
+      "lang": "en",
+      "mainText": "Learn the rules · Chess87654321abcdefghLesson 1 · BoardProgress 1/17The boardThe",
+      "path": "/en/learn/chess",
+      "passed": true
+    },
+    {
+      "expected": "/en/xiangqi",
+      "heading": "Xiangqi Chinese Chess",
+      "lang": "en",
+      "mainText": "Xiangqi Chinese ChessPlan your attack with chariots, horses and cannons. Uses ou",
+      "path": "/en/xiangqi",
+      "passed": true
+    },
+    {
+      "expected": "/en/learn/xiangqi",
+      "heading": "Learn the rules · Xiangqi",
+      "lang": "en",
+      "mainText": "Learn the rules · Xiangqi楚 河漢 界987654321俥傌相仕帥仕相傌俥炮炮兵兵兵兵兵卒卒卒卒卒包包車馬象士將士象馬車Lesson 1",
+      "path": "/en/learn/xiangqi",
+      "passed": true
+    },
+    {
+      "expected": "/en/banqi",
+      "heading": "Banqi Taiwanese Dark Chess",
+      "lang": "en",
+      "mainText": "Banqi Taiwanese Dark ChessFlip a piece, read the board, then choose whether to m",
+      "path": "/en/banqi",
+      "passed": true
+    },
+    {
+      "expected": "/en/learn/banqi",
+      "heading": "Learn the rules · Banqi",
+      "lang": "en",
+      "mainText": "Learn the rules · BanqiLesson 1 · BoardProgress 1/10What is Banqi?Banqi uses a 4",
+      "path": "/en/learn/banqi",
+      "passed": true
+    },
+    {
+      "expected": "/en/territory",
+      "heading": "Territory Rush ",
+      "lang": "en",
+      "mainText": "Territory Rush Leave your land, draw a trail and return to claim more territory.",
+      "path": "/en/territory",
+      "passed": true
+    },
+    {
+      "expected": "/en/learn/territory",
+      "lang": "en",
+      "mainText": "🙂3.7%Knockouts 0Leaderboard1🙂3.7%Arrows / WASD / mouse / swipe🕹 Virtual joyst",
+      "path": "/en/learn/territory",
+      "passed": true
+    },
+    {
+      "expected": "/en/snake",
+      "heading": "Snake Arena",
+      "lang": "en",
+      "mainText": "Snake ArenaEat, grow and leave room to turn. Chase your own best score or enter ",
+      "path": "/en/snake",
+      "passed": true
+    },
+    {
+      "expected": "/en/learn/snake",
+      "lang": "en",
+      "mainText": "🙂0Length 4Arrows / WASD / swipe / D-pad, Space to pause✚ D-padGet ready…1Lesson",
+      "path": "/en/learn/snake",
+      "passed": true
+    },
+    {
+      "expected": "/en/blocks",
+      "heading": "Block Puzzle Battle",
+      "lang": "en",
+      "mainText": "Block Puzzle BattleMove and rotate falling blocks to fill and clear rows. Practi",
+      "path": "/en/blocks",
+      "passed": true
+    },
+    {
+      "expected": "/en/learn/blocks",
+      "lang": "en",
+      "mainText": "🙂Lines 0 · Lv 10Get ready…1📱 Touch buttons←→ move · ↓ soft drop · Space hard d",
+      "path": "/en/learn/blocks",
+      "passed": true
+    },
+    {
+      "expected": "/en/sudoku",
+      "lang": "en",
+      "mainText": "Loading",
+      "path": "/en/sudoku",
+      "passed": true,
+      "followUpVisibleHeading": "Classic Sudoku"
+    },
+    {
+      "expected": "/en/learn/sudoku",
+      "lang": "en",
+      "mainText": "Loading",
+      "path": "/en/learn/sudoku",
+      "passed": true,
+      "followUpVisibleHeading": "Sudoku tutorial"
+    },
+    {
+      "expected": "/chess",
+      "heading": "西洋棋 Chess",
+      "lang": "zh-Hant-TW",
+      "mainText": "西洋棋 Chess守住自己的國王，設法將死對手。從基本走法開始，逐步學會西洋棋的攻守。ℹ開始之前目標是將死對方國王。先選自己的棋子，再選可走的位置；不確定時，可",
+      "path": "/chess",
+      "passed": true
+    },
+    {
+      "expected": "/learn/chess",
+      "heading": "規則教學 · 西洋棋",
+      "lang": "zh-Hant-TW",
+      "mainText": "規則教學 · 西洋棋87654321abcdefgh第 2 課 · 棋子名稱進度 2/17棋子名稱每一方有 16 枚棋子：國王 1、皇后 1、城堡 2、主教 2",
+      "path": "/learn/chess",
+      "passed": true
+    },
+    {
+      "expected": "/xiangqi",
+      "heading": "中國象棋 Xiangqi",
+      "lang": "zh-Hant-TW",
+      "mainText": "中國象棋 Xiangqi隔著楚河漢界鬥智，運用車、馬、炮進攻。採本站公開的象棋規則，含簡化長將、長捉裁決。帥俥包馬ℹ開始之前紅方先走。點選棋子查看可走的位置，進",
+      "path": "/xiangqi",
+      "passed": true
+    },
+    {
+      "expected": "/learn/xiangqi",
+      "heading": "規則教學 · 中國象棋",
+      "lang": "zh-Hant-TW",
+      "mainText": "規則教學 · 中國象棋楚 河漢 界987654321俥傌相仕帥仕相傌俥炮炮兵兵兵兵兵卒卒卒卒卒包包車馬象士將士象馬車第 2 課 · 棋子名稱進度 2/16棋子名",
+      "path": "/learn/xiangqi",
+      "passed": true
+    },
+    {
+      "expected": "/banqi",
+      "heading": "台灣暗棋 Banqi",
+      "lang": "zh-Hant-TW",
+      "mainText": "台灣暗棋 Banqi翻開棋子，觀察局勢，再決定移動或吃子。預設採台灣常見版，開局前可查看完整局規。炮卒帥ℹ開始之前先手第一步翻開的顏色，就是先手的陣營。每回合選",
+      "path": "/banqi",
+      "passed": true
+    },
+    {
+      "expected": "/learn/banqi",
+      "heading": "規則教學 · 台灣暗棋",
+      "lang": "zh-Hant-TW",
+      "mainText": "規則教學 · 台灣暗棋第 2 課 · 棋盤介紹進度 1/10翻棋決定顏色第一步一定要翻棋。你翻出的第一枚棋子是什麼顏色，你就是那一方！點任何一枚棋子把它翻開。請",
+      "path": "/learn/banqi",
+      "passed": true
+    },
+    {
+      "expected": "/territory",
+      "heading": "領地爭奪戰 Territory Rush",
+      "lang": "zh-Hant-TW",
+      "mainText": "領地爭奪戰 Territory Rush離開領地畫出軌跡，再繞回來擴大地盤。留意對手，別讓自己的軌跡被切斷！ℹ開始之前離開自己的領地畫出軌跡，再安全繞回來就能圈",
+      "path": "/territory",
+      "passed": true
+    },
+    {
+      "expected": "/learn/territory",
+      "lang": "zh-Hant-TW",
+      "mainText": "🙂3.7%淘汰 0排行榜1🙂3.7%方向鍵／WASD／滑鼠／滑動🕹 虛擬搖桿準備…1第 1 課控制方向你的角色會一直往前走。用方向鍵、WASD、滑鼠或手指",
+      "path": "/learn/territory",
+      "passed": true
+    },
+    {
+      "expected": "/snake",
+      "heading": "貪食蛇競技場",
+      "lang": "zh-Hant-TW",
+      "mainText": "貪食蛇競技場吃食物、變長，留出轉彎的空間。自己挑戰紀錄，或加入最多 8 人的競技場。ℹ開始之前轉向吃到食物，讓蛇慢慢變長。別急著搶食，先留出安全的路；碰撞規則依",
+      "path": "/snake",
+      "passed": true
+    },
+    {
+      "expected": "/learn/snake",
+      "lang": "zh-Hant-TW",
+      "mainText": "🙂0長度 4方向鍵／WASD／滑動／虛擬方向鍵，空白鍵暫停✚ 方向控制器⏸ 暫停第 1 課控制方向蛇會一直往前走。用方向鍵、WASD 或滑動改變方向，試著轉彎",
+      "path": "/learn/snake",
+      "passed": true
+    },
+    {
+      "expected": "/blocks",
+      "heading": "方塊消除對戰",
+      "lang": "zh-Hant-TW",
+      "mainText": "方塊消除對戰移動與旋轉落下的方塊，填滿整行就能消除。練習堆疊，或用消行向對手送出障礙行。ℹ開始之前先看落點，再移動或旋轉方塊。填滿整行就會消除；硬降會立即把方塊",
+      "path": "/blocks",
+      "passed": true
+    },
+    {
+      "expected": "/learn/blocks",
+      "lang": "zh-Hant-TW",
+      "mainText": "🙂行 0 · Lv 10⏸ 暫停📱 觸控按鈕←→ 移動・↓ 軟降・空白鍵 硬降・↑/X 右旋・Z 左旋・A 180°・C 暫存・Esc 暫停第 1 課移動與",
+      "path": "/learn/blocks",
+      "passed": true
+    },
+    {
+      "expected": "/sudoku",
+      "heading": "經典數獨",
+      "lang": "zh-Hant-TW",
+      "mainText": "經典數獨單人・邏輯 · 在 9×9 方格中，找出每個數字的位置。537961959816986653選擇難度簡單從單一候選與唯一位置開始。中等練習候選排除與數字",
+      "path": "/sudoku",
+      "passed": true
+    },
+    {
+      "expected": "/learn/sudoku",
+      "heading": "數獨教學",
+      "lang": "zh-Hant-TW",
+      "mainText": "數獨教學1 / 568739125269146458389273951268758549每一列都要有 1–9，而且不能重複。第 1 列 · 第 1 行12345",
+      "path": "/learn/sudoku",
+      "passed": true
+    }
+  ],
+  "contrast": [
+    {
+      "count": 60,
+      "failed": [],
+      "min": 8.336,
+      "theme": "dark"
+    },
+    {
+      "count": 60,
+      "failed": [],
+      "min": 6.662,
+      "theme": "light"
+    }
+  ],
+  "menus": [
+    {
+      "headerPosition": "relative",
+      "height": 568,
+      "hidden": false,
+      "overflow": [],
+      "role": null,
+      "small": [],
+      "width": 320,
+      "links": [
+        {
+          "href": "/en",
+          "current": "page"
+        },
+        {
+          "href": "/en/chess",
+          "current": null
+        },
+        {
+          "href": "/en/xiangqi",
+          "current": null
+        },
+        {
+          "href": "/en/banqi",
+          "current": null
+        },
+        {
+          "href": "/en/territory",
+          "current": null
+        },
+        {
+          "href": "/en/snake",
+          "current": null
+        },
+        {
+          "href": "/en/blocks",
+          "current": null
+        },
+        {
+          "href": "/en/sudoku",
+          "current": null
+        },
+        {
+          "href": "/en/leaderboard",
+          "current": null
+        },
+        {
+          "href": "/en/history",
+          "current": null
+        },
+        {
+          "href": "/en/settings",
+          "current": null
+        },
+        {
+          "href": "/en/profile",
+          "current": null
+        }
+      ]
+    },
+    {
+      "headerPosition": "relative",
+      "height": 800,
+      "hidden": false,
+      "overflow": [],
+      "role": null,
+      "small": [],
+      "width": 360,
+      "links": [
+        {
+          "href": "/en",
+          "current": "page"
+        },
+        {
+          "href": "/en/chess",
+          "current": null
+        },
+        {
+          "href": "/en/xiangqi",
+          "current": null
+        },
+        {
+          "href": "/en/banqi",
+          "current": null
+        },
+        {
+          "href": "/en/territory",
+          "current": null
+        },
+        {
+          "href": "/en/snake",
+          "current": null
+        },
+        {
+          "href": "/en/blocks",
+          "current": null
+        },
+        {
+          "href": "/en/sudoku",
+          "current": null
+        },
+        {
+          "href": "/en/leaderboard",
+          "current": null
+        },
+        {
+          "href": "/en/history",
+          "current": null
+        },
+        {
+          "href": "/en/settings",
+          "current": null
+        },
+        {
+          "href": "/en/profile",
+          "current": null
+        }
+      ]
+    },
+    {
+      "headerPosition": "relative",
+      "height": 800,
+      "hidden": false,
+      "overflow": [],
+      "role": null,
+      "small": [],
+      "width": 768,
+      "links": [
+        {
+          "href": "/en",
+          "current": "page"
+        },
+        {
+          "href": "/en/chess",
+          "current": null
+        },
+        {
+          "href": "/en/xiangqi",
+          "current": null
+        },
+        {
+          "href": "/en/banqi",
+          "current": null
+        },
+        {
+          "href": "/en/territory",
+          "current": null
+        },
+        {
+          "href": "/en/snake",
+          "current": null
+        },
+        {
+          "href": "/en/blocks",
+          "current": null
+        },
+        {
+          "href": "/en/sudoku",
+          "current": null
+        },
+        {
+          "href": "/en/leaderboard",
+          "current": null
+        },
+        {
+          "href": "/en/history",
+          "current": null
+        },
+        {
+          "href": "/en/settings",
+          "current": null
+        },
+        {
+          "href": "/en/profile",
+          "current": null
+        }
+      ]
+    },
+    {
+      "headerPosition": "relative",
+      "height": 480,
+      "hidden": false,
+      "overflow": [],
+      "role": null,
+      "small": [],
+      "width": 1280,
+      "links": [
+        {
+          "href": "/en",
+          "current": "page"
+        },
+        {
+          "href": "/en/chess",
+          "current": null
+        },
+        {
+          "href": "/en/xiangqi",
+          "current": null
+        },
+        {
+          "href": "/en/banqi",
+          "current": null
+        },
+        {
+          "href": "/en/territory",
+          "current": null
+        },
+        {
+          "href": "/en/snake",
+          "current": null
+        },
+        {
+          "href": "/en/blocks",
+          "current": null
+        },
+        {
+          "href": "/en/sudoku",
+          "current": null
+        },
+        {
+          "href": "/en/leaderboard",
+          "current": null
+        },
+        {
+          "href": "/en/history",
+          "current": null
+        },
+        {
+          "href": "/en/settings",
+          "current": null
+        },
+        {
+          "href": "/en/profile",
+          "current": null
+        }
+      ]
+    }
+  ],
+  "shared": [
+    {
+      "test": "radio ArrowRight",
+      "result": [
+        {
+          "checked": false,
+          "descriptionSize": "12px",
+          "label": "簡單從單一候選與唯一位置開始。",
+          "name": "_r_9_",
+          "value": "easy"
+        },
+        {
+          "checked": true,
+          "descriptionSize": "12px",
+          "label": "中等練習候選排除與數字配對。",
+          "name": "_r_9_",
+          "value": "medium"
+        },
+        {
+          "checked": false,
+          "descriptionSize": "12px",
+          "label": "困難挑戰隱性配對與 X-Wing。",
+          "name": "_r_9_",
+          "value": "hard"
+        }
+      ]
+    },
+    {
+      "test": "language preserves sudoku route",
+      "url": "https://chess.jytrvl.com/en/sudoku"
+    },
+    {
+      "test": "settings input actual styles",
+      "result": {
+        "bg": "rgb(255, 255, 255)",
+        "border": "rgb(216, 217, 209)",
+        "classes": "min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus)]",
+        "outerBg": "rgba(0, 0, 0, 0)",
+        "width": "1px"
+      }
+    },
+    {
+      "test": "animation switch Space",
+      "result": {
+        "checked": false,
+        "focusTrackOutline": "3px",
+        "reduceMotion": true,
+        "transition": "0s"
+      }
+    },
+    {
+      "test": "animation restored",
+      "result": {
+        "checked": true,
+        "reduceMotion": false
+      }
+    },
+    {
+      "test": "theme restored and persists after reload",
+      "result": "system"
+    },
+    {
+      "test": "first Tab skip link",
+      "result": {
+        "height": 24,
+        "href": "#main",
+        "outline": "3px",
+        "tag": "A",
+        "text": "跳到主要內容"
+      }
+    },
+    {
+      "test": "skip to main",
+      "result": {
+        "hash": "#main",
+        "id": "main"
+      }
+    },
+    {
+      "test": "first play keyboard focus",
+      "result": {
+        "outline": "3px",
+        "outlineColor": "rgb(31, 77, 58)",
+        "testId": "play-chess"
+      }
+    }
+  ],
+  "followUp": {
+    "settingsField": {
+      "foregroundBorder": "#D8D9D1",
+      "background": "#FFFFFF",
+      "ratio": 1.422222943846481,
+      "required": 3
+    },
+    "segmentedDescriptionFontPx": 12,
+    "skipLinkFocusedHeightPx": 24,
+    "spinner": "Default translated loading label is sr-only (source review); reduced-motion requirement specifies visible text"
+  },
+  "restored": {
+    "theme": "system",
+    "animation": true,
+    "viewport": "reset"
+  }
+}
