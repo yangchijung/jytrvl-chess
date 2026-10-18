@@ -1,0 +1,211 @@
+{
+  "method": "Live UI, read-only rendered DOM measurements",
+  "asset": "/assets/index-BRyKREmE.js",
+  "mix360": {
+    "focus": "mix-go",
+    "result": {
+      "rect": {
+        "bottom": 579.9921875,
+        "height": 116,
+        "left": 29,
+        "right": 331,
+        "top": 463.9921875,
+        "width": 302,
+        "x": 29,
+        "y": 463.9921875
+      },
+      "text": "藍色 + 紅色 →紫色去蓋印章"
+    },
+    "use": {
+      "rect": {
+        "bottom": 567.9921875,
+        "height": 44,
+        "left": 41,
+        "right": 123,
+        "top": 523.9921875,
+        "width": 82,
+        "x": 41,
+        "y": 523.9921875
+      },
+      "text": "去蓋印章"
+    },
+    "viewport": [
+      360,
+      800
+    ]
+  },
+  "task3Reload": {
+    "lesson3": "true",
+    "step": "apply",
+    "surface": "grid"
+  },
+  "gridLandingSettled": {
+    "focus": "cell-0",
+    "grid": {
+      "bottom": 564.9921875,
+      "height": 327.9921875,
+      "left": 16,
+      "right": 344,
+      "top": 237,
+      "width": 328,
+      "x": 16,
+      "y": 237
+    },
+    "hint": {
+      "bottom": 600.9921875,
+      "height": 24,
+      "left": 16,
+      "right": 344,
+      "top": 576.9921875,
+      "width": 328,
+      "x": 16,
+      "y": 576.9921875
+    }
+  },
+  "task4Before": {
+    "card": "加白會變怎樣？還要： 藍色 淺藍色 ✓再試一次先跳過回自由畫為什麼",
+    "cells": [
+      "purple-circle",
+      "light_blue-circle",
+      "light_blue-circle",
+      "orange-circle",
+      "green-circle",
+      "blue-circle",
+      "yellow-circle",
+      "purple-circle",
+      ""
+    ],
+    "step": "apply"
+  },
+  "task4After": {
+    "blue": "true",
+    "card": "加白會變怎樣？還要： 藍色 淺藍色 ✓再試一次先跳過回自由畫為什麼",
+    "cells": [
+      "purple-circle",
+      "light_blue-circle",
+      "light_blue-circle",
+      "orange-circle",
+      "green-circle",
+      "blue-circle",
+      "yellow-circle",
+      "purple-circle",
+      ""
+    ],
+    "step": "apply",
+    "surface": "grid"
+  },
+  "task4Complete": {
+    "step": "done",
+    "success": "加白後，藍色變亮了。"
+  },
+  "routeReturn": {
+    "step": "done",
+    "surface": "grid",
+    "task4": "true"
+  },
+  "enFreeResult": {
+    "focus": "mix-go",
+    "result": {
+      "bottom": 580,
+      "height": 116,
+      "left": 29,
+      "right": 331,
+      "top": 464,
+      "width": 302,
+      "x": 29,
+      "y": 464
+    },
+    "text": "Red + Yellow →OrangeDraw with it"
+  },
+  "enFreeLanding": {
+    "focus": "paper",
+    "hint": {
+      "bottom": 502.5,
+      "height": 24,
+      "left": 16,
+      "right": 344,
+      "top": 478.5,
+      "width": 328,
+      "x": 16,
+      "y": 478.5
+    },
+    "paper": {
+      "bottom": 466.5,
+      "height": 246,
+      "left": 16,
+      "right": 344,
+      "top": 220.5,
+      "width": 328,
+      "x": 16,
+      "y": 220.5
+    }
+  },
+  "desktopResult": {
+    "focus": "mix-go",
+    "rect": {
+      "bottom": 513.5,
+      "height": 116,
+      "left": 37,
+      "right": 982,
+      "top": 397.5,
+      "width": 945,
+      "x": 37,
+      "y": 397.5
+    },
+    "viewport": [
+      1019,
+      667
+    ]
+  },
+  "desktopLandingSettled": {
+    "focus": "paper",
+    "header": {
+      "bottom": 57,
+      "height": 57,
+      "left": 0,
+      "right": 1019,
+      "top": 0,
+      "width": 1019,
+      "x": 0,
+      "y": 0
+    },
+    "hint": {
+      "bottom": 651,
+      "height": 24,
+      "left": 24,
+      "right": 995,
+      "top": 627,
+      "width": 971,
+      "x": 24,
+      "y": 627
+    },
+    "paper": {
+      "bottom": 615,
+      "height": 539,
+      "left": 150.1640625,
+      "right": 868.828125,
+      "top": 76,
+      "width": 718.6640625,
+      "x": 150.1640625,
+      "y": 76
+    },
+    "viewport": [
+      1019,
+      667
+    ]
+  },
+  "darkGridResult": {
+    "focus": "mix-go",
+    "rect": {
+      "bottom": 579.9921875,
+      "height": 116,
+      "left": 29,
+      "right": 331,
+      "top": 463.9921875,
+      "width": 302,
+      "x": 29,
+      "y": 463.9921875
+    },
+    "text": "Blue + Red →PurpleGo stamp"
+  }
+}
