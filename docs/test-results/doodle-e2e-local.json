@@ -105,7 +105,7 @@
     "id": "DC06",
     "name": "PNG export matches the paper (white background, the stroke colour at the stroke) and the stamp grid; dated file name; no network request sends the picture",
     "pass": true,
-    "info": "{\"w\":1600,\"h\":1200,\"type\":\"image/png\",\"corner\":[255,255,255,255],\"stroke\":[214,64,52,255],\"name\":\"color-doodle-20261018-2104.png\"} | grid 1200 | sent 0"
+    "info": "{\"w\":1600,\"h\":1200,\"type\":\"image/png\",\"corner\":[255,255,255,255],\"stroke\":[214,64,52,255],\"name\":\"color-doodle-20261018-2206.png\"} | grid 1200 | sent 0"
   },
   {
     "id": "DC07-layout",
@@ -154,6 +154,18 @@
     "name": "unreadable (newer-version) save + backup write fails: the original key is never overwritten, the drawing goes to a separate key and continues after reload, the page says so and offers “下載舊存檔”",
     "pass": true,
     "info": "{\"main\":\"{\\\"schemaVersion\\\":7,\\\"art\\\":\\\"sentinel\\\"}\",\"alt\":true,\"notice\":\"舊的存檔讀不出來，也沒辦法另外備份。為了不蓋掉它，這次的畫存在另一個位置。下載舊存檔\",\"dl\":true,\"save\":\"saved\"}"
+  },
+  {
+    "id": "D3-R1",
+    "name": "drawing kept in the alternate place + backup works again: the old save is copied aside, the drawing moves to the main key and opens; after a normal change and reload it is still there and the old alternate does not return",
+    "pass": true,
+    "info": "{\"r1\":{\"notice\":\"restored\",\"target\":\"jy.doodle.v1\",\"n\":1,\"text\":\"舊的存檔讀不出來，已另外保留一份；接著畫上次存在另一個位置的畫。下載舊存檔\",\"mainOk\":1,\"backup\":true},\"n2\":1,\"notice2\":null}"
+  },
+  {
+    "id": "D4-R1",
+    "name": "a first-release save with one 4999-point stroke opens with no warning and the stroke unchanged",
+    "pass": true,
+    "info": "{\"notice\":null,\"n\":1,\"len\":4999,\"done\":\"DC-L01\"}"
   },
   {
     "id": "D4-a",

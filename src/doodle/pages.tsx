@@ -73,6 +73,9 @@ const X: Record<string, L> = {
   brokenNoBackup: { zh: '舊的存檔讀不出來，也沒辦法另外備份。為了不蓋掉它，這次的畫存在另一個位置。', en: 'The old save could not be read or copied. To keep it safe, this drawing is saved in a separate place.' },
   brokenNoSave: { zh: '舊的存檔讀不出來，也沒辦法另外備份。為了不蓋掉它，這次不會存檔；離開前請先存成圖片。', en: 'The old save could not be read or copied. To keep it safe, nothing is saved this time. Save a picture before you leave.' },
   downloadOld: { zh: '下載舊存檔', en: 'Download the old save' },
+  downloadAlt: { zh: '下載之前的畫', en: 'Download the earlier drawing' },
+  restored: { zh: '舊的存檔讀不出來，已另外保留一份；接著畫上次存在另一個位置的畫。', en: 'The old save could not be read. A copy was kept aside; you are continuing the drawing saved in the separate place.' },
+  altKept: { zh: '另一個位置還留著一份之前的畫，沒有蓋掉現在這張；需要的話可以下載。', en: 'An earlier drawing is still kept in a separate place. It did not replace this one; you can download it.' },
   noStorage: { zh: '這個瀏覽器不能存畫作；離開前請先存成圖片。', en: 'This browser cannot keep drawings. Save a picture before you leave.' },
   full: { zh: '這張畫紙滿了。先存成圖片，再換一張新畫紙。', en: 'This paper is full. Save a picture, then start a new paper.' },
   fullClear: { zh: '這張畫紙已經滿了，換新後不能復原。想留下來，請先存成圖片。', en: 'This paper is full, so a new paper cannot be undone. Save a picture first if you want to keep it.' },
@@ -398,7 +401,7 @@ export function DoodlePage() {
           {oldRaw && (
             <Button variant="secondary" size="sm" onClick={() => downloadText(oldRaw)} data-testid="download-old">
               <Icon d={ICONS.save} />
-              {X.downloadOld[lang]}
+              {notice === 'altKept' ? X.downloadAlt[lang] : X.downloadOld[lang]}
             </Button>
           )}
         </div>

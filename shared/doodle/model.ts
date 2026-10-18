@@ -74,7 +74,12 @@ export const undo = <Op>(h: History<Op>): History<Op> => ({ ...h, n: Math.max(0,
 export const redo = <Op>(h: History<Op>): History<Op> => ({ ...h, n: Math.min(h.ops.length, h.n + 1) });
 /** One limit shared by writing and reading (D4): the app never writes what the reader would reject. */
 export const MAX_OPS = 2000; // operations kept in one paper's history
-export const MAX_PTS = 2000; // points in one stroke (longer strokes continue as a new stroke)
+export const MAX_PTS = 2000; // points in one stroke the app writes (longer strokes continue as a new stroke)
+/**
+ * D4-R1: the reader still accepts every stroke the first release accepted (1–4999 points), so older drawings open
+ * unchanged with their undo/redo history. The writer never goes above MAX_PTS, which is below this.
+ */
+export const READ_MAX_PTS = 4999;
 
 /**
  * Adds an op without ever exceeding MAX_OPS. When the history is full it first drops what can no longer be seen
@@ -180,7 +185,7 @@ const isShape = (x: unknown) => x === 'circle' || x === 'triangle' || x === 'squ
 function validFreeOp(o: FreeOp): boolean {
   if (!o || typeof o !== 'object') return false;
   if (o.t === 'clear') return true;
-  if (o.t === 'stroke') return isColor(o.color) && isSize(o.size) && Array.isArray(o.pts) && o.pts.length > 0 && o.pts.length <= MAX_PTS && o.pts.every((p) => Array.isArray(p) && num01(p[0]) && num01(p[1]));
+  if (o.t === 'stroke') return isColor(o.color) && isSize(o.size) && Array.isArray(o.pts) && o.pts.length > 0 && o.pts.length <= READ_MAX_PTS && o.pts.every((p) => Array.isArray(p) && num01(p[0]) && num01(p[1]));
   if (o.t === 'stamp') return isColor(o.color) && isShape(o.shape) && isSize(o.size) && num01(o.x) && num01(o.y);
   return false;
 }

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { ALT, KEY, backupKey, loadSave } from '../src/doodle/storage';
-import { COLORS, LESSONS, MAX_OPS, MAX_PTS, RECIPES, blankSave, clearFree, freeFull, migrate, pushFree, pushGrid, readSave, splitPoints, canRedo, canUndo, empty, gridCells, isCorrectChoice, lessonStep, mix, newRun, push, redo, undo, validSave, visibleFree, type FreeOp, type GridOp } from '../shared/doodle/model';
+import { ALT, KEY, MOVED, backupKey, loadSave } from '../src/doodle/storage';
+import { COLORS, LESSONS, MAX_OPS, MAX_PTS, READ_MAX_PTS, RECIPES, blankSave, clearFree, freeFull, migrate, pushFree, pushGrid, readSave, splitPoints, canRedo, canUndo, empty, gridCells, isCorrectChoice, lessonStep, mix, newRun, push, redo, undo, validSave, visibleFree, type FreeOp, type GridOp } from '../shared/doodle/model';
 
 const stroke = (color: 'red' | 'orange' = 'red'): Extract<FreeOp, { t: 'stroke' }> => ({ t: 'stroke', color, size: 'm', pts: [[0.1, 0.1], [0.2, 0.2]] });
 
@@ -127,11 +127,13 @@ describe('color doodle model', () => {
     expect(g.ops.length).toBeLessThanOrEqual(MAX_OPS);
     expect(gridCells(g)).toEqual([{ color: 'green', shape: 'square' }, ...cells.slice(1)]);
     expect(roundTrip({ ...blankSave(), grid: g })).toBe(true);
-    // points: 2000 accepted, 2001 rejected; long strokes are split into continuous strokes that all pass
+    // points: the app writes at most 2000; the reader accepts what the first release accepted (≤ 4999), rejects 5000
     const pts = (n: number) => Array.from({ length: n }, (_, i) => [i % 2 ? 0.1 : 0.9, 0.5] as [number, number]);
     expect(MAX_PTS).toBe(2000);
     expect(roundTrip({ ...blankSave(), free: push(empty<FreeOp>(), { ...stroke(), pts: pts(2000) }) })).toBe(true);
-    expect(roundTrip({ ...blankSave(), free: push(empty<FreeOp>(), { ...stroke(), pts: pts(2001) }) })).toBe(false);
+    expect(READ_MAX_PTS).toBe(4999);
+    expect(roundTrip({ ...blankSave(), free: push(empty<FreeOp>(), { ...stroke(), pts: pts(4999) }) })).toBe(true);
+    expect(roundTrip({ ...blankSave(), free: push(empty<FreeOp>(), { ...stroke(), pts: pts(5000) }) })).toBe(false);
     for (const n of [4999, 5000]) {
       const parts = splitPoints(pts(n));
       expect(parts.every((p) => p.length <= MAX_PTS && p.length > 1)).toBe(true);
@@ -211,5 +213,61 @@ describe('color doodle model', () => {
     expect(validSave({ ...s, surface: 'wall' })).toBe(false);
     expect(validSave({ ...s, active: { ...s.active, lessonId: 'X' } })).toBe(false);
     expect(validSave({ ...s, active: { ...s.active, marks: { pink: 1 } } })).toBe(false);
+  });
+
+  it('D4-R1: saves the first release accepted (strokes of 2000/2001/4999 points) open unchanged, with undo/redo', () => {
+    const pts = (n: number) => Array.from({ length: n }, (_, i) => [i / (n + 1), i % 2 ? 0.1 : 0.9] as [number, number]);
+    for (const n of [2000, 2001, 4999]) {
+      const ops = [{ ...stroke(), pts: pts(n) }, { ...stroke('orange'), size: 'l', erase: true, pts: pts(3) }];
+      const raw = JSON.stringify({ schemaVersion: 1, free: { ops, n: 1 }, grid: empty(), done: ['DC-L01'], level: 'easy', mixedColors: ['orange'] });
+      const t = mem({ [KEY]: raw });
+      const r = loadSave(t.store);
+      expect(r.notice).toBeNull();
+      expect(r.target).toBe(KEY);
+      expect(r.s.free).toEqual({ ops, n: 1 }); // same points, order, colour, size, eraser, redo branch
+      expect(visibleFree(redo(r.s.free))).toHaveLength(2);
+      expect([...t.m.keys()].some((k) => k.includes('.backup-'))).toBe(false);
+    }
+    const tooLong = JSON.stringify({ schemaVersion: 1, free: { ops: [{ ...stroke(), pts: pts(5000) }], n: 1 }, grid: empty(), done: [], level: 'easy', mixedColors: [] });
+    expect(loadSave(mem({ [KEY]: tooLong }).store).notice).toBe('broken'); // never accepted before either; kept as a backup
+  });
+
+  it('D3-R1: a drawing kept in the alternate place is continued once the backup works again, and never replaces newer work', () => {
+    const future = JSON.stringify({ schemaVersion: 3, art: 'sentinel' });
+    const t = mem({ [KEY]: future }, true);
+    const first = loadSave(t.store);
+    expect(first.target).toBe(ALT);
+    t.store.setItem(ALT, JSON.stringify({ ...first.s, free: push(first.s.free, stroke()) }));
+    const altRaw = t.m.get(ALT)!;
+    // backups work again: the old save is copied aside, the alternate drawing moves to the main key (read back)
+    const t2 = { m: t.m, store: mem({}).store };
+    t2.store.getItem = (k: string) => t.m.get(k) ?? null;
+    t2.store.setItem = (k: string, v: string) => void t.m.set(k, v);
+    const r = loadSave(t2.store);
+    expect(r.notice).toBe('restored');
+    expect(r.target).toBe(KEY);
+    expect(visibleFree(r.s.free)).toHaveLength(1);
+    expect(t.m.get(backupKey(future))).toBe(future);
+    expect(t.m.get(ALT)).toBe(altRaw); // the alternate text is left untouched, only marked as moved
+    expect(t.m.get(MOVED)).toBe(backupKey(altRaw));
+    // a normal change is saved to the main key; reopening keeps it and the old alternate does not come back
+    t2.store.setItem(KEY, JSON.stringify({ ...r.s, surface: 'grid', free: push(r.s.free, stroke('orange')) }));
+    const again = loadSave(t2.store);
+    expect(again.notice).toBeNull();
+    expect(again.s.surface).toBe('grid');
+    expect(visibleFree(again.s.free)).toHaveLength(2);
+    // a valid main save next to an alternate that was never moved: the main save wins, the other is offered as a download
+    const both = mem({ [KEY]: JSON.stringify({ ...blankSave(), free: push(empty<FreeOp>(), stroke('orange')) }), [ALT]: altRaw });
+    const b = loadSave(both.store);
+    expect(b.notice).toBe('altKept');
+    expect(b.oldRaw).toBe(altRaw);
+    expect((visibleFree(b.s.free)[0] as { color: string }).color).toBe('orange');
+    expect(both.m.get(ALT)).toBe(altRaw);
+    // nothing in the main key but an alternate drawing: it moves back to the main key
+    const only = mem({ [ALT]: altRaw });
+    const o = loadSave(only.store);
+    expect(o.target).toBe(KEY);
+    expect(visibleFree(o.s.free)).toHaveLength(1);
+    expect(only.m.get(KEY)).toBe(JSON.stringify(o.s));
   });
 });

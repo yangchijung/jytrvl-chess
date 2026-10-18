@@ -525,6 +525,38 @@ const opsLen = async (p) => (await D(p)).s.free.n;
   await p.ctx.close();
 }
 
+// ---------------------------------------------------------------- D3-R1 / D4-R1 second recheck (2026-10-18)
+{
+  const p = await page(1280, 900);
+  await go(p);
+  const raw = '{"schemaVersion":7,"art":"sentinel"}';
+  await p.evaluate((raw) => {
+    localStorage.clear();
+    localStorage.setItem('jy.doodle.v1', raw);
+    const op = { t: 'stroke', color: 'blue', size: 'm', pts: [[0.1, 0.1], [0.5, 0.5]] };
+    localStorage.setItem('jy.doodle.v1.recovered', JSON.stringify({ schemaVersion: 1, free: { ops: [op], n: 1 }, grid: { ops: [], n: 0 }, done: [], level: 'easy', mixedColors: [] }));
+  }, raw);
+  await p.reload({ waitUntil: 'networkidle0' });
+  await p.waitForSelector('[data-testid=paper]');
+  const r1 = await p.evaluate(() => ({ notice: window.__doodle.notice, target: window.__doodle.target, n: window.__doodle.s.free.n, text: document.querySelector('[data-testid=save-notice]')?.textContent ?? '', mainOk: JSON.parse(localStorage.getItem('jy.doodle.v1')).free?.n, backup: Object.entries(localStorage).some(([k, v]) => k.startsWith('jy.doodle.v1.backup-') && v.includes('sentinel')) }));
+  await tap(p, '[data-testid=surface-grid]');
+  await p.reload({ waitUntil: 'networkidle0' });
+  await p.waitForSelector('[data-testid=stamp-grid]');
+  const r2 = await D(p);
+  ok('D3-R1', 'drawing kept in the alternate place + backup works again: the old save is copied aside, the drawing moves to the main key and opens; after a normal change and reload it is still there and the old alternate does not return', r1.notice === 'restored' && r1.target === 'jy.doodle.v1' && r1.n === 1 && r1.text.includes('接著畫') && r1.mainOk === 1 && r1.backup && r2.s.free.n === 1 && r2.surface === 'grid' && !r2.notice, JSON.stringify({ r1, n2: r2.s.free.n, notice2: r2.notice }));
+  // first-release save with a 4999-point stroke opens unchanged
+  await p.evaluate(() => {
+    localStorage.clear();
+    const pts = Array.from({ length: 4999 }, (_, i) => [i / 5000, i % 2 ? 0.1 : 0.9]);
+    localStorage.setItem('jy.doodle.v1', JSON.stringify({ schemaVersion: 1, free: { ops: [{ t: 'stroke', color: 'red', size: 'm', pts }], n: 1 }, grid: { ops: [], n: 0 }, done: ['DC-L01'], level: 'easy', mixedColors: ['orange'] }));
+  });
+  await p.reload({ waitUntil: 'networkidle0' });
+  await p.waitForSelector('[data-testid=paper]');
+  const L = await p.evaluate(() => ({ notice: window.__doodle.notice, n: window.__doodle.s.free.n, len: window.__doodle.s.free.ops[0]?.pts.length, done: window.__doodle.s.done.join() }));
+  ok('D4-R1', 'a first-release save with one 4999-point stroke opens with no warning and the stroke unchanged', !L.notice && L.n === 1 && L.len === 4999 && L.done === 'DC-L01', JSON.stringify(L));
+  await p.ctx.close();
+}
+
 // ---------------------------------------------------------------- D4 history and stroke limits are the same for writing and reading
 {
   const p = await page(1280, 900);
