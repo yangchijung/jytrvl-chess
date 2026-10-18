@@ -85,7 +85,7 @@
   },
   {
     "id": "DC05-a",
-    "name": "reload keeps the drawing, the stamp grid and the hint level; rotating redraws the picture (pixel still red)",
+    "name": "reload keeps the drawing, the stamp grid (still open) and the hint level; rotating redraws the picture (pixel still red)",
     "pass": true,
     "info": "[214,64,52,255]"
   },
@@ -93,7 +93,7 @@
     "id": "DC05-b",
     "name": "an unreadable save is kept as a backup, not overwritten; the page explains and starts a fresh paper",
     "pass": true,
-    "info": "{\"alert\":\"舊的存檔讀不出來，已另外保留；這是一張新畫紙。\",\"backup\":true,\"n\":0}"
+    "info": "{\"alert\":\"舊的存檔讀不出來，已另外保留一份；這是一張新畫紙。下載舊存檔\",\"backup\":true,\"n\":0}"
   },
   {
     "id": "DC05-c",
@@ -105,7 +105,7 @@
     "id": "DC06",
     "name": "PNG export matches the paper (white background, the stroke colour at the stroke) and the stamp grid; dated file name; no network request sends the picture",
     "pass": true,
-    "info": "{\"w\":1600,\"h\":1200,\"type\":\"image/png\",\"corner\":[255,255,255,255],\"stroke\":[214,64,52,255],\"name\":\"color-doodle-20261018-2012.png\"} | grid 1200 | sent 0"
+    "info": "{\"w\":1600,\"h\":1200,\"type\":\"image/png\",\"corner\":[255,255,255,255],\"stroke\":[214,64,52,255],\"name\":\"color-doodle-20261018-2104.png\"} | grid 1200 | sent 0"
   },
   {
     "id": "DC07-layout",
@@ -124,6 +124,48 @@
     "name": "reduced motion: no running animations after a task; every swatch has a shape marker, name and pressed state",
     "pass": true,
     "info": "0 5"
+  },
+  {
+    "id": "D1-a",
+    "name": "grid → task 3 → mix → reload: still the grid, task 3 selected, at the “use the colour” step",
+    "pass": true,
+    "info": "grid DC-L03 apply true"
+  },
+  {
+    "id": "D1-b",
+    "name": "task 4: first blue stamped, reload, the task continues with the same marks; the second blue completes it",
+    "pass": true,
+    "info": "{\"light_blue\":1} apply blue done"
+  },
+  {
+    "id": "D1-c",
+    "name": "a save from before this fix opens on the free paper with its stroke and completed task",
+    "pass": true,
+    "info": "{\"s\":\"free\",\"n\":1,\"notice\":null}"
+  },
+  {
+    "id": "D2",
+    "name": "after mixing (360 free/grid, 768 grid, 1019 free, 740×360 short with reduced motion): result, colour name and “用這色畫／去蓋印章” stay visible; focus stays on the mix button, not BODY; colour picks do not scroll; the action brings the paper/grid and hint into view and focuses the paper / grid cell",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "D3",
+    "name": "unreadable (newer-version) save + backup write fails: the original key is never overwritten, the drawing goes to a separate key and continues after reload, the page says so and offers “下載舊存檔”",
+    "pass": true,
+    "info": "{\"main\":\"{\\\"schemaVersion\\\":7,\\\"art\\\":\\\"sentinel\\\"}\",\"alt\":true,\"notice\":\"舊的存檔讀不出來，也沒辦法另外備份。為了不蓋掉它，這次的畫存在另一個位置。下載舊存檔\",\"dl\":true,\"save\":\"saved\"}"
+  },
+  {
+    "id": "D4-a",
+    "name": "2000 operations: one more stroke is not dropped silently or written past the limit — “畫紙滿了” is shown and nothing claims “已存好”; new paper still works and says it cannot be undone",
+    "pass": true,
+    "info": "{\"n\":2000,\"full\":true,\"text\":\"這張畫紙滿了。先存成圖片，再換一張新畫紙。\",\"stored\":2000,\"saved\":\"畫作只存在這個瀏覽器\",\"body\":\"這張畫紙已經滿了，換新後不能復原。想留下來，請先存成圖片。\",\"c\":{\"n\":0,\"full\":false}}"
+  },
+  {
+    "id": "D4-b",
+    "name": "a stroke of 2300+ points is stored as consecutive strokes of ≤ 2000 points; the save reads back after reload without a warning",
+    "pass": true,
+    "info": "{\"strokes\":2,\"max\":2000,\"total\":2301,\"saved\":\"saved\"}"
   },
   {
     "id": "D-err",

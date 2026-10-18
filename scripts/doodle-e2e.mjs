@@ -287,8 +287,9 @@ const opsLen = async (p) => (await D(p)).s.free.n;
   await tap(p, '[data-testid=cell-2]');
   await tap(p, '[data-testid=level-more]');
   await p.reload({ waitUntil: 'networkidle0' });
-  await p.waitForSelector('[data-testid=paper]');
+  await p.waitForSelector('[data-testid=stamp-grid]'); // the open paper is kept too (D1)
   const r = await D(p);
+  await tap(p, '[data-testid=surface-free]');
   // rotate: the drawing is redrawn from its strokes, not cleared
   await p.setViewport({ width: 844, height: 390 });
   await sleep(300);
@@ -298,7 +299,7 @@ const opsLen = async (p) => (await D(p)).s.free.n;
     const d = c.getContext('2d').getImageData(Math.round(s[0] * c.width), Math.round(s[1] * c.height), 1, 1).data;
     return [...d];
   });
-  ok('DC05-a', 'reload keeps the drawing, the stamp grid and the hint level; rotating redraws the picture (pixel still red)', r.s.free.n === 1 && r.s.grid.n === 1 && r.s.level === 'more' && px[3] > 200 && px[0] > 180 && px[2] < 100, JSON.stringify(px));
+  ok('DC05-a', 'reload keeps the drawing, the stamp grid (still open) and the hint level; rotating redraws the picture (pixel still red)', r.s.free.n === 1 && r.s.grid.n === 1 && r.s.level === 'more' && r.surface === 'grid' && px[3] > 200 && px[0] > 180 && px[2] < 100, JSON.stringify(px));
   // broken save: kept aside, fresh paper, clear message
   await p.evaluate(() => localStorage.setItem('jy.doodle.v1', '{"schemaVersion":1,"free":{"ops":[{"t":"stroke","color":"pink"}],"n":1}}'));
   await p.reload({ waitUntil: 'networkidle0' });
@@ -412,6 +413,152 @@ const opsLen = async (p) => (await D(p)).s.free.n;
   const marks = await r.$$eval('[data-testid^=swatch-] svg', (s) => s.length);
   ok('DC10', 'reduced motion: no running animations after a task; every swatch has a shape marker, name and pressed state', anims === 0 && marks >= 4 && (await r.$$eval('[data-testid^=swatch-]', (s) => s.every((x) => x.hasAttribute('aria-pressed') && x.getAttribute('aria-label')))), `${anims} ${marks}`);
   await r.ctx.close();
+}
+
+// ---------------------------------------------------------------- D1 resume after reload (2026-10-18 fix)
+{
+  const p = await page(360, 800);
+  await go(p);
+  await tap(p, '[data-testid=surface-grid]');
+  await tap(p, '[data-testid=lesson-3]');
+  await tap(p, '[data-testid=mix-go]');
+  const before = await D(p);
+  await p.reload({ waitUntil: 'networkidle0' });
+  await p.waitForSelector('[data-testid=stamp-grid]');
+  const after = await D(p);
+  const pressed = await p.$eval('[data-testid=lesson-3]', (b) => b.getAttribute('aria-pressed'));
+  ok('D1-a', 'grid → task 3 → mix → reload: still the grid, task 3 selected, at the “use the colour” step', before.step === 'apply' && after.surface === 'grid' && after.lesson === 'DC-L03' && after.step === 'apply' && pressed === 'true', `${after.surface} ${after.lesson} ${after.step} ${pressed}`);
+  // task 4: make the first blue, reload, finish with the second blue
+  await tap(p, '[data-testid=lesson-4]');
+  await tap(p, '[data-testid=mix-go]');
+  await tap(p, '[data-testid=mix-use]');
+  await sleep(300);
+  await p.keyboard.press('Enter');
+  await sleep(100);
+  const mid = await D(p);
+  await p.reload({ waitUntil: 'networkidle0' });
+  await p.waitForSelector('[data-testid=stamp-grid]');
+  await sleep(150);
+  const back = await D(p);
+  await tap(p, '[data-testid=cell-5]');
+  const end = await D(p);
+  ok('D1-b', 'task 4: first blue stamped, reload, the task continues with the same marks; the second blue completes it', mid.run?.marks?.light_blue === 1 && back.lesson === 'DC-L04' && back.step === 'apply' && back.run.marks.light_blue === 1 && back.color === 'blue' && end.step === 'done' && end.s.done.includes('DC-L04'), `${JSON.stringify(mid.run?.marks)} ${back.step} ${back.color} ${end.step}`);
+  // an old save without the new fields still opens with its drawing
+  await p.evaluate(() => localStorage.setItem('jy.doodle.v1', JSON.stringify({ schemaVersion: 1, free: { ops: [{ t: 'stroke', color: 'red', size: 'm', pts: [[0.1, 0.1], [0.4, 0.4]] }], n: 1 }, grid: { ops: [], n: 0 }, done: ['DC-L01'], level: 'easy', mixedColors: [] })));
+  await p.reload({ waitUntil: 'networkidle0' });
+  await p.waitForSelector('[data-testid=paper]');
+  const old = await D(p);
+  ok('D1-c', 'a save from before this fix opens on the free paper with its stroke and completed task', old.surface === 'free' && old.s.free.n === 1 && old.s.done.join() === 'DC-L01' && !old.notice, JSON.stringify({ s: old.surface, n: old.s.free.n, notice: old.notice }));
+  await p.ctx.close();
+}
+
+// ---------------------------------------------------------------- D2 after mixing, the result and the way back to the paper stay in reach
+{
+  const visible = (p, sel) => p.$eval(sel, (e) => {
+    const r = e.getBoundingClientRect();
+    return { top: Math.round(r.top), bottom: Math.round(r.bottom), ok: r.top >= 0 && r.bottom <= innerHeight + 1 };
+  });
+  const fails = [];
+  for (const [w, h, surf, opts] of [[360, 800, 'free', {}], [360, 800, 'grid', {}], [768, 1024, 'grid', {}], [1019, 700, 'free', { desktop: true }], [740, 360, 'free', { desktop: true, reduce: true }]]) {
+    const p = await page(w, h, opts);
+    await go(p);
+    if (surf === 'grid') await tap(p, '[data-testid=surface-grid]');
+    await tap(p, `[data-testid=lesson-${surf === 'grid' ? 3 : 1}]`);
+    await tap(p, '[data-testid=mix-go]');
+    await sleep(500);
+    const res = await visible(p, '[data-testid=mix-result]');
+    const use = await visible(p, '[data-testid=mix-use]');
+    const label = await p.$eval('[data-testid=mix-use]', (b) => b.textContent.trim());
+    const f1 = await p.evaluate(() => document.activeElement?.dataset.testid ?? document.activeElement?.tagName);
+    // colour picks never move the page
+    const y0 = await p.evaluate(() => scrollY);
+    await p.$eval('[data-testid=swatch-yellow]', (b) => b.click());
+    await sleep(300);
+    const y1 = await p.evaluate(() => scrollY);
+    // keyboard activation of the action
+    await p.focus('[data-testid=mix-use]');
+    await p.keyboard.press('Enter');
+    await sleep(opts.reduce ? 80 : 700);
+    const target = surf === 'grid' ? '[data-testid=stamp-grid]' : '[data-testid=paper]';
+    const t = await p.$eval(target, (e) => {
+      const r = e.getBoundingClientRect();
+      return { top: Math.round(r.top), bottom: Math.round(r.bottom), h: innerHeight };
+    });
+    const hint = await visible(p, '[data-testid=doodle-hint]');
+    const f2 = await p.evaluate(() => document.activeElement?.dataset.testid ?? document.activeElement?.tagName);
+    const d = await D(p);
+    const want = surf === 'grid' ? '去蓋印章' : '用這色畫';
+    // a short screen cannot show all of the paper: its top must be on screen and the focus on it
+    const seen = t.top >= 0 && t.top < t.h * 0.6 && (t.bottom <= t.h + 1 || h < 500);
+    const good = res.ok && use.ok && label === want && f1 === 'mix-go' && y0 === y1 && seen && (h < 500 || hint.ok) && (surf === 'grid' ? f2?.startsWith('cell-') : f2 === 'paper') && d.color === (surf === 'grid' ? 'purple' : 'orange');
+    if (!good) fails.push(`${w}×${h} ${surf} res${JSON.stringify(res)} use${use.ok} "${label}" f1=${f1} y${y0}/${y1} t${JSON.stringify(t)} hint${hint.ok} f2=${f2} ${d.color}`);
+    if (w === 360) await p.screenshot({ path: `${OUT}/doodle-after-mix-${surf}-360.png` });
+    await p.ctx.close();
+  }
+  ok('D2', 'after mixing (360 free/grid, 768 grid, 1019 free, 740×360 short with reduced motion): result, colour name and “用這色畫／去蓋印章” stay visible; focus stays on the mix button, not BODY; colour picks do not scroll; the action brings the paper/grid and hint into view and focuses the paper / grid cell', fails.length === 0, fails.join(' ; '));
+}
+
+// ---------------------------------------------------------------- D3 unreadable save when the backup cannot be written
+{
+  const p = await page(1280, 900);
+  const raw = '{"schemaVersion":7,"art":"sentinel"}';
+  await p.evaluateOnNewDocument((raw) => {
+    if (!sessionStorage.getItem('seeded')) {
+      localStorage.setItem('jy.doodle.v1', raw);
+      sessionStorage.setItem('seeded', '1');
+    }
+    const set = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (k, v) {
+      if (String(k).includes('.backup-')) throw new DOMException('full', 'QuotaExceededError');
+      return set.call(this, k, v);
+    };
+  }, raw);
+  await go(p);
+  const n1 = await D(p);
+  await stroke(p);
+  const st = await p.evaluate(() => ({ main: localStorage.getItem('jy.doodle.v1'), alt: localStorage.getItem('jy.doodle.v1.recovered'), notice: document.querySelector('[data-testid=save-notice]')?.textContent ?? '', dl: !!document.querySelector('[data-testid=download-old]'), save: window.__doodle.saveState }));
+  await p.reload({ waitUntil: 'networkidle0' });
+  await p.waitForSelector('[data-testid=paper]');
+  const again = await D(p);
+  const main2 = await p.evaluate(() => localStorage.getItem('jy.doodle.v1'));
+  ok('D3', 'unreadable (newer-version) save + backup write fails: the original key is never overwritten, the drawing goes to a separate key and continues after reload, the page says so and offers “下載舊存檔”', n1.notice === 'brokenNoBackup' && n1.target === 'jy.doodle.v1.recovered' && st.main === raw && JSON.parse(st.alt).free.n === 1 && st.notice.includes('沒辦法另外備份') && st.dl && st.save === 'saved' && again.s.free.n === 1 && main2 === raw, JSON.stringify({ ...st, alt: !!st.alt }));
+  await p.ctx.close();
+}
+
+// ---------------------------------------------------------------- D4 history and stroke limits are the same for writing and reading
+{
+  const p = await page(1280, 900);
+  await go(p);
+  await p.evaluate(() => {
+    const op = { t: 'stroke', color: 'red', size: 'm', pts: [[0.1, 0.1], [0.2, 0.2]] };
+    localStorage.setItem('jy.doodle.v1', JSON.stringify({ schemaVersion: 1, free: { ops: Array(2000).fill(op), n: 2000 }, grid: { ops: [], n: 0 }, done: [], level: 'easy', mixedColors: [] }));
+  });
+  await p.reload({ waitUntil: 'networkidle0' });
+  await p.waitForSelector('[data-testid=paper]');
+  await stroke(p, 0.5, 0.5, 0.2);
+  const f = await p.evaluate(() => ({ n: window.__doodle.s.free.n, full: !!document.querySelector('[data-testid=paper-full]'), text: document.querySelector('[data-testid=paper-full]')?.textContent ?? '', stored: JSON.parse(localStorage.getItem('jy.doodle.v1')).free.ops.length, saved: document.querySelector('[data-testid=save-state]').innerText }));
+  await tap(p, '[data-testid=tool-clear]');
+  const body = await p.$eval('dialog[open] p', (e) => e.textContent);
+  await tap(p, '[data-testid=clear-confirm]');
+  const c = await p.evaluate(() => ({ n: window.__doodle.s.free.ops.length, full: !!document.querySelector('[data-testid=paper-full]') }));
+  ok('D4-a', '2000 operations: one more stroke is not dropped silently or written past the limit — “畫紙滿了” is shown and nothing claims “已存好”; new paper still works and says it cannot be undone', f.n === 2000 && f.full && f.text.includes('畫紙滿了') && f.stored === 2000 && !f.saved.includes('已存好') && body.includes('不能復原') && !c.full && c.n <= 2000, JSON.stringify({ ...f, body, c }));
+  // one stroke with more than 2000 points is saved as consecutive strokes the reader accepts
+  const b = await box(p);
+  await p.mouse.move(b.x + 10, b.y + 10);
+  await p.mouse.down();
+  for (let i = 0; i < 2300; i++) await p.mouse.move(b.x + 10 + (i % 2 ? 6 : 0) + (i % 300), b.y + 10 + Math.floor(i / 300) * 8);
+  await p.mouse.up();
+  await sleep(200);
+  const L = await p.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('jy.doodle.v1'));
+    const strokes = s.free.ops.filter((o) => o.t === 'stroke');
+    return { strokes: strokes.length, max: Math.max(...strokes.map((o) => o.pts.length)), total: strokes.reduce((a, o) => a + o.pts.length, 0), saved: window.__doodle.saveState };
+  });
+  await p.reload({ waitUntil: 'networkidle0' });
+  await p.waitForSelector('[data-testid=paper]');
+  const L2 = await D(p);
+  ok('D4-b', 'a stroke of 2300+ points is stored as consecutive strokes of ≤ 2000 points; the save reads back after reload without a warning', L.strokes >= 2 && L.max <= 2000 && L.total > 2000 && L.saved === 'saved' && !L2.notice && L2.s.free.ops.filter((o) => o.t === 'stroke').length === L.strokes, JSON.stringify(L));
+  await p.ctx.close();
 }
 
 ok('D-err', 'no console errors', errors.length === 0, errors.slice(0, 3).join(' | '));

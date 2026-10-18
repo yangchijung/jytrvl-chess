@@ -517,27 +517,33 @@ AI 只使用玩家看得到的資訊：貪食蛇有單元測試確認對手尚�
 - 部署：commit 63b4b13；[CI](https://github.com/yangchijung/jytrvl-chess/actions/runs/39039108514) build-and-test、Cloudflare Pages、Workers Builds 皆成功
 - 正式站（2026-10-17，Chrome，system 主題解析為淺色）：設定頁暱稱框邊線 rgb(118,124,114)，對周圍 4.29:1；暱稱說明 16px；skip link 聚焦 130×44；`/play?game=chess&mode=ai` 兩組 radio 各自 name、5 個選項說明皆 16px、時間下拉邊線 rgb(118,124,114)。數獨頁因瀏覽器內有負責人進行中的存檔，未操作。
 
-## 20. 真實 400% 與下一輪交付（2026-10-18）
-
-- 首頁／共用介面 R1–R4 保留既有通過結論。本輪以 macOS Chrome 原生選單設 400%，100% 時 1405×619／DPR 2，400% 時 351×154／DPR 8；非 viewport 模擬或 CSS 放大。
-- 首頁中英／淺深、選單與設定檢查範圍內未發現水平溢出；新發現 R5：skip link → Tab 至 play-chess 時，固定頁首遮住按鈕及焦點上緣。待修正，不宣告 400% 全通過。
-- 詳見 [報告及重現](design/HOME_SHARED_MANUAL_2026-10-18.md)、[實測 JSON](test-results/home-manual-2026-10-18.json)。測後已恢復原縮放與主題。
-- iPhone／iPad Safari＋VoiceOver：負責人已選裝置組合，尚待機型、系統版本及 A–D 實測結果；不是已驗收。Android／Firefox／Edge 本輪未測。
-- 色彩塗鴉樂 V1 及七款短練習已完成產品交付；僅驗證 JSON 格式、6 任務／4 配方引用、35 組文案的雙語占位符及短提示長度，不代表新遊戲已實作或通過 DC01–DC12。
-- [直接開工交接](handoff/GAMES_NEXT_SPRINT_2026-10-18.md)。餐廳維持暫停。
-
 ### 19.2 R5：短視窗／真實 400 % 時固定頁首遮住焦點（2026-10-18）
 
 - 修正（最小改動）：`src/index.css` 對 `html` 設 `scroll-padding-top: 4.5rem`／`scroll-padding-bottom: 0.75rem`，Tab、Shift+Tab、skip link 帶到的控制自動避開頁首；視窗高度 ≤ 30rem（例如 1405×619 視窗在 400 % 縮放下為 351×154 CSS px）時頁首改為一般文流（不 sticky），不可能再蓋住內容。未縮字、未縮小觸控區。
 - 共用 Modal 另支援 `data-autofocus` 指定開啟時的焦點（破壞性確認預設在「取消」）。
 - 測試 `home-shared-e2e.mjs` HU-R5：以 351×154 CSS px＠DPR 8（產品端實測 Chrome 400 % 的同一版面；Puppeteer 無法驅動原生縮放，**原生縮放本身未由工程重跑**）、1280×560（頁首仍 sticky）、390×500 × 中英：skip link → Enter → Tab 到「開始玩：西洋棋」完整可見；首頁、選單、設定各 Tab／Shift+Tab 30–40 步，所有控制與 3 px 焦點框都不在頁首下方或畫面外。
 
-## 20. 色彩塗鴉樂 預覽（A1＋A2，Issue #7，2026-10-18）
+### 19.3 產品端紀錄：真實 400 %（2026-10-18，產品複驗，非工程測試）
+
+- 初驗：
+  - 首頁／共用介面 R1–R4 保留既有通過結論。本輪以 macOS Chrome 原生選單設 400%，100% 時 1405×619／DPR 2，400% 時 351×154／DPR 8；非 viewport 模擬或 CSS 放大。
+  - 首頁中英／淺深、選單與設定檢查範圍內未發現水平溢出；新發現 R5：skip link → Tab 至 play-chess 時，固定頁首遮住按鈕及焦點上緣。待修正，不宣告 400% 全通過。
+  - 詳見 [報告及重現](design/HOME_SHARED_MANUAL_2026-10-18.md)、[實測 JSON](test-results/home-manual-2026-10-18.json)。測後已恢復原縮放與主題。
+  - iPhone／iPad Safari＋VoiceOver：負責人已選裝置組合，尚待機型、系統版本及 A–D 實測結果；不是已驗收。Android／Firefox／Edge 本輪未測。
+- 複驗（R5 修正 f80776c 後）：Chrome 原生選單 400 %（351×154／DPR 8）重跑 skip link → Enter → Tab 到「開始玩：西洋棋」，按鈕與 3 px 焦點框完整可見；頁首隨頁面捲走；首頁／頁尾 17 個、選單 13 個 Tab 停點與英文深色首頁通過。**R1–R5 不需再派修**；#6 只追蹤 iPhone／iPad Safari＋VoiceOver 實機結果。詳見 [design/DOODLE_R5_REVIEW_2026-10-18.md](design/DOODLE_R5_REVIEW_2026-10-18.md)。
+
+## 20. 色彩塗鴉樂 預覽（Issue #7）
+
+產品交付（2026-10-18，產品紀錄）：
+- 色彩塗鴉樂 V1 及七款短練習已完成產品交付；僅驗證 JSON 格式、6 任務／4 配方引用、35 組文案的雙語占位符及短提示長度，不代表新遊戲已實作或通過 DC01–DC12。
+- [直接開工交接](handoff/GAMES_NEXT_SPRINT_2026-10-18.md)。餐廳維持暫停。
+
+### 20.1 工程驗收：A1＋A2 首版（2026-10-18，commit f80776c）
 
 - 規格：`docs/product/DOODLE_COLOR_LAB_V1.md`；資料 `shared/doodle/lessons.json`（與 `docs/product/doodle-lessons-v1.json` 完全相同，單元測試比對）
 - 實作：`shared/doodle/model.ts`（固定配方查表、整筆復原／重做、任務步驟、存檔嚴格驗證）、`src/doodle/pages.tsx`（畫紙、工具、色盤、混色盤、任務、格子蓋印章、清紙確認、PNG）、`src/doodle/draw.ts`（Canvas 2D 繪製與匯出）。未使用 Three.js（Canvas 2D＋DOM 最快且無 WebGL 依賴，因此「無 WebGL 仍可玩」天然成立）。
 - 預覽：`/doodle`、`/en/doodle`，noindex、robots 排除、不列首頁（A3 才正式加入）。
-- 測試：單元 `tests/doodle.test.ts` 5 項；瀏覽器 `scripts/doodle-e2e.mjs` 22／22（`doodle-e2e-local.json`，截圖 `screens/doodle/`）
+- 測試：單元 `tests/doodle.test.ts` 5 項；瀏覽器 `scripts/doodle-e2e.mjs` 22／22（`doodle-e2e-local.json`，截圖 `screens/doodle/`，含混色後 `doodle-after-mix-*-360.png`）
 
 | ID | 結果 | 實測／說明 |
 |---|---|---|
@@ -558,3 +564,21 @@ AI 只使用玩家看得到的資訊：貪食蛇有單元測試確認對手尚�
 
 - 部署：commit f80776c；[CI](https://github.com/yangchijung/jytrvl-chess/actions/runs/39126647518) build-and-test、Cloudflare Pages、Workers Builds 皆成功
 - 正式站（2026-10-18，Chrome）：/doodle noindex；任務 1 按「混一混」→ 公告「紅色加黃色，變成橙色。」、自動選橙；以真實滑鼠拖曳畫一筆 → 任務完成「紅加黃，變成橙！」、顯示「已存好」；抽查後已刪除測試存檔
+
+### 20.2 產品端紀錄：塗鴉複驗 D1–D4（2026-10-18，產品複驗，非工程測試）
+
+- 產品端在正式站完成六任務並確認畫筆／混色／整筆復原／清紙復原／格子鍵盤／PNG 可用，360／768 × 中英 × 淺深 8 組無溢出；原生 400 % 下 27 個停點可見。A1 有可玩交付，A2 尚未全數驗收。
+- 發現四項 P2：D1 重新整理失去中途任務與畫紙模式；D2 混色後結果與下一步捲出畫面、焦點落到 BODY；D3 JSON 解析失敗或備份寫入失敗時回空白且之後覆寫原存檔；D4 寫入可產生 2001 操作／5000 點但讀取拒收。詳見 [design/DOODLE_R5_REVIEW_2026-10-18.md](design/DOODLE_R5_REVIEW_2026-10-18.md)、[存檔隔離測試](test-results/doodle-r5-review-2026-10-18/save-boundary-review.json)。
+
+### 20.3 工程修正：D3／D4 → D1／D2（2026-10-18）
+
+| ID | 修正 | 測試 |
+|---|---|---|
+| D3 | `src/doodle/storage.ts`：讀取／解析／驗證／備份分開判斷。無法解析或較新版本的存檔先另存備份並讀回確認，成功才寫主存檔；備份失敗時**主存檔不再寫入**，改存 `jy.doodle.v1.recovered`（下次載入接續這張），兩者都不能寫就不存並提示；提示列提供「下載舊存檔」（原文 JSON）。同一份壞檔以內容雜湊為備份鍵，重整不會累積多份。儲存時先確認寫出的文字可被讀取器接受且讀回相同，才顯示「已存好」 | 單元：壞 JSON、較新版本、備份寫入失敗（主鍵不變、寫到替代鍵、再次載入接續）、全部不能寫、localStorage 讀取丟例外。瀏覽器 D3：較新版本存檔＋備份 quota 失敗，畫一筆、重整後主鍵原文不變、替代鍵有畫、提示與下載鈕存在 |
+| D4 | `MAX_OPS`＝2000、`MAX_PTS`＝2000 由寫入與驗證共用。歷史滿時先壓縮：自由畫只丟最後一次「換新紙」之前看不到的操作；格子收合成目前九格快照；仍滿則不加這一筆並顯示「這張畫紙滿了。先存成圖片，再換一張新畫紙。」（不截掉早期筆畫）。換新紙在滿紙時仍可用，確認框改說明「不能復原」。超過 2000 點的長筆在畫的當下接續成下一筆（首尾相接，畫面無斷點） | 單元：2000 操作往返通過、第 2001 筆被拒且不寫入、2001 操作讀取仍拒收、壓縮後可見畫面不變、格子快照一致、2000／2001 點邊界、4999／5000 點切段無缺口且全部可讀。瀏覽器 D4-a（2000 操作再畫一筆→畫紙滿了、未顯示已存好、換新紙說明不能復原）、D4-b（2300 點一筆→多段 ≤ 2000 點，重整後讀回無警告） |
+| D1 | 存檔新增選填欄位 `surface`（自由畫／格子）與 `active`（任務 ID、猜測、混色、選擇、各色筆數），仍為 schemaVersion 1；舊存檔載入時補預設值，不丟畫 | 單元：舊存檔遷移、任務 4 第一種藍後讀回再完成、欄位驗證。瀏覽器 D1-a（格子→任務 3→混色→重整：仍在格子、任務 3、用色步驟）、D1-b（任務 4 蓋第一種藍→重整→同一任務與筆數、自動選藍、蓋第二種藍完成）、D1-c（修正前格式的存檔正常開啟） |
+| D2 | 混色後混色盤保留顯示結果、色名與「用這色畫」（自由畫）／「去蓋印章」（格子），結果出現時捲到可見；按下後把畫紙（或格子）連同一行提示帶到畫面中（減少動態時立即定位），焦點落在畫紙／格子目前格。選色不捲動頁面。寬而矮的螢幕上畫紙寬度隨視窗高度縮小，讓畫紙與提示能同時看到 | 瀏覽器 D2：360 自由畫／格子、768 格子、1019×700 自由畫、740×360 減少動態：結果與按鈕在畫面內、焦點留在「混一混」（非 BODY）、選色前後捲動位置相同、鍵盤 Enter 啟動後畫紙／格子與提示在畫面內且焦點正確 |
+
+- 單元：`tests/doodle.test.ts` 8 項（新增 3）；全套 240／240。瀏覽器：`scripts/doodle-e2e.mjs` 29／29（新增 D1-a／b／c、D2、D3、D4-a／b；DC05-a 改為也確認格子模式保留）；回歸 `home-shared-e2e.mjs` 15／15；typecheck、build 通過。
+- 取捨：長筆切段後，復原以段為單位（一般長度的筆畫不受影響）；格子壓縮後較早的格子變化無法逐一復原，目前畫面不變。
+- 未測（需實機／人工）：iPhone／iPad Safari＋VoiceOver、觸控筆、孩子試玩；真實瀏覽器 400 % 由產品端執行。

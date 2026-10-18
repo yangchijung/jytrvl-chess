@@ -1,7 +1,7 @@
 // Color Doodle (色彩塗鴉樂) — preview (A1+A2). Task: draw straight away; learn three paint mixes by predicting,
 // mixing and using the result. The paper is the main content; one short instruction at a time.
 // Spec: docs/product/DOODLE_COLOR_LAB_V1.md, data: shared/doodle/lessons.json. Canvas 2D + DOM controls.
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent as RPointerEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent as RPointerEvent, type ReactNode, type RefObject } from 'react';
 import { format, useI18n } from '../i18n';
 import { Button, Modal } from '../components/ui';
 import {
@@ -10,8 +10,10 @@ import {
   COPY,
   LESSONS,
   WHEEL,
-  blankSave,
+  MAX_PTS,
   canRedo,
+  clearFree,
+  freeFull,
   canUndo,
   colorOf,
   gridCells,
@@ -19,8 +21,10 @@ import {
   lessonStep,
   mix,
   newRun,
-  push,
+  pushFree,
+  pushGrid,
   redo,
+  splitPoints,
   undo,
   validSave,
   visibleFree,
@@ -36,6 +40,7 @@ import {
   type Size,
 } from '../../shared/doodle/model';
 import { RATIO, drawOp, exportPng, renderFree } from './draw';
+import { loadSave } from './storage';
 
 type L = { zh: string; en: string };
 const X: Record<string, L> = {
@@ -63,27 +68,37 @@ const X: Record<string, L> = {
   paper: { zh: '畫紙', en: 'Drawing paper' },
   gridLabel: { zh: '格子畫紙，方向鍵移動，Enter 蓋章', en: 'Stamp grid: arrow keys to move, Enter to stamp' },
   savedLocal: { zh: '畫作只存在這個瀏覽器', en: 'Your picture stays in this browser' },
-  broken: { zh: '舊的存檔讀不出來，已另外保留；這是一張新畫紙。', en: 'The old save could not be read. It was kept aside; this is a fresh page.' },
+  broken: { zh: '舊的存檔讀不出來，已另外保留一份；這是一張新畫紙。', en: 'The old save could not be read. A copy was kept aside; this is a fresh page.' },
+  brokenFuture: { zh: '這份存檔來自較新的版本，這裡讀不出來，已另外保留一份；這是一張新畫紙。', en: 'This save comes from a newer version and cannot be read here. A copy was kept aside; this is a fresh page.' },
+  brokenNoBackup: { zh: '舊的存檔讀不出來，也沒辦法另外備份。為了不蓋掉它，這次的畫存在另一個位置。', en: 'The old save could not be read or copied. To keep it safe, this drawing is saved in a separate place.' },
+  brokenNoSave: { zh: '舊的存檔讀不出來，也沒辦法另外備份。為了不蓋掉它，這次不會存檔；離開前請先存成圖片。', en: 'The old save could not be read or copied. To keep it safe, nothing is saved this time. Save a picture before you leave.' },
+  downloadOld: { zh: '下載舊存檔', en: 'Download the old save' },
+  noStorage: { zh: '這個瀏覽器不能存畫作；離開前請先存成圖片。', en: 'This browser cannot keep drawings. Save a picture before you leave.' },
+  full: { zh: '這張畫紙滿了。先存成圖片，再換一張新畫紙。', en: 'This paper is full. Save a picture, then start a new paper.' },
+  fullClear: { zh: '這張畫紙已經滿了，換新後不能復原。想留下來，請先存成圖片。', en: 'This paper is full, so a new paper cannot be undone. Save a picture first if you want to keep it.' },
+  goStamp: { zh: '去蓋印章', en: 'Go stamp' },
+  goDraw: { zh: '用這色畫', en: 'Draw with it' },
   wheel: { zh: '色環', en: 'Colour wheel' },
   need: { zh: '還要：', en: 'Still need:' },
   stampHere: { zh: '在這格蓋章', en: 'Stamp here' },
   eraseHere: { zh: '擦掉這格', en: 'Erase this cell' },
   done: { zh: '完成', en: 'Done' },
 };
-const KEY = 'jy.doodle.v1';
 const reduced = () => typeof window !== 'undefined' && (document.documentElement.hasAttribute('data-reduce-motion') || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
 
-function loadSave(): { s: Saved; broken: boolean } {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return { s: blankSave(), broken: false };
-    const x = JSON.parse(raw);
-    if (validSave(x)) return { s: x, broken: false };
-    localStorage.setItem(`${KEY}.backup-${Date.now()}`, raw); // never overwrite unreadable data silently
-    return { s: blankSave(), broken: true };
-  } catch {
-    return { s: blankSave(), broken: false };
-  }
+function slotsFor(lessonId: string | undefined): (ColorId | null)[] {
+  const l = LESSONS.find((x) => x.id === lessonId);
+  const r = l?.recipe ? [mix('red', 'yellow'), mix('yellow', 'blue'), mix('blue', 'red'), mix('blue', 'white')].find((x) => x?.id === l.recipe) : null;
+  return r ? [...r.inputs] : [null, null];
+}
+function downloadText(text: string) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+  a.download = `color-doodle-old-save-${Date.now()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 
 // ------------------------------------------------------------------ small pieces
@@ -161,23 +176,33 @@ const ICONS = {
 export function DoodlePage() {
   const { lang } = useI18n();
   const c = (k: string, v?: Record<string, string | number>) => format((COPY[k] ?? X[k])[lang], v);
-  const [{ s: init, broken }] = useState(loadSave);
+  const [{ s: init, target, notice, oldRaw }] = useState(() => loadSave());
   const [s, setS] = useState<Saved>(init);
-  const [surface, setSurface] = useState<'free' | 'grid'>('free');
+  // D1: the open paper and the task in progress live in the save, so a reload continues where the child was
+  const surface = s.surface ?? 'free';
+  const setSurface = (v: 'free' | 'grid') => setS((p) => ({ ...p, surface: v }));
+  const run = s.active ?? null;
+  const setRun = (v: LessonRun | null | ((r: LessonRun | null) => LessonRun | null)) => setS((p) => ({ ...p, active: typeof v === 'function' ? v(p.active ?? null) : v }));
+  const lessonIdx = run ? LESSONS.findIndex((l) => l.id === run.lessonId) : null;
+  const [full, setFull] = useState(false);
+  const freeRef = useRef(s.free);
+  freeRef.current = s.free;
+  const paperRef = useRef<HTMLCanvasElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const resultRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const [tool, setTool] = useState<'brush' | 'eraser' | 'stamp'>('brush');
   const [color, setColor] = useState<ColorId>('red');
   const [size, setSize] = useState<Size>('m');
   const [shape, setShape] = useState<Shape>('circle');
   const [showAll, setShowAll] = useState(false);
   const [panel, setPanel] = useState<'draw' | 'mix'>('draw');
-  const [slots, setSlots] = useState<(ColorId | null)[]>([null, null]);
+  const [slots, setSlots] = useState<(ColorId | null)[]>(() => slotsFor(init.active?.lessonId));
   const [mixOut, setMixOut] = useState<{ recipe: Recipe | null; a: ColorId; b: ColorId } | null>(null);
-  const [lessonIdx, setLessonIdx] = useState<number | null>(null);
-  const [run, setRun] = useState<LessonRun | null>(null);
   const [choiceMsg, setChoiceMsg] = useState<string | null>(null);
   const [why, setWhy] = useState(false);
   const [say, setSay] = useState('');
-  const [saveState, setSaveState] = useState<'saved' | 'error' | null>(null);
+  const [saveState, setSaveState] = useState<'saved' | 'error' | null>(target ? null : 'error');
   const [confirmClear, setConfirmClear] = useState(false);
   const [gridFocus, setGridFocus] = useState(0);
 
@@ -193,38 +218,56 @@ export function DoodlePage() {
       first.current = false;
       return;
     }
+    if (!target) return setSaveState('error');
     try {
-      localStorage.setItem(KEY, JSON.stringify(s));
-      setSaveState('saved');
+      const text = JSON.stringify(s);
+      // "Saved" only when what was written is exactly what the reader accepts (D4)
+      if (!validSave(JSON.parse(text))) throw new Error('unreadable');
+      localStorage.setItem(target, text);
+      setSaveState(localStorage.getItem(target) === text ? 'saved' : 'error');
     } catch {
       setSaveState('error');
     }
-  }, [s]);
+  }, [s, target]);
   useEffect(() => {
-    (window as unknown as { __doodle?: unknown }).__doodle = { s, run, step, lesson: lesson?.id, color, tool, surface, panel, saveState };
+    (window as unknown as { __doodle?: unknown }).__doodle = { s, run, step, lesson: lesson?.id, color, tool, surface, panel, saveState, target, notice, full };
   });
 
   const history = surface === 'free' ? s.free : s.grid;
   // apply undo / redo / clear to the paper currently shown (each paper keeps its own history)
   const onHistory = (f: 'undo' | 'redo' | 'clear') =>
     setS((p) => {
-      if (surface === 'free') return { ...p, free: f === 'undo' ? undo(p.free) : f === 'redo' ? redo(p.free) : push<FreeOp>(p.free, { t: 'clear' }) };
-      return { ...p, grid: f === 'undo' ? undo(p.grid) : f === 'redo' ? redo(p.grid) : push<GridOp>(p.grid, { t: 'clear' }) };
+      if (surface === 'free') return { ...p, free: f === 'undo' ? undo(p.free) : f === 'redo' ? redo(p.free) : clearFree(p.free) };
+      return { ...p, grid: f === 'undo' ? undo(p.grid) : f === 'redo' ? redo(p.grid) : pushGrid(p.grid, { t: 'clear' }) };
     });
+  useEffect(() => {
+    if (full && !freeFull(s.free)) setFull(false);
+  }, [s.free, full]);
   const countMark = (col: ColorId) => {
     if (run && step === 'apply') setRun((r) => (r ? { ...r, marks: { ...r.marks, [col]: (r.marks[col] ?? 0) + 1 } } : r));
   };
   const commitFree = useCallback(
     (op: FreeOp) => {
-      setS((p) => ({ ...p, free: push(p.free, op) }));
+      // D4: a stroke never exceeds what the reader accepts; a full paper is said out loud instead of silently dropped
+      const parts: FreeOp[] = op.t === 'stroke' && op.pts.length > MAX_PTS ? splitPoints(op.pts).map((pts) => ({ ...op, pts })) : [op];
+      let h: History<FreeOp> | null = freeRef.current; // a long stroke can commit twice before React re-renders
+      for (const part of parts) h = h && pushFree(h, part);
+      if (!h) {
+        setFull(true); // re-render redraws the paper without the stroke that did not fit
+        setSay(X.full[lang]);
+        return;
+      }
+      const next = h;
+      freeRef.current = next;
+      setS((p) => ({ ...p, free: next }));
       if (op.t !== 'clear' && !(op.t === 'stroke' && op.erase)) countMark(op.color);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [run, step],
+    [run, step, lang],
   );
   const stampCell = (i: number) => {
     const value = tool === 'eraser' ? null : { color, shape };
-    setS((p) => ({ ...p, grid: push(p.grid, { t: 'cell', i, value }) }));
+    setS((p) => ({ ...p, grid: pushGrid(p.grid, { t: 'cell', i, value }) }));
     if (value) countMark(color);
     const content = value ? `${colorOf(color).name[lang]}${lang === 'zh' ? '' : ' '}${c(shape)}` : c('empty');
     setSay(c('gridAnnouncement', { row: Math.floor(i / 3) + 1, column: (i % 3) + 1, content }));
@@ -241,20 +284,13 @@ export function DoodlePage() {
 
   const startLesson = (i: number) => {
     const l = LESSONS[i];
-    setLessonIdx(i);
     setRun(newRun(l.id));
     setChoiceMsg(null);
     setWhy(false);
     setMixOut(null);
-    if (l.recipe) {
-      const r = mix(...(LESSONS[i].recipe === 'tint_blue' ? (['blue', 'white'] as [ColorId, ColorId]) : recipeInputs(l.recipe)));
-      setSlots(r ? [...r.inputs] : [null, null]);
-    }
+    if (l.recipe) setSlots(slotsFor(l.id));
   };
-  const recipeInputs = (id: string) => {
-    const r = [...[mix('red', 'yellow'), mix('yellow', 'blue'), mix('blue', 'red'), mix('blue', 'white')]].find((x) => x?.id === id)!;
-    return r.inputs;
-  };
+  const exitLesson = () => setRun(null);
   const doMix = () => {
     const [a, b] = slots;
     if (!a || !b) return;
@@ -270,6 +306,21 @@ export function DoodlePage() {
     setColor(id);
     if (tool === 'eraser') setTool('brush');
     setPanel('draw');
+  };
+  // D2: after mixing, the result stays on screen until the child takes it to the paper; only that button moves the view
+  useEffect(() => {
+    if (mixOut) resultRef.current?.scrollIntoView({ block: 'nearest', behavior: reduced() ? 'instant' : 'smooth' });
+  }, [mixOut]);
+  const takeToPaper = (id: ColorId) => {
+    useColour(id);
+    setMixOut(null);
+    requestAnimationFrame(() => {
+      // the paper (or grid) and its one-line hint together; when they are taller than the screen, start at the top
+      const el = stageRef.current;
+      if (el) el.scrollIntoView({ block: el.getBoundingClientRect().height <= window.innerHeight - 80 ? 'center' : 'start', behavior: reduced() ? 'instant' : 'smooth' });
+      if (surface === 'free') paperRef.current?.focus({ preventScroll: true });
+      else gridRef.current?.querySelector<HTMLButtonElement>('button[tabindex="0"]')?.focus({ preventScroll: true });
+    });
   };
   const pickSlot = (id: ColorId) => {
     setMixOut(null);
@@ -341,7 +392,17 @@ export function DoodlePage() {
           </button>
         </div>
       </div>
-      {broken && <p className="rounded-md bg-[var(--ui-alert-bg)] px-3 py-2 text-[var(--ui-alert-text)]" role="alert">{X.broken[lang]}</p>}
+      {notice && (
+        <div className="flex flex-wrap items-center gap-2 rounded-md bg-[var(--ui-alert-bg)] px-3 py-2 text-[var(--ui-alert-text)]" role="alert" data-testid="save-notice" data-notice={notice}>
+          <p>{X[notice][lang]}</p>
+          {oldRaw && (
+            <Button variant="secondary" size="sm" onClick={() => downloadText(oldRaw)} data-testid="download-old">
+              <Icon d={ICONS.save} />
+              {X.downloadOld[lang]}
+            </Button>
+          )}
+        </div>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] lg:grid-rows-[auto_auto_1fr]">
         {/* paper column */}
@@ -354,14 +415,21 @@ export function DoodlePage() {
               {c('grid')}
             </button>
           </div>
+          <div ref={stageRef} className="space-y-3">
           {surface === 'free' ? (
-            <Paper ops={visibleFree(s.free)} tool={tool} color={color} size={size} shape={shape} onCommit={commitFree} label={X.paper[lang]} />
+            <Paper canvasRef={paperRef} ops={visibleFree(s.free)} tool={tool} color={color} size={size} shape={shape} onCommit={commitFree} label={X.paper[lang]} />
           ) : (
-            <StampGrid cells={gridCells(s.grid)} focus={gridFocus} setFocus={setGridFocus} onStamp={stampCell} lang={lang} label={X.gridLabel[lang]} c={c} erase={tool === 'eraser'} />
+            <StampGrid boxRef={gridRef} cells={gridCells(s.grid)} focus={gridFocus} setFocus={setGridFocus} onStamp={stampCell} lang={lang} label={X.gridLabel[lang]} c={c} erase={tool === 'eraser'} />
           )}
           <p className="min-h-6 text-base font-medium" data-testid="doodle-hint">
             {hint}
           </p>
+          {full && surface === 'free' && (
+            <p className="rounded-md bg-[var(--ui-alert-bg)] px-3 py-2 text-[var(--ui-alert-text)]" data-testid="paper-full">
+              {X.full[lang]}
+            </p>
+          )}
+          </div>
         </div>
         {/* colours: right after the paper on phones, right column on desktop */}
         <div className="space-y-2 lg:col-start-2 lg:row-start-1">
@@ -460,8 +528,8 @@ export function DoodlePage() {
                 {c('mixMode')}
               </button>
             </div>
-            {(panel === 'mix' || (lesson && step === 'mix')) && (
-              <MixPad slots={slots} out={mixOut} lang={lang} c={c} onPick={pickSlot} onMix={doMix} onReset={() => (setSlots([null, null]), setMixOut(null))} onUse={useColour} locked={!!lesson && step === 'mix'} />
+            {(panel === 'mix' || (lesson && step === 'mix') || mixOut) && (
+              <MixPad slots={slots} out={mixOut} lang={lang} c={c} onPick={pickSlot} onMix={doMix} onReset={() => (setSlots([null, null]), setMixOut(null))} onUse={takeToPaper} useLabel={surface === 'grid' ? X.goStamp[lang] : X.goDraw[lang]} locked={!!lesson && (step === 'mix' || !!mixOut)} resultRef={resultRef} />
             )}
           </div>
 
@@ -538,14 +606,14 @@ export function DoodlePage() {
                       onClick={() => {
                         const nx = lessonsForLevel.find(({ i }) => i > lessonIdx);
                         if (nx) startLesson(nx.i);
-                        else (setLessonIdx(null), setRun(null));
+                        else exitLesson();
                       }}
                       data-testid="lesson-skip"
                     >
                       {c('skip')}
                     </Button>
                   )}
-                  <Button size="sm" variant="ghost" onClick={() => (setLessonIdx(null), setRun(null), setPanel('draw'))} data-testid="lesson-exit">
+                  <Button size="sm" variant="ghost" onClick={() => (exitLesson(), setPanel('draw'))} data-testid="lesson-exit">
                     {X.backFree[lang]}
                   </Button>
                   <Button size="sm" variant="ghost" aria-expanded={why} onClick={() => setWhy((w) => !w)} data-testid="lesson-why">
@@ -569,7 +637,7 @@ export function DoodlePage() {
       </p>
 
       <Modal open={confirmClear} onClose={() => setConfirmClear(false)} title={c('clearTitle')}>
-        <p className="mb-4">{c('clearBody')}</p>
+        <p className="mb-4">{surface === 'free' && freeFull(s.free) ? X.fullClear[lang] : c('clearBody')}</p>
         <div className="flex flex-wrap justify-end gap-2">
           <Button variant="secondary" data-autofocus onClick={() => setConfirmClear(false)} data-testid="clear-cancel">
             {c('cancel')}
@@ -591,9 +659,9 @@ export function DoodlePage() {
 }
 
 // ------------------------------------------------------------------ paper (Canvas 2D)
-function Paper({ ops, tool, color, size, shape, onCommit, label }: { ops: FreeOp[]; tool: 'brush' | 'eraser' | 'stamp'; color: ColorId; size: Size; shape: Shape; onCommit: (op: FreeOp) => void; label: string }) {
+function Paper({ canvasRef, ops, tool, color, size, shape, onCommit, label }: { canvasRef: RefObject<HTMLCanvasElement | null>; ops: FreeOp[]; tool: 'brush' | 'eraser' | 'stamp'; color: ColorId; size: Size; shape: Shape; onCommit: (op: FreeOp) => void; label: string }) {
   const wrap = useRef<HTMLDivElement>(null);
-  const cv = useRef<HTMLCanvasElement>(null);
+  const cv = canvasRef;
   const live = useRef<{ id: number; pts: [number, number][] } | null>(null);
   const [dim, setDim] = useState({ w: 0, h: 0, dpr: 1 });
 
@@ -639,6 +707,11 @@ function Paper({ ops, tool, color, size, shape, onCommit, label }: { ops: FreeOp
     const last = l.pts[l.pts.length - 1];
     if (Math.hypot(p[0] - last[0], p[1] - last[1]) < 0.002) return;
     l.pts.push(p);
+    // D4: a very long stroke continues as the next stroke, so no saved stroke exceeds MAX_PTS points
+    if (l.pts.length >= MAX_PTS) {
+      onCommit({ t: 'stroke', color, size, erase: tool === 'eraser', pts: l.pts.map(([x, y]) => [+x.toFixed(4), +y.toFixed(4)]) });
+      l.pts = [p];
+    }
     const c = cv.current!;
     drawOp(c.getContext('2d')!, { t: 'stroke', color, size, erase: tool === 'eraser', pts: [last, p] }, c.width, c.height);
   };
@@ -655,9 +728,10 @@ function Paper({ ops, tool, color, size, shape, onCommit, label }: { ops: FreeOp
     onCommit({ t: 'stroke', color, size, erase: tool === 'eraser', pts: l.pts.map(([x, y]) => [+x.toFixed(4), +y.toFixed(4)]) });
   };
   return (
-    <div ref={wrap} className="w-full">
+    <div ref={wrap} className="mx-auto w-full" style={{ maxWidth: 'max(18rem, calc((100dvh - 8rem) * 4 / 3))' }}>
       <canvas
         ref={cv}
+        tabIndex={-1}
         role="img"
         aria-label={label}
         className="block w-full touch-none rounded-md border border-[var(--ui-control-border)] bg-white"
@@ -674,7 +748,7 @@ function Paper({ ops, tool, color, size, shape, onCommit, label }: { ops: FreeOp
 }
 
 // ------------------------------------------------------------------ stamp grid (keyboard / screen reader path)
-function StampGrid({ cells, focus, setFocus, onStamp, lang, label, c, erase }: { cells: ({ color: ColorId; shape: Shape } | null)[]; focus: number; setFocus: (i: number) => void; onStamp: (i: number) => void; lang: 'zh' | 'en'; label: string; c: (k: string, v?: Record<string, string | number>) => string; erase: boolean }) {
+function StampGrid({ boxRef, cells, focus, setFocus, onStamp, lang, label, c, erase }: { boxRef: RefObject<HTMLDivElement | null>; cells: ({ color: ColorId; shape: Shape } | null)[]; focus: number; setFocus: (i: number) => void; onStamp: (i: number) => void; lang: 'zh' | 'en'; label: string; c: (k: string, v?: Record<string, string | number>) => string; erase: boolean }) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const onKey = (e: KeyboardEvent, i: number) => {
     const moves: Record<string, number> = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: 3, ArrowUp: -3 };
@@ -688,7 +762,7 @@ function StampGrid({ cells, focus, setFocus, onStamp, lang, label, c, erase }: {
     }
   };
   return (
-    <div className="mx-auto w-full max-w-md" role="group" aria-label={label} data-testid="stamp-grid">
+    <div ref={boxRef} className="mx-auto w-full max-w-md" role="group" aria-label={label} data-testid="stamp-grid">
       <div className="grid grid-cols-3 gap-0 overflow-hidden rounded-md border border-[var(--ui-control-border)] bg-white">
         {cells.map((cell, i) => {
           const content = cell ? `${colorOf(cell.color).name[lang]}${lang === 'zh' ? '' : ' '}${c(cell.shape)}` : c('empty');
@@ -724,7 +798,7 @@ function StampGrid({ cells, focus, setFocus, onStamp, lang, label, c, erase }: {
 }
 
 // ------------------------------------------------------------------ mixing pad
-function MixPad({ slots, out, lang, c, onPick, onMix, onReset, onUse, locked }: { slots: (ColorId | null)[]; out: { recipe: Recipe | null; a: ColorId; b: ColorId } | null; lang: 'zh' | 'en'; c: (k: string, v?: Record<string, string | number>) => string; onPick: (id: ColorId) => void; onMix: () => void; onReset: () => void; onUse: (id: ColorId) => void; locked: boolean }) {
+function MixPad({ slots, out, lang, c, onPick, onMix, onReset, onUse, useLabel, locked, resultRef }: { useLabel: string; resultRef: RefObject<HTMLDivElement | null>; slots: (ColorId | null)[]; out: { recipe: Recipe | null; a: ColorId; b: ColorId } | null; lang: 'zh' | 'en'; c: (k: string, v?: Record<string, string | number>) => string; onPick: (id: ColorId) => void; onMix: () => void; onReset: () => void; onUse: (id: ColorId) => void; locked: boolean }) {
   return (
     <div className="space-y-3" data-testid="mixpad">
       {!locked && (
@@ -762,7 +836,7 @@ function MixPad({ slots, out, lang, c, onPick, onMix, onReset, onUse, locked }: 
         )}
       </div>
       {out && (
-        <div className="space-y-2 rounded-md bg-[var(--surface-2)] p-3" data-testid="mix-result" data-output={out.recipe?.output ?? ''}>
+        <div ref={resultRef} className="space-y-2 rounded-md bg-[var(--surface-2)] p-3" data-testid="mix-result" data-output={out.recipe?.output ?? ''}>
           {out.recipe ? (
             <>
               <p className="flex flex-wrap items-center gap-2 font-medium">
@@ -775,7 +849,7 @@ function MixPad({ slots, out, lang, c, onPick, onMix, onReset, onUse, locked }: 
                 </span>
               </p>
               <Button size="sm" onClick={() => onUse(out.recipe!.output)} data-testid="mix-use">
-                {c('useColour')}
+                {useLabel}
               </Button>
             </>
           ) : (

@@ -1,8 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { COLORS, LESSONS, RECIPES, blankSave, canRedo, canUndo, empty, gridCells, isCorrectChoice, lessonStep, mix, newRun, push, redo, undo, validSave, visibleFree, type FreeOp, type GridOp } from '../shared/doodle/model';
+import { ALT, KEY, backupKey, loadSave } from '../src/doodle/storage';
+import { COLORS, LESSONS, MAX_OPS, MAX_PTS, RECIPES, blankSave, clearFree, freeFull, migrate, pushFree, pushGrid, readSave, splitPoints, canRedo, canUndo, empty, gridCells, isCorrectChoice, lessonStep, mix, newRun, push, redo, undo, validSave, visibleFree, type FreeOp, type GridOp } from '../shared/doodle/model';
 
-const stroke = (color: 'red' | 'orange' = 'red'): FreeOp => ({ t: 'stroke', color, size: 'm', pts: [[0.1, 0.1], [0.2, 0.2]] });
+const stroke = (color: 'red' | 'orange' = 'red'): Extract<FreeOp, { t: 'stroke' }> => ({ t: 'stroke', color, size: 'm', pts: [[0.1, 0.1], [0.2, 0.2]] });
 
 describe('color doodle model', () => {
   it('uses the product JSON unchanged', () => {
@@ -90,5 +91,125 @@ describe('color doodle model', () => {
     expect(validSave({ ...s, free: { ops: [], n: 3 } })).toBe(false);
     expect(validSave({ ...s, done: ['X'] })).toBe(false);
     expect(validSave(null)).toBe(false);
+  });
+
+  const roundTrip = (x: unknown) => validSave(JSON.parse(JSON.stringify(x)));
+
+  it('D4: what the app writes is what the reader accepts (2000/2001 ops, 2000/2001 points, compaction, full paper)', () => {
+    expect(MAX_OPS).toBe(2000);
+    const s = blankSave();
+    for (let i = 0; i < MAX_OPS; i++) s.free = pushFree(s.free, stroke())!;
+    expect(s.free.ops).toHaveLength(2000);
+    expect(roundTrip(s)).toBe(true);
+    // the 2001st op without a "new paper" to drop: refused (the paper is full), never written past the limit
+    expect(pushFree(s.free, stroke())).toBeNull();
+    expect(freeFull(s.free)).toBe(true);
+    expect(roundTrip({ ...s, free: { ops: [...s.free.ops, stroke()], n: 2001 } })).toBe(false); // reader limit unchanged
+    // a "new paper" still works on a full paper (not undoable then)
+    expect(visibleFree(clearFree(s.free))).toHaveLength(0);
+    expect(roundTrip({ ...s, free: clearFree(s.free) })).toBe(true);
+    // with an applied clear inside, only the hidden part before it is dropped; the visible picture is unchanged
+    let h = empty<FreeOp>();
+    for (let i = 0; i < 1000; i++) h = pushFree(h, stroke())!;
+    h = pushFree(h, { t: 'clear' })!;
+    for (let i = 0; i < 999; i++) h = pushFree(h, stroke('orange'))!;
+    expect(h.ops).toHaveLength(2000);
+    const before = visibleFree(h);
+    h = pushFree(h, stroke('orange'))!;
+    expect(h.ops.length).toBeLessThanOrEqual(MAX_OPS);
+    expect(visibleFree(h)).toEqual([...before, stroke('orange')]);
+    expect(roundTrip({ ...blankSave(), free: h })).toBe(true);
+    // stamp grid: compaction keeps the current cells exactly
+    let g = empty<GridOp>();
+    for (let i = 0; i < 2000; i++) g = pushGrid(g, { t: 'cell', i: i % 9, value: { color: i % 2 ? 'red' : 'blue', shape: 'circle' } });
+    const cells = gridCells(g);
+    g = pushGrid(g, { t: 'cell', i: 0, value: { color: 'green', shape: 'square' } });
+    expect(g.ops.length).toBeLessThanOrEqual(MAX_OPS);
+    expect(gridCells(g)).toEqual([{ color: 'green', shape: 'square' }, ...cells.slice(1)]);
+    expect(roundTrip({ ...blankSave(), grid: g })).toBe(true);
+    // points: 2000 accepted, 2001 rejected; long strokes are split into continuous strokes that all pass
+    const pts = (n: number) => Array.from({ length: n }, (_, i) => [i % 2 ? 0.1 : 0.9, 0.5] as [number, number]);
+    expect(MAX_PTS).toBe(2000);
+    expect(roundTrip({ ...blankSave(), free: push(empty<FreeOp>(), { ...stroke(), pts: pts(2000) }) })).toBe(true);
+    expect(roundTrip({ ...blankSave(), free: push(empty<FreeOp>(), { ...stroke(), pts: pts(2001) }) })).toBe(false);
+    for (const n of [4999, 5000]) {
+      const parts = splitPoints(pts(n));
+      expect(parts.every((p) => p.length <= MAX_PTS && p.length > 1)).toBe(true);
+      parts.slice(1).forEach((p, k) => expect(p[0]).toEqual(parts[k][parts[k].length - 1])); // no gap
+      expect(new Set(parts.flat().map((p) => p.join()))).toEqual(new Set(pts(n).map((p) => p.join())));
+      let fh = empty<FreeOp>();
+      for (const p of parts) fh = pushFree(fh, { ...stroke(), pts: p })!;
+      expect(roundTrip({ ...blankSave(), free: fh })).toBe(true);
+    }
+  });
+
+  const mem = (init: Record<string, string>, failBackup = false, failAll = false) => {
+    const m = new Map(Object.entries(init));
+    return {
+      m,
+      store: {
+        getItem: (k: string) => m.get(k) ?? null,
+        setItem: (k: string, v: string) => {
+          if (failAll || (failBackup && k.includes('.backup-'))) throw new Error('QuotaExceededError');
+          m.set(k, v);
+        },
+      },
+    };
+  };
+
+  it('D3: unreadable, newer-version or uncopyable saves are never overwritten', () => {
+    // invalid JSON: copied aside first, then a fresh page writes the main key
+    let t = mem({ [KEY]: '{' });
+    let r = loadSave(t.store);
+    expect(r.notice).toBe('broken');
+    expect(r.target).toBe(KEY);
+    expect(t.m.get(backupKey('{'))).toBe('{');
+    expect(r.oldRaw).toBe('{');
+    expect(loadSave(t.store).target).toBe(KEY); // reloading does not pile up copies
+    expect([...t.m.keys()].filter((k) => k.includes('.backup-'))).toHaveLength(1);
+    // newer version: kept, not read
+    const future = JSON.stringify({ schemaVersion: 3, art: 'sentinel' });
+    t = mem({ [KEY]: future });
+    r = loadSave(t.store);
+    expect(r.notice).toBe('brokenFuture');
+    expect(t.m.get(backupKey(future))).toBe(future);
+    // copy fails: the main key is not a write target; the drawing goes to the alternate key
+    t = mem({ [KEY]: future }, true);
+    r = loadSave(t.store);
+    expect(r.notice).toBe('brokenNoBackup');
+    expect(r.target).toBe(ALT);
+    expect(r.oldRaw).toBe(future);
+    const next = { ...r.s, free: push(r.s.free, stroke()) };
+    t.store.setItem(r.target!, JSON.stringify(next));
+    expect(t.m.get(KEY)).toBe(future);
+    // the next visit continues the alternate drawing and still protects the original
+    r = loadSave(t.store);
+    expect(r.target).toBe(ALT);
+    expect(visibleFree(r.s.free)).toHaveLength(1);
+    expect(t.m.get(KEY)).toBe(future);
+    // nothing writable at all
+    t = mem({ [KEY]: '{', [ALT]: '{' }, true);
+    expect(loadSave(t.store)).toMatchObject({ notice: 'brokenNoSave', target: null });
+    expect(loadSave({ getItem: () => { throw new Error('SecurityError'); }, setItem: () => {} })).toMatchObject({ notice: 'noStorage', target: null });
+    expect(readSave(() => null).kind).toBe('empty');
+  });
+
+  it('D1: the open paper and the task in progress are saved; older saves still load with every drawing', () => {
+    const old = { schemaVersion: 1, free: push(empty<FreeOp>(), stroke()), grid: empty<GridOp>(), done: ['DC-L01'], level: 'easy', mixedColors: ['orange'] };
+    expect(validSave(old)).toBe(true);
+    const m = migrate(old as never);
+    expect(m).toMatchObject({ surface: 'free', active: null, done: ['DC-L01'] });
+    expect(visibleFree(m.free)).toHaveLength(1);
+    const l4 = LESSONS[3];
+    const s = { ...blankSave(), surface: 'grid' as const, active: { ...newRun(l4.id), mixed: ['tint_blue'], marks: { light_blue: 1 } } };
+    const back = readSave(() => JSON.stringify(s));
+    expect(back.kind).toBe('ok');
+    if (back.kind !== 'ok') return;
+    expect(back.save.surface).toBe('grid');
+    expect(lessonStep(l4, back.save.active!, 'easy')).toBe('apply');
+    expect(lessonStep(l4, { ...back.save.active!, marks: { ...back.save.active!.marks, blue: 1 } }, 'easy')).toBe('done');
+    expect(validSave({ ...s, surface: 'wall' })).toBe(false);
+    expect(validSave({ ...s, active: { ...s.active, lessonId: 'X' } })).toBe(false);
+    expect(validSave({ ...s, active: { ...s.active, marks: { pink: 1 } } })).toBe(false);
   });
 });
