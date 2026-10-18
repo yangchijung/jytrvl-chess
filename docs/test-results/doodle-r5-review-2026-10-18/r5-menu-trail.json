@@ -1,0 +1,80 @@
+[
+  {
+    "bottom": 141,
+    "name": "所有遊戲",
+    "top": 97,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 142.75,
+    "name": "西洋棋",
+    "top": 98.75,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 97.375,
+    "name": "中國象棋",
+    "top": 53.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 141.375,
+    "name": "台灣暗棋",
+    "top": 97.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 142.75,
+    "name": "領地爭奪戰",
+    "top": 98.75,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 97.375,
+    "name": "貪食蛇競技場",
+    "top": 53.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 141.375,
+    "name": "方塊消除對戰",
+    "top": 97.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 142.75,
+    "name": "數獨",
+    "top": 98.75,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 97.375,
+    "name": "排行榜",
+    "top": 53.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 141.375,
+    "name": "對局紀錄",
+    "top": 97.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 142.75,
+    "name": "設定",
+    "top": 98.75,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 97.375,
+    "name": "玩家資料",
+    "top": 53.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 141.375,
+    "name": "使用 Google 登入",
+    "top": 97.375,
+    "visibleWithRing": true
+  }
+]

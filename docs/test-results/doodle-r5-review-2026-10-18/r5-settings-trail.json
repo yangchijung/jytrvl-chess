@@ -1,0 +1,72 @@
+[
+  {
+    "bottom": 75.875,
+    "name": "radio",
+    "tag": "INPUT",
+    "top": 74.875,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 135.875,
+    "name": "checkbox",
+    "tag": "INPUT",
+    "top": 134.875,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 75.875,
+    "name": "checkbox",
+    "tag": "INPUT",
+    "top": 74.875,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 135.875,
+    "name": "checkbox",
+    "tag": "INPUT",
+    "top": 134.875,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 75.875,
+    "name": "checkbox",
+    "tag": "INPUT",
+    "top": 74.875,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 142.75,
+    "name": "",
+    "tag": "INPUT",
+    "top": 98.75,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 97.375,
+    "name": "About",
+    "tag": "A",
+    "top": 53.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 97.375,
+    "name": "Privacy",
+    "tag": "A",
+    "top": 53.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 141.375,
+    "name": "Terms",
+    "tag": "A",
+    "top": 97.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 141.375,
+    "name": "Settings",
+    "tag": "A",
+    "top": 97.375,
+    "visibleWithRing": true
+  }
+]

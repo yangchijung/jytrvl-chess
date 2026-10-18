@@ -1,0 +1,245 @@
+[
+  {
+    "bottom": 142.75,
+    "id": "level-easy",
+    "left": 16,
+    "name": "Easy play",
+    "right": 106.958984375,
+    "top": 98.75,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 142.75,
+    "id": "level-more",
+    "left": 114.958984375,
+    "name": "Try more",
+    "right": 202.357421875,
+    "top": 98.75,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 97.375,
+    "id": "surface-free",
+    "left": 16,
+    "name": "Free drawing",
+    "right": 130.564453125,
+    "top": 53.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 97.375,
+    "id": "surface-grid",
+    "left": 138.564453125,
+    "name": "Stamp grid",
+    "right": 238.787109375,
+    "top": 53.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 97.375,
+    "id": "all-colours",
+    "left": 237.755859375,
+    "name": "All colours",
+    "right": 335.25,
+    "top": 53.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 142.75,
+    "id": "swatch-red",
+    "left": 16,
+    "name": "Red",
+    "right": 64,
+    "top": 78.75,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 142.75,
+    "id": "swatch-yellow",
+    "left": 68,
+    "name": "Yellow",
+    "right": 116.83203125,
+    "top": 78.75,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 142.75,
+    "id": "swatch-blue",
+    "left": 120.83203125,
+    "name": "Blue",
+    "right": 168.83203125,
+    "top": 78.75,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 142.75,
+    "id": "swatch-white",
+    "left": 172.83203125,
+    "name": "White",
+    "right": 220.83203125,
+    "top": 78.75,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 142.75,
+    "id": "swatch-orange",
+    "left": 224.83203125,
+    "name": "Orange",
+    "right": 278.708984375,
+    "top": 78.75,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 142.75,
+    "id": "swatch-green",
+    "left": 282.708984375,
+    "name": "Green",
+    "right": 330.708984375,
+    "top": 78.75,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 107.375,
+    "id": "swatch-purple",
+    "left": 16,
+    "name": "Purple",
+    "right": 64.71484375,
+    "top": 43.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 142.75,
+    "id": "tool-brush",
+    "left": 16,
+    "name": "Brush",
+    "right": 68.89453125,
+    "top": 94.75,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 142.75,
+    "id": "tool-eraser",
+    "left": 76.89453125,
+    "name": "Eraser",
+    "right": 133.2109375,
+    "top": 94.75,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 142.75,
+    "id": "tool-stamp",
+    "left": 141.2109375,
+    "name": "Stamp",
+    "right": 197.4921875,
+    "top": 94.75,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 142.75,
+    "id": "tool-undo",
+    "left": 205.4921875,
+    "name": "Undo",
+    "right": 256.0546875,
+    "top": 94.75,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 97.375,
+    "id": "size-s",
+    "left": 16,
+    "name": "Thin",
+    "right": 72.978515625,
+    "top": 53.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 97.375,
+    "id": "size-m",
+    "left": 76.978515625,
+    "name": "Medium",
+    "right": 158.29296875,
+    "top": 53.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 97.375,
+    "id": "size-l",
+    "left": 162.29296875,
+    "name": "Thick",
+    "right": 226.681640625,
+    "top": 53.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 142.75,
+    "id": "tool-redo",
+    "left": 16,
+    "name": "Redo",
+    "right": 103.93359375,
+    "top": 98.75,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 142.75,
+    "id": "tool-export",
+    "left": 111.93359375,
+    "name": "Save picture",
+    "right": 248.287109375,
+    "top": 98.75,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 97.375,
+    "id": "tool-clear",
+    "left": 16,
+    "name": "New paper",
+    "right": 142.427734375,
+    "top": 53.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 97.375,
+    "id": "panel-draw",
+    "left": 29,
+    "name": "Draw",
+    "right": 91.693359375,
+    "top": 53.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 97.375,
+    "id": "panel-mix",
+    "left": 99.693359375,
+    "name": "Mix colours",
+    "right": 204.427734375,
+    "top": 53.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 97.375,
+    "id": "lesson-1",
+    "left": 29,
+    "name": "Task 1 · Done",
+    "right": 80.6953125,
+    "top": 53.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 97.375,
+    "id": "lesson-2",
+    "left": 84.6953125,
+    "name": "Task 2 · Done",
+    "right": 139.234375,
+    "top": 53.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 97.375,
+    "id": "lesson-3",
+    "left": 143.234375,
+    "name": "Task 3",
+    "right": 187.234375,
+    "top": 53.375,
+    "visibleWithRing": true
+  }
+]

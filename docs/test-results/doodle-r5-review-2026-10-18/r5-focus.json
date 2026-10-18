@@ -1,0 +1,30 @@
+{
+  "dpr": 8,
+  "focus": "play-chess",
+  "header": {
+    "bottom": -239.625,
+    "height": 57,
+    "left": 0,
+    "right": 351.25,
+    "top": -296.625,
+    "width": 351.25,
+    "x": 0,
+    "y": -296.625
+  },
+  "headerPosition": "relative",
+  "height": 154,
+  "offset": "3px",
+  "outline": "rgb(31, 77, 58) solid 3px",
+  "rect": {
+    "bottom": 99.375,
+    "height": 48,
+    "left": 33,
+    "right": 123,
+    "top": 51.375,
+    "width": 90,
+    "x": 33,
+    "y": 51.375
+  },
+  "scrollWidth": 351,
+  "width": 351
+}

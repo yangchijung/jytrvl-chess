@@ -1,0 +1,138 @@
+[
+  {
+    "bottom": 97.375,
+    "left": 131,
+    "name": "查看玩法：西洋棋",
+    "right": 187,
+    "top": 53.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 99.375,
+    "left": 33,
+    "name": "開始玩：中國象棋",
+    "right": 123,
+    "top": 51.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 97.375,
+    "left": 131,
+    "name": "查看玩法：中國象棋",
+    "right": 187,
+    "top": 53.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 99.375,
+    "left": 33,
+    "name": "開始玩：台灣暗棋",
+    "right": 123,
+    "top": 51.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 97.375,
+    "left": 131,
+    "name": "查看玩法：台灣暗棋",
+    "right": 187,
+    "top": 53.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 99.375,
+    "left": 33,
+    "name": "開始玩：領地爭奪戰",
+    "right": 123,
+    "top": 51.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 97.375,
+    "left": 131,
+    "name": "查看玩法：領地爭奪戰",
+    "right": 187,
+    "top": 53.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 99.375,
+    "left": 33,
+    "name": "開始玩：貪食蛇競技場",
+    "right": 123,
+    "top": 51.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 97.375,
+    "left": 131,
+    "name": "查看玩法：貪食蛇競技場",
+    "right": 187,
+    "top": 53.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 99.375,
+    "left": 33,
+    "name": "開始玩：方塊消除對戰",
+    "right": 123,
+    "top": 51.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 97.375,
+    "left": 131,
+    "name": "查看玩法：方塊消除對戰",
+    "right": 187,
+    "top": 53.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 99.375,
+    "left": 33,
+    "name": "開始玩：數獨",
+    "right": 123,
+    "top": 51.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 97.375,
+    "left": 131,
+    "name": "查看玩法：數獨",
+    "right": 187,
+    "top": 53.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 97.375,
+    "left": 159.873046875,
+    "name": "關於",
+    "right": 203.873046875,
+    "top": 53.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 97.375,
+    "left": 211.873046875,
+    "name": "隱私權政策",
+    "right": 297.873046875,
+    "top": 53.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 141.375,
+    "left": 16,
+    "name": "服務條款",
+    "right": 88,
+    "top": 97.375,
+    "visibleWithRing": true
+  },
+  {
+    "bottom": 141.375,
+    "left": 96,
+    "name": "設定",
+    "right": 140,
+    "top": 97.375,
+    "visibleWithRing": true
+  }
+]

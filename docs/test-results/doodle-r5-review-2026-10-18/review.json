@@ -1,0 +1,744 @@
+{
+  "date": "2026-10-18",
+  "timezone": "Asia/Taipei",
+  "sourceHead": "95b0de12491e569a5b27d879d023bb3cfb52d087",
+  "functionalCommit": "f80776cb508d49941ac0b9d94ee4cd5efe685bd5",
+  "production": "https://chess.jytrvl.com",
+  "deploymentShaReadFromPage": false,
+  "jsAsset": "/assets/index-DeQcXZLF.js",
+  "nativeZoom": {
+    "before": {
+      "width": 1405,
+      "height": 619,
+      "dpr": 2,
+      "percent": 100
+    },
+    "during": {
+      "width": 351,
+      "height": 154,
+      "dpr": 8,
+      "percent": 400
+    },
+    "after": {
+      "width": 1405,
+      "height": 619,
+      "dpr": 2,
+      "percent": 100
+    },
+    "nativeAx": "縮放比例：400%",
+    "r5": "passed_original_reproduction",
+    "rootFont": "16px"
+  },
+  "browserRuns": {
+    "r5-settings-trail.json": [
+      {
+        "bottom": 75.875,
+        "name": "radio",
+        "tag": "INPUT",
+        "top": 74.875,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 135.875,
+        "name": "checkbox",
+        "tag": "INPUT",
+        "top": 134.875,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 75.875,
+        "name": "checkbox",
+        "tag": "INPUT",
+        "top": 74.875,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 135.875,
+        "name": "checkbox",
+        "tag": "INPUT",
+        "top": 134.875,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 75.875,
+        "name": "checkbox",
+        "tag": "INPUT",
+        "top": 74.875,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 142.75,
+        "name": "",
+        "tag": "INPUT",
+        "top": 98.75,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 97.375,
+        "name": "About",
+        "tag": "A",
+        "top": 53.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 97.375,
+        "name": "Privacy",
+        "tag": "A",
+        "top": 53.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 141.375,
+        "name": "Terms",
+        "tag": "A",
+        "top": 97.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 141.375,
+        "name": "Settings",
+        "tag": "A",
+        "top": 97.375,
+        "visibleWithRing": true
+      }
+    ],
+    "doodle-400-tab-trail.json": [
+      {
+        "bottom": 142.75,
+        "id": "level-easy",
+        "left": 16,
+        "name": "Easy play",
+        "right": 106.958984375,
+        "top": 98.75,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 142.75,
+        "id": "level-more",
+        "left": 114.958984375,
+        "name": "Try more",
+        "right": 202.357421875,
+        "top": 98.75,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 97.375,
+        "id": "surface-free",
+        "left": 16,
+        "name": "Free drawing",
+        "right": 130.564453125,
+        "top": 53.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 97.375,
+        "id": "surface-grid",
+        "left": 138.564453125,
+        "name": "Stamp grid",
+        "right": 238.787109375,
+        "top": 53.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 97.375,
+        "id": "all-colours",
+        "left": 237.755859375,
+        "name": "All colours",
+        "right": 335.25,
+        "top": 53.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 142.75,
+        "id": "swatch-red",
+        "left": 16,
+        "name": "Red",
+        "right": 64,
+        "top": 78.75,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 142.75,
+        "id": "swatch-yellow",
+        "left": 68,
+        "name": "Yellow",
+        "right": 116.83203125,
+        "top": 78.75,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 142.75,
+        "id": "swatch-blue",
+        "left": 120.83203125,
+        "name": "Blue",
+        "right": 168.83203125,
+        "top": 78.75,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 142.75,
+        "id": "swatch-white",
+        "left": 172.83203125,
+        "name": "White",
+        "right": 220.83203125,
+        "top": 78.75,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 142.75,
+        "id": "swatch-orange",
+        "left": 224.83203125,
+        "name": "Orange",
+        "right": 278.708984375,
+        "top": 78.75,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 142.75,
+        "id": "swatch-green",
+        "left": 282.708984375,
+        "name": "Green",
+        "right": 330.708984375,
+        "top": 78.75,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 107.375,
+        "id": "swatch-purple",
+        "left": 16,
+        "name": "Purple",
+        "right": 64.71484375,
+        "top": 43.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 142.75,
+        "id": "tool-brush",
+        "left": 16,
+        "name": "Brush",
+        "right": 68.89453125,
+        "top": 94.75,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 142.75,
+        "id": "tool-eraser",
+        "left": 76.89453125,
+        "name": "Eraser",
+        "right": 133.2109375,
+        "top": 94.75,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 142.75,
+        "id": "tool-stamp",
+        "left": 141.2109375,
+        "name": "Stamp",
+        "right": 197.4921875,
+        "top": 94.75,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 142.75,
+        "id": "tool-undo",
+        "left": 205.4921875,
+        "name": "Undo",
+        "right": 256.0546875,
+        "top": 94.75,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 97.375,
+        "id": "size-s",
+        "left": 16,
+        "name": "Thin",
+        "right": 72.978515625,
+        "top": 53.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 97.375,
+        "id": "size-m",
+        "left": 76.978515625,
+        "name": "Medium",
+        "right": 158.29296875,
+        "top": 53.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 97.375,
+        "id": "size-l",
+        "left": 162.29296875,
+        "name": "Thick",
+        "right": 226.681640625,
+        "top": 53.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 142.75,
+        "id": "tool-redo",
+        "left": 16,
+        "name": "Redo",
+        "right": 103.93359375,
+        "top": 98.75,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 142.75,
+        "id": "tool-export",
+        "left": 111.93359375,
+        "name": "Save picture",
+        "right": 248.287109375,
+        "top": 98.75,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 97.375,
+        "id": "tool-clear",
+        "left": 16,
+        "name": "New paper",
+        "right": 142.427734375,
+        "top": 53.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 97.375,
+        "id": "panel-draw",
+        "left": 29,
+        "name": "Draw",
+        "right": 91.693359375,
+        "top": 53.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 97.375,
+        "id": "panel-mix",
+        "left": 99.693359375,
+        "name": "Mix colours",
+        "right": 204.427734375,
+        "top": 53.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 97.375,
+        "id": "lesson-1",
+        "left": 29,
+        "name": "Task 1 · Done",
+        "right": 80.6953125,
+        "top": 53.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 97.375,
+        "id": "lesson-2",
+        "left": 84.6953125,
+        "name": "Task 2 · Done",
+        "right": 139.234375,
+        "top": 53.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 97.375,
+        "id": "lesson-3",
+        "left": 143.234375,
+        "name": "Task 3",
+        "right": 187.234375,
+        "top": 53.375,
+        "visibleWithRing": true
+      }
+    ],
+    "responsive-checks.json": [
+      {
+        "controls": 31,
+        "height": 800,
+        "outside": [],
+        "paperBg": "rgb(255, 255, 255)",
+        "path": "/doodle",
+        "scrollWidth": 360,
+        "small": [],
+        "theme": "light",
+        "width": 360
+      },
+      {
+        "controls": 31,
+        "height": 800,
+        "outside": [],
+        "paperBg": "rgb(255, 255, 255)",
+        "path": "/doodle",
+        "scrollWidth": 360,
+        "small": [],
+        "theme": "dark",
+        "width": 360
+      },
+      {
+        "controls": 31,
+        "height": 800,
+        "outside": [],
+        "paperBg": "rgb(255, 255, 255)",
+        "path": "/en/doodle",
+        "scrollWidth": 360,
+        "small": [],
+        "theme": "light",
+        "width": 360
+      },
+      {
+        "controls": 31,
+        "height": 800,
+        "outside": [],
+        "paperBg": "rgb(255, 255, 255)",
+        "path": "/en/doodle",
+        "scrollWidth": 360,
+        "small": [],
+        "theme": "dark",
+        "width": 360
+      },
+      {
+        "controls": 31,
+        "height": 800,
+        "outside": [],
+        "paperBg": "rgb(255, 255, 255)",
+        "path": "/doodle",
+        "scrollWidth": 768,
+        "small": [],
+        "theme": "light",
+        "width": 768
+      },
+      {
+        "controls": 31,
+        "height": 800,
+        "outside": [],
+        "paperBg": "rgb(255, 255, 255)",
+        "path": "/doodle",
+        "scrollWidth": 768,
+        "small": [],
+        "theme": "dark",
+        "width": 768
+      },
+      {
+        "controls": 31,
+        "height": 800,
+        "outside": [],
+        "paperBg": "rgb(255, 255, 255)",
+        "path": "/en/doodle",
+        "scrollWidth": 768,
+        "small": [],
+        "theme": "light",
+        "width": 768
+      },
+      {
+        "controls": 31,
+        "height": 800,
+        "outside": [],
+        "paperBg": "rgb(255, 255, 255)",
+        "path": "/en/doodle",
+        "scrollWidth": 768,
+        "small": [],
+        "theme": "dark",
+        "width": 768
+      }
+    ],
+    "r5-focus.json": {
+      "dpr": 8,
+      "focus": "play-chess",
+      "header": {
+        "bottom": -239.625,
+        "height": 57,
+        "left": 0,
+        "right": 351.25,
+        "top": -296.625,
+        "width": 351.25,
+        "x": 0,
+        "y": -296.625
+      },
+      "headerPosition": "relative",
+      "height": 154,
+      "offset": "3px",
+      "outline": "rgb(31, 77, 58) solid 3px",
+      "rect": {
+        "bottom": 99.375,
+        "height": 48,
+        "left": 33,
+        "right": 123,
+        "top": 51.375,
+        "width": 90,
+        "x": 33,
+        "y": 51.375
+      },
+      "scrollWidth": 351,
+      "width": 351
+    },
+    "r5-tab-trail.json": [
+      {
+        "bottom": 97.375,
+        "left": 131,
+        "name": "查看玩法：西洋棋",
+        "right": 187,
+        "top": 53.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 99.375,
+        "left": 33,
+        "name": "開始玩：中國象棋",
+        "right": 123,
+        "top": 51.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 97.375,
+        "left": 131,
+        "name": "查看玩法：中國象棋",
+        "right": 187,
+        "top": 53.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 99.375,
+        "left": 33,
+        "name": "開始玩：台灣暗棋",
+        "right": 123,
+        "top": 51.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 97.375,
+        "left": 131,
+        "name": "查看玩法：台灣暗棋",
+        "right": 187,
+        "top": 53.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 99.375,
+        "left": 33,
+        "name": "開始玩：領地爭奪戰",
+        "right": 123,
+        "top": 51.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 97.375,
+        "left": 131,
+        "name": "查看玩法：領地爭奪戰",
+        "right": 187,
+        "top": 53.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 99.375,
+        "left": 33,
+        "name": "開始玩：貪食蛇競技場",
+        "right": 123,
+        "top": 51.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 97.375,
+        "left": 131,
+        "name": "查看玩法：貪食蛇競技場",
+        "right": 187,
+        "top": 53.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 99.375,
+        "left": 33,
+        "name": "開始玩：方塊消除對戰",
+        "right": 123,
+        "top": 51.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 97.375,
+        "left": 131,
+        "name": "查看玩法：方塊消除對戰",
+        "right": 187,
+        "top": 53.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 99.375,
+        "left": 33,
+        "name": "開始玩：數獨",
+        "right": 123,
+        "top": 51.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 97.375,
+        "left": 131,
+        "name": "查看玩法：數獨",
+        "right": 187,
+        "top": 53.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 97.375,
+        "left": 159.873046875,
+        "name": "關於",
+        "right": 203.873046875,
+        "top": 53.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 97.375,
+        "left": 211.873046875,
+        "name": "隱私權政策",
+        "right": 297.873046875,
+        "top": 53.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 141.375,
+        "left": 16,
+        "name": "服務條款",
+        "right": 88,
+        "top": 97.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 141.375,
+        "left": 96,
+        "name": "設定",
+        "right": 140,
+        "top": 97.375,
+        "visibleWithRing": true
+      }
+    ],
+    "r5-menu-trail.json": [
+      {
+        "bottom": 141,
+        "name": "所有遊戲",
+        "top": 97,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 142.75,
+        "name": "西洋棋",
+        "top": 98.75,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 97.375,
+        "name": "中國象棋",
+        "top": 53.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 141.375,
+        "name": "台灣暗棋",
+        "top": 97.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 142.75,
+        "name": "領地爭奪戰",
+        "top": 98.75,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 97.375,
+        "name": "貪食蛇競技場",
+        "top": 53.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 141.375,
+        "name": "方塊消除對戰",
+        "top": 97.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 142.75,
+        "name": "數獨",
+        "top": 98.75,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 97.375,
+        "name": "排行榜",
+        "top": 53.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 141.375,
+        "name": "對局紀錄",
+        "top": 97.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 142.75,
+        "name": "設定",
+        "top": 98.75,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 97.375,
+        "name": "玩家資料",
+        "top": 53.375,
+        "visibleWithRing": true
+      },
+      {
+        "bottom": 141.375,
+        "name": "使用 Google 登入",
+        "top": 97.375,
+        "visibleWithRing": true
+      }
+    ],
+    "save-boundary-review.json": {
+      "sourceCommit": "95b0de12491e569a5b27d879d023bb3cfb52d087",
+      "method": "Copied exact model.ts and loadSave function; Node type stripping only, isolated in-memory storage; not a production-browser storage mutation.",
+      "malformedJSON": {
+        "broken": false,
+        "returnedOps": 0,
+        "backupKeys": [],
+        "originalPreservedAfterNextSave": false
+      },
+      "backupWriteFailure": {
+        "broken": false,
+        "returnedOps": 0,
+        "backupKeys": [],
+        "originalPreservedAfterNextSave": false
+      },
+      "ownWrites": {
+        "operations2000Valid": true,
+        "operations2001Valid": false,
+        "operations2001": 2001,
+        "singleStroke5000PointsValid": false
+      }
+    }
+  },
+  "notes": [
+    "Settings sr-only input geometry is not visible label or focus-ring evidence; settings trace proves navigation only.",
+    "360/768 matrix uses viewport overrides, not physical devices.",
+    "PNG grid export independently viewed at 1200x1200.",
+    "All six tasks completed through production UI; task1 freehand, task2-6 grid.",
+    "Malformed/oversize saves tested in isolated Node harness; production storage was not altered for error injection.",
+    "Original theme system and native zoom restored; viewport override reset."
+  ],
+  "findings": [
+    {
+      "id": "D1",
+      "evidence": "Production reload: surface grid/step apply/Task3 selected -> free/empty/Task3 not selected; both papers and done tasks preserved."
+    },
+    {
+      "id": "D2",
+      "evidence": "Production 360x800 after Mix: grid top -609 bottom -281.0078125; activeElement BODY; instruction near paper offscreen. Same at 1019x667."
+    },
+    {
+      "id": "D3",
+      "evidence": "Isolated exact loadSave: malformed JSON or backup-write failure returns blank/broken false; next successful ordinary save overwrites original, no backup."
+    },
+    {
+      "id": "D4",
+      "evidence": "Exact pure model push creates 2001 ops or 5000-point stroke; validSave rejects its own output."
+    }
+  ],
+  "pending": [
+    "iPhone/iPad Safari+VoiceOver",
+    "stylus and physical touch",
+    "child usability",
+    "D1-D4 fixes"
+  ],
+  "restaurant": "paused_not_operated"
+}

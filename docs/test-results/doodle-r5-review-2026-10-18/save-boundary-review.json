@@ -1,0 +1,22 @@
+{
+  "sourceCommit": "95b0de12491e569a5b27d879d023bb3cfb52d087",
+  "method": "Copied exact model.ts and loadSave function; Node type stripping only, isolated in-memory storage; not a production-browser storage mutation.",
+  "malformedJSON": {
+    "broken": false,
+    "returnedOps": 0,
+    "backupKeys": [],
+    "originalPreservedAfterNextSave": false
+  },
+  "backupWriteFailure": {
+    "broken": false,
+    "returnedOps": 0,
+    "backupKeys": [],
+    "originalPreservedAfterNextSave": false
+  },
+  "ownWrites": {
+    "operations2000Valid": true,
+    "operations2001Valid": false,
+    "operations2001": 2001,
+    "singleStroke5000PointsValid": false
+  }
+}

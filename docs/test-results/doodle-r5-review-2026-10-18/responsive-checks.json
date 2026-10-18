@@ -1,0 +1,90 @@
+[
+  {
+    "controls": 31,
+    "height": 800,
+    "outside": [],
+    "paperBg": "rgb(255, 255, 255)",
+    "path": "/doodle",
+    "scrollWidth": 360,
+    "small": [],
+    "theme": "light",
+    "width": 360
+  },
+  {
+    "controls": 31,
+    "height": 800,
+    "outside": [],
+    "paperBg": "rgb(255, 255, 255)",
+    "path": "/doodle",
+    "scrollWidth": 360,
+    "small": [],
+    "theme": "dark",
+    "width": 360
+  },
+  {
+    "controls": 31,
+    "height": 800,
+    "outside": [],
+    "paperBg": "rgb(255, 255, 255)",
+    "path": "/en/doodle",
+    "scrollWidth": 360,
+    "small": [],
+    "theme": "light",
+    "width": 360
+  },
+  {
+    "controls": 31,
+    "height": 800,
+    "outside": [],
+    "paperBg": "rgb(255, 255, 255)",
+    "path": "/en/doodle",
+    "scrollWidth": 360,
+    "small": [],
+    "theme": "dark",
+    "width": 360
+  },
+  {
+    "controls": 31,
+    "height": 800,
+    "outside": [],
+    "paperBg": "rgb(255, 255, 255)",
+    "path": "/doodle",
+    "scrollWidth": 768,
+    "small": [],
+    "theme": "light",
+    "width": 768
+  },
+  {
+    "controls": 31,
+    "height": 800,
+    "outside": [],
+    "paperBg": "rgb(255, 255, 255)",
+    "path": "/doodle",
+    "scrollWidth": 768,
+    "small": [],
+    "theme": "dark",
+    "width": 768
+  },
+  {
+    "controls": 31,
+    "height": 800,
+    "outside": [],
+    "paperBg": "rgb(255, 255, 255)",
+    "path": "/en/doodle",
+    "scrollWidth": 768,
+    "small": [],
+    "theme": "light",
+    "width": 768
+  },
+  {
+    "controls": 31,
+    "height": 800,
+    "outside": [],
+    "paperBg": "rgb(255, 255, 255)",
+    "path": "/en/doodle",
+    "scrollWidth": 768,
+    "small": [],
+    "theme": "dark",
+    "width": 768
+  }
+]
