@@ -83,7 +83,7 @@ export function Layout({ children }: { children: ReactNode }) {
       <a href="#main" className="sr-only rounded-md border border-[var(--ui-control-border)] bg-[var(--surface)] font-medium focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:inline-flex focus:min-h-11 focus:min-w-11 focus:items-center focus:px-4" data-testid="skip-link">
         {t('nav.skip')}
       </a>
-      <header ref={headerRef} className={`${open ? 'relative' : 'sticky top-0'} z-30 border-b border-[var(--border)] bg-[var(--header-bg)]`} data-testid="site-header">
+      <header ref={headerRef} className={`site-header ${open ? 'relative' : 'sticky top-0'} z-30 border-b border-[var(--border)] bg-[var(--header-bg)]`} data-testid="site-header">
         <div className="mx-auto flex min-h-14 max-w-6xl flex-wrap items-center gap-x-2 gap-y-1 px-4 py-1 md:px-6">
           <Link to={to('/')} className="flex min-h-11 items-center gap-2 rounded-md" aria-label="JY Games">
             <Logo />

@@ -73,6 +73,11 @@ export const PAGES: Record<string, PageMeta> = {
     },
     index: true,
   },
+  '/doodle': {
+    title: { zh: '色彩塗鴉樂（預覽）｜JY Games', en: 'Color Doodle (preview) | JY Games' },
+    description: { zh: '打開就能畫：用紅黃藍混出新顏色，完成短任務，作品存成圖片。5–12 歲預覽版。', en: 'Start drawing right away: mix red, yellow and blue into new colours, try short tasks and save your picture. Preview for ages 5–12.' },
+    index: false,
+  },
   '/rescue': {
     title: { zh: '星球救援隊（試玩原型）｜JY Games', en: 'Planet Rescue Crew (prototype) | JY Games' },
     description: { zh: '三個角色各看一張不同的資料卡，同一台平板一起排計畫，把零件送回基地。兒童合作與邏輯試玩原型。', en: 'Three roles each see a different card and plan together on one tablet to get the parts to the base. Kids teamwork and logic prototype.' },

@@ -43,6 +43,7 @@ The packages are listed under devDependencies only because Vite copies the font 
 |---|---|---|
 | Chess pieces `src/assets/pieces/*.svg` (bundled into `dist/assets`) | "cburnett" set by Colin M.L. Burnett (Wikimedia Commons, Category:SVG chess pieces) | GPLv2+ as recorded in `src/components/board/pieces.tsx` and the About page (upstream also offers the set under other free licences) — compatible with GPL-3.0 |
 | Restaurant V2 art `src/restaurant/assets/*.svg` | Original vectors made for JY Games (Codex, edited in Figma), copied from `docs/design/restaurant-v2/assets/` | GPL-3.0-or-later (repo licence; see that folder's README / manifest.json) |
+| Color Doodle icons, colour markers and wheel `src/doodle/` | Original SVG drawn in code by engineering; colours and copy from `docs/product/doodle-lessons-v1.json` | JY Games, GPL-3.0-or-later |
 | Planet Rescue Crew art `src/rescue/art.tsx` | Provisional original SVG drawn in code by engineering (to be replaced by the product-side art) | JY Games, GPL-3.0-or-later |
 | Try Again Trail art `src/trail/art.tsx` | Provisional original SVG drawn in code by engineering (to be replaced by the product-side art) | JY Games, GPL-3.0-or-later |
 | Robot Delivery Lab art `src/robot/art.tsx` | Provisional original SVG drawn in code by engineering (to be replaced by the product-side art) | JY Games, GPL-3.0-or-later |

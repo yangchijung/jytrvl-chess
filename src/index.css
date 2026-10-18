@@ -207,6 +207,20 @@ button {
   outline: 3px solid var(--focus);
   outline-offset: 3px;
 }
+/* Keyboard focus is never hidden under the sticky header (R5): focused / scrolled-to elements keep clear of it,
+   and on short windows (e.g. 400 % browser zoom) the header stops being sticky so it cannot cover anything. */
+html {
+  scroll-padding-top: 4.5rem;
+  scroll-padding-bottom: 0.75rem;
+}
+@media (max-height: 30rem) {
+  html {
+    scroll-padding-top: 0.5rem;
+  }
+  .site-header {
+    position: relative !important;
+  }
+}
 /* shared interface transitions: colour only, 160 ms, none when motion is reduced */
 .ui-t {
   transition-property: color, background-color, border-color, opacity;

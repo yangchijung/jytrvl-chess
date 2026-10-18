@@ -21,6 +21,7 @@ import { BlocksLearn } from './blocks/Learn';
 
 const SudokuPage = lazy(() => import('./sudoku/pages').then((m) => ({ default: m.SudokuPage })));
 const SudokuLearn = lazy(() => import('./sudoku/Learn').then((m) => ({ default: m.SudokuLearn })));
+const DoodlePage = lazy(() => import('./doodle/pages').then((m) => ({ default: m.DoodlePage })));
 const RescuePage = lazy(() => import('./rescue/pages').then((m) => ({ default: m.RescuePage })));
 const RescueRoomPage = lazy(() => import('./rescue/pages').then((m) => ({ default: m.RescueRoomPage })));
 const TrailPage = lazy(() => import('./trail/pages').then((m) => ({ default: m.TrailPage })));
@@ -41,6 +42,7 @@ function pages(prefix: string) {
     <Route key={p('/learn/sudoku')} path={p('/learn/sudoku')} element={lazyEl(<SudokuLearn />)} />,
     <Route key={p('/learn')} path={p('/learn/:game')} element={<Learn />} />,
     <Route key={p('/sudoku')} path={p('/sudoku')} element={lazyEl(<SudokuPage />)} />,
+    <Route key={p('/doodle')} path={p('/doodle')} element={lazyEl(<DoodlePage />)} />,
     <Route key={p('/rescue')} path={p('/rescue')} element={lazyEl(<RescuePage />)} />,
     <Route key={p('/rescue/room')} path={p('/rescue/room/:id')} element={lazyEl(<RescueRoomPage />)} />,
     <Route key={p('/trail')} path={p('/trail')} element={lazyEl(<TrailPage />)} />,

@@ -72,6 +72,8 @@ export function Modal({ open, onClose, title, children, wide }: { open: boolean;
       } catch {
         d.setAttribute('open', '');
       }
+      // optional starting focus (e.g. "Cancel" in a destructive confirmation)
+      d.querySelector<HTMLElement>('[data-autofocus]')?.focus();
     }
     if (!open && d.open) {
       d.close();

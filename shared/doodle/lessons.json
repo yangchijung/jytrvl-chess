@@ -1,0 +1,480 @@
+{
+  "schemaVersion": 1,
+  "product": "Color Doodle",
+  "status": "design_handoff_not_implemented",
+  "model": "simplified_RYB_paint_v1",
+  "ageGuidance": "5–12; no age collection",
+  "colors": [
+    {
+      "id": "red",
+      "hex": "#D64034",
+      "name": {
+        "zh": "紅色",
+        "en": "Red"
+      },
+      "mark": "circle"
+    },
+    {
+      "id": "yellow",
+      "hex": "#F5C43C",
+      "name": {
+        "zh": "黃色",
+        "en": "Yellow"
+      },
+      "mark": "triangle"
+    },
+    {
+      "id": "blue",
+      "hex": "#2864B4",
+      "name": {
+        "zh": "藍色",
+        "en": "Blue"
+      },
+      "mark": "square"
+    },
+    {
+      "id": "white",
+      "hex": "#FFFFFF",
+      "name": {
+        "zh": "白色",
+        "en": "White"
+      },
+      "mark": "cross"
+    },
+    {
+      "id": "orange",
+      "hex": "#E8792D",
+      "name": {
+        "zh": "橙色",
+        "en": "Orange"
+      },
+      "mark": "diamond"
+    },
+    {
+      "id": "green",
+      "hex": "#5B8F45",
+      "name": {
+        "zh": "綠色",
+        "en": "Green"
+      },
+      "mark": "leaf"
+    },
+    {
+      "id": "purple",
+      "hex": "#8053A0",
+      "name": {
+        "zh": "紫色",
+        "en": "Purple"
+      },
+      "mark": "star"
+    },
+    {
+      "id": "light_blue",
+      "hex": "#91B9E6",
+      "name": {
+        "zh": "淺藍色",
+        "en": "Light blue"
+      },
+      "mark": "square-outline"
+    }
+  ],
+  "recipes": [
+    {
+      "id": "mix_orange",
+      "inputs": [
+        "red",
+        "yellow"
+      ],
+      "ratio": [
+        1,
+        1
+      ],
+      "output": "orange",
+      "commutative": true
+    },
+    {
+      "id": "mix_green",
+      "inputs": [
+        "yellow",
+        "blue"
+      ],
+      "ratio": [
+        1,
+        1
+      ],
+      "output": "green",
+      "commutative": true
+    },
+    {
+      "id": "mix_purple",
+      "inputs": [
+        "blue",
+        "red"
+      ],
+      "ratio": [
+        1,
+        1
+      ],
+      "output": "purple",
+      "commutative": true
+    },
+    {
+      "id": "tint_blue",
+      "inputs": [
+        "blue",
+        "white"
+      ],
+      "ratio": [
+        1,
+        1
+      ],
+      "output": "light_blue",
+      "commutative": true
+    }
+  ],
+  "unsupportedRecipe": "Keep both input swatches visible; show unsupported message; do not invent a paint result.",
+  "wheel": [
+    "red",
+    "orange",
+    "yellow",
+    "green",
+    "blue",
+    "purple"
+  ],
+  "lessons": [
+    {
+      "id": "DC-L01",
+      "level": "easy",
+      "prompt": {
+        "zh": "紅黃變什麼？",
+        "en": "What do red and yellow make?"
+      },
+      "recipe": "mix_orange",
+      "choices": [
+        "orange",
+        "green",
+        "purple"
+      ],
+      "correct": "orange",
+      "predictOptional": true,
+      "applyPrompt": {
+        "zh": "用橙色畫一筆",
+        "en": "Make an orange mark"
+      },
+      "success": {
+        "zh": "紅加黃，變成橙！",
+        "en": "Red and yellow make orange!"
+      },
+      "complete": {
+        "recipe": "mix_orange",
+        "appliedColor": "orange",
+        "minimumMarks": 1
+      }
+    },
+    {
+      "id": "DC-L02",
+      "level": "easy",
+      "prompt": {
+        "zh": "試試黃色加藍色",
+        "en": "Try yellow and blue"
+      },
+      "recipe": "mix_green",
+      "choices": [
+        "orange",
+        "green",
+        "purple"
+      ],
+      "correct": "green",
+      "predictOptional": true,
+      "applyPrompt": {
+        "zh": "畫一片綠色",
+        "en": "Make a green mark"
+      },
+      "success": {
+        "zh": "黃加藍，變成綠！",
+        "en": "Yellow and blue make green!"
+      },
+      "complete": {
+        "recipe": "mix_green",
+        "appliedColor": "green",
+        "minimumMarks": 1
+      }
+    },
+    {
+      "id": "DC-L03",
+      "level": "easy",
+      "prompt": {
+        "zh": "藍紅混一混",
+        "en": "Mix blue and red"
+      },
+      "recipe": "mix_purple",
+      "choices": [
+        "orange",
+        "green",
+        "purple"
+      ],
+      "correct": "purple",
+      "predictOptional": true,
+      "applyPrompt": {
+        "zh": "用紫色蓋印章",
+        "en": "Stamp in purple"
+      },
+      "success": {
+        "zh": "藍加紅，變成紫！",
+        "en": "Blue and red make purple!"
+      },
+      "complete": {
+        "recipe": "mix_purple",
+        "appliedColor": "purple",
+        "minimumMarks": 1
+      }
+    },
+    {
+      "id": "DC-L04",
+      "level": "easy",
+      "prompt": {
+        "zh": "加白會變怎樣？",
+        "en": "What happens when you add white?"
+      },
+      "recipe": "tint_blue",
+      "choices": [
+        "lighter",
+        "darker"
+      ],
+      "correct": "lighter",
+      "predictOptional": true,
+      "applyPrompt": {
+        "zh": "把兩種藍放一起",
+        "en": "Put both blues together"
+      },
+      "success": {
+        "zh": "加白後，藍色變亮了。",
+        "en": "White makes this blue lighter."
+      },
+      "complete": {
+        "recipe": "tint_blue",
+        "appliedColors": [
+          "blue",
+          "light_blue"
+        ],
+        "minimumMarksEach": 1
+      }
+    },
+    {
+      "id": "DC-L05",
+      "level": "more",
+      "prompt": {
+        "zh": "找出暖色和冷色",
+        "en": "Find a warm and a cool colour"
+      },
+      "choices": [
+        "orange",
+        "blue"
+      ],
+      "classification": {
+        "warm": [
+          "orange"
+        ],
+        "cool": [
+          "blue"
+        ]
+      },
+      "applyPrompt": {
+        "zh": "用這兩色畫畫",
+        "en": "Draw with both colours"
+      },
+      "success": {
+        "zh": "橙偏暖，藍偏冷。",
+        "en": "Orange is warm; blue is cool."
+      },
+      "complete": {
+        "classifyCorrectly": true,
+        "appliedColors": [
+          "orange",
+          "blue"
+        ],
+        "minimumMarksEach": 1
+      }
+    },
+    {
+      "id": "DC-L06",
+      "level": "more",
+      "prompt": {
+        "zh": "黃色對面是誰？",
+        "en": "What is opposite yellow?"
+      },
+      "reference": "Show the six-colour RYB wheel with names and markers; provide the same ordered options as DOM buttons.",
+      "choices": [
+        "orange",
+        "green",
+        "purple"
+      ],
+      "correct": "purple",
+      "applyPrompt": {
+        "zh": "用黃和紫畫畫",
+        "en": "Draw with yellow and purple"
+      },
+      "success": {
+        "zh": "這個色環上，黃紫相對。",
+        "en": "Yellow and purple are opposite on this wheel."
+      },
+      "complete": {
+        "chosen": "purple",
+        "appliedColors": [
+          "yellow",
+          "purple"
+        ],
+        "minimumMarksEach": 1
+      }
+    }
+  ],
+  "completionRules": {
+    "firstGuessDoesNotGateProgress": true,
+    "retryAndSkipAlwaysAvailable": true,
+    "drawingQualityNeverScored": true,
+    "eitherFreehandOrGridStampCounts": true,
+    "explanation": "A mark is a committed stroke or stamp; never judge object recognition, aesthetics or colour coverage. In easy mode predictions may be skipped; mixing and using the result completes L01–L04."
+  },
+  "copy": {
+    "title": {
+      "zh": "色彩塗鴉樂",
+      "en": "Color Doodle"
+    },
+    "draw": {
+      "zh": "畫畫看",
+      "en": "Draw"
+    },
+    "mixMode": {
+      "zh": "玩混色",
+      "en": "Mix colours"
+    },
+    "easy": {
+      "zh": "輕鬆玩",
+      "en": "Easy play"
+    },
+    "more": {
+      "zh": "多試一點",
+      "en": "Try more"
+    },
+    "brush": {
+      "zh": "畫筆",
+      "en": "Brush"
+    },
+    "eraser": {
+      "zh": "橡皮擦",
+      "en": "Eraser"
+    },
+    "stamp": {
+      "zh": "蓋印章",
+      "en": "Stamp"
+    },
+    "palette": {
+      "zh": "顏色",
+      "en": "Colours"
+    },
+    "undo": {
+      "zh": "復原",
+      "en": "Undo"
+    },
+    "redo": {
+      "zh": "重做",
+      "en": "Redo"
+    },
+    "mix": {
+      "zh": "混一混",
+      "en": "Mix"
+    },
+    "useColour": {
+      "zh": "用這個色",
+      "en": "Use this colour"
+    },
+    "newPaper": {
+      "zh": "換新紙",
+      "en": "New paper"
+    },
+    "export": {
+      "zh": "存成圖片",
+      "en": "Save picture"
+    },
+    "clearTitle": {
+      "zh": "要換新紙嗎？",
+      "en": "Start a new page?"
+    },
+    "clearBody": {
+      "zh": "會清空這張畫，但可以復原。",
+      "en": "This clears the page. You can undo it."
+    },
+    "cancel": {
+      "zh": "先不要",
+      "en": "Keep drawing"
+    },
+    "confirmClear": {
+      "zh": "換新紙",
+      "en": "New paper"
+    },
+    "saved": {
+      "zh": "已存好",
+      "en": "Saved"
+    },
+    "saveError": {
+      "zh": "還沒存好，先下載圖片。",
+      "en": "Not saved yet. Download your picture."
+    },
+    "retry": {
+      "zh": "再試一次",
+      "en": "Try again"
+    },
+    "skip": {
+      "zh": "先跳過",
+      "en": "Skip for now"
+    },
+    "why": {
+      "zh": "為什麼",
+      "en": "Why?"
+    },
+    "unsupported": {
+      "zh": "這組還不能混，換一組試試。",
+      "en": "This mix is not available yet. Try another pair."
+    },
+    "modelNote": {
+      "zh": "這裡模擬顏料；真實顏料混色會有差異。",
+      "en": "This simulates paint. Real pigments may mix differently."
+    },
+    "predictionFeedback": {
+      "zh": "看看混色結果，再試也可以。",
+      "en": "Look at the result. You can try again."
+    },
+    "freehand": {
+      "zh": "自由畫",
+      "en": "Free drawing"
+    },
+    "grid": {
+      "zh": "格子蓋印章",
+      "en": "Stamp grid"
+    },
+    "circle": {
+      "zh": "圓形",
+      "en": "Circle"
+    },
+    "triangle": {
+      "zh": "三角形",
+      "en": "Triangle"
+    },
+    "square": {
+      "zh": "方形",
+      "en": "Square"
+    },
+    "mixAnnouncement": {
+      "zh": "{a}加{b}，變成{result}。",
+      "en": "{a} and {b} make {result}."
+    },
+    "gridAnnouncement": {
+      "zh": "第{row}列，第{column}格：{content}。",
+      "en": "Row {row}, column {column}: {content}."
+    },
+    "empty": {
+      "zh": "空白",
+      "en": "Empty"
+    }
+  }
+}

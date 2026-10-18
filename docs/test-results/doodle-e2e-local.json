@@ -1,0 +1,134 @@
+[
+  {
+    "id": "D-01",
+    "name": "opens straight to an empty paper, no account; noindex",
+    "pass": true,
+    "info": "noindex,nofollow"
+  },
+  {
+    "id": "D-02",
+    "name": "not on the home catalogue; robots.txt disallows /doodle",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "DC01-a",
+    "name": "mouse draws a whole stroke; saved locally only after the write succeeded",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "DC01-b",
+    "name": "switching language keeps the drawing",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "DC04-a",
+    "name": "undo/redo work per whole stroke; a new stroke drops the redo branch",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "DC04-b",
+    "name": "new paper asks first (focus on “keep drawing”); cancel keeps; confirm clears; undo brings it back",
+    "pass": true,
+    "info": "clear-cancel 2 clear 2"
+  },
+  {
+    "id": "DC04-c",
+    "name": "Ctrl+Z undoes from the keyboard",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "DC08",
+    "name": "touch draws; pointercancel leaves no line; a second finger does not add a stroke; only the paper blocks page scrolling",
+    "pass": true,
+    "info": "1/1/2 {\"paper\":\"none\",\"body\":\"auto\"}"
+  },
+  {
+    "id": "DC02",
+    "name": "red+yellow→orange, yellow+blue→green, blue+red→purple, blue+white→light blue in both orders; other pairs keep both inputs and say “not available” (no invented colour); results join the palette",
+    "pass": true,
+    "info": "true,true,true,true,true,true,true,true,true,true | 這組還不能混，換一組試試。"
+  },
+  {
+    "id": "DC02-b",
+    "name": "one polite announcement “紅色加黃色，變成橙色。”; “use this colour” selects it for drawing",
+    "pass": true,
+    "info": "status | polite | 紅色加黃色，變成橙色。"
+  },
+  {
+    "id": "DC03-easy",
+    "name": "easy tasks 1–4: mix → use → mark completes; a wrong guess is fine; stamps count; retry resets; L4 needs both blues",
+    "pass": true,
+    "info": "mix,apply,orange,done | done done mix apply done | DC-L01,DC-L02,DC-L03,DC-L04"
+  },
+  {
+    "id": "DC03-more",
+    "name": "“try more”: prediction step first; task 5 needs the warm pick (wrong pick says “look again”), task 6 shows the RYB wheel and needs purple; “why” explains the paint model",
+    "pass": true,
+    "info": "predict choose apply done true choose done"
+  },
+  {
+    "id": "DC03-skip",
+    "name": "skip moves to the next task without penalty",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "DC09-keyboard",
+    "name": "keyboard only: start task 3, mix, arrow to the centre cell, Enter stamps purple; cell name and announcement give row/column/content; task done; one tab stop in the grid",
+    "pass": true,
+    "info": "purple cell-4 purple-circle,第2列，第2格：紫色圓形。 在這格蓋章 | 第2列，第2格：紫色圓形。 藍加紅，變成紫！ | done"
+  },
+  {
+    "id": "DC05-a",
+    "name": "reload keeps the drawing, the stamp grid and the hint level; rotating redraws the picture (pixel still red)",
+    "pass": true,
+    "info": "[214,64,52,255]"
+  },
+  {
+    "id": "DC05-b",
+    "name": "an unreadable save is kept as a backup, not overwritten; the page explains and starts a fresh paper",
+    "pass": true,
+    "info": "{\"alert\":\"舊的存檔讀不出來，已另外保留；這是一張新畫紙。\",\"backup\":true,\"n\":0}"
+  },
+  {
+    "id": "DC05-c",
+    "name": "when storage is full the drawing stays on screen and “not saved yet — download” is shown",
+    "pass": true,
+    "info": "{\"text\":\"還沒存好，先下載圖片。 存成圖片\",\"n\":1}"
+  },
+  {
+    "id": "DC06",
+    "name": "PNG export matches the paper (white background, the stroke colour at the stroke) and the stamp grid; dated file name; no network request sends the picture",
+    "pass": true,
+    "info": "{\"w\":1600,\"h\":1200,\"type\":\"image/png\",\"corner\":[255,255,255,255],\"stroke\":[214,64,52,255],\"name\":\"color-doodle-20261018-2012.png\"} | grid 1200 | sent 0"
+  },
+  {
+    "id": "DC07-layout",
+    "name": "360/768/1280 × zh/en × light/dark: no horizontal overflow, controls ≥ 44 px, main tools ≥ 48 px, paper stays white in dark mode",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "DC07-zoom",
+    "name": "351×154 CSS px @ DPR 8 (the layout of real 400 % zoom; native zoom itself not driven): 45 Tab stops all fully visible, no horizontal overflow",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "DC10",
+    "name": "reduced motion: no running animations after a task; every swatch has a shape marker, name and pressed state",
+    "pass": true,
+    "info": "0 5"
+  },
+  {
+    "id": "D-err",
+    "name": "no console errors",
+    "pass": true,
+    "info": ""
+  }
+]

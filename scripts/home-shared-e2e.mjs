@@ -630,6 +630,76 @@ for (const lang of ['zh', 'en']) {
   ok('HU-R', 'R1 real input/select borders ≥ 3:1 with 3 px focus (light/dark); R2 descriptions 16 px, no overflow at 320/360/200 %; R3 real route Spinner shows 「載入中」 and stops spinning under reduced motion; R4 skip link ≥ 44×44', fails.length === 0, `${fails.join(' ; ')} || ${notes.join(' ; ')}`);
 }
 
+// ---------------------------------------------------------------- R5: keyboard focus never under the sticky header
+// 351×154 CSS px at DPR 8 = the layout Chrome produces at real 400 % zoom on a 1405×619 window (product measurement);
+// 1280×560 keeps the header sticky. Puppeteer cannot drive native browser zoom, so this is the equivalent viewport.
+{
+  const fails = [];
+  const notes = [];
+  const walk = async (p, label, steps, back) => {
+    let worst = null;
+    for (let i = 0; i < steps; i++) {
+      await p.keyboard.down(back ? 'Shift' : 'Tab');
+      if (back) await p.keyboard.press('Tab');
+      await p.keyboard.up(back ? 'Shift' : 'Tab');
+      await sleep(30);
+      const g = await p.evaluate(() => {
+        const a = document.activeElement;
+        if (!a || a === document.body || a.id === 'main') return null;
+        const r = a.getBoundingClientRect();
+        if (!r.width) return null;
+        const h = document.querySelector('.site-header');
+        const hr = h.getBoundingClientRect();
+        const sticky = getComputedStyle(h).position === 'sticky';
+        const insideHeader = h.contains(a);
+        const ring = 6; // 3 px outline + 3 px offset
+        const overlay = getComputedStyle(a).position === 'fixed'; // the skip link is drawn above the header on purpose
+        const top = insideHeader || overlay ? r.top - ring : r.top - ring - (sticky ? Math.max(0, hr.bottom) : 0);
+        const bottom = innerHeight - (r.bottom + ring);
+        return { id: a.dataset.testid || a.textContent.trim().slice(0, 12), top: +top.toFixed(2), bottom: +bottom.toFixed(2), sticky };
+      });
+      if (!g) continue;
+      if ((g.top < -0.5 || g.bottom < -0.5) && !worst) worst = g;
+    }
+    if (worst) fails.push(`${label}: ${JSON.stringify(worst)}`);
+  };
+  for (const [w, h, dpr] of [[351, 154, 8], [1280, 560, 1], [390, 500, 3]]) {
+    for (const lang of ['zh', 'en']) {
+      const p = await page(w, h, { dpr });
+      await p.goto(`${BASE}${pre(lang)}/`, { waitUntil: 'networkidle0' });
+      // the product's exact path: Tab → skip link → Enter → Tab → first Play
+      await p.keyboard.press('Tab');
+      await p.keyboard.press('Enter');
+      await sleep(80);
+      await p.keyboard.press('Tab');
+      const g = await p.evaluate(() => {
+        const a = document.activeElement;
+        const r = a.getBoundingClientRect();
+        const hr = document.querySelector('.site-header').getBoundingClientRect();
+        return { id: a.dataset.testid, top: r.top, headerBottom: hr.bottom, pos: getComputedStyle(document.querySelector('.site-header')).position };
+      });
+      const covered = g.pos === 'sticky' ? g.top - 6 < g.headerBottom : false;
+      if (g.id !== 'play-chess' || covered) fails.push(`${w}x${h} ${lang} skip→Tab ${JSON.stringify(g)}`);
+      else notes.push(`${w}x${h}@${dpr} ${lang}: play-chess top ${g.top.toFixed(1)} header ${g.pos} bottom ${g.headerBottom.toFixed(1)}`);
+      if (w === 351 && lang === 'zh') await p.screenshot({ path: `${OUT}/r5-351x154-play-chess-focus.png` });
+      await walk(p, `${w}x${h} ${lang} home Tab`, 40, false);
+      await walk(p, `${w}x${h} ${lang} home Shift+Tab`, 40, true);
+      // menu first/last items
+      await p.goto(`${BASE}${pre(lang)}/`, { waitUntil: 'networkidle0' });
+      await p.focus('[data-testid=menu-button]');
+      await p.keyboard.press('Enter');
+      await walk(p, `${w}x${h} ${lang} menu Tab`, 16, false);
+      await walk(p, `${w}x${h} ${lang} menu Shift+Tab`, 16, true);
+      // settings controls
+      await p.goto(`${BASE}${pre(lang)}/settings`, { waitUntil: 'networkidle0' });
+      await walk(p, `${w}x${h} ${lang} settings Tab`, 30, false);
+      await walk(p, `${w}x${h} ${lang} settings Shift+Tab`, 30, true);
+      await p.ctx.close();
+    }
+  }
+  ok('HU-R5', 'R5: at 351×154 @DPR 8 (= real 400 % zoom layout), 1280×560 and 390×500: skip link → Tab reaches 開始玩：西洋棋 fully visible; Tab and Shift+Tab through home, menu and settings never put a control or its 3 px focus ring under the header or off-screen', fails.length === 0, `${fails.join(' ; ')} || ${notes.join(' ; ')}`);
+}
+
 ok('HU-err', 'no console errors during the run', errors.length === 0, errors.slice(0, 4).join(' | '));
 await browser.close();
 const pass = results.filter((r) => r.pass).length;

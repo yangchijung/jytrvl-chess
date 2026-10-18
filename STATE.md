@@ -25,6 +25,8 @@ Done (with evidence):
   - 兒童能力五款企劃與 Figma 概念板交付：docs/product/KIDS_LEARNING_GAMES_V1.md、KIDS_GAMES_ART_BRIEF_V1.md；餐廳 V2 已部署並暫停；機器人／逆風探險／星球救援已有原型，換位小鎮仍待後續
   - 餐廳菜單／共用食材／庫存規格與 Figma 關係圖交付：docs/product/RESTAURANT_MENU_INVENTORY_V1.md；含 RT01–RT14，工程已回報通過，計算樣例已核對
 In Progress:
+  - 色彩塗鴉樂預覽 /doodle（Issue #7 A1＋A2）：六任務、兩種提示層級、格子印章、保存／PNG；瀏覽器 22／22（docs/ACCEPTANCE.md §20）；A3 正式第八款、孩子試玩與 VoiceOver 實機待後續
+  - R5（Issue #6）已修：短視窗頁首非 sticky＋scroll-padding；HU-R5 通過（351×154＠DPR 8 等效版面），原生縮放待產品端複驗
   - 下一輪已授權直接開工：先補 R5、交塗鴉 A1 可玩預覽，再補 A2 與既有七款短練習；實際開發進度待 Claude 提交證據，餐廳暫停不變
   - Issue #6：R1–R4 已通過 2026-10-18 複驗；真實 400% 已測並新增 R5 焦點遮擋待修；iPhone／iPad Safari＋VoiceOver 已請負責人實測，結果未回覆。矩陣為 16；腳本已更正，工程原始 JSON 的 HU03 名稱仍殘留 32，下次產出同步
   - 數獨：已部署，實機及讀屏驗收依 Issue #3 持續收尾

@@ -19,7 +19,7 @@
   },
   {
     "id": "HU03",
-    "name": "360/390/768/1280 × zh/en × light/dark (32): nothing outside the viewport; at 360×800 the first card’s Play is above the fold; Play ≥ 48 px",
+    "name": "360/390/768/1280 × zh/en × light/dark (16): nothing outside the viewport; at 360×800 the first card’s Play is above the fold; Play ≥ 48 px",
     "pass": true,
     "info": " first@360={\"bottom\":396,\"h\":48}"
   },
@@ -76,6 +76,12 @@
     "name": "R1 real input/select borders ≥ 3:1 with 3 px focus (light/dark); R2 descriptions 16 px, no overflow at 320/360/200 %; R3 real route Spinner shows 「載入中」 and stops spinning under reduced motion; R4 skip link ≥ 44×44",
     "pass": true,
     "info": " || light /settings border 4.29/4.29 focus 9.63 ; light /chess border 4.01/4.29 focus 9 ; light /play?game=chess&mode=ai border 4.29/4.29 focus 9.63 ; dark /settings border 5.34/5.34 focus 9.3 ; dark /chess border 6.03/5.34 focus 10.5 ; dark /play?game=chess&mode=ai border 5.34/5.34 focus 9.3 ; spinner reduce=false: \"載入中\" ring=spin ; spinner reduce=true: \"載入中\" ring=none ; skip 360: 130×44 ; skip 1280: 130×44"
+  },
+  {
+    "id": "HU-R5",
+    "name": "R5: at 351×154 @DPR 8 (= real 400 % zoom layout), 1280×560 and 390×500: skip link → Tab reaches 開始玩：西洋棋 fully visible; Tab and Shift+Tab through home, menu and settings never put a control or its 3 px focus ring under the header or off-screen",
+    "pass": true,
+    "info": " || 351x154@8 zh: play-chess top 51.0 header relative bottom -240.0 ; 351x154@8 en: play-chess top 51.0 header relative bottom -300.0 ; 1280x560@1 zh: play-chess top 499.7 header sticky bottom 57.0 ; 1280x560@1 en: play-chess top 499.7 header sticky bottom 57.0 ; 390x500@3 zh: play-chess top 348.0 header sticky bottom 57.0 ; 390x500@3 en: play-chess top 408.0 header sticky bottom 57.0"
   },
   {
     "id": "HU-err",
