@@ -1,0 +1,97 @@
+{
+  "initial": {
+    "asset": [
+      "https://chess.jytrvl.com/theme-init.js",
+      "https://chess.jytrvl.com/assets/index-BCKlp642.js"
+    ],
+    "notice": null,
+    "preview": "色彩塗鴉樂 · 預覽版",
+    "robots": "noindex,nofollow",
+    "url": "https://chess.jytrvl.com/doodle"
+  },
+  "beforeReload": {
+    "card": "加白會變怎樣？還要： 藍色 淺藍色 ✓再試一次先跳過回自由畫為什麼",
+    "cells": [
+      "purple-circle",
+      "light_blue-circle",
+      "blue-circle",
+      "orange-circle",
+      "green-circle",
+      "blue-circle",
+      "yellow-circle",
+      "light_blue-circle",
+      ""
+    ],
+    "saved": true,
+    "step": "apply",
+    "surface": "grid"
+  },
+  "afterReload": {
+    "blueSelected": "true",
+    "card": "加白會變怎樣？還要： 藍色 淺藍色 ✓再試一次先跳過回自由畫為什麼",
+    "cells": [
+      "purple-circle",
+      "light_blue-circle",
+      "blue-circle",
+      "orange-circle",
+      "green-circle",
+      "blue-circle",
+      "yellow-circle",
+      "light_blue-circle",
+      ""
+    ],
+    "notice": null,
+    "step": "apply",
+    "surface": "grid"
+  },
+  "complete": {
+    "cell8": "blue-circle",
+    "step": "done",
+    "success": "加白後，藍色變亮了。"
+  },
+  "undoCell8": "",
+  "redoCell8": "blue-circle",
+  "enReload": {
+    "cell8": "blue-circle",
+    "notice": null,
+    "step": "done",
+    "success": "White makes this blue lighter.",
+    "surface": "grid"
+  },
+  "home": {
+    "doodleLinks": 0,
+    "heading": "一起玩，一起動腦。",
+    "playLinks": [
+      {
+        "href": "/chess",
+        "label": "開始玩：西洋棋"
+      },
+      {
+        "href": "/xiangqi",
+        "label": "開始玩：中國象棋"
+      },
+      {
+        "href": "/banqi",
+        "label": "開始玩：台灣暗棋"
+      },
+      {
+        "href": "/territory",
+        "label": "開始玩：領地爭奪戰"
+      },
+      {
+        "href": "/snake",
+        "label": "開始玩：貪食蛇競技場"
+      },
+      {
+        "href": "/blocks",
+        "label": "開始玩：方塊消除對戰"
+      },
+      {
+        "href": "/sudoku",
+        "label": "開始玩：數獨"
+      }
+    ],
+    "restaurantLinks": 0,
+    "url": "https://chess.jytrvl.com/"
+  }
+}

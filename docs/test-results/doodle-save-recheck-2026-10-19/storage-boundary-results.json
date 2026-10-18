@@ -1,0 +1,110 @@
+{
+  "sourceCommit": "7eae7f31c8c4050a8e2a50414ab6ad165695d931",
+  "method": "Exact source TypeScript modules, isolated in-memory storage. No browser storage injection.",
+  "passed": 17,
+  "failed": 0,
+  "rows": [
+    {
+      "name": "D3 backed up broken",
+      "pass": true,
+      "notice": "broken",
+      "target": "jy.doodle.v1"
+    },
+    {
+      "name": "D3 backed up brokenFuture",
+      "pass": true,
+      "notice": "brokenFuture",
+      "target": "jy.doodle.v1"
+    },
+    {
+      "name": "D3 backup failure preserves primary and resumes alternate",
+      "pass": true,
+      "target": "jy.doodle.v1.recovered",
+      "visible": 1
+    },
+    {
+      "name": "D3 backup becomes writable: continue the recovered drawing",
+      "pass": true,
+      "target": "jy.doodle.v1",
+      "notice": "restored",
+      "visible": 1,
+      "alternateStillHasDrawing": 1
+    },
+    {
+      "name": "D3 after a normal UI change and reopening: recovered drawing remains reachable",
+      "pass": true,
+      "primaryVisible": 1,
+      "alternateStillHasDrawing": 1
+    },
+    {
+      "name": "D3 unavailable storage disables writing",
+      "pass": true
+    },
+    {
+      "name": "D3 neither file can be used: no write target",
+      "pass": true
+    },
+    {
+      "name": "D4 2000 ops round trip",
+      "pass": true
+    },
+    {
+      "name": "D4 operation 2001 safely refused",
+      "pass": true
+    },
+    {
+      "name": "D4 free compaction retains visible operations",
+      "pass": true
+    },
+    {
+      "name": "D4 grid compaction preserves all cells",
+      "pass": true
+    },
+    {
+      "name": "D4 new 4999 point stroke round trip with ordered geometry",
+      "pass": true,
+      "segments": [
+        2000,
+        2000,
+        1001
+      ]
+    },
+    {
+      "name": "D4 new 5000 point stroke round trip with ordered geometry",
+      "pass": true,
+      "segments": [
+        2000,
+        2000,
+        1002
+      ]
+    },
+    {
+      "name": "D1/D4 legacy valid schema 1 stroke 2000 resumes",
+      "pass": true,
+      "previousSchemaValid": true,
+      "notice": null,
+      "visible": 1,
+      "rawBackedUp": false
+    },
+    {
+      "name": "D1/D4 legacy valid schema 1 stroke 2001 resumes",
+      "pass": true,
+      "previousSchemaValid": true,
+      "notice": null,
+      "visible": 1,
+      "rawBackedUp": false
+    },
+    {
+      "name": "D1/D4 legacy valid schema 1 stroke 4999 resumes",
+      "pass": true,
+      "previousSchemaValid": true,
+      "notice": null,
+      "visible": 1,
+      "rawBackedUp": false
+    },
+    {
+      "name": "D1 lesson 4 partial resume then finish",
+      "pass": true
+    }
+  ]
+}

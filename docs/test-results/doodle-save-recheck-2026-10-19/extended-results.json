@@ -1,0 +1,113 @@
+{
+  "sourceCommit": "7eae7f31c8c4050a8e2a50414ab6ad165695d931",
+  "date": "2026-10-19",
+  "method": "Fresh exact-source modules per independent fixture, isolated memory storage; no production browser storage injection",
+  "passed": 24,
+  "failed": 0,
+  "rows": [
+    {
+      "name": "D3-R1 continued backup failure preserves active alternate",
+      "pass": true
+    },
+    {
+      "name": "D3-R1 recovered storage migrates and verifies complete drawing",
+      "pass": true
+    },
+    {
+      "name": "D3-R1 original raw and alternate kept",
+      "pass": true
+    },
+    {
+      "name": "D3-R1 repeated mount keeps restored notice",
+      "pass": true
+    },
+    {
+      "name": "D3-R1 second stroke + mode + fresh module reopening preserve latest",
+      "pass": true,
+      "operations": 2,
+      "surface": "grid"
+    },
+    {
+      "name": "D3-R1 newer valid main wins over unmoved alternate",
+      "pass": true
+    },
+    {
+      "name": "D3-R1 alternate remains downloadable byte-for-byte",
+      "pass": true
+    },
+    {
+      "name": "D3-R1 migration throw-main retains working drawing",
+      "pass": true,
+      "target": "jy.doodle.v1.recovered",
+      "notice": "restored"
+    },
+    {
+      "name": "D3-R1 throw-main next visit keeps edits",
+      "pass": true
+    },
+    {
+      "name": "D3-R1 migration readback-mismatch retains working drawing",
+      "pass": true,
+      "target": "jy.doodle.v1.recovered",
+      "notice": "restored"
+    },
+    {
+      "name": "D3-R1 readback-mismatch next visit keeps edits",
+      "pass": true
+    },
+    {
+      "name": "D3-R1 migration marker-only retains working drawing",
+      "pass": true,
+      "target": "jy.doodle.v1",
+      "notice": "restored"
+    },
+    {
+      "name": "D3-R1 marker-only next visit keeps edits",
+      "pass": true
+    },
+    {
+      "name": "D3-R1 only alternate present is restored",
+      "pass": true
+    },
+    {
+      "name": "D4-R1 2000 legacy points and redo branch unchanged",
+      "pass": true
+    },
+    {
+      "name": "D4-R1 2000 redo and undo keep geometry and eraser",
+      "pass": true
+    },
+    {
+      "name": "D4-R1 2000 save then fresh reopen preserves all data",
+      "pass": true
+    },
+    {
+      "name": "D4-R1 2001 legacy points and redo branch unchanged",
+      "pass": true
+    },
+    {
+      "name": "D4-R1 2001 redo and undo keep geometry and eraser",
+      "pass": true
+    },
+    {
+      "name": "D4-R1 2001 save then fresh reopen preserves all data",
+      "pass": true
+    },
+    {
+      "name": "D4-R1 4999 legacy points and redo branch unchanged",
+      "pass": true
+    },
+    {
+      "name": "D4-R1 4999 redo and undo keep geometry and eraser",
+      "pass": true
+    },
+    {
+      "name": "D4-R1 4999 save then fresh reopen preserves all data",
+      "pass": true
+    },
+    {
+      "name": "D4-R1 previously invalid 5000-point raw is preserved as backup",
+      "pass": true
+    }
+  ]
+}

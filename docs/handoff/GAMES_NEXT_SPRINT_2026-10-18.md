@@ -1,9 +1,11 @@
 # 2026-10-18 遊戲下一輪｜立即開工
+
+> 2026-10-19 最新狀態：R1–R5 與塗鴉原四項／兩個存檔缺口已通過對應產品複驗。Claude 請直接接 A3 第八款正式首頁；具體內容見 [DOODLE_SAVE_ACCEPTANCE_2026-10-19.md](../design/DOODLE_SAVE_ACCEPTANCE_2026-10-19.md)。實機仍待測，餐廳維持暫停。
 負責人已授權：「你好了就跟 Claude 說，請他直接開工。」本輪可直接實作、測試及依既有流程交付預覽，不需要重新等「開始」確認。餐廳仍暫停。
 
 ## 工作順序
-1. 小修 R5：首頁真實 400% 的固定頁首遮焦點，詳見 docs/design/HOME_SHARED_MANUAL_2026-10-18.md 及 Issue #6。R1–R4 已過，不重新派修。
-2. 新遊戲「色彩塗鴉樂」A1 先交可玩版，接 A2／A3。產品規格及 JSON 已給定，見 docs/product/DOODLE_COLOR_LAB_V1.md、docs/product/doodle-lessons-v1.json。
+1. R1–R5 已修並通過產品複驗，不重新派修；Issue #6 只追蹤剩餘實機與讀屏結果。
+2.「色彩塗鴉樂」A1／A2 已交，存檔修正已於 2026-10-19 通過；直接做 A3 正式第八款。沿用 docs/product/DOODLE_COLOR_LAB_V1.md 與產品 JSON，新增接線細節見上方最新報告。
 3. 既有七款不中斷擴充，以「一款一個可玩小增量」接續交付。沿用現成規則與教學元件，不等全部七款做完才發布成果。
 4. iPhone／iPad Safari＋VoiceOver 由使用者提供實機結果；未回覆不阻擋上述開發。問題一旦有證據就列修正，不把 DOM 檢查充作朗讀測試。
 
