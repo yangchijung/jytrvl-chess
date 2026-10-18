@@ -555,3 +555,6 @@ AI 只使用玩家看得到的資訊：貪食蛇有單元測試確認對手尚�
 | DC12 | 未測 | 孩子試玩待負責人安排 |
 
 說明：色票、配方與文案完全取自產品 JSON；混色為固定查表的簡化 RYB 教學模型，不做 RGB 平均。作品只存在本機瀏覽器，沒有上傳、作品牆或評分。
+
+- 部署：commit f80776c；[CI](https://github.com/yangchijung/jytrvl-chess/actions/runs/39126647518) build-and-test、Cloudflare Pages、Workers Builds 皆成功
+- 正式站（2026-10-18，Chrome）：/doodle noindex；任務 1 按「混一混」→ 公告「紅色加黃色，變成橙色。」、自動選橙；以真實滑鼠拖曳畫一筆 → 任務完成「紅加黃，變成橙！」、顯示「已存好」；抽查後已刪除測試存檔
