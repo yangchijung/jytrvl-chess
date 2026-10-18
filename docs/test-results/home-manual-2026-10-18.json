@@ -1,0 +1,121 @@
+{
+  "date": "2026-10-18",
+  "timezone": "Asia/Taipei",
+  "site": "https://chess.jytrvl.com",
+  "sourceReference": "52945709f385252312fd45602cee32a0be4c8eb1",
+  "deployedShaVerified": false,
+  "method": "Actual native Chrome zoom control on macOS; native AX reported 400%; no CSS zoom or viewport emulation",
+  "before": {
+    "zoomPercent": 100,
+    "width": 1405,
+    "height": 619,
+    "dpr": 2,
+    "rootFontPx": 16
+  },
+  "during": {
+    "zoomPercent": 400,
+    "width": 351,
+    "height": 154,
+    "dpr": 8,
+    "rootFontPx": 16,
+    "layoutWidth": 351.25
+  },
+  "after": {
+    "zoomPercent": 100,
+    "width": 1405,
+    "height": 619,
+    "dpr": 2,
+    "rootFontPx": 16,
+    "theme": "system"
+  },
+  "horizontalChecks": [
+    {
+      "name": "home-zh-light",
+      "documentScrollWidth": 351,
+      "horizontalOverflowDetected": false,
+      "tolerancePx": 0.5
+    },
+    {
+      "name": "home-zh-dark",
+      "documentScrollWidth": 351,
+      "horizontalOverflowDetected": false,
+      "tolerancePx": 0.5
+    },
+    {
+      "name": "home-en-light",
+      "documentScrollWidth": 351,
+      "horizontalOverflowDetected": false,
+      "tolerancePx": 0.5
+    },
+    {
+      "name": "home-en-dark",
+      "documentScrollWidth": 351,
+      "horizontalOverflowDetected": false,
+      "tolerancePx": 0.5
+    },
+    {
+      "name": "menu-en-dark",
+      "documentScrollWidth": 351,
+      "horizontalOverflowDetected": false,
+      "tolerancePx": 0.5
+    },
+    {
+      "name": "settings-en-dark",
+      "documentScrollWidth": 351,
+      "horizontalOverflowDetected": false,
+      "tolerancePx": 0.5
+    },
+    {
+      "name": "settings-zh-system",
+      "documentScrollWidth": 351,
+      "horizontalOverflowDetected": false,
+      "tolerancePx": 0.5
+    }
+  ],
+  "home": {
+    "cards": 7,
+    "gameDestinationLinks": 14
+  },
+  "menu": {
+    "escapeCloses": true,
+    "focusReturnsToTrigger": true,
+    "lastItem": {
+      "label": "Profile",
+      "top": 110.75,
+      "bottom": 154.75,
+      "viewportHeight": 154,
+      "fullFocusRingNeedsRetest": true
+    }
+  },
+  "r5": {
+    "status": "open",
+    "priority": "P2",
+    "reproduction": "Reload home at native 400%; Tab to skip link; Enter; Tab to play-chess",
+    "focusTestId": "play-chess",
+    "button": {
+      "top": 53.375,
+      "bottom": 101.375,
+      "height": 48
+    },
+    "header": {
+      "top": 0,
+      "bottom": 57,
+      "height": 57
+    },
+    "overlapPx": 3.625,
+    "screenshot": "screens/home-manual-2026-10-18/home-native400-keyboard.jpg"
+  },
+  "physicalDevice": {
+    "selected": "iPhone/iPad Safari+VoiceOver",
+    "model": null,
+    "osVersion": null,
+    "results": {
+      "A": "not_tested",
+      "B": "not_tested",
+      "C": "not_tested",
+      "D": "not_tested"
+    },
+    "reason": "Awaiting user's real-device report; browser AX is not screen-reader evidence"
+  },
+  "conclusion": "400% testing executed; horizontal reflow observations passed in scope; R5 focus clipping needs fix. Physical devices and VoiceOver pending."
+}

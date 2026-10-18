@@ -516,3 +516,12 @@ AI 只使用玩家看得到的資訊：貪食蛇有單元測試確認對手尚�
 
 - 部署：commit 63b4b13；[CI](https://github.com/yangchijung/jytrvl-chess/actions/runs/39039108514) build-and-test、Cloudflare Pages、Workers Builds 皆成功
 - 正式站（2026-10-17，Chrome，system 主題解析為淺色）：設定頁暱稱框邊線 rgb(118,124,114)，對周圍 4.29:1；暱稱說明 16px；skip link 聚焦 130×44；`/play?game=chess&mode=ai` 兩組 radio 各自 name、5 個選項說明皆 16px、時間下拉邊線 rgb(118,124,114)。數獨頁因瀏覽器內有負責人進行中的存檔，未操作。
+
+## 20. 真實 400% 與下一輪交付（2026-10-18）
+
+- 首頁／共用介面 R1–R4 保留既有通過結論。本輪以 macOS Chrome 原生選單設 400%，100% 時 1405×619／DPR 2，400% 時 351×154／DPR 8；非 viewport 模擬或 CSS 放大。
+- 首頁中英／淺深、選單與設定檢查範圍內未發現水平溢出；新發現 R5：skip link → Tab 至 play-chess 時，固定頁首遮住按鈕及焦點上緣。待修正，不宣告 400% 全通過。
+- 詳見 [報告及重現](design/HOME_SHARED_MANUAL_2026-10-18.md)、[實測 JSON](test-results/home-manual-2026-10-18.json)。測後已恢復原縮放與主題。
+- iPhone／iPad Safari＋VoiceOver：負責人已選裝置組合，尚待機型、系統版本及 A–D 實測結果；不是已驗收。Android／Firefox／Edge 本輪未測。
+- 色彩塗鴉樂 V1 及七款短練習已完成產品交付；僅驗證 JSON 格式、6 任務／4 配方引用、35 組文案的雙語占位符及短提示長度，不代表新遊戲已實作或通過 DC01–DC12。
+- [直接開工交接](handoff/GAMES_NEXT_SPRINT_2026-10-18.md)。餐廳維持暫停。
