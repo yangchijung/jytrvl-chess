@@ -1,5 +1,6 @@
 // Color Doodle — canvas rendering shared by the live paper and PNG export. Coordinates are normalised (0..1).
-import { colorOf, type Cell, type FreeOp, type Shape, type Size } from '../../shared/doodle/model';
+import { colorOf, type Cell, type ColorId, type FreeOp, type Shape, type Size } from '../../shared/doodle/model';
+import { FISH_ART, type Region } from '../../shared/doodle/scene';
 
 export const LINE: Record<Size, number> = { s: 0.006, m: 0.014, l: 0.03 }; // fraction of paper width
 export const STAMP: Record<Size, number> = { s: 0.035, m: 0.06, l: 0.095 };
@@ -104,5 +105,33 @@ export function exportPng(kind: 'free' | 'grid', ops: FreeOp[], cells: (Cell | n
     c.width = c.height = 1200;
     renderGrid(c.getContext('2d')!, cells, 1200);
   }
+  return new Promise((res) => c.toBlob((b) => res(b), 'image/png'));
+}
+
+/** PNG of the picture-play fish: the child's region colours on white, outlines, no interface or motion frames. */
+export function exportScenePng(colors: Record<Region, ColorId | null>): Promise<Blob | null> {
+  const c = document.createElement('canvas');
+  const k = 4; // 400×300 art → 1600×1200
+  c.width = FISH_ART.viewBox.w * k;
+  c.height = FISH_ART.viewBox.h * k;
+  const ctx = c.getContext('2d')!;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, c.width, c.height);
+  ctx.scale(k, k);
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = '#1f2328';
+  ctx.lineWidth = 4;
+  for (const r of ['tail', 'fin', 'body'] as Region[]) {
+    const p = new Path2D(FISH_ART[r]);
+    ctx.fillStyle = colors[r] ? colorOf(colors[r]!).hex : '#ffffff';
+    ctx.fill(p);
+    ctx.stroke(p);
+  }
+  ctx.fillStyle = '#1f2328';
+  ctx.beginPath();
+  ctx.arc(FISH_ART.eye.cx, FISH_ART.eye.cy, FISH_ART.eye.r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke(new Path2D(FISH_ART.mouth));
   return new Promise((res) => c.toBlob((b) => res(b), 'image/png'));
 }

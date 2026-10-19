@@ -633,6 +633,154 @@ const opsLen = async (p) => (await D(p)).s.free.n;
   await p.ctx.close();
 }
 
+// ---------------------------------------------------------------- B1 picture play: my fish (DP01–DP08 engineering checks)
+{
+  const p = await page(360, 800);
+  await go(p);
+  // keep a free-paper stroke to prove the old save is untouched
+  await stroke(p, 0.2, 0.3, 0.3);
+  await tap(p, '[data-testid=surface-fish]');
+  await p.waitForSelector('[data-testid=fish]');
+  const opened = await p.evaluate(() => ({ dialog: !!document.querySelector('dialog[open]'), view: window.__doodle.view, hint: document.querySelector('[data-testid=doodle-hint]').textContent, move: document.querySelector('[data-testid=fish-move]').disabled }));
+  // tap the tail on the picture itself with the default red
+  const tailBox = await p.$eval('[data-testid=fish-tail]', (e) => {
+    e.scrollIntoView({ block: 'center' });
+    const r = e.getBoundingClientRect();
+    return { x: r.x + r.width * 0.75, y: r.y + r.height / 2 };
+  });
+  await p.mouse.click(tailBox.x, tailBox.y);
+  await sleep(100);
+  const afterTap = await p.evaluate(() => ({ tail: document.querySelector('[data-testid=fish-tail]').dataset.color, move: document.querySelector('[data-testid=fish-move]').disabled, n: window.__doodle.scene.fills.n }));
+  await tap(p, '[data-testid=fish-move]');
+  const anim = await p.evaluate(() => document.getAnimations().length);
+  await sleep(300);
+  const afterMove = await p.evaluate(() => ({ n: window.__doodle.scene.fills.n, hint: document.querySelector('[data-testid=doodle-hint]').textContent, anims: document.getAnimations().filter((a) => a.playState === 'running').length }));
+  ok('DP01', 'no account: 玩圖畫 opens the fish straight away (no dialog); tapping one region with any colour enables 動一下; one ~200 ms tail wag, not looping, not added to the undo history; free paper and the six tasks are still reachable', !opened.dialog && opened.view === 'fish' && opened.hint === '選個顏色，塗看看' && opened.move && afterTap.tail === 'red' && !afterTap.move && afterTap.n === 1 && anim >= 1 && afterMove.n === 1 && afterMove.anims === 0 && afterMove.hint.includes('擺了擺尾巴'), JSON.stringify({ opened, afterTap, anim, afterMove }));
+  // DP02/DP03: try mixing → red + yellow → orange, result stays visible, “用這色畫” goes back to the body
+  await tap(p, '[data-testid=fish-mix]');
+  await sleep(400);
+  const slots = await p.$$eval('[data-testid^=slot-]', (e) => e.map((x) => x.dataset.color));
+  const focusMix = await p.evaluate(() => document.activeElement?.dataset.testid);
+  await p.keyboard.press('Enter');
+  await sleep(500);
+  const res = await p.$eval('[data-testid=mix-result]', (e) => {
+    const r = e.getBoundingClientRect();
+    return { out: e.dataset.output, visible: r.top >= 0 && r.bottom <= innerHeight + 1, label: e.querySelector('[data-testid=mix-use]').textContent.trim() };
+  });
+  await p.focus('[data-testid=mix-use]');
+  await p.keyboard.press('Enter');
+  await sleep(700);
+  const back = await p.evaluate(() => {
+    const r = document.querySelector('[data-testid=fish]').getBoundingClientRect();
+    return { focus: document.activeElement?.dataset.testid, color: window.__doodle.color, fishTop: Math.round(r.top), hint: document.querySelector('[data-testid=doodle-hint]').textContent };
+  });
+  await p.keyboard.press('Enter'); // keyboard fills the body with orange
+  await sleep(150);
+  const done = await p.evaluate(() => ({ body: document.querySelector('[data-testid=fish-body]').dataset.color, task: document.querySelector('[data-testid=fish-task]').dataset.done, say: document.querySelector('[data-testid=announce]').textContent, hint: document.querySelector('[data-testid=doodle-hint]').textContent, label: document.querySelector('[data-testid=region-body]').getAttribute('aria-label') }));
+  ok('DP02/03', '試試混色 sets red + yellow and focuses 混一混; result orange with “用這色畫” visible at 360 px; the action returns focus to the body control; Enter colours the body orange; the task (mix_orange + orange on a region) completes and is announced; the control names its colour', slots.join() === 'red,yellow' && focusMix === 'mix-go' && res.out === 'orange' && res.visible && res.label === '用這色畫' && back.focus === 'region-body' && back.color === 'orange' && back.fishTop >= 0 && back.hint === '點身體來上色' && done.body === 'orange' && done.task === 'true' && done.say.includes('橙色用在小魚上了') && done.hint === '橙色用在小魚上了' && done.label === '身體：橙色', JSON.stringify({ slots, focusMix, res, back, done }));
+  // DP04: recolour, undo/redo, PNG
+  await tap(p, '[data-testid=swatch-blue]');
+  await tap(p, '[data-testid=region-fin]');
+  await tap(p, '[data-testid=tool-undo]');
+  const u = await p.$eval('[data-testid=fish-fin]', (e) => e.dataset.color);
+  await tap(p, '[data-testid=tool-redo]');
+  const r = await p.$eval('[data-testid=fish-fin]', (e) => e.dataset.color);
+  await p.evaluate(() => {
+    window.__png = [];
+    const orig = URL.createObjectURL;
+    URL.createObjectURL = (b) => (window.__png.push(b), orig(b));
+    HTMLAnchorElement.prototype.click = function () {
+      window.__dl = this.download;
+    };
+  });
+  await tap(p, '[data-testid=fish-move]'); // export right after a wag: the picture must be the still pose
+  await tap(p, '[data-testid=tool-export]');
+  await sleep(600);
+  const png = await p.evaluate(async () => {
+    const blob = window.__png.at(-1);
+    const img = await createImageBitmap(blob);
+    const c = document.createElement('canvas');
+    c.width = img.width;
+    c.height = img.height;
+    const x = c.getContext('2d');
+    x.drawImage(img, 0, 0);
+    const at = (vx, vy) => [...x.getImageData(Math.round((vx / 400) * img.width), Math.round((vy / 300) * img.height), 1, 1).data].slice(0, 3).join();
+    return { w: img.width, h: img.height, corner: at(4, 4), body: at(170, 170), tail: at(345, 150), fin: at(190, 50), name: window.__dl };
+  });
+  ok('DP04', 'recolour, undo and redo work per region; PNG 1600×1200 on white with the same colours in the same places (orange body, red tail, blue fin), no interface, still pose', u === '' && r === 'blue' && png.w === 1600 && png.h === 1200 && png.corner === '255,255,255' && png.body === '232,121,45' && png.tail === '214,64,52' && png.fin === '40,100,180' && /^color-doodle-\d{8}-\d{4}\.png$/.test(png.name), JSON.stringify({ u, r, png }));
+  // DP05: reload, language switch, the old free-paper save untouched
+  await p.reload({ waitUntil: 'networkidle0' });
+  await p.waitForSelector('[data-testid=fish]');
+  const re = await D(p);
+  await Promise.all([p.waitForFunction(() => location.pathname === '/en/doodle'), p.click('[data-testid=lang-switch]')]);
+  await p.waitForSelector('[data-testid=fish]');
+  const en = await p.evaluate(() => ({ view: window.__doodle.view, body: document.querySelector('[data-testid=fish-body]').dataset.color, label: document.querySelector('[data-testid=region-body]').getAttribute('aria-label'), move: document.querySelector('[data-testid=fish-move]').textContent.trim() }));
+  const stored = await p.evaluate(() => ({ main: JSON.parse(localStorage.getItem('jy.doodle.v1')), scene: JSON.parse(localStorage.getItem('jy.doodle.scene.v1')) }));
+  await tap(p, '[data-testid=surface-free]');
+  const freeBack = await D(p);
+  ok('DP05', 'reload and switching to English keep the fish, its colours and the finished task; the scene lives in its own key; the old free/grid save keeps its stroke and only free/grid in surface', re.view === 'fish' && re.scene.done && re.scene.fills.n >= 3 && en.view === 'fish' && en.body === 'orange' && en.label === 'Body: Orange' && en.move === 'Make it move' && stored.main.free.n === 1 && ['free', 'grid'].includes(stored.main.surface) && stored.scene.sceneId === 'fish' && freeBack.view === 'free' && freeBack.s.free.n === 1, JSON.stringify({ reView: re.view, en, mainSurface: stored.main.surface, mainN: stored.main.free.n, freeBack: freeBack.view }));
+  await p.screenshot({ path: `${OUT}/doodle-fish-360.png`, fullPage: true });
+  await p.ctx.close();
+}
+{
+  // DP06: a newer-version scene save + backup write failure: never overwritten, drawing goes to the scene's alternate key
+  const p = await page(1280, 900);
+  const raw = '{"schemaVersion":5,"sceneId":"fish","art":"sentinel"}';
+  await p.evaluateOnNewDocument((raw) => {
+    if (!sessionStorage.getItem('seeded')) {
+      localStorage.setItem('jy.doodle.scene.v1', raw);
+      sessionStorage.setItem('seeded', '1');
+    }
+    const set = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (k, v) {
+      if (String(k).includes('.backup-')) throw new DOMException('full', 'QuotaExceededError');
+      return set.call(this, k, v);
+    };
+  }, raw);
+  await go(p);
+  await tap(p, '[data-testid=surface-fish]');
+  await tap(p, '[data-testid=region-body]');
+  const st = await p.evaluate(() => ({ main: localStorage.getItem('jy.doodle.scene.v1'), alt: JSON.parse(localStorage.getItem('jy.doodle.scene.v1.recovered') ?? 'null'), notice: document.querySelector('[data-testid=scene-notice]')?.dataset.notice, dl: !!document.querySelector('[data-testid=scene-download-old]'), save: window.__doodle.sceneSaveState }));
+  // storage full: the fish stays on screen, “not saved yet — save a picture” instead of “Saved”
+  await p.evaluate(() => {
+    Storage.prototype.setItem = function () {
+      throw new DOMException('full', 'QuotaExceededError');
+    };
+  });
+  await tap(p, '[data-testid=region-tail]');
+  const full = await p.evaluate(() => ({ text: document.querySelector('[data-testid=save-state]').innerText, tail: document.querySelector('[data-testid=fish-tail]').dataset.color }));
+  ok('DP06', 'scene save from a newer version + backup failure: the original text is kept, the fish is saved to the scene alternate key with a notice and download; when storage is full the fish stays and “還沒存好” is shown with a picture download (never “已存好”)', st.main === raw && st.alt?.fills?.n === 1 && st.notice === 'brokenNoBackup' && st.dl && st.save === 'saved' && full.text.includes('還沒存好') && !full.text.includes('已存好') && full.tail === 'red', JSON.stringify({ ...st, alt: !!st.alt, full }));
+  await p.ctx.close();
+}
+{
+  // DP07/DP08: layouts, sizes, reduced motion
+  const fails = [];
+  for (const [w, h] of [[360, 800], [768, 1024], [1280, 900]])
+    for (const lang of ['', '/en'])
+      for (const scheme of ['light', 'dark']) {
+        const p = await page(w, h, { scheme, desktop: w >= 768 });
+        await p.goto(`${BASE}${lang}/doodle`, { waitUntil: 'networkidle0' });
+        await tap(p, '[data-testid=surface-fish]');
+        await tap(p, '[data-testid=region-body]');
+        const m = await p.evaluate(() => {
+          const small = [...document.querySelectorAll('[data-testid=doodle] button')].filter((b) => b.offsetParent && (b.getBoundingClientRect().height < 44 || b.getBoundingClientRect().width < 44)).map((b) => b.dataset.testid || b.textContent.slice(0, 8));
+          return { over: document.documentElement.scrollWidth > innerWidth + 1, small, regions: document.querySelectorAll('[data-testid^=region-]').length, labelled: [...document.querySelectorAll('[data-testid^=region-]')].every((b) => /[:：]/.test(b.getAttribute('aria-label'))) };
+        });
+        if (m.over || m.small.length || m.regions !== 3 || !m.labelled) fails.push(`${w}${lang}${scheme} ${JSON.stringify(m)}`);
+        if (w === 1280 && scheme === 'light') await p.screenshot({ path: `${OUT}/doodle-fish-1280-${lang ? 'en' : 'zh'}.png` });
+        await p.ctx.close();
+      }
+  const r = await page(390, 844, { reduce: true });
+  await go(r);
+  await tap(r, '[data-testid=surface-fish]');
+  await tap(r, '[data-testid=region-tail]');
+  await tap(r, '[data-testid=fish-move]');
+  const reducedAnims = await r.evaluate(() => document.getAnimations().length);
+  const msg = await r.$eval('[data-testid=doodle-hint]', (e) => e.textContent);
+  await r.ctx.close();
+  ok('DP07/08', 'fish view at 360/768/1280 × zh/en × light/dark: no horizontal overflow, every control ≥ 44 px, three named region controls stating their colour; reduced motion: no tail animation, a visible “擺了擺尾巴” state instead', fails.length === 0 && reducedAnims === 0 && msg.includes('擺了擺尾巴'), fails.join(' ; ') + ` | reduced ${reducedAnims} ${msg}`);
+}
+
 ok('D-err', 'no console errors', errors.length === 0, errors.slice(0, 3).join(' | '));
 await browser.close();
 const pass = results.filter((r) => r.pass).length;

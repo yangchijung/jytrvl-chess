@@ -111,7 +111,7 @@
     "id": "DC06",
     "name": "PNG export matches the paper (white background, the stroke colour at the stroke) and the stamp grid; dated file name; no network request sends the picture",
     "pass": true,
-    "info": "{\"w\":1600,\"h\":1200,\"type\":\"image/png\",\"corner\":[255,255,255,255],\"stroke\":[214,64,52,255],\"name\":\"color-doodle-20261019-0841.png\"} | grid 1200 | sent 0"
+    "info": "{\"w\":1600,\"h\":1200,\"type\":\"image/png\",\"corner\":[255,255,255,255],\"stroke\":[214,64,52,255],\"name\":\"color-doodle-20261019-1111.png\"} | grid 1200 | sent 0"
   },
   {
     "id": "DC07-layout",
@@ -184,6 +184,42 @@
     "name": "a stroke of 2300+ points is stored as consecutive strokes of ≤ 2000 points; the save reads back after reload without a warning",
     "pass": true,
     "info": "{\"strokes\":2,\"max\":2000,\"total\":2301,\"saved\":\"saved\"}"
+  },
+  {
+    "id": "DP01",
+    "name": "no account: 玩圖畫 opens the fish straight away (no dialog); tapping one region with any colour enables 動一下; one ~200 ms tail wag, not looping, not added to the undo history; free paper and the six tasks are still reachable",
+    "pass": true,
+    "info": "{\"opened\":{\"dialog\":false,\"view\":\"fish\",\"hint\":\"選個顏色，塗看看\",\"move\":true},\"afterTap\":{\"tail\":\"red\",\"move\":false,\"n\":1},\"anim\":1,\"afterMove\":{\"n\":1,\"hint\":\"小魚擺了擺尾巴\",\"anims\":0}}"
+  },
+  {
+    "id": "DP02/03",
+    "name": "試試混色 sets red + yellow and focuses 混一混; result orange with “用這色畫” visible at 360 px; the action returns focus to the body control; Enter colours the body orange; the task (mix_orange + orange on a region) completes and is announced; the control names its colour",
+    "pass": true,
+    "info": "{\"slots\":[\"red\",\"yellow\"],\"focusMix\":\"mix-go\",\"res\":{\"out\":\"orange\",\"visible\":true,\"label\":\"用這色畫\"},\"back\":{\"focus\":\"region-body\",\"color\":\"orange\",\"fishTop\":189,\"hint\":\"點身體來上色\"},\"done\":{\"body\":\"orange\",\"task\":\"true\",\"say\":\"身體：橙色 橙色用在小魚上了\",\"hint\":\"橙色用在小魚上了\",\"label\":\"身體：橙色\"}}"
+  },
+  {
+    "id": "DP04",
+    "name": "recolour, undo and redo work per region; PNG 1600×1200 on white with the same colours in the same places (orange body, red tail, blue fin), no interface, still pose",
+    "pass": true,
+    "info": "{\"u\":\"\",\"r\":\"blue\",\"png\":{\"w\":1600,\"h\":1200,\"corner\":\"255,255,255\",\"body\":\"232,121,45\",\"tail\":\"214,64,52\",\"fin\":\"40,100,180\",\"name\":\"color-doodle-20261019-1113.png\"}}"
+  },
+  {
+    "id": "DP05",
+    "name": "reload and switching to English keep the fish, its colours and the finished task; the scene lives in its own key; the old free/grid save keeps its stroke and only free/grid in surface",
+    "pass": true,
+    "info": "{\"reView\":\"fish\",\"en\":{\"view\":\"fish\",\"body\":\"orange\",\"label\":\"Body: Orange\",\"move\":\"Make it move\"},\"mainSurface\":\"free\",\"mainN\":1,\"freeBack\":\"free\"}"
+  },
+  {
+    "id": "DP06",
+    "name": "scene save from a newer version + backup failure: the original text is kept, the fish is saved to the scene alternate key with a notice and download; when storage is full the fish stays and “還沒存好” is shown with a picture download (never “已存好”)",
+    "pass": true,
+    "info": "{\"main\":\"{\\\"schemaVersion\\\":5,\\\"sceneId\\\":\\\"fish\\\",\\\"art\\\":\\\"sentinel\\\"}\",\"alt\":true,\"notice\":\"brokenNoBackup\",\"dl\":true,\"save\":\"saved\",\"full\":{\"text\":\"還沒存好，先下載圖片。 存成圖片\",\"tail\":\"red\"}}"
+  },
+  {
+    "id": "DP07/08",
+    "name": "fish view at 360/768/1280 × zh/en × light/dark: no horizontal overflow, every control ≥ 44 px, three named region controls stating their colour; reduced motion: no tail animation, a visible “擺了擺尾巴” state instead",
+    "pass": true,
+    "info": " | reduced 0 小魚擺了擺尾巴"
   },
   {
     "id": "D-err",

@@ -27,25 +27,36 @@ export interface Loaded {
   oldRaw: string | null;
 }
 /** Same unreadable text → same backup key, so reloading many times does not fill the browser with copies. */
-export function backupKey(raw: string): string {
+export function backupKey(raw: string, key: string = KEY): string {
   let h1 = 0x811c9dc5,
     h2 = raw.length;
   for (let i = 0; i < raw.length; i++) {
     h1 = Math.imul(h1 ^ raw.charCodeAt(i), 16777619);
     h2 = Math.imul(h2 ^ raw.charCodeAt(i), 2246822507);
   }
-  return `${KEY}.backup-${(h1 >>> 0).toString(36)}${(h2 >>> 0).toString(36)}`;
+  return `${key}.backup-${(h1 >>> 0).toString(36)}${(h2 >>> 0).toString(36)}`;
 }
-type Store = Pick<Storage, "getItem" | "setItem"> &
+export type Store = Pick<Storage, "getItem" | "setItem"> &
   Partial<Pick<Storage, "removeItem">>;
 
-/** Reads the alternate key (an empty string counts as nothing stored). */
-function readAlt(store: Store) {
-  return readSave(() => {
-    const v = store.getItem(ALT);
-    return v === "" ? null : v;
-  });
+/** What a reader returns for one stored text (the main drawing uses readSave; scenes use their own reader). */
+export type Read<T> =
+  | { kind: "ok"; save: T }
+  | { kind: "empty" }
+  | { kind: "broken"; raw: string; cause: "json" | "schema" }
+  | { kind: "noStorage" };
+export interface Keyed<T> {
+  key: string;
+  read: (get: () => string | null) => Read<T>;
+  blank: () => T;
 }
+export interface LoadedOf<T> {
+  s: T;
+  target: string | null;
+  notice: Notice;
+  oldRaw: string | null;
+}
+
 /** Writes `text` to `key` and reads it back; true only when the stored text is exactly what was written. */
 function writeChecked(store: Store, key: string, text: string): boolean {
   try {
@@ -55,78 +66,85 @@ function writeChecked(store: Store, key: string, text: string): boolean {
     return false;
   }
 }
+
 /** Marks the alternate as already moved back to the main key (its text is kept untouched, never deleted). */
 export const MOVED = `${ALT}.moved`;
-function markAltMoved(store: Store, altRaw: string) {
-  try {
-    store.setItem(MOVED, backupKey(altRaw));
-  } catch {
-    /* without the mark the leftover is only offered as a download; the valid main save still wins */
-  }
-}
-const altMoved = (store: Store, altRaw: string | null) => {
-  try {
-    return altRaw !== null && store.getItem(MOVED) === backupKey(altRaw);
-  } catch {
-    return false;
-  }
-};
 
-let carried: { text: string; notice: Notice; oldRaw: string | null } | null =
-  null;
+const carriedBy = new Map<
+  string,
+  { text: string; notice: Notice; oldRaw: string | null }
+>();
 
-export function loadSave(given?: Store): Loaded {
+/**
+ * The same protection for every saved kind (main drawing, picture-play scenes): backups before any write, an
+ * alternate key when backups fail, moving the alternate back once it is safe, and never letting a leftover
+ * alternate replace newer work.
+ */
+export function loadKeyed<T>(cfg: Keyed<T>, given?: Store): LoadedOf<T> {
+  const { key, read, blank } = cfg;
+  const alt = `${key}.recovered`;
+  const moved = `${alt}.moved`;
   let store: Store;
   try {
     store = given ?? window.localStorage; // can throw when site data is blocked
   } catch {
-    return { s: blankSave(), target: null, notice: "noStorage", oldRaw: null };
+    return { s: blank(), target: null, notice: "noStorage", oldRaw: null };
   }
-  const r = readSave(() => store.getItem(KEY));
+  const r = read(() => store.getItem(key));
   if (r.kind === "noStorage")
-    return { s: blankSave(), target: null, notice: "noStorage", oldRaw: null };
+    return { s: blank(), target: null, notice: "noStorage", oldRaw: null };
   // a drawing kept in the alternate place during an earlier visit (D3-R1)
   let altRaw: string | null = null;
   try {
-    altRaw = store.getItem(ALT);
+    altRaw = store.getItem(alt);
   } catch {
     altRaw = null;
   }
-  const alt = readAlt(store);
+  const a = read(() => (altRaw === "" ? null : altRaw));
+  const markMoved = () => {
+    try {
+      store.setItem(moved, backupKey(altRaw!, key));
+    } catch {
+      /* without the mark the leftover is only offered as a download; the valid main save still wins */
+    }
+  };
+  const isMoved = () => {
+    try {
+      return altRaw !== null && store.getItem(moved) === backupKey(altRaw, key);
+    } catch {
+      return false;
+    }
+  };
   if (r.kind === "ok") {
     // the page can mount twice in one visit; keep the "moved back" notice until the child changes the drawing
-    if (carried && store.getItem(KEY) === carried.text)
+    const carried = carriedBy.get(key);
+    if (carried && store.getItem(key) === carried.text)
       return {
         s: r.save,
-        target: KEY,
+        target: key,
         notice: carried.notice,
         oldRaw: carried.oldRaw,
       };
     // the main save is valid and is newer than any leftover alternate: it wins; a different leftover is offered as a download
     const leftover =
-      alt.kind === "ok" &&
-      altRaw !== store.getItem(KEY) &&
-      !altMoved(store, altRaw)
+      a.kind === "ok" && altRaw !== store.getItem(key) && !isMoved()
         ? altRaw
         : null;
     return {
       s: r.save,
-      target: KEY,
+      target: key,
       notice: leftover ? "altKept" : null,
       oldRaw: leftover,
     };
   }
   if (r.kind === "empty") {
-    if (
-      alt.kind === "ok" &&
-      writeChecked(store, KEY, JSON.stringify(alt.save))
-    ) {
-      markAltMoved(store, altRaw!);
-      return { s: alt.save, target: KEY, notice: null, oldRaw: null };
+    if (a.kind === "ok" && writeChecked(store, key, JSON.stringify(a.save))) {
+      markMoved();
+      return { s: a.save, target: key, notice: null, oldRaw: null };
     }
     return {
-      s: alt.kind === "ok" ? alt.save : blankSave(),
-      target: alt.kind === "ok" ? ALT : KEY,
+      s: a.kind === "ok" ? a.save : blank(),
+      target: a.kind === "ok" ? alt : key,
       notice: null,
       oldRaw: null,
     };
@@ -137,31 +155,57 @@ export function loadSave(given?: Store): Loaded {
       : "broken";
   let kept = false;
   try {
-    const bk = backupKey(r.raw);
+    const bk = backupKey(r.raw, key);
     if (store.getItem(bk) !== r.raw) store.setItem(bk, r.raw);
     kept = store.getItem(bk) === r.raw;
   } catch {
     kept = false;
   }
   if (kept) {
-    if (alt.kind === "ok") {
+    if (a.kind === "ok") {
       // the unreadable save is now copied aside: move the alternate drawing back to the main key (read back first)
-      const text = JSON.stringify(alt.save);
-      if (writeChecked(store, KEY, text)) {
-        markAltMoved(store, altRaw!);
-        carried = { text, notice: "restored", oldRaw: r.raw };
-        return { s: alt.save, target: KEY, notice: "restored", oldRaw: r.raw };
+      const text = JSON.stringify(a.save);
+      if (writeChecked(store, key, text)) {
+        markMoved();
+        carriedBy.set(key, { text, notice: "restored", oldRaw: r.raw });
+        return { s: a.save, target: key, notice: "restored", oldRaw: r.raw };
       }
-      return { s: alt.save, target: ALT, notice: "restored", oldRaw: r.raw };
+      return { s: a.save, target: alt, notice: "restored", oldRaw: r.raw };
     }
-    return { s: blankSave(), target: KEY, notice, oldRaw: r.raw };
+    return { s: blank(), target: key, notice, oldRaw: r.raw };
   }
   // could not keep a copy: leave the main key alone; continue a drawing already saved in the alternate place
-  const target = alt.kind === "ok" || alt.kind === "empty" ? ALT : null;
+  const target = a.kind === "ok" || a.kind === "empty" ? alt : null;
   return {
-    s: alt.kind === "ok" ? alt.save : blankSave(),
+    s: a.kind === "ok" ? a.save : blank(),
     target,
     notice: target ? "brokenNoBackup" : "brokenNoSave",
     oldRaw: r.raw,
   };
+}
+
+export function loadSave(given?: Store): Loaded {
+  return loadKeyed<Saved>(
+    { key: KEY, read: readSave, blank: blankSave },
+    given,
+  );
+}
+
+/**
+ * Saves `value` to `target` only when the text is accepted by `accept` and reads back identically
+ * ("Saved" is never shown otherwise). Returns false when nothing could be saved.
+ */
+export function saveChecked(
+  target: string | null,
+  text: string,
+  accept: (x: unknown) => boolean,
+): boolean {
+  if (!target) return false;
+  try {
+    if (!accept(JSON.parse(text))) return false;
+    localStorage.setItem(target, text);
+    return localStorage.getItem(target) === text;
+  } catch {
+    return false;
+  }
 }

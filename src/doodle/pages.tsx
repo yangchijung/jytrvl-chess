@@ -39,11 +39,31 @@ import {
   type Shape,
   type Size,
 } from '../../shared/doodle/model';
-import { RATIO, drawOp, exportPng, renderFree } from './draw';
-import { loadSave } from './storage';
+import { RATIO, drawOp, exportPng, exportScenePng, renderFree } from './draw';
+import { loadKeyed, loadSave, saveChecked } from './storage';
+import { FISH_ART, FISH_REGIONS, SCENE_KEY, anyFilled, blankScene, pushScene, readScene, regionColors, taskMet, validScene, type Region, type SceneSave } from '../../shared/doodle/scene';
 
 type L = { zh: string; en: string };
 const X: Record<string, L> = {
+  // picture play (B1, docs/product/DOODLE_PLAYFUL_V1_1.md §3)
+  picture: { zh: '玩圖畫', en: 'Picture play' },
+  fishName: { zh: '我的小魚', en: 'My fish' },
+  fishFirst: { zh: '選個顏色，塗看看', en: 'Pick a colour and paint' },
+  tryMix: { zh: '試試混色', en: 'Try mixing' },
+  tapBody: { zh: '點身體來上色', en: 'Tap the body to colour' },
+  paintThis: { zh: '用這色畫', en: 'Paint with this' },
+  move: { zh: '動一下', en: 'Make it move' },
+  tryAnother: { zh: '換個顏色試試', en: 'Try another colour' },
+  body: { zh: '身體', en: 'Body' },
+  tail: { zh: '尾巴', en: 'Tail' },
+  fin: { zh: '魚鰭', en: 'Fin' },
+  fishDone: { zh: '橙色用在小魚上了', en: 'You used orange on your fish' },
+  alsoOrange: { zh: '也試試混出的橙色', en: 'Also try the orange you mixed' },
+  noColour: { zh: '還沒上色', en: 'Not coloured yet' },
+  regions: { zh: '小魚的部位', en: 'Parts of the fish' },
+  fishTask: { zh: '小任務：混出橙色，塗在小魚上', en: 'Short task: mix orange and paint it on the fish' },
+  moved: { zh: '小魚擺了擺尾巴', en: 'The fish wagged its tail' },
+  fishLabel: { zh: '小魚：身體{body}、尾巴{tail}、魚鰭{fin}', en: 'Fish: body {body}, tail {tail}, fin {fin}' },
   preview: { zh: '預覽版', en: 'Preview' },
   allColours: { zh: '全部顏色', en: 'All colours' },
   pickTwo: { zh: '選兩個顏色', en: 'Pick two colours' },
@@ -208,6 +228,17 @@ export function DoodlePage() {
   const [saveState, setSaveState] = useState<'saved' | 'error' | null>(target ? null : 'error');
   const [confirmClear, setConfirmClear] = useState(false);
   const [gridFocus, setGridFocus] = useState(0);
+  // picture play: its own versioned save (never written into the old free/grid save)
+  const [{ s: sceneInit, target: sceneTarget, notice: sceneNotice, oldRaw: sceneRaw }] = useState(() => loadKeyed<SceneSave>({ key: SCENE_KEY, read: readScene, blank: blankScene }));
+  const [scene, setScene] = useState<SceneSave>(sceneInit);
+  const [sceneSaveState, setSceneSaveState] = useState<'saved' | 'error' | null>(sceneTarget ? null : 'error');
+  const [moveMsg, setMoveMsg] = useState(false);
+  const [otherAfterMix, setOtherAfterMix] = useState(false); // a non-orange fill after mixing: suggest the mixed orange too
+  const tailRef = useRef<SVGGElement>(null);
+  const regionRef = useRef<HTMLDivElement>(null);
+  const mixRef = useRef<HTMLDivElement>(null);
+  const view: 'free' | 'grid' | 'fish' = scene.open ? 'fish' : surface;
+  const colors = regionColors(scene.fills);
 
   const lesson = lessonIdx !== null ? LESSONS[lessonIdx] : null;
   const step = lesson && run ? lessonStep(lesson, run, s.level) : null;
@@ -232,17 +263,59 @@ export function DoodlePage() {
       setSaveState('error');
     }
   }, [s, target]);
+  const firstScene = useRef(true);
   useEffect(() => {
-    (window as unknown as { __doodle?: unknown }).__doodle = { s, run, step, lesson: lesson?.id, color, tool, surface, panel, saveState, target, notice, full };
+    if (firstScene.current) {
+      firstScene.current = false;
+      return;
+    }
+    setSceneSaveState(saveChecked(sceneTarget, JSON.stringify(scene), validScene) ? 'saved' : 'error');
+  }, [scene, sceneTarget]);
+  useEffect(() => {
+    (window as unknown as { __doodle?: unknown }).__doodle = { s, run, step, lesson: lesson?.id, color, tool, surface, panel, saveState, target, notice, full, view, scene, sceneSaveState, sceneTarget, sceneNotice };
   });
 
-  const history = surface === 'free' ? s.free : s.grid;
+  const history = view === 'fish' ? scene.fills : surface === 'free' ? s.free : s.grid;
   // apply undo / redo / clear to the paper currently shown (each paper keeps its own history)
-  const onHistory = (f: 'undo' | 'redo' | 'clear') =>
+  const onHistory = (f: 'undo' | 'redo' | 'clear') => {
+    if (view === 'fish') return setScene((p) => ({ ...p, fills: f === 'undo' ? undo(p.fills) : f === 'redo' ? redo(p.fills) : pushScene(p.fills, { t: 'clear' }) }));
     setS((p) => {
       if (surface === 'free') return { ...p, free: f === 'undo' ? undo(p.free) : f === 'redo' ? redo(p.free) : clearFree(p.free) };
       return { ...p, grid: f === 'undo' ? undo(p.grid) : f === 'redo' ? redo(p.grid) : pushGrid(p.grid, { t: 'clear' }) };
     });
+  };
+  const openView = (v: 'free' | 'grid' | 'fish') => {
+    setScene((p) => (p.open === (v === 'fish') ? p : { ...p, open: v === 'fish' }));
+    if (v !== 'fish') setSurface(v);
+    setMoveMsg(false);
+  };
+  // fill one region of the fish with the chosen colour (the eraser empties it)
+  const fillRegion = (region: Region) => {
+    const value = tool === 'eraser' ? null : color;
+    const fills = pushScene(scene.fills, { t: 'fill', region, color: value });
+    const met = taskMet({ mixedOrange: scene.mixedOrange, fills });
+    setScene((p) => ({ ...p, fills, done: p.done || met }));
+    setMoveMsg(false);
+    setOtherAfterMix(scene.mixedOrange && !met && value !== 'orange');
+    const msg = `${X[region][lang]}${lang === 'zh' ? '：' : ': '}${value ? colorOf(value).name[lang] : X.noColour[lang]}`;
+    setSay(met && !scene.done ? `${msg} ${X.fishDone[lang]}` : msg);
+  };
+  // one small tail wag in the child's colours; not a mark, never in the undo history
+  const moveFish = () => {
+    setMoveMsg(true);
+    setSay(X.moved[lang]);
+    if (!reduced()) tailRef.current?.animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(-14deg)' }, { transform: 'rotate(0deg)' }], { duration: 200, easing: 'ease-out' });
+  };
+  const startFishMix = () => {
+    setMoveMsg(false);
+    setPanel('mix');
+    setSlots(['red', 'yellow']);
+    setMixOut(null);
+    requestAnimationFrame(() => {
+      mixRef.current?.scrollIntoView({ block: 'nearest', behavior: reduced() ? 'instant' : 'smooth' });
+      mixRef.current?.querySelector<HTMLButtonElement>('[data-testid=mix-go]')?.focus({ preventScroll: true });
+    });
+  };
   useEffect(() => {
     if (full && !freeFull(s.free)) setFull(false);
   }, [s.free, full]);
@@ -299,10 +372,13 @@ export function DoodlePage() {
     if (!a || !b) return;
     const r = mix(a, b);
     setMixOut({ recipe: r, a, b });
+    setMoveMsg(false);
+    setOtherAfterMix(false);
     if (r) {
       setS((p) => (p.mixedColors.includes(r.output) ? p : { ...p, mixedColors: [...p.mixedColors, r.output] }));
       setSay(c('mixAnnouncement', { a: colorOf(a).name[lang], b: colorOf(b).name[lang], result: colorOf(r.output).name[lang] }));
-      if (run && lesson?.recipe === r.id) setRun({ ...run, mixed: [...run.mixed, r.id] });
+      if (run && lesson?.recipe === r.id && view !== 'fish') setRun({ ...run, mixed: [...run.mixed, r.id] });
+      if (view === 'fish' && r.id === 'mix_orange') setScene((p) => ({ ...p, mixedOrange: true, done: p.done || taskMet({ mixedOrange: true, fills: p.fills }) }));
     } else setSay(c('unsupported'));
   };
   const useColour = (id: ColorId) => {
@@ -321,7 +397,8 @@ export function DoodlePage() {
       // the paper (or grid) and its one-line hint together; when they are taller than the screen, start at the top
       const el = stageRef.current;
       if (el) el.scrollIntoView({ block: el.getBoundingClientRect().height <= window.innerHeight - 80 ? 'center' : 'start', behavior: reduced() ? 'instant' : 'smooth' });
-      if (surface === 'free') paperRef.current?.focus({ preventScroll: true });
+      if (view === 'fish') regionRef.current?.querySelector<HTMLButtonElement>('[data-testid=region-body]')?.focus({ preventScroll: true });
+      else if (surface === 'free') paperRef.current?.focus({ preventScroll: true });
       else gridRef.current?.querySelector<HTMLButtonElement>('button[tabindex="0"]')?.focus({ preventScroll: true });
     });
   };
@@ -349,7 +426,7 @@ export function DoodlePage() {
   }, [step, run?.marks]);
 
   const doExport = async () => {
-    const blob = await exportPng(surface, visibleFree(s.free), gridCells(s.grid));
+    const blob = view === 'fish' ? await exportScenePng(colors) : await exportPng(surface, visibleFree(s.free), gridCells(s.grid));
     if (!blob) return;
     const d = new Date();
     const pad = (n: number) => String(n).padStart(2, '0');
@@ -375,13 +452,14 @@ export function DoodlePage() {
     return () => window.removeEventListener('keydown', onKey);
   });
 
-  const hint = lesson && step ? (step === 'done' ? lesson.success[lang] : step === 'apply' ? lesson.applyPrompt[lang] : step === 'choose' && lesson.classification ? X.pickWarm[lang] : lesson.prompt[lang]) : panel === 'mix' ? X.pickTwo[lang] : X.draw[lang];
+  const fishHint = taskMet(scene) ? X.fishDone[lang] : scene.mixedOrange ? (otherAfterMix ? X.alsoOrange[lang] : X.tapBody[lang]) : anyFilled(scene.fills) ? X.tryAnother[lang] : X.fishFirst[lang];
+  const hint = view === 'fish' ? (moveMsg ? X.moved[lang] : fishHint) : lesson && step ? (step === 'done' ? lesson.success[lang] : step === 'apply' ? lesson.applyPrompt[lang] : step === 'choose' && lesson.classification ? X.pickWarm[lang] : lesson.prompt[lang]) : panel === 'mix' ? X.pickTwo[lang] : X.draw[lang];
   const need = lesson ? (lesson.complete.appliedColors ?? (lesson.complete.appliedColor ? [lesson.complete.appliedColor] : [])) : [];
 
   // ---------------------------------------------------------------- render
   const segBtn = (on: boolean) => `ui-t min-h-11 min-w-11 rounded-md border-2 px-3 text-sm font-medium ${on ? 'border-[var(--ui-accent-text)] bg-[var(--ui-accent-soft)]' : 'border-[var(--ui-control-border)] bg-[var(--surface)] hover:bg-[var(--surface-2)]'}`;
   return (
-    <section className="space-y-4" data-testid="doodle" data-surface={surface} data-step={step ?? ''}>
+    <section className="space-y-4" data-testid="doodle" data-surface={surface} data-view={view} data-step={step ?? ''}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-serif text-[1.75rem] font-bold leading-9">
           {c('title')}
@@ -407,19 +485,35 @@ export function DoodlePage() {
         </div>
       )}
 
+      {sceneNotice && view === 'fish' && (
+        <div className="flex flex-wrap items-center gap-2 rounded-md bg-[var(--ui-alert-bg)] px-3 py-2 text-[var(--ui-alert-text)]" role="alert" data-testid="scene-notice" data-notice={sceneNotice}>
+          <p>{X[sceneNotice][lang]}</p>
+          {sceneRaw && (
+            <Button variant="secondary" size="sm" onClick={() => downloadText(sceneRaw)} data-testid="scene-download-old">
+              <Icon d={ICONS.save} />
+              {sceneNotice === 'altKept' ? X.downloadAlt[lang] : X.downloadOld[lang]}
+            </Button>
+          )}
+        </div>
+      )}
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] lg:grid-rows-[auto_auto_1fr]">
         {/* paper column */}
         <div className="min-w-0 space-y-3 lg:col-start-1 lg:row-span-2 lg:row-start-1">
           <div className="flex flex-wrap gap-2" role="group" aria-label={c('title')}>
-            <button type="button" aria-pressed={surface === 'free'} className={segBtn(surface === 'free')} onClick={() => setSurface('free')} data-testid="surface-free">
+            <button type="button" aria-pressed={view === 'free'} className={segBtn(view === 'free')} onClick={() => openView('free')} data-testid="surface-free">
               {c('freehand')}
             </button>
-            <button type="button" aria-pressed={surface === 'grid'} className={segBtn(surface === 'grid')} onClick={() => setSurface('grid')} data-testid="surface-grid">
+            <button type="button" aria-pressed={view === 'grid'} className={segBtn(view === 'grid')} onClick={() => openView('grid')} data-testid="surface-grid">
               {c('grid')}
+            </button>
+            <button type="button" aria-pressed={view === 'fish'} className={segBtn(view === 'fish')} onClick={() => openView('fish')} data-testid="surface-fish">
+              {X.picture[lang]}
             </button>
           </div>
           <div ref={stageRef} className="space-y-3">
-          {surface === 'free' ? (
+          {view === 'fish' ? (
+            <FishPaper colors={colors} tailRef={tailRef} regionRef={regionRef} onFill={fillRegion} onMove={moveFish} onMix={startFishMix} canMove={anyFilled(scene.fills)} lang={lang} />
+          ) : surface === 'free' ? (
             <Paper canvasRef={paperRef} ops={visibleFree(s.free)} tool={tool} color={color} size={size} shape={shape} onCommit={commitFree} label={X.paper[lang]} />
           ) : (
             <StampGrid boxRef={gridRef} cells={gridCells(s.grid)} focus={gridFocus} setFocus={setGridFocus} onStamp={stampCell} lang={lang} label={X.gridLabel[lang]} c={c} erase={tool === 'eraser'} />
@@ -427,7 +521,7 @@ export function DoodlePage() {
           <p className="min-h-6 text-base font-medium" data-testid="doodle-hint">
             {hint}
           </p>
-          {full && surface === 'free' && (
+          {full && view === 'free' && (
             <p className="rounded-md bg-[var(--ui-alert-bg)] px-3 py-2 text-[var(--ui-alert-text)]" data-testid="paper-full">
               {X.full[lang]}
             </p>
@@ -459,14 +553,16 @@ export function DoodlePage() {
             <ToolButton label={c('eraser')} pressed={tool === 'eraser'} onClick={() => setTool('eraser')} testid="tool-eraser">
               <Icon d={ICONS.eraser} />
             </ToolButton>
-            <ToolButton label={c('stamp')} pressed={tool === 'stamp'} onClick={() => setTool('stamp')} testid="tool-stamp">
-              <Icon d={ICONS.stamp} />
-            </ToolButton>
+            {view !== 'fish' && (
+              <ToolButton label={c('stamp')} pressed={tool === 'stamp'} onClick={() => setTool('stamp')} testid="tool-stamp">
+                <Icon d={ICONS.stamp} />
+              </ToolButton>
+            )}
             <ToolButton label={c('undo')} onClick={() => onHistory('undo')} disabled={!canUndo(history as History<unknown>)} testid="tool-undo">
               <Icon d={ICONS.undo} />
             </ToolButton>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className={`flex flex-wrap gap-2 ${view === 'fish' ? 'hidden' : ''}`}>
             <fieldset className="flex flex-wrap items-center gap-1">
               <legend className="sr-only">{X.size[lang]}</legend>
               {(['s', 'm', 'l'] as Size[]).map((z) => (
@@ -499,20 +595,20 @@ export function DoodlePage() {
               <Icon d={ICONS.save} />
               {c('export')}
             </Button>
-            <Button variant="secondary" size="sm" onClick={() => setConfirmClear(true)} disabled={surface === 'free' ? visibleFree(s.free).length === 0 : gridCells(s.grid).every((x) => !x)} data-testid="tool-clear">
+            <Button variant="secondary" size="sm" onClick={() => setConfirmClear(true)} disabled={view === 'fish' ? !anyFilled(scene.fills) : surface === 'free' ? visibleFree(s.free).length === 0 : gridCells(s.grid).every((x) => !x)} data-testid="tool-clear">
               <Icon d={ICONS.paper} />
               {c('newPaper')}
             </Button>
           </div>
           <p className="text-sm text-[var(--muted)]" data-testid="save-state" aria-live="polite">
-            {saveState === 'error' ? (
+            {(view === 'fish' ? sceneSaveState : saveState) === 'error' ? (
               <span className="text-[var(--ui-alert-text)]">
                 {c('saveError')}{' '}
                 <button type="button" className="min-h-11 underline" onClick={doExport}>
                   {c('export')}
                 </button>
               </span>
-            ) : saveState === 'saved' ? (
+            ) : (view === 'fish' ? sceneSaveState : saveState) === 'saved' ? (
               `${c('saved')} · ${X.savedLocal[lang]}`
             ) : (
               X.savedLocal[lang]
@@ -522,7 +618,7 @@ export function DoodlePage() {
 
         {/* side panel */}
         <div className="space-y-4 lg:col-start-2 lg:row-span-2 lg:row-start-2">
-          <div className="space-y-2 rounded-lg border border-[var(--border)] p-3">
+          <div ref={mixRef} className="space-y-2 rounded-lg border border-[var(--border)] p-3">
             <div className="flex flex-wrap gap-2">
               <button type="button" aria-pressed={panel === 'draw'} className={segBtn(panel === 'draw')} onClick={() => setPanel('draw')} data-testid="panel-draw">
                 {c('draw')}
@@ -532,12 +628,28 @@ export function DoodlePage() {
               </button>
             </div>
             {(panel === 'mix' || (lesson && step === 'mix') || mixOut) && (
-              <MixPad slots={slots} out={mixOut} lang={lang} c={c} onPick={pickSlot} onMix={doMix} onReset={() => (setSlots([null, null]), setMixOut(null))} onUse={takeToPaper} useLabel={surface === 'grid' ? X.goStamp[lang] : X.goDraw[lang]} locked={!!lesson && (step === 'mix' || !!mixOut)} resultRef={resultRef} />
+              <MixPad slots={slots} out={mixOut} lang={lang} c={c} onPick={pickSlot} onMix={doMix} onReset={() => (setSlots([null, null]), setMixOut(null))} onUse={takeToPaper} useLabel={view === 'fish' ? X.paintThis[lang] : surface === 'grid' ? X.goStamp[lang] : X.goDraw[lang]} locked={view !== 'fish' && !!lesson && (step === 'mix' || !!mixOut)} resultRef={resultRef} />
             )}
           </div>
 
+          {view === 'fish' && (
+            <div className="space-y-2 rounded-lg border border-[var(--border)] p-3" data-testid="fish-task" data-done={scene.done ? 'true' : 'false'}>
+              <h2 className="text-lg font-bold">{X.fishName[lang]}</h2>
+              <p className="text-base">
+                {X.fishTask[lang]}
+                {scene.done && (
+                  <span className="ml-2 inline-flex items-center gap-1 font-bold text-[var(--ui-accent-text)]">
+                    <svg viewBox="0 0 16 16" className="h-4 w-4" aria-hidden="true">
+                      <path d="M3 8.5 6.5 12 13 4.5" stroke="currentColor" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+                    </svg>
+                    {X.done[lang]}
+                  </span>
+                )}
+              </p>
+            </div>
+          )}
           {/* short tasks */}
-          <div className="space-y-2 rounded-lg border border-[var(--border)] p-3" data-testid="tasks">
+          <div className={`space-y-2 rounded-lg border border-[var(--border)] p-3 ${view === 'fish' ? 'hidden' : ''}`} data-testid="tasks">
             <h2 className="text-lg font-bold">{X.tasks[lang]}</h2>
             <div className="flex flex-wrap gap-1">
               {lessonsForLevel.map(({ l, i }) => (
@@ -746,6 +858,50 @@ function Paper({ canvasRef, ops, tool, color, size, shape, onCommit, label }: { 
         onLostPointerCapture={(e) => end(e)}
         data-testid="paper"
       />
+    </div>
+  );
+}
+
+// ------------------------------------------------------------------ picture play: my fish (tap a region to fill it)
+function FishPaper({ colors, tailRef, regionRef, onFill, onMove, onMix, canMove, lang }: { colors: Record<Region, ColorId | null>; tailRef: RefObject<SVGGElement | null>; regionRef: RefObject<HTMLDivElement | null>; onFill: (r: Region) => void; onMove: () => void; onMix: () => void; canMove: boolean; lang: 'zh' | 'en' }) {
+  const A = FISH_ART;
+  const fill = (r: Region) => (colors[r] ? colorOf(colors[r]!).hex : '#ffffff');
+  const name = (r: Region) => (colors[r] ? colorOf(colors[r]!).name[lang] : X.noColour[lang]);
+  const region = (r: Region, d: string) => (
+    <path d={d} fill={fill(r)} stroke="#1f2328" strokeWidth="4" strokeLinejoin="round" className="cursor-pointer" onClick={() => onFill(r)} data-testid={`fish-${r}`} data-color={colors[r] ?? ''} />
+  );
+  return (
+    <div className="space-y-3" data-testid="fish">
+      <div className="mx-auto w-full" style={{ maxWidth: 'max(18rem, calc((100dvh - 8rem) * 4 / 3))' }}>
+        <svg viewBox={`0 0 ${A.viewBox.w} ${A.viewBox.h}`} className="block aspect-[4/3] w-full rounded-md border border-[var(--ui-control-border)] bg-white" role="img" aria-label={format(X.fishLabel[lang], { body: name('body'), tail: name('tail'), fin: name('fin') })}>
+          <g ref={tailRef} style={{ transformOrigin: `${A.tailPivot.x}px ${A.tailPivot.y}px`, transformBox: 'view-box' }}>
+            {region('tail', A.tail)}
+          </g>
+          {region('fin', A.fin)}
+          {region('body', A.body)}
+          <circle cx={A.eye.cx} cy={A.eye.cy} r={A.eye.r} fill="#1f2328" pointerEvents="none" />
+          <path d={A.mouth} fill="none" stroke="#1f2328" strokeWidth="4" strokeLinecap="round" pointerEvents="none" />
+        </svg>
+      </div>
+      {/* the same three regions as buttons: keyboard, screen readers and small fingers */}
+      <div ref={regionRef} className="flex flex-wrap gap-2" role="group" aria-label={X.regions[lang]}>
+        {FISH_REGIONS.map((r) => (
+          <button key={r} type="button" onClick={() => onFill(r)} aria-label={`${X[r][lang]}${lang === 'zh' ? '：' : ': '}${name(r)}`} className="ui-t inline-flex min-h-12 min-w-12 items-center gap-2 rounded-md border-2 border-[var(--ui-control-border)] bg-[var(--surface)] px-3 font-medium hover:bg-[var(--surface-2)]" data-testid={`region-${r}`}>
+            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-[var(--ui-control-border)]" style={{ background: fill(r), color: colors[r] ? markColour(colors[r]!) : '#1f2328' }} aria-hidden="true">
+              {colors[r] && <MarkIcon mark={colorOf(colors[r]!).mark} className="h-3.5 w-3.5" />}
+            </span>
+            {X[r][lang]}
+          </button>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button onClick={onMove} disabled={!canMove} data-testid="fish-move">
+          {X.move[lang]}
+        </Button>
+        <Button variant="secondary" onClick={onMix} data-testid="fish-mix">
+          {X.tryMix[lang]}
+        </Button>
+      </div>
     </div>
   );
 }
