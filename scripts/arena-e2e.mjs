@@ -58,7 +58,7 @@ try {
     const p = await newPage(ctx);
     await p.goto(BASE + '/', { waitUntil: 'networkidle0' });
     const cats = await p.$$eval('main section h2', (hs) => hs.map((h) => h.textContent));
-    ok('home: three categories', ['棋藝策略', '即時競技', '益智挑戰'].every((c) => cats.some((x) => x.includes(c))), cats.join(' | '));
+    ok('home: three categories', ['棋藝策略', '即時競技', '益智與創作'].every((c) => cats.some((x) => x.includes(c))), cats.join(' | '));
     const hrefs = await p.$$eval('main a[href]', (as) => [...new Set(as.map((a) => a.getAttribute('href')))]);
     ok('home: six game cards', ['/chess', '/xiangqi', '/banqi', '/territory', '/snake', '/blocks'].every((h) => hrefs.includes(h)));
     ok('home: brand is JY Games', (await p.title()).includes('JY Games') && (await p.$eval('header', (h) => h.textContent)).includes('JY Games'));

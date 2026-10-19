@@ -1,19 +1,19 @@
 [
   {
     "id": "HU01-zh",
-    "name": "home zh: 7 games, 3 categories, each name once, H1 = tagline, no emoji / generic /play / prototypes",
+    "name": "home zh: 8 games, 3 categories, each name once, H1 = tagline, no emoji / generic /play / prototypes",
     "pass": true,
-    "info": "{\"h1\":\"一起玩，一起動腦。\",\"tagline\":true,\"h2\":3,\"cards\":7,\"counts\":[1,1,1,1,1,1,1],\"emoji\":false,\"play\":0,\"proto\":0,\"decor\":0}"
+    "info": "{\"h1\":\"一起玩，一起動腦。\",\"tagline\":true,\"h2\":3,\"cards\":8,\"counts\":[1,1,1,1,1,1,1,1],\"emoji\":false,\"play\":0,\"proto\":0,\"decor\":0}"
   },
   {
     "id": "HU01-en",
-    "name": "home en: 7 games, 3 categories, each name once, H1 = tagline, no emoji / generic /play / prototypes",
+    "name": "home en: 8 games, 3 categories, each name once, H1 = tagline, no emoji / generic /play / prototypes",
     "pass": true,
-    "info": "{\"h1\":\"Play Together, Think Better.\",\"tagline\":true,\"h2\":3,\"cards\":7,\"counts\":[1,1,1,1,1,1,1],\"emoji\":false,\"play\":0,\"proto\":0,\"decor\":0}"
+    "info": "{\"h1\":\"Play Together, Think Better.\",\"tagline\":true,\"h2\":3,\"cards\":8,\"counts\":[1,1,1,1,1,1,1,1],\"emoji\":false,\"play\":0,\"proto\":0,\"decor\":0}"
   },
   {
     "id": "HU02",
-    "name": "28 links (7 Play + 7 How to play × zh/en) reach the right page in the same language; old /play still works",
+    "name": "32 links (8 Play + 8 How to play × zh/en) reach the right page in the same language; old /play still works",
     "pass": true,
     "info": ""
   },
@@ -31,7 +31,7 @@
   },
   {
     "id": "HU05",
-    "name": "menu opens/closes at 360/768/1280 and a short 1280×480 screen; 7 games + leaderboard/history/settings/profile/login; Esc returns focus; outside click does not; route change closes; correct aria-current",
+    "name": "menu opens/closes at 360/768/1280 and a short 1280×480 screen; 8 games + leaderboard/history/settings/profile/login; Esc returns focus; outside click does not; route change closes; correct aria-current",
     "pass": true,
     "info": ""
   },
@@ -57,7 +57,7 @@
     "id": "HU09",
     "name": "rendered contrast (light/dark): every header/menu/home/footer text ≥ 4.5:1; Play hover, danger, disabled, notices ≥ 4.5:1; control borders and focus ≥ 3:1",
     "pass": true,
-    "info": " || light: 60 text nodes; hover 9.63; primary 9.63, primaryHover 12.2, danger 7.21, dangerHover 9.32, disabled 5.37, alert 7.17, accentNotice 8.19, mutedOnSurface2 6.11, controlBorderOnBg 4.01, controlBorderOnSurface 4.29, focusOnBg 9, focusOnSurface 9.63 || dark: 60 text nodes; hover 8.34; primary 8.34, primaryHover 9.53, danger 8.13, dangerHover 10.44, disabled 6.11, alert 8.76, accentNotice 8.48, mutedOnSurface2 7.45, controlBorderOnBg 6.03, controlBorderOnSurface 5.34, focusOnBg 10.5, focusOnSurface 9.3"
+    "info": " || light: 65 text nodes; hover 9.63; primary 9.63, primaryHover 12.2, danger 7.21, dangerHover 9.32, disabled 5.37, alert 7.17, accentNotice 8.19, mutedOnSurface2 6.11, controlBorderOnBg 4.01, controlBorderOnSurface 4.29, focusOnBg 9, focusOnSurface 9.63 || dark: 65 text nodes; hover 8.34; primary 8.34, primaryHover 9.53, danger 8.13, dangerHover 10.44, disabled 6.11, alert 8.76, accentNotice 8.48, mutedOnSurface2 7.45, controlBorderOnBg 6.03, controlBorderOnSurface 5.34, focusOnBg 10.5, focusOnSurface 9.3"
   },
   {
     "id": "HU10",

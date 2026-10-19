@@ -70,11 +70,51 @@ const opsLen = async (p) => (await D(p)).s.free.n;
   await go(p);
   const meta = await p.$eval('meta[name=robots]', (e) => e.content);
   const d = await D(p);
-  ok('D-01', 'opens straight to an empty paper, no account; noindex', /noindex/.test(meta) && d.s.free.ops.length === 0 && d.tool === 'brush' && (await p.$eval('h1', (e) => e.textContent)).includes('色彩塗鴉樂'), meta);
+  ok('D-01', 'opens straight to an empty paper, no account; indexed as an official game', /^index/.test(meta) && d.s.free.ops.length === 0 && d.tool === 'brush' && (await p.$eval('h1', (e) => e.textContent)).includes('色彩塗鴉樂'), meta);
   await p.goto(`${BASE}/`, { waitUntil: 'networkidle0' });
   const robots = await (await fetch(`${BASE}/robots.txt`)).text();
-  ok('D-02', 'not on the home catalogue; robots.txt disallows /doodle', (await p.$$eval('a[href$="/doodle"]', (a) => a.length)) === 0 && /Disallow: \/doodle\n/.test(robots) && /Disallow: \/en\/doodle\n/.test(robots));
+  const sitemap = await (await fetch(`${BASE}/sitemap.xml`)).text();
+  const homeLinks = await p.$$eval('main a', (a) => a.map((x) => x.getAttribute('href')));
+  await tap(p, '[data-testid=rules-doodle]');
+  const learnOk = await p.waitForSelector('[data-testid=learn-doodle-start]', { timeout: 8000 }).then(() => p.evaluate(() => location.pathname === '/learn/doodle')).catch(() => false);
+  await tap(p, '[data-testid=learn-doodle-start]');
+  const startOk = await p.waitForSelector('[data-testid=paper]', { timeout: 8000 }).then(() => p.evaluate(() => location.pathname === '/doodle')).catch(() => false);
+  ok('D-02', 'A3: eighth card on the home page (Play + How to play), tutorial page leads to the paper, in the sitemap, not blocked by robots.txt', homeLinks.includes('/doodle') && homeLinks.includes('/learn/doodle') && learnOk && startOk && /\/doodle</.test(sitemap) && !/doodle/.test(robots));
   await p.ctx.close();
+}
+
+// ---------------------------------------------------------------- D-03 new home card at the 400 % layout (A3)
+{
+  const res = [];
+  for (const lang of ['', '/en']) {
+    const p = await page(351, 154, { dpr: 8, desktop: true });
+    await p.goto(`${BASE}${lang}/`, { waitUntil: 'networkidle0' });
+    let hit = null;
+    for (let i = 0; i < 60 && !hit; i++) {
+      await p.keyboard.press('Tab');
+      hit = await p.evaluate(() => {
+        const a = document.activeElement;
+        const id = a?.dataset?.testid ?? '';
+        if (id !== 'play-doodle' && id !== 'rules-doodle') return null;
+        const r = a.getBoundingClientRect();
+        const h = document.querySelector('.site-header').getBoundingClientRect();
+        const sticky = getComputedStyle(document.querySelector('.site-header')).position === 'sticky';
+        return { id, ok: r.top - 6 >= (sticky ? h.bottom : 0) && r.bottom + 6 <= innerHeight + 0.5 && r.left >= -1 && r.right <= innerWidth + 1, top: Math.round(r.top), bottom: Math.round(r.bottom) };
+      });
+      if (hit && hit.id === 'play-doodle') {
+        await p.keyboard.press('Tab');
+        const r2 = await p.evaluate(() => {
+          const a = document.activeElement;
+          const r = a.getBoundingClientRect();
+          return { id: a.dataset.testid, ok: r.top - 6 >= 0 && r.bottom + 6 <= innerHeight + 0.5 };
+        });
+        hit = { ...hit, next: r2 };
+      }
+    }
+    res.push({ lang: lang || 'zh', ...hit });
+    await p.ctx.close();
+  }
+  ok('D-03', 'A3 at 351×154 CSS px @ DPR 8 (layout of real 400 % zoom; native zoom not driven): Tab reaches 開始玩／玩法 of the doodle card, fully visible with the focus ring, zh/en', res.every((r) => r.id === 'play-doodle' && r.ok && r.next?.id === 'rules-doodle' && r.next.ok), JSON.stringify(res));
 }
 
 // ---------------------------------------------------------------- DC01/DC04 drawing, undo/redo, clear, language
@@ -83,7 +123,7 @@ const opsLen = async (p) => (await D(p)).s.free.n;
   await go(p);
   await stroke(p);
   const s1 = await D(p);
-  ok('DC01-a', 'mouse draws a whole stroke; saved locally only after the write succeeded', s1.s.free.n === 1 && s1.s.free.ops[0].t === 'stroke' && s1.s.free.ops[0].pts.length > 5 && s1.saveState === 'saved' && (await p.$eval('[data-testid=save-state]', (e) => e.innerText)).includes('已存好'));
+  ok('DC01-a', 'mouse draws a whole stroke; saved locally only after the write succeeded', s1.s.free.n === 1 && s1.s.free.ops[0].t === 'stroke' && s1.s.free.ops[0].pts.length > 5 && s1.saveState === 'saved' && (await p.$eval('[data-testid=save-state]', (e) => e.innerText)).includes('已存好'), JSON.stringify({ n: s1.s.free.n, pts: s1.s.free.ops[0]?.pts?.length, save: s1.saveState }));
   await Promise.all([p.waitForFunction(() => location.pathname === '/en/doodle'), p.click('[data-testid=lang-switch]')]);
   await p.waitForSelector('[data-testid=paper]');
   ok('DC01-b', 'switching language keeps the drawing', (await opsLen(p)) === 1 && (await p.$eval('h1', (e) => e.textContent)).includes('Color Doodle'));

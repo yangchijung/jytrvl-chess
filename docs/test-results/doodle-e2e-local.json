@@ -1,21 +1,27 @@
 [
   {
     "id": "D-01",
-    "name": "opens straight to an empty paper, no account; noindex",
+    "name": "opens straight to an empty paper, no account; indexed as an official game",
     "pass": true,
-    "info": "noindex,nofollow"
+    "info": "index,follow"
   },
   {
     "id": "D-02",
-    "name": "not on the home catalogue; robots.txt disallows /doodle",
+    "name": "A3: eighth card on the home page (Play + How to play), tutorial page leads to the paper, in the sitemap, not blocked by robots.txt",
     "pass": true,
     "info": ""
+  },
+  {
+    "id": "D-03",
+    "name": "A3 at 351×154 CSS px @ DPR 8 (layout of real 400 % zoom; native zoom not driven): Tab reaches 開始玩／玩法 of the doodle card, fully visible with the focus ring, zh/en",
+    "pass": true,
+    "info": "[{\"lang\":\"zh\",\"id\":\"play-doodle\",\"ok\":true,\"top\":51,\"bottom\":99,\"next\":{\"id\":\"rules-doodle\",\"ok\":true}},{\"lang\":\"/en\",\"id\":\"play-doodle\",\"ok\":true,\"top\":51,\"bottom\":99,\"next\":{\"id\":\"rules-doodle\",\"ok\":true}}]"
   },
   {
     "id": "DC01-a",
     "name": "mouse draws a whole stroke; saved locally only after the write succeeded",
     "pass": true,
-    "info": ""
+    "info": "{\"n\":1,\"pts\":13,\"save\":\"saved\"}"
   },
   {
     "id": "DC01-b",
@@ -105,7 +111,7 @@
     "id": "DC06",
     "name": "PNG export matches the paper (white background, the stroke colour at the stroke) and the stamp grid; dated file name; no network request sends the picture",
     "pass": true,
-    "info": "{\"w\":1600,\"h\":1200,\"type\":\"image/png\",\"corner\":[255,255,255,255],\"stroke\":[214,64,52,255],\"name\":\"color-doodle-20261018-2206.png\"} | grid 1200 | sent 0"
+    "info": "{\"w\":1600,\"h\":1200,\"type\":\"image/png\",\"corner\":[255,255,255,255],\"stroke\":[214,64,52,255],\"name\":\"color-doodle-20261019-0841.png\"} | grid 1200 | sent 0"
   },
   {
     "id": "DC07-layout",

@@ -52,7 +52,7 @@ try {
   {
     const p = await newPage(ctx);
     const r = await p.goto(BASE + '/', { waitUntil: 'networkidle0' });
-    ok('home loads (tagline H1 + 7 game cards, HOME_SHARED_UI_V1)', r.status() === 200 && (await p.$eval('h1', (e) => e.textContent)).includes('一起玩，一起動腦') && (await p.$$('[data-testid^=home-card-]')).length === 7);
+    ok('home loads (tagline H1 + 8 game cards, HOME_SHARED_UI_V1)', r.status() === 200 && (await p.$eval('h1', (e) => e.textContent)).includes('一起玩，一起動腦') && (await p.$$('[data-testid^=home-card-]')).length === 8);
     ok('cross-origin isolated', await p.evaluate(() => self.crossOriginIsolated));
     await shot(p, '01-home-desktop');
     ok('home no console errors', p.errors.length === 0, p.errors.join(' | '));

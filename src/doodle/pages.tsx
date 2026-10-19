@@ -384,7 +384,7 @@ export function DoodlePage() {
     <section className="space-y-4" data-testid="doodle" data-surface={surface} data-step={step ?? ''}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-serif text-[1.75rem] font-bold leading-9">
-          {c('title')} <span className="align-middle text-sm font-medium text-[var(--muted)]">· {X.preview[lang]}</span>
+          {c('title')}
         </h1>
         <div className="flex flex-wrap gap-2" role="group" aria-label={X.level[lang]}>
           <button type="button" aria-pressed={s.level === 'easy'} className={segBtn(s.level === 'easy')} onClick={() => setS((p) => ({ ...p, level: 'easy' }))} data-testid="level-easy">

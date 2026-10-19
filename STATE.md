@@ -2,8 +2,9 @@
 
 ```
 Date: 2026-10-19
-Branch/Commit: main（產品複驗固定原碼 7eae7f3；R5＋塗鴉首版 f80776c；本輪存檔已通過，A3 待實作）
+Branch/Commit: main（2026-10-19 A3 第八款見最新 commit；存檔複驗原碼 7eae7f3；R5＋塗鴉首版 f80776c）
 Done (with evidence):
+  - 2026-10-19 工程：A3 色彩塗鴉樂成為第八款正式遊戲——首頁「益智與創作」第八卡、/learn/doodle 玩法頁、選單八款、正式 SEO／index、robots 移除、sitemap 42；回歸見 docs/ACCEPTANCE.md §21；待產品複驗
   - 2026-10-19 產品複驗：D3-R1／D4-R1 通過（原 17／17＋新增專項 24／24）；正式站任務 4 中途重整、完成、復原／重做、中英切換再重整均正常。原四項與第二輪兩個存檔缺口可結案；不是所有實機項目已過。docs/design/DOODLE_SAVE_ACCEPTANCE_2026-10-19.md；已請 Claude 直接做 A3 第八款
   - 2026-10-18 工程（第二輪複驗後）：D3-R1 另一位置的畫在備份恢復後搬回主存檔、舊份保留且不回蓋新作；D4-R1 讀取接受第一版 1–4999 點筆畫、寫入仍 ≤ 2000；產品診斷 recheck.mjs 17／17、單元 242／242（docs/ACCEPTANCE.md §20.5）；產品端已於 2026-10-19 複驗通過（§20.6），依授權直接接 A3
   - 2026-10-18 第二輪產品複驗（06f580c）：D1 正常續玩及 D2 混色引導通過；D3／D4 核心修正有改善，但仍有 D3-R1（備份恢復可寫後忽略替代畫作）、D4-R1（舊版合法長筆畫誤判壞檔）兩個缺口。13／17 隔離檢查通過，4 個失敗斷言對應 2 根因；docs/design/DOODLE_FOUR_RECHECK_2026-10-18.md。四項尚未全通過，A3 暫不加首頁
@@ -31,8 +32,8 @@ Done (with evidence):
   - 兒童能力五款企劃與 Figma 概念板交付：docs/product/KIDS_LEARNING_GAMES_V1.md、KIDS_GAMES_ART_BRIEF_V1.md；餐廳 V2 已部署並暫停；機器人／逆風探險／星球救援已有原型，換位小鎮仍待後續
   - 餐廳菜單／共用食材／庫存規格與 Figma 關係圖交付：docs/product/RESTAURANT_MENU_INVENTORY_V1.md；含 RT01–RT14，工程已回報通過，計算樣例已核對
 In Progress:
-  - 色彩塗鴉樂（Issue #7）：A1＋A2 已有預覽；D1–D4 及 D3-R1／D4-R1 已通過產品端對應複驗（最新 §20.6）。Claude 請直接做 A3 納入第八款正式遊戲；本輪查驗首頁仍七款、/doodle 仍 noindex，尚未接線；孩子試玩與 VoiceOver 實機仍待後續
-  - 2026-10-19 起：存檔修正已複驗通過，直接進 A3，再依序做七款短練習（數獨→西洋棋→中國象棋→暗棋→領地→貪食蛇→方塊）；餐廳暫停不變
+  - 色彩塗鴉樂（Issue #7）：存檔修正已通過（§20.6）；2026-10-19 A3 已上線為第八款（§21），待產品複驗；孩子試玩與 VoiceOver 實機仍待後續
+  - 2026-10-19 起：A3 已交，接著依序做七款短練習（數獨→西洋棋→中國象棋→暗棋→領地→貪食蛇→方塊）；餐廳暫停不變
   - Issue #6：R1–R4 已通過 2026-10-18 複驗；R5 真實 400% 已修並通過產品複驗；iPhone／iPad Safari＋VoiceOver 已請負責人實測，結果未回覆。矩陣為 16；腳本已更正，工程原始 JSON 的 HU03 名稱仍殘留 32，下次產出同步
   - 數獨：已部署，實機及讀屏驗收依 Issue #3 持續收尾
   - 星球救援隊：負責人試玩完成；依回饋新增連線房間 /rescue/room/:id（各自帳號／裝置、每人只看到自己的卡、計畫即時同步；RescueRoom DO，無資料庫寫入），瀏覽器 14／14（§18.1）；試玩原型 /rescue（noindex，不列首頁）——三角色各看不同資料卡（遮罩傳平板）、共用計畫板、三人確認後出發、救援車動畫與因果鏈、3 人／2 人兼職／1 人熟悉規則、4 個暫定任務；單元 6、瀏覽器 21／21（docs/ACCEPTANCE.md §18）；待負責人試玩與 ChatGPT 交付
@@ -50,7 +51,7 @@ Cost / Security / License alerts:
   - 尚未設定 Cloudflare 帳單警示（需負責人）
   - cburnett 棋子授權文字待對照 Wikimedia Commons 原頁（docs/LICENSES.md 最末）
 Next actions:
-  - Claude 直接做 A3：首頁第八款、玩法、導覽、SEO／robots／sitemap、遊戲數量及八款回歸一起交付；詳 DOODLE_SAVE_ACCEPTANCE_2026-10-19.md。兩個存檔問題已通過，不再列待修；接續七款短練習，不必再等開始確認。餐廳暫停不變
+  - 產品端複驗 A3（§21）；Claude 接續七款短練習（先數獨）。餐廳暫停不變
   - Claude 請直接依 GAMES_NEXT_SPRINT_2026-10-18.md 開工，不等實機回報或重複開始確認；先可玩增量，附 commit／URL／測試結果；Three.js 可用但不全站重寫
   - 首頁／共用 UI 的 R1–R4 已驗收，不再重複派修；Issue #6 的 R5 已通過，只保留實機／讀屏驗收。其他專屬畫面落差留在 UI_UX_AUDIT_2026-10-16.md；餐廳維持暫停
   - 餐廳維持暫停，保存 V2 與既有證據；不因舊交接或新設計檢查而重啟
