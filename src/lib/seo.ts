@@ -73,6 +73,11 @@ export const PAGES: Record<string, PageMeta> = {
     },
     index: true,
   },
+  '/territory/flow': {
+    title: { zh: '領地爭奪戰 連續轉向（預覽）｜JY Games', en: 'Territory Rush free steering (preview) | JY Games' },
+    description: { zh: '滑鼠指向或手指觸碰就轉向的領地爭奪戰試玩預覽。', en: 'Preview of Territory Rush with point-to-steer and touch steering.' },
+    index: false,
+  },
   '/doodle': {
     title: { zh: '色彩塗鴉樂｜線上畫畫與混色｜JY Games', en: 'Color Doodle | Draw and Mix Colours Online | JY Games' },
     description: { zh: '打開就能畫：用紅黃藍混出橙綠紫，六個短任務、格子蓋印章，作品只存在自己的瀏覽器並可存成圖片。適合 5–12 歲。', en: 'Start drawing right away: mix red, yellow and blue into orange, green and purple, six short tasks, a stamp grid, and pictures that stay in your browser and save as PNG. For ages 5–12.' },

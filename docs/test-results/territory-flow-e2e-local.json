@@ -1,0 +1,38 @@
+[
+  {
+    "id": "TC01",
+    "name": "mouse (no button) steers to any angle: at 30° and 120° the target, heading and actual movement all point there (not a right angle); noindex preview",
+    "pass": true,
+    "info": "{\"target30\":\"30.1\",\"moved30\":\"30.1\",\"target120\":\"119.6\",\"moved120\":\"119.6\"}"
+  },
+  {
+    "id": "TC02/05",
+    "name": "speed is 0.5 cell per step on a diagonal; the countdown ignores input; pointing on the player (dead zone) keeps the heading; the arrow key takes over and a still mouse does not grab it back",
+    "pass": true,
+    "info": "{\"speed\":\"0.500\",\"during\":true,\"dead\":\"-44.6\",\"key\":\"-90.0\"}"
+  },
+  {
+    "id": "FL-again",
+    "name": "after being knocked out, “再玩一次” starts a fresh round (countdown, alive, tick 0)",
+    "pass": true,
+    "info": "{\"status\":\"countdown\",\"tick\":0,\"target\":0,\"heading\":0,\"fx\":11.5,\"fy\":33.5,\"alive\":true}"
+  },
+  {
+    "id": "TC03",
+    "name": "touch: a tap turns at once (120°) without dragging; dragging keeps steering (−45°); a second finger cannot take over; lifting keeps the last direction; after touchcancel a new tap works (150°); only the board blocks page scrolling; hint shows the touch wording",
+    "pass": true,
+    "info": "{\"tap\":\"119.3\",\"drag\":\"-44.3\",\"second\":\"-44.3\",\"lifted\":\"-44.3\",\"afterCancel\":\"149.3\",\"ta\":{\"board\":\"none\",\"body\":\"auto\",\"over\":false}}"
+  },
+  {
+    "id": "TC04",
+    "name": "360@3x / 768@2x / 1280@1x × zh/en × light/dark: pointing at −45° from the player gives −45° (relative to the drawn player, any DPR); no horizontal scroll",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "FL-err",
+    "name": "no console errors",
+    "pass": true,
+    "info": ""
+  }
+]

@@ -213,7 +213,7 @@ export class TerritoryGame {
     return p.bestLand + p.kills * 50;
   }
 
-  private setOwner(i: number, v: number) {
+  protected setOwner(i: number, v: number) {
     const prev = this.owner[i];
     if (prev === v) return;
     if (prev >= 0) this.players[prev].land--;
@@ -222,13 +222,13 @@ export class TerritoryGame {
     this.ownerChanges.push({ i, v });
   }
 
-  private setTrail(i: number, v: number) {
+  protected setTrail(i: number, v: number) {
     if (this.trail[i] === v) return;
     this.trail[i] = v;
     this.trailChanges.push({ i, v });
   }
 
-  private kill(p: TPlayer, reason: DeathReason, by: number | null) {
+  protected kill(p: TPlayer, reason: DeathReason, by: number | null) {
     if (!p.alive) return;
     p.alive = false;
     p.diedAt = this.tick;
@@ -239,7 +239,7 @@ export class TerritoryGame {
   }
 
   /** Remove a dead player's trail and land from the board. */
-  private clearPlayer(p: TPlayer) {
+  protected clearPlayer(p: TPlayer) {
     for (const c of p.trail) if (this.trail[c] === p.idx) this.setTrail(c, NONE);
     p.trail = [];
     for (let i = 0; i < this.owner.length; i++) if (this.owner[i] === p.idx) this.setOwner(i, NONE);
@@ -255,7 +255,7 @@ export class TerritoryGame {
   }
 
   /** Converts p's trail to land and fills every region enclosed by p's land. */
-  private capture(p: TPlayer): number {
+  protected capture(p: TPlayer): number {
     const before = p.land;
     for (const c of p.trail) {
       this.setTrail(c, NONE);
@@ -403,7 +403,7 @@ export class TerritoryGame {
     this.checkEnd();
   }
 
-  private checkEnd() {
+  protected checkEnd() {
     if (this.result) return;
     const alive = this.alivePlayers();
     const total = this.w * this.h;

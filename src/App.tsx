@@ -21,6 +21,7 @@ import { BlocksLearn } from './blocks/Learn';
 
 const SudokuPage = lazy(() => import('./sudoku/pages').then((m) => ({ default: m.SudokuPage })));
 const SudokuLearn = lazy(() => import('./sudoku/Learn').then((m) => ({ default: m.SudokuLearn })));
+const TerritoryFlowPage = lazy(() => import('./territory/flow-page').then((m) => ({ default: m.TerritoryFlowPage })));
 const DoodleLearn = lazy(() => import('./doodle/Learn').then((m) => ({ default: m.DoodleLearn })));
 const DoodlePage = lazy(() => import('./doodle/pages').then((m) => ({ default: m.DoodlePage })));
 const RescuePage = lazy(() => import('./rescue/pages').then((m) => ({ default: m.RescuePage })));
@@ -63,6 +64,7 @@ function pages(prefix: string) {
     <Route key={p('/blocks/ranked')} path={p('/blocks/ranked')} element={<BlocksRankedPage />} />,
     <Route key={p('/territory')} path={p('/territory')} element={<TerritoryHub />} />,
     <Route key={p('/territory/play')} path={p('/territory/play')} element={<TerritoryPlay />} />,
+    <Route key={p('/territory/flow')} path={p('/territory/flow')} element={lazyEl(<TerritoryFlowPage />)} />,
     <Route key={p('/territory/new-room')} path={p('/territory/new-room')} element={<TerritoryNewRoom />} />,
     <Route key={p('/territory/room')} path={p('/territory/room/:id')} element={<TerritoryRoomPage />} />,
     <Route key={p('/territory/match')} path={p('/territory/match')} element={<TerritoryMatchPage />} />,
