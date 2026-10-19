@@ -626,5 +626,7 @@ AI 只使用玩家看得到的資訊：貪食蛇有單元測試確認對手尚�
 | 數獨 `sudoku-e2e.mjs` | 66／66（SU16 首頁 8 卡） |
 | 競技 `arena-e2e.mjs` | 57／57（首頁三分類含「益智與創作」） |
 
+- 部署：commit 16ac0a2；[CI](https://github.com/yangchijung/jytrvl-chess/actions/runs/39182021153) build-and-test、Cloudflare Pages、Workers Builds 皆成功。
+- 正式站（2026-10-19，Chrome，唯讀檢查）：首頁 8 卡、三分類「棋藝策略／即時競技／益智與創作」、塗鴉卡介紹「混出顏色，畫出自己的作品。」；/doodle `index,follow`、正式標題；/learn/doodle 200；robots.txt 不含 doodle；sitemap 含 doodle 網址；首頁無餐廳入口。未改動瀏覽器內既有塗鴉存檔。
 - 備註：塗鴉測試第一次在本機伺服器剛重啟時 DC01-a 失敗一次（首筆畫後未即時顯示已存好），單獨重跑通過（加入 D-03 後 32／32），判定為冷啟動時序；已在該項加上診斷輸出以便日後追查。
 - 未測：**原生瀏覽器 400 % 由工程無法驅動**（以 351×154 CSS px＠DPR 8 同版面替代）；iPhone／iPad Safari＋VoiceOver、觸控筆、孩子試玩。
