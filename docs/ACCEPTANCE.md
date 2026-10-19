@@ -735,3 +735,12 @@ AI 只使用玩家看得到的資訊：貪食蛇有單元測試確認對手尚�
 
 - 部署：commit dfa0568；[CI](https://github.com/yangchijung/jytrvl-chess/actions/runs/39274370361) build-and-test、Cloudflare Pages、Workers Builds 皆成功；正式站 https://chess.jytrvl.com/territory/flow 載入、倒數後開始移動（Chrome 截圖抽查）。
 - 截圖：`docs/test-results/screens/territory-flow/`。螢幕錄影未製作（工程環境無錄影），以連續截圖與數值代替。
+
+
+## 25. 餐廳存檔與領地 T1 產品複驗（2026-10-19，原碼 83d0cca）
+
+- 原餐廳 R3-S1 診斷 17／17；正式站 Chrome 雙分頁從上輪第三客接續至六客打烊 534、盆栽後 414、重整保留。R1-b 已交，預設流程產品實測通過，不代表其餘菜單／進階／實機全數完成。
+- 新增隔離診斷 12 組：10 過、2 失敗。R3-S2（P1）無 Web Locks 的跨分頁 read/write 交錯仍回蓋成品；R3-S3（P2）延遲舊 storage 通知把 UI 從 415 退回 383，磁碟仍 415。需先補兩項，不能宣告存檔全過。
+- 領地 T1：Chrome 非四向角度／弧形尾線／方向鍵、390 px 中英版面；精確原碼六組角度等速／轉速／無效輸入／斜線圈地／自交及撞牆／確定性通過。可接 T2，背景暫停缺口為原碼發現，未以真實 hidden 分頁重現。
+- 已查餐廳與領地 CI success；產品未重跑完整工程套件。沒有實機 Safari／觸控／VoiceOver、純 hover、真實多幀率或線上驗收。
+- 詳見 [產品報告、重現步驟與證據](design/RESTAURANT_TERRITORY_RECHECK_2026-10-19.md)。餐廳已恢復開發；兩個預覽仍 noindex、不列首頁。Claude 直接補存檔並收尾 R1-b、領地接 T2，保留其他範圍。

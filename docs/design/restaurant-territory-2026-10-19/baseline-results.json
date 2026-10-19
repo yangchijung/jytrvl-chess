@@ -1,0 +1,77 @@
+{
+  "baseline": "baa2043dcd2b67788dfd8237c9e98ee24f094b16",
+  "method": "Exact source TypeScript stripped; memory storage and stubbed DOM, no production storage mutation",
+  "passed": 17,
+  "failed": 0,
+  "rows": [
+    {
+      "name": "default first two customers: shared eggs, cash and no premature rent",
+      "pass": true
+    },
+    {
+      "name": "three complete-day fixtures retain expected economy",
+      "pass": true
+    },
+    {
+      "name": "wrong ingredients / unaccepted dish leave money and inventory unchanged",
+      "pass": true
+    },
+    {
+      "name": "action resend does not double purchase, consume or pay",
+      "pass": true
+    },
+    {
+      "name": "valid saved pan, ready plate and paid guest survive new controller",
+      "pass": true
+    },
+    {
+      "name": "rapid duplicate controller dispatch consumes only once",
+      "pass": true
+    },
+    {
+      "name": "malformed save copied before replacing; old classic untouched",
+      "pass": true
+    },
+    {
+      "name": "future schema preserved in backup",
+      "pass": true
+    },
+    {
+      "name": "backup quota failure saves to alternate, never overwrites unreadable original",
+      "pass": true
+    },
+    {
+      "name": "unreadable alternate + failed backup disables save",
+      "pass": true
+    },
+    {
+      "name": "quota error never reports saved",
+      "pass": true
+    },
+    {
+      "name": "readback mismatch never reports saved",
+      "pass": true
+    },
+    {
+      "name": "storage unavailable does not crash or claim saved",
+      "pass": true
+    },
+    {
+      "name": "newer alternate safely promoted without losing old raw",
+      "pass": true
+    },
+    {
+      "name": "valid main wins over stale alternate",
+      "pass": true
+    },
+    {
+      "name": "two tabs: stale pan update must not undo another tab's cooked meal",
+      "pass": true
+    },
+    {
+      "name": "two tabs: stale pan update must not undo another tab's payment",
+      "pass": true
+    }
+  ],
+  "source": "83d0cca05c10dede67d6e049b40cefcea94d7361"
+}

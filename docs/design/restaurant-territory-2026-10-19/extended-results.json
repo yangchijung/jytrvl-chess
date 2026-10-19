@@ -1,0 +1,58 @@
+{
+  "source": "83d0cca05c10dede67d6e049b40cefcea94d7361",
+  "method": "isolated exact source with memory storage, queued Web Locks and controlled cross-context interleaving",
+  "passed": 10,
+  "failed": 2,
+  "rows": [
+    {
+      "name": "S1: delayed event stale draft does not erase cooked meal",
+      "pass": true
+    },
+    {
+      "name": "S2: no Web Locks, interleaved read/write must preserve cooked meal",
+      "pass": false,
+      "error": "without Web Locks, B commits between A read and write; A erases meal\n\n0 !== 1\n"
+    },
+    {
+      "name": "S3: delayed older storage event must not roll back a newer local payment",
+      "pass": false,
+      "error": "disk is 415 but late storage event restores UI to 383\n\n383 !== 415\n"
+    },
+    {
+      "name": "S4: Web Locks serializes same-base changes and rejects stale update",
+      "pass": true
+    },
+    {
+      "name": "S5: restarting completed day keeps summary and leaves classic raw untouched",
+      "pass": true
+    },
+    {
+      "name": "S6: classic backup failure preserves original and uses alternate",
+      "pass": true
+    },
+    {
+      "name": "T1: 30,45,120 degrees follow actual headings at equal speed",
+      "pass": true
+    },
+    {
+      "name": "T2: reverse target rotates at most 13.5 degrees per step",
+      "pass": true
+    },
+    {
+      "name": "T3: invalid angle is ignored without moving player",
+      "pass": true
+    },
+    {
+      "name": "T4: diagonal loop returns home and captures territory",
+      "pass": true
+    },
+    {
+      "name": "T5: self-cross and wall terminate correctly",
+      "pass": true
+    },
+    {
+      "name": "T6: repeated seeded input sequence gives identical result",
+      "pass": true
+    }
+  ]
+}
