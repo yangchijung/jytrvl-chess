@@ -677,6 +677,8 @@ AI 只使用玩家看得到的資訊：貪食蛇有單元測試確認對手尚�
 | R3-09 | 部分 | 只用鍵盤（Enter）＋減少動態完成第一位客人並收款，期間無動畫；聲音只在按「聽」時播放。**VoiceOver 實機未測** |
 | R3-10 | 未測 | 5–7／8–12 歲孩子試玩待負責人安排 |
 
+- 部署：commit 5e34bb4；[CI](https://github.com/yangchijung/jytrvl-chess/actions/runs/39198673631) build-and-test、Cloudflare Pages、Workers Builds 皆成功。
+- 正式站（2026-10-19，Chrome）：/restaurant noindex，該瀏覽器無舊局→直接新版；預設 3＋3、「一起買齊 117」、第一位客人放米／蛋／番茄煮一份→蛋 5、送上桌→錢包 415、顯示已存好。抽查後已刪除測試存檔。
 - 回歸：單元全套通過；classic `restaurant-e2e.mjs`（改以 `?play=classic` 進入）42／42。
 - 素材：沿用 repo 既有原創 V2 分件（`src/restaurant/assets/`：背景、兔子、狐狸、三道菜、七種食材、盆栽、錢幣），本輪未新增圖檔、未改 Figma。
 - 未做（R1-b／後續）：進階「自己規劃」入口、六位客人完整的替代餐／缺料情境瀏覽器測試、classic 存檔的備份失敗疑點（V2 constructor）處理、帳本裡的完整成本表與份數／包數細節。
