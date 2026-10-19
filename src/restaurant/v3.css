@@ -1,0 +1,14 @@
+/* Restaurant V3: the stage keeps the guest and their order in view; every causal motion is 160–200 ms, runs once. */
+.r3-stage { height: clamp(180px, 46vw, 300px); background: #efc994; }
+.r3-pan-item { animation: r3-in 160ms ease-out; }
+.r3-plate { animation: r3-in 180ms ease-out; }
+.r3-nod { animation: r3-nod 200ms ease-in-out; transform-origin: bottom; }
+.r3-pulse { animation: r3-pulse 200ms ease-out; }
+.r3-wrong { animation: r3-shake 160ms ease-in-out; }
+[data-fx='plant'] .r3-plant { animation: r3-in 200ms ease-out; }
+@keyframes r3-in { from { transform: scale(0.6); opacity: 0.2; } }
+@keyframes r3-nod { 50% { transform: translateY(-6px); } }
+@keyframes r3-pulse { 50% { transform: scale(1.08); } }
+@keyframes r3-shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+@media (prefers-reduced-motion: reduce) { .r3-pan-item, .r3-plate, .r3-nod, .r3-pulse, .r3-wrong, .r3-plant { animation: none !important; } }
+:root[data-reduce-motion] .r3-pan-item, :root[data-reduce-motion] .r3-plate, :root[data-reduce-motion] .r3-nod, :root[data-reduce-motion] .r3-pulse, :root[data-reduce-motion] .r3-wrong, :root[data-reduce-motion] .r3-plant { animation: none !important; }

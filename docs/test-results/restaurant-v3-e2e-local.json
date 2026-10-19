@@ -1,0 +1,74 @@
+[
+  {
+    "id": "R3-01",
+    "name": "no account; opens on the new version (noindex) with no dialog or number input; two rice dishes pre-picked, portions 3 + 3 from the six guests; a third dish says 先選兩道; removing a dish recomputes (tomato 3); buying together lists the merged basket for 117, wallet 500 → 383, then the first guest is at the counter",
+    "pass": true,
+    "info": "{\"start\":{\"r3\":true,\"robots\":\"noindex,nofollow\",\"menu\":[\"tomato_egg_rice\",\"vegetable_egg_rice\"],\"plan\":{\"tomato_egg_rice\":3,\"vegetable_egg_rice\":3,\"cheese_egg_toast\":0},\"dialog\":false,\"inputs\":0},\"limit\":\"先選兩道\",\"one\":{\"tomato_egg_rice\":3,\"vegetable_egg_rice\":0,\"cheese_egg_toast\":0},\"basket\":\"rice:1,egg:1,tomato:1,vegetable:1,packaging:6\",\"buyText\":\"一起買齊 117\",\"after\":\"錢包 500 → 383 · 店租 50 先留著\",\"phase\":\"serve\"}"
+  },
+  {
+    "id": "R3-02",
+    "name": "guest 1 shows tomato egg rice (or toast); a short pan says 還缺番茄 and uses nothing (eggs still 6); a wrong item says 這道不用青菜 and can be taken back; cooking puts one dish on the plate and serving pays 32; a dish the guest does not take says 這份先留著, is not paid and stays on the plate",
+    "pass": true,
+    "info": "{\"g1\":[\"0\",\"客人 1/6番茄蛋飯或起司蛋吐司\"],\"lack\":[\"還缺番茄\",6],\"extra\":\"這道不用青菜\",\"plate1\":\"1\",\"pServe\":\"送上桌\",\"c1\":415,\"wrong\":{\"msg\":\"這份先留著\",\"cash\":415,\"plates\":2},\"c2\":450}"
+  },
+  {
+    "id": "R3-03",
+    "name": "the two rice dishes take eggs from one shared box: 6 → 5 → 4; the egg bin says which dishes use it",
+    "pass": true,
+    "info": "{\"egg1\":5,\"egg2\":4,\"g2\":\"1\",\"dish2\":\"true\",\"sharedLabel\":\"蛋，4 顆，番茄蛋飯、蔬菜蛋炒飯都用\"}"
+  },
+  {
+    "id": "R3-06a",
+    "name": "after guests 1–3 the next group starts by itself (no extra button); quick cook is offered after two hand-cooked dishes; reload keeps guest 4, the half-filled pan and the wallet; English keeps them too",
+    "pass": true,
+    "info": "{\"re\":{\"guest\":\"3\",\"pan\":\"rice\",\"cash\":482,\"batch\":2},\"en\":{\"pan\":\"rice\",\"cook\":\"Cook one\",\"prompt\":\"Put ingredients in the pan\"},\"quickShown\":true}"
+  },
+  {
+    "id": "R3-04",
+    "name": "a full guided day with the default menu ends at the product baseline: 6 served, sales 201, ingredients of meals sold 117, nothing wasted, result 34, wallet 534",
+    "pass": true,
+    "info": "{\"close\":{\"result\":34,\"cash\":534,\"sold\":6},\"books\":{\"revenue\":201,\"cogs\":117,\"waste\":0}}"
+  },
+  {
+    "id": "R3-07",
+    "name": "the plant is previewed first (no charge), cancel keeps 534; buying (even with a double tap) charges once → 414 and the plant stays in the shop after reload",
+    "pass": true,
+    "info": "{\"preview\":{\"plant\":\"true\",\"cash\":534},\"cancelled\":{\"plant\":false,\"cash\":534},\"plant\":{\"cash\":414,\"decor\":[\"plant\"],\"phase\":\"done\",\"shown\":\"false\"}}"
+  },
+  {
+    "id": "R3-05",
+    "name": "double taps buy once (383, one purchase), cook once and sell once (+32, one sale); another tab’s newer save is adopted and not overwritten",
+    "pass": true,
+    "info": "{\"once\":{\"cash\":383,\"buys\":1},\"cooked\":1,\"served\":{\"cash\":415,\"sales\":1},\"adopted\":{\"seq\":8,\"pan\":\"rice\",\"other\":true},\"stored\":\"rice\"}"
+  },
+  {
+    "id": "R3-06b",
+    "name": "a player with a classic game lands on it with 玩新版; the new version starts its own save; the classic save text is unchanged and its coins are not mixed in; a way back to the classic game is offered",
+    "pass": true,
+    "info": "{\"landed\":{\"classic\":true,\"v3\":false},\"v3cash\":383,\"same\":true}"
+  },
+  {
+    "id": "R3-06c",
+    "name": "unreadable newer V3 save + backup failure: original text kept, progress goes to the alternate key with a notice and download; when storage is full the game goes on and says 還沒存好，先別關掉 (never 已存好)",
+    "pass": true,
+    "info": "{\"main\":\"{\\\"schemaVersion\\\":9,\\\"state\\\":\\\"sentinel\\\"}\",\"alt\":true,\"notice\":\"brokenNoBackup\",\"dl\":true,\"save\":\"已存好\",\"full\":{\"text\":\"還沒存好，先別關掉\",\"phase\":\"serve\"}}"
+  },
+  {
+    "id": "R3-08",
+    "name": "360/390/768/1280 × zh/en × light/dark (plan, buy, serve): no horizontal scroll, every control ≥ 44 px, main actions ≥ 56 px",
+    "pass": true,
+    "info": ""
+  },
+  {
+    "id": "R3-09",
+    "name": "keyboard only (Enter on each control) with reduced motion: menu → buy → three ingredients → cook → serve, paid 32; no animations run; no sound needed",
+    "pass": true,
+    "info": "{\"kv\":{\"cash\":415,\"anims\":0},\"anims\":0}"
+  },
+  {
+    "id": "R3-err",
+    "name": "no console errors",
+    "pass": true,
+    "info": ""
+  }
+]

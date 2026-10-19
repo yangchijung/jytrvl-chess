@@ -8,6 +8,8 @@ import { available, buyRows, currentOrders, maxAlone, needs, packsCost, readyCou
 import { RestaurantController, type Fx, type RView } from './game';
 import { C } from './copy';
 import './scene.css';
+import { RestaurantV3 } from './v3page';
+import { CLASSIC_KEY, VIEW_KEY } from './v3';
 import bg from './assets/restaurant-background.svg';
 import chef from './assets/chef.svg';
 import bunny from './assets/bunny.svg';
@@ -60,7 +62,7 @@ function stageGuest(s: State, fx: Fx, last: RView['last']): number | null {
   return currentOrders(s).find((o) => s.orders[o].status === 'pending') ?? null;
 }
 
-export function RestaurantPage() {
+function ClassicRestaurant() {
   const { ctl, v } = useR();
   const { tr, lang } = useT();
   const s = v.s;
@@ -622,5 +624,50 @@ function Ledger({ ctl, v }: { ctl: RestaurantController; v: RView }) {
       </section>
       <p className="sr-only">{lang}</p>
     </aside>
+  );
+}
+
+// ---------- which version /restaurant shows ----------
+// V3 guided play is the default. A player who already has a classic (V2) game keeps it: they land on it with a
+// "Try the new version" button, and V3 starts its own save. ?play=classic / ?play=v3 force one (tests, links).
+const VIEW_COPY = {
+  tryNew: { zh: '玩新版', en: 'Try the new version' },
+  tryNewNote: { zh: '新版一次招待一位客人；這一局會保留。', en: 'The new version serves one guest at a time; this game is kept.' },
+};
+function readView(): { view: 'v3' | 'classic'; hasClassic: boolean } {
+  let hasClassic = false;
+  let stored: string | null = null;
+  try {
+    hasClassic = localStorage.getItem(CLASSIC_KEY) !== null;
+    stored = localStorage.getItem(VIEW_KEY);
+  } catch {
+    /* storage unavailable: show the new version */
+  }
+  const q = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('play') : null;
+  const view = q === 'classic' || q === 'v3' ? q : stored === 'classic' || stored === 'v3' ? stored : hasClassic ? 'classic' : 'v3';
+  return { view, hasClassic };
+}
+export function RestaurantPage() {
+  const { lang } = useI18n();
+  const [{ view, hasClassic }, set] = useState(readView);
+  const choose = (v: 'v3' | 'classic') => {
+    try {
+      localStorage.setItem(VIEW_KEY, v);
+    } catch {
+      /* the choice is a convenience */
+    }
+    set({ view: v, hasClassic: hasClassic || v === 'classic' });
+  };
+  if (view === 'v3') return <RestaurantV3 hasClassic={hasClassic} onClassic={() => choose('classic')} />;
+  return (
+    <div className="space-y-3">
+      <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-3 rounded-md border border-[var(--border)] bg-[var(--surface)] p-3" data-testid="r-try-new">
+        <p className="flex-1">{VIEW_COPY.tryNewNote[lang]}</p>
+        <Button onClick={() => choose('v3')} data-testid="r-to-v3">
+          {VIEW_COPY.tryNew[lang]}
+        </Button>
+      </div>
+      <ClassicRestaurant />
+    </div>
   );
 }

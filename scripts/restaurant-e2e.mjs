@@ -44,7 +44,7 @@ const tap = async (p, sel) => {
   await fxIdle(p);
 };
 const go = async (p, lang = '') => {
-  await p.goto(`${BASE}${lang}/restaurant`, { waitUntil: 'load' });
+  await p.goto(`${BASE}${lang}/restaurant?play=classic`, { waitUntil: 'load' }); // the classic (V2) game
   await p.waitForSelector('[data-testid=restaurant]');
 };
 const text = (p) => p.evaluate(() => document.body.innerText);

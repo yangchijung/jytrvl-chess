@@ -48,6 +48,8 @@ export type Phase = 'plan' | 'buy' | 'prep' | 'serve' | 'closed' | 'done';
 
 export interface State {
   version: number;
+  /** V3 guided play (one guest at a time, cook on demand); absent = classic V2 day */
+  mode?: 'guided';
   day: number;
   phase: Phase;
   batch: 1 | 2;
@@ -84,7 +86,10 @@ export type Action =
   | { id: string; t: 'serve'; order: number; dish: DishId | null }
   | { id: string; t: 'endBatch' }
   | { id: string; t: 'decor'; buy: boolean }
-  | { id: string; t: 'nextDay' };
+  | { id: string; t: 'nextDay' }
+  // V3 guided (docs/product/RESTAURANT_PLAYFUL_V3.md §3, §6)
+  | { id: string; t: 'gMenu'; dish: DishId; on: boolean }
+  | { id: string; t: 'cook'; dish: DishId; items: ItemId[] };
 
 export type ErrorCode =
   | 'wrong_phase'
@@ -101,7 +106,10 @@ export type ErrorCode =
   | 'has_match'
   | 'handled'
   | 'orders_pending'
-  | 'bad_order';
+  | 'bad_order'
+  | 'menu_limit'
+  | 'wrong_items'
+  | 'wrong_mode';
 
 export interface Initial {
   cash?: number;
@@ -143,6 +151,34 @@ export function newGame(init: Initial = {}): State {
     seq: 0,
   };
 }
+
+/** Guided menus hold one or two dishes (picked on picture cards). */
+export const GUIDED_MENU_MAX = 2;
+export const GUIDED_DEFAULT_MENU: DishId[] = ['tomato_egg_rice', 'vegetable_egg_rice'];
+
+/**
+ * "Portions worked out for you": each fixed guest takes the listed affordable first choice, else the listed
+ * affordable alternative, else nothing; the counts are summed per dish (purchase then rounds up per pack).
+ */
+export function allocate(customers: Customer[], menu: DishId[]): Record<DishId, number> {
+  const plan = zeroPlan();
+  for (const c of customers) {
+    const ok = (d: DishId | null): d is DishId => !!d && menu.includes(d) && DISHES[d].price <= c.budget;
+    const d = ok(c.likes) ? c.likes : ok(c.alsoAccepts) ? c.alsoAccepts : null;
+    if (d) plan[d]++;
+  }
+  return plan;
+}
+
+/** A new guided (V3) day: the two rice dishes are pre-picked and portions are worked out from the guests. */
+export function newGuided(init: Initial = {}): State {
+  const customers = init.customers ?? CUSTOMERS;
+  const menu = init.menu ?? GUIDED_DEFAULT_MENU;
+  return { ...newGame({ ...init, menu, plan: allocate(customers, menu) }), mode: 'guided', menu };
+}
+
+/** Ingredients the child places in the pan for one serving (packaging is added by the shop, still costed). */
+export const panItems = (d: DishId): ItemId[] => (Object.keys(DISHES[d].recipe) as ItemId[]).filter((i) => i !== 'packaging');
 
 // ---------- derived values ----------
 
@@ -225,6 +261,12 @@ export const readyCount = (s: State, d: DishId) => s.servings.filter((x) => x.di
 export const inventoryValue = (s: State) => s.lots.filter((l) => l.lastDay === null || l.lastDay >= s.day).reduce((v, l) => v + l.qty * l.unitCost, 0);
 export const currentOrders = (s: State) => BATCH_ORDERS[s.batch - 1];
 
+/** Accepted dishes for this guest that can still be cooked now (menu, budget, stock, capacity). */
+export function cookable(s: State, order: number): DishId[] {
+  const c = s.customers[order];
+  return [c.likes, c.alsoAccepts].filter((d): d is DishId => !!d && s.menu.includes(d) && DISHES[d].price <= c.budget && maxAlone(s, d) > 0);
+}
+
 /** Dishes this customer could be served now (ready, on the menu, accepted, within budget). */
 export function suitable(s: State, order: number): DishId[] {
   const c = s.customers[order];
@@ -253,12 +295,14 @@ function reduce(s: State, a: Action): { s: State; error?: ErrorCode } {
   const editable = s.phase === 'plan' || s.phase === 'buy' || s.phase === 'prep';
   switch (a.t) {
     case 'setMenu': {
+      if (s.mode === 'guided') return err('wrong_mode');
       if (!editable) return err('wrong_phase');
       const menu = a.on ? (s.menu.includes(a.dish) ? s.menu : DISH_IDS.filter((d) => d === a.dish || s.menu.includes(d))) : s.menu.filter((d) => d !== a.dish);
       const plan = a.on ? s.plan : { ...s.plan, [a.dish]: 0 };
       return { s: { ...s, menu, plan } };
     }
     case 'setPlan': {
+      if (s.mode === 'guided') return err('wrong_mode');
       if (!editable) return err('wrong_phase');
       if (!Number.isInteger(a.n) || a.n < 0 || a.n > DAY_CAPACITY) return err('bad_qty');
       if (a.n > 0 && !s.menu.includes(a.dish)) return err('not_on_menu');
@@ -286,9 +330,11 @@ function reduce(s: State, a: Action): { s: State; error?: ErrorCode } {
           lots.push({ id: `${a.id}-${i}`, item: i, qty: packs[i] * it.packSize, unitCost: it.packPrice / it.packSize, boughtDay: s.day, lastDay: it.shelfDays === null ? null : s.day + it.shelfDays - 1 });
         }
       const ledger = total ? [...s.ledger, { id: a.id, day: s.day, kind: 'purchase' as const, amount: -total }] : s.ledger;
-      return { s: { ...s, phase: 'prep', batch: 1, madeThisBatch: 0, cash: s.cash - total, purchases: s.purchases + total, lots, ledger } };
+      // guided play opens the shop straight away: the first guest is at the counter and cooking happens per order
+      return { s: { ...s, phase: s.mode === 'guided' ? 'serve' : 'prep', batch: 1, madeThisBatch: 0, cash: s.cash - total, purchases: s.purchases + total, lots, ledger } };
     }
     case 'prepare': {
+      if (s.mode === 'guided') return err('wrong_mode');
       if (s.phase !== 'prep') return err('wrong_phase');
       if (!s.menu.includes(a.dish)) return err('not_on_menu');
       if (!Number.isInteger(a.qty) || a.qty < 1) return err('bad_qty');
@@ -297,38 +343,33 @@ function reduce(s: State, a: Action): { s: State; error?: ErrorCode } {
       // check everything first; only then consume (all-or-nothing)
       const avail = available(s);
       for (const [i, q] of Object.entries(DISHES[a.dish].recipe)) if (avail[i as ItemId] < (q ?? 0) * a.qty) return err('missing');
-      const lots = s.lots.map((l) => ({ ...l }));
-      const servings = [...s.servings];
-      for (let k = 0; k < a.qty; k++) {
-        let cost = 0;
-        for (const [i, q] of Object.entries(DISHES[a.dish].recipe)) {
-          let left = q ?? 0;
-          // first-expiring usable lot first (never-expiring last), then oldest purchase
-          const usable = lots
-            .filter((l) => l.item === i && l.qty > 0 && (l.lastDay === null || l.lastDay >= s.day))
-            .sort((x, y) => (x.lastDay ?? Infinity) - (y.lastDay ?? Infinity) || x.boughtDay - y.boughtDay);
-          for (const l of usable) {
-            if (!left) break;
-            const take = Math.min(left, l.qty);
-            l.qty -= take;
-            left -= take;
-            cost += take * l.unitCost;
-          }
-        }
-        servings.push({ id: `${a.id}-${k}`, dish: a.dish, cost, day: s.day, batch: s.batch });
-      }
-      return {
-        s: {
-          ...s,
-          lots: lots.filter((l) => l.qty > 0),
-          servings,
-          madeToday: s.madeToday + a.qty,
-          madeThisBatch: s.madeThisBatch + a.qty,
-          plan: { ...s.plan, [a.dish]: Math.max(0, s.plan[a.dish] - a.qty) },
-        },
-      };
+      return { s: consume(s, a.dish, a.qty, a.id) };
+    }
+    case 'cook': {
+      // guided: cook one serving while guests are being served; same recipe, stock and cost as classic prep
+      if (s.mode !== 'guided') return err('wrong_mode');
+      if (s.phase !== 'serve') return err('wrong_phase');
+      if (!s.menu.includes(a.dish)) return err('not_on_menu');
+      const want = panItems(a.dish);
+      const got = [...new Set(a.items)];
+      if (got.length !== a.items.length || got.length !== want.length || !want.every((i) => got.includes(i))) return err('wrong_items');
+      if (s.madeThisBatch + 1 > BATCH_CAPACITY) return err('batch_capacity');
+      if (s.madeToday + 1 > DAY_CAPACITY) return err('day_capacity');
+      const avail = available(s);
+      for (const [i, q] of Object.entries(DISHES[a.dish].recipe)) if (avail[i as ItemId] < (q ?? 0)) return err('missing');
+      return { s: consume(s, a.dish, 1, a.id) };
+    }
+    case 'gMenu': {
+      if (s.mode !== 'guided') return err('wrong_mode');
+      if (s.phase !== 'plan') return err('wrong_phase');
+      const on = s.menu.includes(a.dish);
+      if (a.on === on) return { s };
+      if (a.on && s.menu.length >= GUIDED_MENU_MAX) return err('menu_limit');
+      const menu = a.on ? DISH_IDS.filter((d) => d === a.dish || s.menu.includes(d)) : s.menu.filter((d) => d !== a.dish);
+      return { s: { ...s, menu, plan: allocate(s.customers, menu) } };
     }
     case 'openService':
+      if (s.mode === 'guided') return err('wrong_mode');
       if (s.phase !== 'prep') return err('wrong_phase');
       return { s: { ...s, phase: 'serve' } };
     case 'serve': {
@@ -339,8 +380,10 @@ function reduce(s: State, a: Action): { s: State; error?: ErrorCode } {
       const orders = [...s.orders];
       if (a.dish === null) {
         if (suitable(s, a.order).length) return err('has_match');
+        // guided: "Not available today" only when nothing acceptable can still be cooked
+        if (s.mode === 'guided' && cookable(s, a.order).length) return err('has_match');
         orders[a.order] = { status: 'no_match' };
-        return { s: { ...s, orders } };
+        return { s: advance({ ...s, orders }, a.id) };
       }
       if (!s.menu.includes(a.dish)) return err('not_on_menu');
       if (a.dish !== c.likes && a.dish !== c.alsoAccepts) return err('not_accepted');
@@ -351,7 +394,7 @@ function reduce(s: State, a: Action): { s: State; error?: ErrorCode } {
       const price = DISHES[a.dish].price;
       orders[a.order] = { status: 'sold', dish: a.dish, price, cost: sv.cost };
       return {
-        s: {
+        s: advance({
           ...s,
           orders,
           servings: s.servings.filter((_, k) => k !== idx),
@@ -359,10 +402,11 @@ function reduce(s: State, a: Action): { s: State; error?: ErrorCode } {
           revenue: s.revenue + price,
           cogs: s.cogs + sv.cost,
           ledger: [...s.ledger, { id: a.id, day: s.day, kind: 'sale', amount: price }],
-        },
+        }, a.id),
       };
     }
     case 'endBatch': {
+      if (s.mode === 'guided') return err('wrong_mode');
       if (s.phase !== 'serve') return err('wrong_phase');
       if (currentOrders(s).some((o) => s.orders[o].status === 'pending')) return err('orders_pending');
       if (s.batch === 1) return { s: { ...s, phase: 'prep', batch: 2, madeThisBatch: 0 } };
@@ -395,6 +439,48 @@ function reduce(s: State, a: Action): { s: State; error?: ErrorCode } {
       };
     }
   }
+}
+
+/** Uses one serving's ingredients (first-expiring usable lot first, never-expiring last, then oldest). */
+function consume(s: State, dish: DishId, qty: number, id: string): State {
+  const lots = s.lots.map((l) => ({ ...l }));
+  const servings = [...s.servings];
+  for (let k = 0; k < qty; k++) {
+    let cost = 0;
+    for (const [i, q] of Object.entries(DISHES[dish].recipe)) {
+      let left = q ?? 0;
+      const usable = lots
+        .filter((l) => l.item === i && l.qty > 0 && (l.lastDay === null || l.lastDay >= s.day))
+        .sort((x, y) => (x.lastDay ?? Infinity) - (y.lastDay ?? Infinity) || x.boughtDay - y.boughtDay);
+      for (const l of usable) {
+        if (!left) break;
+        const take = Math.min(left, l.qty);
+        l.qty -= take;
+        left -= take;
+        cost += take * l.unitCost;
+      }
+    }
+    servings.push({ id: `${id}-${k}`, dish, cost, day: s.day, batch: s.batch });
+  }
+  return {
+    ...s,
+    lots: lots.filter((l) => l.qty > 0),
+    servings,
+    madeToday: s.madeToday + qty,
+    madeThisBatch: s.madeThisBatch + qty,
+    plan: { ...s.plan, [dish]: Math.max(0, s.plan[dish] - qty) },
+  };
+}
+
+/**
+ * Guided play moves on by itself once every guest of the current group is handled (sold or "not today"):
+ * guests 1–3 → 4–6 (a fresh cooking capacity of 4) → closing. Never driven by animation time.
+ */
+function advance(s: State, id: string): State {
+  if (s.mode !== 'guided') return s;
+  if (currentOrders(s).some((o) => s.orders[o].status === 'pending')) return s;
+  if (s.batch === 1) return { ...s, batch: 2, madeThisBatch: 0 };
+  return close(s, `${id}-close`);
 }
 
 /** Closing: unsold cooked servings and raw lots past their last day are written off; fixed fee is paid. */
@@ -436,6 +522,7 @@ export function validState(x: unknown): x is State {
     return (
       !!s &&
       s.version === STATE_VERSION &&
+      (s.mode === undefined || s.mode === 'guided') &&
       int(s.day, 1) &&
       ['plan', 'buy', 'prep', 'serve', 'closed', 'done'].includes(s.phase) &&
       (s.batch === 1 || s.batch === 2) &&
