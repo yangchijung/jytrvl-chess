@@ -37,9 +37,9 @@
   },
   {
     "id": "R3-05",
-    "name": "double taps buy once (383, one purchase), cook once and sell once (+32, one sale); another tab’s newer save is adopted and not overwritten",
+    "name": "double taps buy once (383, one purchase), cook once and sell once (+32, one sale); another tab’s newer save is adopted and not overwritten; with the storage event held back (same base) the stale tab’s pan change does not erase the other tab’s meal — it adopts the newer game and asks to tap again",
     "pass": true,
-    "info": "{\"once\":{\"cash\":383,\"buys\":1},\"cooked\":1,\"served\":{\"cash\":415,\"sales\":1},\"adopted\":{\"seq\":8,\"pan\":\"rice\",\"other\":true},\"stored\":\"rice\"}"
+    "info": "{\"once\":{\"cash\":383,\"buys\":1},\"cooked\":1,\"served\":{\"cash\":415,\"sales\":1},\"adopted\":{\"seq\":8,\"pan\":\"rice\",\"other\":true},\"stored\":\"rice\",\"bState\":{\"servings\":1,\"egg\":4},\"race\":{\"diskServ\":1,\"diskEgg\":4,\"diskCash\":415,\"aServ\":1,\"aCash\":415,\"msg\":\"true\"}}"
   },
   {
     "id": "R3-06b",

@@ -7,7 +7,7 @@
 // - Another tab's newer save (higher seq) is adopted instead of being overwritten.
 import { apply, newGuided, validState, type Action, type ErrorCode, type State } from '../../shared/restaurant/engine';
 import { DISH_IDS, ITEM_IDS, type DishId, type ItemId } from '../../shared/restaurant/data';
-import { loadKeyed, saveChecked, type Notice, type Read } from '../doodle/storage';
+import { loadKeyed, type Notice, type Read } from '../doodle/storage';
 
 export const V3_KEY = 'jy.restaurant.v3';
 export const CLASSIC_KEY = 'jy.restaurant.v1';
@@ -84,6 +84,8 @@ export interface V3View {
   fxKey: number;
   last: Op | null;
   otherTab: boolean;
+  /** the last tap was not applied because another tab changed the game first */
+  conflict: boolean;
 }
 
 export class V3Controller {
@@ -102,6 +104,11 @@ export class V3Controller {
   private listeners = new Set<() => void>();
   private cached: V3View | null = null;
 
+  /** the stored text this tab last read or wrote: every write first checks the store still holds it (R3-S1) */
+  private base: string | null = null;
+  private store: Pick<Storage, 'getItem' | 'setItem'> | null = null;
+  conflict = false;
+
   constructor(store?: Pick<Storage, 'getItem' | 'setItem'>) {
     const r = loadKeyed<V3Save>({ key: V3_KEY, read: readV3, blank: blankV3 }, store);
     this.v = r.s;
@@ -109,6 +116,12 @@ export class V3Controller {
     this.notice = r.notice;
     this.oldRaw = r.oldRaw;
     this.saveState = r.target ? 'none' : 'failed';
+    try {
+      this.store = store ?? window.localStorage;
+      this.base = this.target ? this.store.getItem(this.target) : null;
+    } catch {
+      this.store = null;
+    }
     if (typeof window !== 'undefined') window.addEventListener('storage', this.onStorage);
   }
   dispose() {
@@ -116,10 +129,11 @@ export class V3Controller {
     if (typeof window !== 'undefined') window.removeEventListener('storage', this.onStorage);
   }
   private onStorage = (e: StorageEvent) => {
-    if (e.key !== this.target || !e.newValue) return;
+    if (!this.target || e.key !== this.target || e.newValue === null || e.newValue === this.base) return;
     const r = readV3(() => e.newValue);
-    if (r.kind === 'ok' && r.save.state.seq > this.v.state.seq) {
+    if (r.kind === 'ok') {
       this.v = r.save;
+      this.base = e.newValue;
       this.otherTab = true;
       this.emit();
     }
@@ -130,27 +144,80 @@ export class V3Controller {
     return () => this.listeners.delete(f);
   };
   snapshot = (): V3View =>
-    (this.cached ??= { v: this.v, error: this.error, saveState: this.saveState, notice: this.notice, oldRaw: this.oldRaw, fx: this.fx, fxKey: this.fxKey, last: this.last, otherTab: this.otherTab });
+    (this.cached ??= { v: this.v, error: this.error, saveState: this.saveState, notice: this.notice, oldRaw: this.oldRaw, fx: this.fx, fxKey: this.fxKey, last: this.last, otherTab: this.otherTab, conflict: this.conflict });
   private emit() {
     this.cached = null;
     this.listeners.forEach((f) => f());
   }
-  private save() {
-    // a newer save from another tab is never overwritten by an older one
-    try {
-      const r = this.target ? readV3(() => localStorage.getItem(this.target!)) : null;
-      if (r?.kind === 'ok' && r.save.state.seq > this.v.state.seq) {
-        this.v = r.save;
-        this.otherTab = true;
+  /**
+   * R3-S1: one change at a time across tabs. Under a cross-tab lock (Web Locks; a synchronous call where the
+   * API is missing), read the stored text, and only if it is still the base this tab built on, apply the change
+   * and write it (read back before "saved"). If another tab changed it first, adopt that full state instead,
+   * write nothing and ask the child to tap again — no lost meal, no replayed payment.
+   */
+  private commit(change: (v: V3Save) => { next: V3Save; ok: boolean }, done: (applied: boolean) => void) {
+    const run = () => {
+      let current: string | null = null;
+      let readable = !!this.store && !!this.target;
+      if (readable) {
+        try {
+          current = this.store!.getItem(this.target!);
+        } catch {
+          readable = false;
+        }
+      }
+      if (readable && current !== this.base) {
+        const r = readV3(() => current);
+        if (r.kind === 'ok') {
+          this.v = r.save;
+          this.base = current;
+          this.otherTab = true;
+          this.conflict = true;
+          done(false);
+          this.emit();
+          return;
+        }
+        // the stored text is no longer readable: never write over it
+        const c = change(this.v);
+        if (c.ok) this.v = c.next;
+        this.saveState = 'failed';
+        done(c.ok);
+        this.emit();
         return;
       }
-    } catch {
-      /* fall through to the checked write */
-    }
-    this.saveState = saveChecked(this.target, JSON.stringify(this.v), validV3) ? 'saved' : 'failed';
+      const c = change(this.v);
+      if (!c.ok) {
+        done(false);
+        this.emit();
+        return;
+      }
+      this.v = c.next;
+      this.conflict = false;
+      this.otherTab = false;
+      if (!readable) {
+        this.saveState = 'failed';
+      } else {
+        const text = JSON.stringify(this.v);
+        let ok = false;
+        try {
+          if (validV3(JSON.parse(text))) {
+            this.store!.setItem(this.target!, text);
+            ok = this.store!.getItem(this.target!) === text;
+          }
+        } catch {
+          ok = false;
+        }
+        if (ok) this.base = text;
+        this.saveState = ok ? 'saved' : 'failed';
+      }
+      done(true);
+      this.emit();
+    };
+    const locks = typeof navigator !== 'undefined' ? (navigator as Navigator & { locks?: LockManager }).locks : undefined;
+    if (locks?.request && this.target) void locks.request(`lock:${this.target}`, run).catch(run);
+    else run();
   }
   private play(fx: Fx) {
-    this.lockUntil = Date.now() + 180; // no double taps, even without animation
     if (!fx || reducedMotion()) return;
     this.fx = fx;
     this.fxKey++;
@@ -165,29 +232,34 @@ export class V3Controller {
   }
 
   /** Applies a rules action: commit and save first, then show its short motion. */
-  dispatch(op: Op, fx: Fx = null, after?: (v: V3Save) => Partial<V3Save>): ErrorCode | null {
-    if (this.locked) return null;
-    const r = apply(this.v.state, { ...op, id: uid() } as Action);
-    this.error = r.error ?? null;
-    if (!r.error && !r.duplicate) {
-      const next = { ...this.v, state: r.s };
-      this.v = { ...next, ...(after ? after(next) : {}) };
-      this.last = op;
-      this.otherTab = false;
-      this.save();
-      this.play(fx);
-    } else if (r.error) this.play(op.t === 'serve' ? 'wrong' : null);
-    this.emit();
-    return this.error;
+  dispatch(op: Op, fx: Fx = null, after?: (v: V3Save) => Partial<V3Save>): void {
+    if (this.locked) return;
+    this.lockUntil = Date.now() + 180; // no double taps, even before the commit finishes
+    const id = uid();
+    this.commit(
+      (v) => {
+        const r = apply(v.state, { ...op, id } as Action);
+        this.error = r.error ?? null;
+        if (r.error || r.duplicate) return { next: v, ok: false };
+        const next = { ...v, state: r.s };
+        return { next: { ...next, ...(after ? after(next) : {}) }, ok: true };
+      },
+      (applied) => {
+        if (applied) {
+          this.last = op;
+          this.play(fx);
+        } else if (this.error) this.play(op.t === 'serve' ? 'wrong' : null);
+      },
+    );
   }
   /** Pan / preview changes that are not bookings (saved so a reload keeps them). */
   update(patch: Partial<V3Save>, fx: Fx = null) {
     if (this.locked && fx) return;
-    this.v = { ...this.v, ...patch, state: { ...this.v.state, seq: this.v.state.seq + 1 } };
     this.error = null;
-    this.save();
-    this.play(fx);
-    this.emit();
+    this.commit(
+      (v) => ({ next: { ...v, ...patch, state: { ...v.state, seq: v.state.seq + 1 } }, ok: true }),
+      (applied) => applied && this.play(fx),
+    );
   }
   clearError() {
     this.error = null;
@@ -195,11 +267,12 @@ export class V3Controller {
   }
   /** Start a new day (the page asks first). seq keeps growing so other tabs follow. */
   restart() {
-    const seq = this.v.state.seq + 1;
-    this.v = { ...blankV3(), state: { ...newGuided(), seq } };
     this.error = null;
-    this.last = null;
-    this.save();
-    this.emit();
+    this.commit(
+      (v) => ({ next: { ...blankV3(), state: { ...newGuided(), seq: v.state.seq + 1 } }, ok: true }),
+      (applied) => {
+        if (applied) this.last = null;
+      },
+    );
   }
 }

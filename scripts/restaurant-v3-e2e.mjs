@@ -188,7 +188,19 @@ const prompt = (p) => p.$eval('[data-testid=r3-prompt] p', (e) => e.textContent)
   await sleep(300);
   const adopted = await a.evaluate(() => ({ seq: window.__r3.v.state.seq, pan: window.__r3.v.draft.items.join(), other: !!document.querySelector('[role=status]') }));
   const stored = await a.evaluate(() => JSON.parse(localStorage.getItem('jy.restaurant.v3')).draft.items.join());
-  ok('R3-05', 'double taps buy once (383, one purchase), cook once and sell once (+32, one sale); another tab’s newer save is adopted and not overwritten', once.cash === 383 && once.buys === 1 && cooked === 1 && served.cash === 415 && served.sales === 1 && adopted.pan === 'rice' && stored === 'rice', JSON.stringify({ once, cooked, served, adopted, stored }));
+  // same base, the other tab's storage event held back: tab A must adopt, not write over tab B's meal (R3-S1)
+  await a.evaluate(() => window.removeEventListener('storage', window.__r3.onStorage));
+  await b.evaluate(() => window.__r3.dispatch({ t: 'cook', dish: 'tomato_egg_rice', items: ['rice', 'egg', 'tomato'] }));
+  await sleep(250);
+  const bState = await b.evaluate(() => ({ servings: window.__r3.v.state.servings.length, egg: window.__r3.v.state.lots.filter((l) => l.item === 'egg').reduce((n, l) => n + l.qty, 0) }));
+  await a.evaluate(() => window.__r3.update({ draft: { dish: 'tomato_egg_rice', items: ['egg'] } }));
+  await sleep(250);
+  const race = await a.evaluate(() => {
+    const disk = JSON.parse(localStorage.getItem('jy.restaurant.v3'));
+    const eggs = (st) => st.lots.filter((l) => l.item === 'egg').reduce((n, l) => n + l.qty, 0);
+    return { diskServ: disk.state.servings.length, diskEgg: eggs(disk.state), diskCash: disk.state.cash, aServ: window.__r3.v.state.servings.length, aCash: window.__r3.v.state.cash, msg: document.querySelector('[data-testid=r3-other-tab]')?.dataset.conflict };
+  });
+  ok('R3-05', 'double taps buy once (383, one purchase), cook once and sell once (+32, one sale); another tab’s newer save is adopted and not overwritten; with the storage event held back (same base) the stale tab’s pan change does not erase the other tab’s meal — it adopts the newer game and asks to tap again', once.cash === 383 && once.buys === 1 && cooked === 1 && served.cash === 415 && served.sales === 1 && adopted.pan === 'rice' && stored === 'rice' && race.diskServ === bState.servings && race.diskEgg === bState.egg && race.aServ === bState.servings && race.diskCash === 415 && race.msg === 'true', JSON.stringify({ once, cooked, served, adopted, stored, bState, race }));
   await ctx.close();
 }
 

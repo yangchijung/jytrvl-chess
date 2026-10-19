@@ -94,6 +94,7 @@ const T = {
   saved: { zh: '已存好', en: 'Saved' },
   notSaved: { zh: '還沒存好，先別關掉', en: 'Not saved yet. Keep this page open.' },
   otherTab: { zh: '另一個分頁更新了進度', en: 'Updated from another tab' },
+  tapAgain: { zh: '另一個分頁先更新了，這是最新進度，請再點一次', en: 'Another tab updated first. This is the latest game; please tap again.' },
   classic: { zh: '回到舊版這一局', en: 'Back to the classic game' },
   listen: { zh: '聽', en: 'Listen' },
   download: { zh: '下載舊進度', en: 'Download old progress' },
@@ -170,9 +171,9 @@ export function RestaurantV3({ hasClassic, onClassic }: { hasClassic: boolean; o
           )}
         </div>
       )}
-      {view.otherTab && (
-        <p className="rounded-md bg-[var(--surface-2)] px-3 py-2" role="status">
-          {tr(T.otherTab)}
+      {(view.otherTab || view.conflict) && (
+        <p className="rounded-md bg-[var(--surface-2)] px-3 py-2" role="status" data-testid="r3-other-tab" data-conflict={view.conflict}>
+          {tr(view.conflict ? T.tapAgain : T.otherTab)}
         </p>
       )}
 
