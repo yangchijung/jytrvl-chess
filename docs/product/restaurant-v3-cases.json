@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "purpose": "V3 guided planning design expectations; not V3 implementation test results",
+  "source": "shared/restaurant/data.ts at 8e360ea71404c1fd38901d24fe760e4b81895d90",
+  "currency": "game_coins",
+  "startingCash": 500,
+  "fixedFee": 50,
+  "decorPrice": 120,
+  "allocationRule": "For each fixed customer choose listed affordable first choice, else listed affordable alternative, else null. Aggregate recipes then subtract usable inventory and round up per ingredient pack.",
+  "cases": [
+    {
+      "id": "two_rice_dishes",
+      "menu": [
+        "tomato_egg_rice",
+        "vegetable_egg_rice"
+      ],
+      "plan": {
+        "tomato_egg_rice": 3,
+        "vegetable_egg_rice": 3,
+        "cheese_egg_toast": 0
+      },
+      "expected": {
+        "purchase": 117,
+        "sold": 6,
+        "revenue": 201,
+        "cogs": 117,
+        "waste": 0,
+        "result": 34,
+        "cashClose": 534,
+        "inventoryValue": 0,
+        "cashAfterPlant": 414
+      }
+    },
+    {
+      "id": "tomato_only",
+      "menu": [
+        "tomato_egg_rice"
+      ],
+      "plan": {
+        "tomato_egg_rice": 3,
+        "vegetable_egg_rice": 0,
+        "cheese_egg_toast": 0
+      },
+      "expected": {
+        "purchase": 99,
+        "sold": 3,
+        "revenue": 96,
+        "cogs": 57,
+        "waste": 0,
+        "result": -11,
+        "cashClose": 447,
+        "inventoryValue": 42
+      }
+    },
+    {
+      "id": "tomato_and_toast",
+      "menu": [
+        "tomato_egg_rice",
+        "cheese_egg_toast"
+      ],
+      "plan": {
+        "tomato_egg_rice": 3,
+        "vegetable_egg_rice": 0,
+        "cheese_egg_toast": 2
+      },
+      "expected": {
+        "purchase": 147,
+        "sold": 5,
+        "revenue": 156,
+        "cogs": 99,
+        "waste": 0,
+        "result": 7,
+        "cashClose": 459,
+        "inventoryValue": 48
+      }
+    }
+  ],
+  "conditions": [
+    "No starting raw inventory",
+    "Only allocated accepted dishes are cooked and sold",
+    "No manual additional purchases or cooking",
+    "Optional decoration excluded from cashClose"
+  ]
+}
