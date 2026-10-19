@@ -54,6 +54,36 @@
     "info": "{\"main\":\"{\\\"schemaVersion\\\":9,\\\"state\\\":\\\"sentinel\\\"}\",\"alt\":true,\"notice\":\"brokenNoBackup\",\"dl\":true,\"save\":\"已存好\",\"full\":{\"text\":\"還沒存好，先別關掉\",\"phase\":\"serve\"}}"
   },
   {
+    "id": "R3-04b",
+    "name": "screen flow, tomato egg rice only: portions 3, buy 99; guests who want vegetable rice or toast get “今天沒有”; close: 3 served, result −11, wallet 447 (product case)",
+    "pass": true,
+    "info": "{\"plan\":{\"tomato_egg_rice\":3,\"vegetable_egg_rice\":0,\"cheese_egg_toast\":0},\"cost\":\"一起買齊 99\",\"close\":{\"result\":-11,\"cash\":447,\"sold\":3},\"seen\":{\"notToday\":3}}"
+  },
+  {
+    "id": "R3-04c",
+    "name": "screen flow, tomato rice + cheese toast: portions 3 + 2, buy 147; guests 2 and 4 take the toast as their alternative, guest 6 gets 今天沒有; close: 5 served, result 7, wallet 459 (product case)",
+    "pass": true,
+    "info": "{\"plan\":{\"tomato_egg_rice\":3,\"vegetable_egg_rice\":0,\"cheese_egg_toast\":2},\"cost\":\"一起買齊 147\",\"close\":{\"result\":7,\"cash\":459,\"sold\":5},\"seen\":{\"notToday\":1}}"
+  },
+  {
+    "id": "R3-07b",
+    "name": "play again asks first (focus on “先不要”); the new day starts at 500 and shows “上一局：服務 5 位，錢包 459”; no classic save is created or changed",
+    "pass": true,
+    "info": "{\"dialog\":{\"open\":true,\"focus\":\"先不要\"},\"fresh\":{\"phase\":\"plan\",\"cash\":500,\"last\":\"上一局：服務 5 位，錢包 459\",\"classic\":null}}"
+  },
+  {
+    "id": "R3-02b",
+    "name": "out of tomatoes after three: the tomato box is disabled and a 4th “直接做一份” is refused whole with “番茄用完了” — no rice or egg used, no plate added",
+    "pass": true,
+    "info": "{\"before\":{\"egg\":3,\"rice\":3,\"plates\":3,\"tomatoBin\":true},\"after\":{\"egg\":3,\"rice\":3,\"plates\":3,\"msg\":\"番茄用完了\"}}"
+  },
+  {
+    "id": "R3-adv",
+    "name": "「自己規劃（進階）」 before opening leads to the classic planner (manual portions per dish) and 「玩新版」 comes back; the two games keep separate saves",
+    "pass": true,
+    "info": "{\"adv\":{\"classic\":true,\"plan\":true,\"back\":true},\"v3\":true}"
+  },
+  {
     "id": "R3-08",
     "name": "360/390/768/1280 × zh/en × light/dark (plan, buy, serve): no horizontal scroll, every control ≥ 44 px, main actions ≥ 56 px",
     "pass": true,

@@ -27,6 +27,14 @@ export interface V3Save {
   cooks: number;
   /** the plant is only previewed, not bought */
   plantPreview: boolean;
+  /** earlier finished days kept when "Play again" starts a new one (newest last, at most 5) */
+  history?: Past[];
+}
+export interface Past {
+  soldCount: number;
+  result: number;
+  cashClose: number;
+  decor: number;
 }
 export const blankV3 = (): V3Save => ({ schemaVersion: 3, state: newGuided(), draft: { dish: null, items: [] }, cooks: 0, plantPreview: false });
 
@@ -44,7 +52,9 @@ export function validV3(x: unknown): x is V3Save {
     v.draft.items.every((i) => ITEM_IDS.includes(i)) &&
     Number.isInteger(v.cooks) &&
     v.cooks >= 0 &&
-    typeof v.plantPreview === 'boolean'
+    typeof v.plantPreview === 'boolean' &&
+    (v.history === undefined ||
+      (Array.isArray(v.history) && v.history.length <= 5 && v.history.every((h) => !!h && [h.soldCount, h.result, h.cashClose, h.decor].every((x) => typeof x === 'number' && Number.isFinite(x)))))
   );
 }
 export function readV3(get: () => string | null): Read<V3Save> {
@@ -269,7 +279,12 @@ export class V3Controller {
   restart() {
     this.error = null;
     this.commit(
-      (v) => ({ next: { ...blankV3(), state: { ...newGuided(), seq: v.state.seq + 1 } }, ok: true }),
+      (v) => {
+        // the finished day stays on record (R1-b: play again keeps the last game)
+        const r = v.state.results[v.state.results.length - 1];
+        const past: Past[] = r ? [...(v.history ?? []), { soldCount: r.soldCount, result: r.result, cashClose: v.state.cash, decor: r.decor }].slice(-5) : (v.history ?? []);
+        return { next: { ...blankV3(), history: past, state: { ...newGuided(), seq: v.state.seq + 1 } }, ok: true };
+      },
       (applied) => {
         if (applied) this.last = null;
       },

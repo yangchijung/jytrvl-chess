@@ -276,7 +276,7 @@ try {
     await a.evaluate(() => localStorage.setItem('jy.restaurant.v1', JSON.stringify({ version: 1, cash: -5, phase: 'nope' })));
     await a.reload({ waitUntil: 'load' });
     await a.waitForSelector('[data-testid=restaurant]');
-    const backup = await a.evaluate(() => Object.keys(localStorage).some((k) => k.startsWith('jy.restaurant.v1.unreadable.') && localStorage.getItem(k).includes('nope')));
+    const backup = await a.evaluate(() => Object.keys(localStorage).some((k) => (k.startsWith('jy.restaurant.v1.unreadable.') || k.startsWith('jy.restaurant.v1.backup-')) && localStorage.getItem(k).includes('nope')));
     ok('V2-08', 'damaged save: notice shown, original kept as backup, a fresh day starts', backup && (await text(a)).includes('已另存備份') && (await S(a)).cash === 500);
     await ctx.close();
   }

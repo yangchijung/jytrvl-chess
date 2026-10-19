@@ -6,6 +6,25 @@
 // - The unsent shopping draft (manual pack counts) is saved too.
 import { apply, newGame, validState, type Action, type ErrorCode, type State } from '../../shared/restaurant/engine';
 import type { ItemId } from '../../shared/restaurant/data';
+import { loadKeyed, type Read } from '../doodle/storage';
+
+/** Reads the classic save with the same outcomes the protected loader needs (2026-10-19, V3 §6). */
+export function readClassic(get: () => string | null): Read<State> {
+  let raw: string | null;
+  try {
+    raw = get();
+  } catch {
+    return { kind: 'noStorage' };
+  }
+  if (raw === null) return { kind: 'empty' };
+  let x: unknown;
+  try {
+    x = JSON.parse(raw);
+  } catch {
+    return { kind: 'broken', raw, cause: 'json' };
+  }
+  return validState(x) && x.mode === undefined ? { kind: 'ok', save: x } : { kind: 'broken', raw, cause: 'schema' };
+}
 
 export const KEY = 'jy.restaurant.v1';
 const DRAFT = 'jy.restaurant.v1.draft';
@@ -51,29 +70,26 @@ export class RestaurantController {
   private version = 0;
   private cached: RView | null = null;
 
+  /** where this game may write: the main key, an alternate key when an unreadable save could not be backed up, or nowhere */
+  private target: string | null;
+  /** the stored text this tab last read or wrote (a newer one from another tab is adopted, never overwritten) */
+  private base: string | null = null;
+
   constructor() {
-    let loaded: State | null = null;
+    // V3 §6: an unreadable save is backed up (and read back) before anything is written; if the backup fails the
+    // original key is never written again this session (the old code started over and later overwrote it)
+    const r = loadKeyed<State>({ key: KEY, read: readClassic, blank: () => newGame() });
+    this.s = r.s;
+    this.target = r.target;
+    this.invalid = r.notice !== null && r.notice !== 'noStorage' && r.notice !== 'altKept';
+    if (!r.target) this.saveState = 'failed';
     try {
-      const raw = localStorage.getItem(KEY);
-      if (raw) {
-        let x: unknown = null;
-        try {
-          x = JSON.parse(raw);
-        } catch {
-          /* unreadable */
-        }
-        if (validState(x)) loaded = x;
-        else {
-          this.invalid = true;
-          localStorage.setItem(`${KEY}.unreadable.${Date.now()}`, raw);
-        }
-      }
+      this.base = this.target ? localStorage.getItem(this.target) : null;
       const d = localStorage.getItem(DRAFT);
       if (d) this.draft = JSON.parse(d);
     } catch {
       this.saveState = 'failed';
     }
-    this.s = loaded ?? newGame();
     if (typeof window !== 'undefined') window.addEventListener('storage', this.onStorage);
   }
   dispose() {
@@ -81,11 +97,12 @@ export class RestaurantController {
     if (typeof window !== 'undefined') window.removeEventListener('storage', this.onStorage);
   }
   private onStorage = (e: StorageEvent) => {
-    if (e.key !== KEY || !e.newValue) return;
+    if (e.key !== this.target || !e.newValue) return;
     try {
       const x = JSON.parse(e.newValue);
       if (validState(x) && x.seq > this.s.seq) {
         this.s = x;
+        this.base = e.newValue;
         this.otherTab = true;
         this.endFx();
         this.emit();
@@ -107,13 +124,32 @@ export class RestaurantController {
     this.listeners.forEach((f) => f());
   }
 
-  private save() {
+  /** Checked write: never over a newer save from another tab, and "saved" only when the text reads back. */
+  private save(): boolean {
+    if (!this.target) {
+      this.saveState = 'failed';
+      return true;
+    }
     try {
-      localStorage.setItem(KEY, JSON.stringify(this.s));
-      this.saveState = 'saved';
+      const current = localStorage.getItem(this.target);
+      if (current !== this.base && current !== null) {
+        const r = readClassic(() => current);
+        if (r.kind === 'ok' && r.save.seq >= this.s.seq) {
+          this.s = r.save;
+          this.base = current;
+          this.otherTab = true;
+          return false;
+        }
+      }
+      const text = JSON.stringify(this.s);
+      localStorage.setItem(this.target, text);
+      const ok = localStorage.getItem(this.target) === text;
+      if (ok) this.base = text;
+      this.saveState = ok ? 'saved' : 'failed';
     } catch {
       this.saveState = 'failed';
     }
+    return true;
   }
 
   get busy() {

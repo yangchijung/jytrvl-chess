@@ -254,6 +254,90 @@ const prompt = (p) => p.$eval('[data-testid=r3-prompt] p', (e) => e.textContent)
   await p.ctx.close();
 }
 
+// ---------------------------------------------------------------- R1-b: other menus, "not today", out of stock, play again, advanced entry
+/** Serves the guest at the counter through the screen: a ready accepted plate, else cook (by hand / quick), else 今天沒有. */
+async function serveOne(p) {
+  const st = await p.evaluate(() => {
+    const s = window.__r3.v.state;
+    const g = [0, 1, 2, 3, 4, 5].find((k) => s.orders[k].status === 'pending' && (k < 3 ? s.batch === 1 : s.batch === 2));
+    const c = s.customers[g];
+    const wants = [c.likes, c.alsoAccepts].filter((d) => d && s.menu.includes(d));
+    return { g, wants, ready: wants.filter((d) => s.servings.some((x) => x.dish === d)), notToday: !!document.querySelector('[data-testid=r3-not-today]'), quick: !!document.querySelector('[data-testid=r3-quick]') };
+  });
+  if (st.notToday) return tap(p, '[data-testid=r3-not-today]');
+  if (!st.ready.length) {
+    await tap(p, `[data-testid=r3-pick-${st.wants[0]}]`);
+    if (st.quick) await tap(p, '[data-testid=r3-quick]');
+    else {
+      const items = await p.evaluate((d) => ({ tomato_egg_rice: ['rice', 'egg', 'tomato'], vegetable_egg_rice: ['rice', 'egg', 'vegetable'], cheese_egg_toast: ['bread', 'egg', 'cheese'] })[d], st.wants[0]);
+      for (const i of items) await tap(p, `[data-testid=r3-bin-${i}]`);
+      await tap(p, '[data-testid=r3-cook]');
+    }
+  }
+  await tap(p, `[data-testid=r3-plate-${st.ready[0] ?? st.wants[0]}]`);
+  await tap(p, '[data-testid=r3-serve]');
+}
+async function playMenu(p, menu) {
+  await go(p, '', '?play=v3');
+  const now = await p.evaluate(() => window.__r3.v.state.menu);
+  for (const d of now.filter((d) => !menu.includes(d))) await tap(p, `[data-testid=r3-dish-${d}]`);
+  for (const d of menu.filter((d) => !now.includes(d))) await tap(p, `[data-testid=r3-dish-${d}]`);
+  const plan = await p.evaluate(() => window.__r3.v.state.plan);
+  await tap(p, '[data-testid=r3-to-buy]');
+  const cost = await p.$eval('[data-testid=r3-buy]', (e) => e.textContent);
+  await tap(p, '[data-testid=r3-buy]');
+  const seen = { notToday: 0 };
+  for (let k = 0; k < 20 && (await p.evaluate(() => window.__r3.v.state.phase)) === 'serve'; k++) {
+    if (await p.$('[data-testid=r3-not-today]')) seen.notToday++;
+    await serveOne(p);
+  }
+  const close = await p.$eval('[data-testid=r3-close]', (e) => ({ result: Number(e.dataset.result), cash: Number(e.dataset.cash), sold: Number(e.dataset.sold) }));
+  return { plan, cost, close, seen };
+}
+{
+  const p = await page(390, 844);
+  const tomato = await playMenu(p, ['tomato_egg_rice']);
+  await p.screenshot({ path: `${OUT}/r3-tomato-only-close-390.png`, fullPage: true });
+  ok('R3-04b', 'screen flow, tomato egg rice only: portions 3, buy 99; guests who want vegetable rice or toast get “今天沒有”; close: 3 served, result −11, wallet 447 (product case)', tomato.plan.tomato_egg_rice === 3 && tomato.cost.includes('99') && tomato.seen.notToday === 3 && tomato.close.sold === 3 && tomato.close.result === -11 && tomato.close.cash === 447, JSON.stringify(tomato));
+  await p.evaluate(() => localStorage.removeItem('jy.restaurant.v3'));
+  const toast = await playMenu(p, ['tomato_egg_rice', 'cheese_egg_toast']);
+  ok('R3-04c', 'screen flow, tomato rice + cheese toast: portions 3 + 2, buy 147; guests 2 and 4 take the toast as their alternative, guest 6 gets 今天沒有; close: 5 served, result 7, wallet 459 (product case)', toast.plan.tomato_egg_rice === 3 && toast.plan.cheese_egg_toast === 2 && toast.cost.includes('147') && toast.seen.notToday === 1 && toast.close.sold === 5 && toast.close.result === 7 && toast.close.cash === 459, JSON.stringify(toast));
+  // play again: confirm first, the finished day stays on record, the classic save is untouched
+  await tap(p, '[data-testid=r3-save-coins]');
+  await tap(p, '[data-testid=r3-again]');
+  const dialog = await p.evaluate(() => ({ open: !!document.querySelector('dialog[open]'), focus: document.activeElement?.textContent }));
+  await tap(p, '[data-testid=r3-again-yes]');
+  const fresh = await p.evaluate(() => ({ phase: window.__r3.v.state.phase, cash: window.__r3.v.state.cash, last: document.querySelector('[data-testid=r3-last-game]')?.textContent, classic: localStorage.getItem('jy.restaurant.v1') }));
+  ok('R3-07b', 'play again asks first (focus on “先不要”); the new day starts at 500 and shows “上一局：服務 5 位，錢包 459”; no classic save is created or changed', dialog.open && dialog.focus === '先不要' && fresh.phase === 'plan' && fresh.cash === 500 && fresh.last === '上一局：服務 5 位，錢包 459' && fresh.classic === null, JSON.stringify({ dialog, fresh }));
+  // out of stock: tomato only, the 4th tomato rice is refused whole
+  await tap(p, '[data-testid=r3-dish-vegetable_egg_rice]');
+  await tap(p, '[data-testid=r3-to-buy]');
+  await tap(p, '[data-testid=r3-buy]');
+  for (const i of ['rice', 'egg', 'tomato']) await tap(p, `[data-testid=r3-bin-${i}]`);
+  await tap(p, '[data-testid=r3-cook]');
+  for (const i of ['rice', 'egg', 'tomato']) await tap(p, `[data-testid=r3-bin-${i}]`);
+  await tap(p, '[data-testid=r3-cook]');
+  await tap(p, '[data-testid=r3-quick]');
+  const before = await p.evaluate(() => ({ egg: window.__r3.v.state.lots.filter((l) => l.item === 'egg').reduce((n, l) => n + l.qty, 0), rice: window.__r3.v.state.lots.filter((l) => l.item === 'rice').reduce((n, l) => n + l.qty, 0), plates: window.__r3.v.state.servings.length, tomatoBin: document.querySelector('[data-testid=r3-bin-tomato]').disabled }));
+  await tap(p, '[data-testid=r3-quick]');
+  const after = await p.evaluate(() => ({ egg: window.__r3.v.state.lots.filter((l) => l.item === 'egg').reduce((n, l) => n + l.qty, 0), rice: window.__r3.v.state.lots.filter((l) => l.item === 'rice').reduce((n, l) => n + l.qty, 0), plates: window.__r3.v.state.servings.length, msg: document.querySelector('[data-testid=r3-msg]')?.textContent }));
+  ok('R3-02b', 'out of tomatoes after three: the tomato box is disabled and a 4th “直接做一份” is refused whole with “番茄用完了” — no rice or egg used, no plate added', before.tomatoBin && after.egg === before.egg && after.rice === before.rice && after.plates === before.plates && after.msg === '番茄用完了', JSON.stringify({ before, after }));
+  await p.ctx.close();
+}
+{
+  // advanced planning entry → the classic planner; wallets stay separate
+  const p = await page(1280, 900);
+  await go(p);
+  await p.click('[data-testid=r3-advanced] summary');
+  await tap(p, '[data-testid=r3-to-advanced]');
+  await p.waitForSelector('[data-testid=restaurant]');
+  const adv = await p.evaluate(() => ({ classic: !!document.querySelector('[data-testid=restaurant]'), plan: !!document.querySelector('[data-testid=plan-tomato_egg_rice]'), back: !!document.querySelector('[data-testid=r-to-v3]') }));
+  await tap(p, '[data-testid=r-to-v3]');
+  const v3 = await p.evaluate(() => !!document.querySelector('[data-testid=r3]'));
+  ok('R3-adv', '「自己規劃（進階）」 before opening leads to the classic planner (manual portions per dish) and 「玩新版」 comes back; the two games keep separate saves', adv.classic && adv.plan && adv.back && v3, JSON.stringify({ adv, v3 }));
+  await p.ctx.close();
+}
+
 // ---------------------------------------------------------------- R3-08 layouts; R3-09 keyboard, reduced motion
 {
   const fails = [];

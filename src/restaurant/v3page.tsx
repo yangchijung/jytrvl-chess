@@ -89,7 +89,11 @@ const T = {
   notEnough: { zh: '錢不夠買', en: 'Not enough coins' },
   again: { zh: '再玩一次', en: 'Play again' },
   againQ: { zh: '再玩一次？', en: 'Play again?' },
-  againD: { zh: '會開新的一天，錢包回到 500。舊版的那一局不受影響。', en: 'A new day starts with 500 coins. The classic game is not affected.' },
+  againD: { zh: '會開新的一天，錢包回到 500；這一局的結果會留著。舊版的那一局不受影響。', en: 'A new day starts with 500 coins; this day’s result is kept. The classic game is not affected.' },
+  lastGame: { zh: '上一局：服務 {n} 位，錢包 {c}', en: 'Last game: served {n}, wallet {c}' },
+  lastPlant: { zh: '（買了盆栽）', en: ' (bought the plant)' },
+  advanced: { zh: '自己規劃（進階）', en: 'Plan it myself (advanced)' },
+  advancedNote: { zh: '自己決定份數、包數和分批備餐；用舊版的完整規劃，錢包另外算。', en: 'Choose portions, packs and cooking batches yourself in the classic planner; its wallet is separate.' },
   keepPlaying: { zh: '先不要', en: 'Not now' },
   saved: { zh: '已存好', en: 'Saved' },
   notSaved: { zh: '還沒存好，先別關掉', en: 'Not saved yet. Keep this page open.' },
@@ -191,7 +195,7 @@ export function RestaurantV3({ hasClassic, onClassic }: { hasClassic: boolean; o
         )}
       </div>
 
-      {s.phase === 'plan' && <PlanStep ctl={ctl} view={view} />}
+      {s.phase === 'plan' && <PlanStep ctl={ctl} view={view} onAdvanced={onClassic} />}
       {s.phase === 'buy' && <BuyStep ctl={ctl} s={s} />}
       {s.phase === 'serve' && <ServeStep ctl={ctl} view={view} guest={g} />}
       {(s.phase === 'closed' || s.phase === 'done') && <CloseStep ctl={ctl} view={view} onAgain={() => setAgain(true)} />}
@@ -279,11 +283,18 @@ function Stage({ view, guest }: { view: V3View; guest: number | null }) {
 }
 
 // ---------------------------------------------------------------- plan: pick 1–2 dishes
-function PlanStep({ ctl, view }: { ctl: V3Controller; view: V3View }) {
+function PlanStep({ ctl, view, onAdvanced }: { ctl: V3Controller; view: V3View; onAdvanced: () => void }) {
   const { tr, dish } = useT();
   const s = view.v.state;
+  const last = view.v.history?.[view.v.history.length - 1];
   return (
     <div className="space-y-3">
+      {last && (
+        <p className="text-sm text-[var(--muted)]" data-testid="r3-last-game">
+          {tr(T.lastGame, { n: last.soldCount, c: last.cashClose })}
+          {last.decor > 0 ? tr(T.lastPlant) : ''}
+        </p>
+      )}
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3" role="group" aria-label={tr(T.menuQ)}>
         {DISH_IDS.map((d) => {
           const on = s.menu.includes(d);
@@ -315,6 +326,14 @@ function PlanStep({ ctl, view }: { ctl: V3Controller; view: V3View }) {
       <Button size="lg" className="min-h-14 w-full text-xl" disabled={!s.menu.length} onClick={() => ctl.dispatch({ t: 'toBuy' })} data-testid="r3-to-buy">
         {s.menu.length ? tr(T.goBuy) : tr(T.pickOne)}
       </Button>
+      {/* advanced planning before the shop opens: the classic planner (1–3 dishes, portions, packs, batches) */}
+      <details className="rounded-md border border-[var(--border)] p-2" data-testid="r3-advanced">
+        <summary className="flex min-h-11 cursor-pointer items-center font-medium">{tr(T.advanced)}</summary>
+        <p className="mt-1 text-sm">{tr(T.advancedNote)}</p>
+        <Button variant="secondary" className="mt-2" onClick={onAdvanced} data-testid="r3-to-advanced">
+          {tr(T.advanced)}
+        </Button>
+      </details>
     </div>
   );
 }
