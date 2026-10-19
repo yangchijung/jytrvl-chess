@@ -707,4 +707,5 @@ AI 只使用玩家看得到的資訊：貪食蛇有單元測試確認對手尚�
 | classic | ✅ | 單元 `tests/restaurant-classic-save.test.ts` 4 項：壞檔先備份讀回、備份失敗不覆寫原鍵並改存 `.recovered`、讀回不一致不顯示已儲存、另一分頁較新存檔被採用；classic 瀏覽器 `restaurant-e2e.mjs` 42／42（壞檔備份斷言接受新的 backup- 鍵） |
 
 - 合計：單元 264／264；`restaurant-v3-e2e.mjs` 17／17（R1-a 12 項＋R1-b 5 項）；產品 `audit.mjs` 17／17。classic 五份測例（169／98／19／2／502）仍由 RT08 單元以 classic 成本驗證，未套用 guided。
+- 部署：R3-S1 commit f694161、R1-b commit baf96ef；[CI](https://github.com/yangchijung/jytrvl-chess/actions/runs/39272395754) build-and-test、Cloudflare Pages、Workers Builds 皆成功。正式站（唯讀）：頁面程式含「自己規劃（進階）」「上一局：」「另一個分頁先更新了」；該瀏覽器已有一份產品端的 V3 進度（營業中），未操作、未改動。
 - 未測：原生 400 %、iPhone／iPad Safari＋VoiceOver、語音實聽、5–7／8–12 歲孩子試玩（R3-10）。
