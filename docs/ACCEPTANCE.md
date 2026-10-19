@@ -733,4 +733,5 @@ AI 只使用玩家看得到的資訊：貪食蛇有單元測試確認對手尚�
 | TC08 | 未做 | 線上權威／協定版本化／重連屬 T3 |
 | TC09 | 部分 | 中英、360／768／1280、淺深、鍵盤可玩、44 px 控制；**iPhone／iPad Safari 真機觸碰未測** |
 
+- 部署：commit dfa0568；[CI](https://github.com/yangchijung/jytrvl-chess/actions/runs/39274370361) build-and-test、Cloudflare Pages、Workers Builds 皆成功；正式站 https://chess.jytrvl.com/territory/flow 載入、倒數後開始移動（Chrome 截圖抽查）。
 - 截圖：`docs/test-results/screens/territory-flow/`。螢幕錄影未製作（工程環境無錄影），以連續截圖與數值代替。
