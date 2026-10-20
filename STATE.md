@@ -6,6 +6,7 @@
 Date: 2026-10-20
 Branch/Commit: main（2026-10-19 A3 第八款見最新 commit；存檔複驗原碼 7eae7f3；R5＋塗鴉首版 f80776c）
 Done (with evidence):
+  - 2026-10-20 產品：塗鴉 V2 規格＋Figma 四頁＋24 配方／29 色＋六張可編輯 SVG 交付，見 docs/product/DOODLE_WORKBENCH_V2.md、docs/design/doodle-workbench-v2。已核對來源 8 色／4 配方與基本色限制，完成資料可達性／舊色與加白方向、設計稿目視檢查；未寫遊戲／部署／實機驗收
   - 2026-10-20 產品附件審查：HANDOFF 與 math-games.zip 已收到並讀完，附錄 A 已取得；整合唯一主規格 docs/product/math-island/開發規格書_v1.md，MATH_ISLAND_M0.md 改導讀。桌機 Chrome 重現蘋果未搬即成功、390 px 裁切、hash 完成態問題，見 docs/reference/math-island-2026-10-20/SOURCE_REVIEW.md（MR01–MR06）。未改遊戲、未部署、未做實機／孩子／FPS 驗收
   - 2026-10-20 產品：依負責人指示停止餐廳／星球救援隊／機器人快遞站／逆風探險賽；不刪程式、存檔或擅自下架。餐廳 f72131f 修正已推送，本輪未複驗、不再派下一輪
   - 2026-10-20 產品：數學遊樂島 M0 規劃核對完成可開工部分（蘋果籃＋分裝工廠、路由／互動／10 固定題／分批 PR／MA01–MA10）；見 docs/product/MATH_ISLAND_M0.md。當時主規格／附錄 A／proto 未找到，現已補齊（見本日附件審查）；銀行與正式帳戶等仍待決，無實作、部署或實機完成宣告
@@ -50,7 +51,7 @@ Done (with evidence):
 In Progress:
   - 數學遊樂島 M0：依 docs/product/MATH_ISLAND_M0.md 在現站 /math 實作；先 M0-A 蘋果籃＋放置模組，再 M0-B 分裝工廠與保存／語音，附 PR 預覽。ChatGPT 核對 PR，James 合併；M0-C 真實 iPad／孩子試玩，M1 六款，M2 銀行來源已取得、交易規則與決策待定
   - 領地控制改造（Issue #8）：T1 已交並完成核心產品複驗；直接接 T2 的背景暫停／連續 AI／教學／同機雙人／碰撞邊界與實機觸控。T3 線上版本相容通過後才替換正式入口；/territory/flow 仍 noindex 預覽，不恢復其他暫停原型
-  - 塗鴉 V1.1（Issue #7）：2026-10-19 B1「我的小魚」已交（§22），待產品複驗；B2 兩種藍／花園配色、B3 三步引導、模板內自由筆畫依規格後續；既有七款短練習繼續
+  - 塗鴉 V2（Issue #7）：優先 C1 24 配方／29 色＋畫板調色盤，再 C2 六張底圖與分圖保存，C3 複驗；DOODLE_WORKBENCH_V2.md。B1 工程已交且舊成果保留，尚未開始的 B2／B3 排在本輪後；既有七款短練習繼續
   - 色彩塗鴉樂（Issue #7）：存檔修正已通過（§20.6）；2026-10-19 A3 已上線為第八款（§21），待產品複驗；孩子試玩與 VoiceOver 實機仍待後續
   - 2026-10-19 起：A3 已交，接著依序做七款短練習（數獨→西洋棋→中國象棋→暗棋→領地→貪食蛇→方塊）；四款停止開發，狀態以上方 2026-10-20 授權為準
   - Issue #6：R1–R4 已通過 2026-10-18 複驗；R5 真實 400% 已修並通過產品複驗；iPhone／iPad Safari＋VoiceOver 已請負責人實測，結果未回覆。矩陣為 16；腳本已更正，工程原始 JSON 的 HU03 名稱仍殘留 32，下次產出同步
@@ -72,7 +73,7 @@ Cost / Security / License alerts:
   - 尚未設定 Cloudflare 帳單警示（需負責人）
   - cburnett 棋子授權文字待對照 Wikimedia Commons 原頁（docs/LICENSES.md 最末）
 Next actions:
-  - 產品端複驗 B1（§22）與 A3（§21）；Claude 接續七款短練習（先數獨），B1 通過後再接 B2。四款停止開發
+  - Claude 接塗鴉 V2 C1／C2，先交可玩混色畫板，再逐批接六張底圖；產品端按 CP01–CP12 複驗並涵蓋 B1／A3 舊功能回歸。既有七款短練習與數學照原授權；四款停止開發
   - 產品端複驗 A3（§21）；Claude 接續七款短練習（先數獨）。四款停止開發
   - Claude 請直接依 GAMES_NEXT_SPRINT_2026-10-18.md 開工，不等實機回報或重複開始確認；先可玩增量，附 commit／URL／測試結果；Three.js 可用但不全站重寫
   - 首頁／共用 UI 的 R1–R4 已驗收，不再重複派修；Issue #6 的 R5 已通過，只保留實機／讀屏驗收。其他專屬畫面落差留在 UI_UX_AUDIT_2026-10-16.md；四款停止開發
