@@ -754,7 +754,7 @@ AI 只使用玩家看得到的資訊：貪食蛇有單元測試確認對手尚�
 4. 真實內容：主規格 §3 固定五題（3+4、2+3、4+1、1+2、4+4），算式與回饋文字照規格。
 5. 色彩與動作：暖沙／深墨／海島藍三色＋珊瑚只用於「還沒好」提示；無漸層、陰影、膠囊、emoji；拿起放大 1.08＋外框，放錯 180 ms 回原位，減少動態時無轉場。
 
-程式：`shared/math/apple.ts`（題目狀態與判答）、`src/math/place.ts`（共用吸附）、`src/math/save.ts`（存檔與單一寫入者）、`src/math/audio.ts`（預錄音檔播放）、`src/math/apple-page.tsx`、`src/math/island.tsx`、`scripts/math-tts.ts`（離線產生音檔，未執行）。測試：`tests/math-apple.test.ts` 12 項、`scripts/math-apple-e2e.mjs` 50／50（結果 `docs/test-results/screens/math-apple/results.json`、截圖同目錄）。
+程式：`shared/math/apple.ts`（題目狀態與判答）、`src/math/place.ts`（共用吸附）、`src/math/save.ts`（存檔與單一寫入者）、`src/math/audio.ts`（預錄音檔播放）、`src/math/apple-page.tsx`、`src/math/island.tsx`、`scripts/math-tts.ts`（離線產生音檔，未執行）。測試：`tests/math-apple.test.ts` 12 項、`scripts/math-apple-e2e.mjs` 51／51（結果 `docs/test-results/screens/math-apple/results.json`、截圖同目錄）。
 
 | ID | 結果 | 證據／說明 |
 |---|---|---|
@@ -768,11 +768,11 @@ AI 只使用玩家看得到的資訊：貪食蛇有單元測試確認對手尚�
 | MA02 | ✅（桌機） | 滑鼠拖曳、觸控拖曳（CDP 模擬觸控）、先點再點、鍵盤 Enter／Space |
 | MA03 | ✅ | 五題順序、錯答保留、答對才顯示算式與「3 加 4，一共 7 顆。」 |
 | MA04 | ✅ | 半題、答對後、全部完成重整保留；壞檔原文留在備份鍵並提示；寫入失敗提示「沒有存好」；第二分頁只看不改、改在這裡玩後原分頁停止寫入（Web Locks）。無 Web Locks 時明示不協調分頁，不宣稱原子安全 |
-| MA05 | 部分 | 開始玩後向預錄檔請求、缺檔提示且可繼續、可關閉並保存偏好、無語音服務請求。**音檔尚未產生**（需 Azure 金鑰，由負責人以 `scripts/math-tts.ts` 產生），逐句試聽未做 |
+| MA05 | 部分 | 11 句音檔已由負責人以 Azure Neural TTS 產生（zh-TW-HsiaoChenNeural、速度 -10%，manifest 在 `public/math/audio/zh-TW/v1/manifest.json`，文字與程式一致）：11 檔皆 200／audio/mpeg；開始玩後播第一句、可關閉並保存、缺檔提示且可繼續、無語音服務請求。James 逐句試聽確認與 iPad 播放未記錄 |
 | MA06 | 部分 | 上述尺寸中英、淺深、文字 200%（768）、減少動態；VoiceOver、瀏覽器 400% 縮放、實機旋轉未測 |
 | MA07 | 未測 | iPad 9 代 FPS |
 | MA08 | 未做 | 三位孩子試玩 |
 | MA09 | 未完成 | 蘋果、島圖為程式繪製的暫用幾何圖形（原創、無外部素材）；正式插畫與字體授權未入包 |
 | MA10 | 待合併 | PR 預覽與部署 SHA 於 PR 記錄 |
 
-未做：M0-B 分裝工廠、兩遊戲切換；真實 iPad／Safari／VoiceOver；孩子試玩；音檔。
+未做：M0-B 分裝工廠、兩遊戲切換；真實 iPad／Safari／VoiceOver；孩子試玩。

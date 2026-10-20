@@ -1,7 +1,7 @@
 {
   "base": "http://127.0.0.1:8788",
-  "at": "2026-10-20T11:36:53.315Z",
-  "passed": 50,
+  "at": "2026-10-20T12:14:31.282Z",
+  "passed": 51,
   "failed": 0,
   "results": [
     {
@@ -210,9 +210,15 @@
     },
     {
       "id": "MA05",
-      "name": "after 開始玩 the prompt is requested from a pre-made file; missing file → a note, play continues",
+      "name": "all 11 clips are served as real mp3 files (200, audio/mpeg, MPEG frame)",
       "pass": true,
-      "info": "http://127.0.0.1:8788/math/audio/zh-TW/v1/apple_right_01.mp3 http://127.0.0.1:8788/math/audio/zh-TW/v1/apple_task.mp3"
+      "info": "[[\"apple_task\",200,\"audio/mpeg\",14400,255],[\"apple_ask\",200,\"audio/mpeg\",12816,255]]"
+    },
+    {
+      "id": "MA05",
+      "name": "after 開始玩 the first prompt is played from the pre-made file (sound on by default)",
+      "pass": true,
+      "info": "http://127.0.0.1:8788/math/audio/zh-TW/v1/apple_right_05.mp3 http://127.0.0.1:8788/math/audio/zh-TW/v1/apple_task.mp3"
     },
     {
       "id": "MA05",
@@ -222,13 +228,13 @@
     },
     {
       "id": "MA05",
-      "name": "still playable with no sound files",
+      "name": "no speech-service request while playing",
       "pass": true,
       "info": ""
     },
     {
       "id": "MA05",
-      "name": "no speech-service request while playing",
+      "name": "missing sound file: a note, and the game still plays",
       "pass": true,
       "info": ""
     },

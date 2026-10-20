@@ -294,26 +294,46 @@ try {
 
   // ---------- MA05 sound ----------
   {
+    // every clip in the code exists as a real mp3 file and matches the reviewed manifest
     const p = await page(1280, 1000);
     await open(p, '/math');
+    const files = await p.evaluate(async () => {
+      const m = await (await fetch('/math/audio/zh-TW/v1/manifest.json')).json();
+      const out = [];
+      for (const c of m) {
+        const r = await fetch(`/math/audio/zh-TW/v1/${c.file}`);
+        const b = await r.arrayBuffer();
+        out.push([c.id, r.status, r.headers.get('content-type'), b.byteLength, new Uint8Array(b)[0]]);
+      }
+      return out;
+    });
+    ok('MA05', 'all 11 clips are served as real mp3 files (200, audio/mpeg, MPEG frame)', files.length === 11 && files.every(([, st, ct, n, b0]) => st === 200 && /audio\/mpeg/.test(ct) && n > 8000 && b0 === 0xff), JSON.stringify(files.slice(0, 2)));
     await p.click('[data-testid=mi-start-apple]');
     await p.waitForSelector('[data-testid=mi-apple]');
     await sleep(600);
     const audioReq = requests.filter((u) => u.includes('/math/audio/'));
-    await p.click('[data-testid=mi-listen]');
-    await sleep(800);
-    const missing = !!(await p.$('[data-testid=mi-audio-missing]'));
-    ok('MA05', 'after 開始玩 the prompt is requested from a pre-made file; missing file → a note, play continues', audioReq.some((u) => /apple_task\.mp3/.test(u)) && missing, audioReq.slice(-2).join(' '));
+    ok('MA05', 'after 開始玩 the first prompt is played from the pre-made file (sound on by default)', audioReq.some((u) => /v1\/apple_task\.mp3/.test(u)), audioReq.slice(-2).join(' '));
     await p.click('[data-testid=mi-voice]');
     const pressed = await p.$eval('[data-testid=mi-voice]', (e) => e.getAttribute('aria-pressed'));
     await p.reload({ waitUntil: 'networkidle0' });
     const after = await p.$eval('[data-testid=mi-voice]', (e) => e.getAttribute('aria-pressed'));
     ok('MA05', 'sound can be turned off and stays off after reload', pressed === 'false' && after === 'false');
-    await p.click('[data-testid=mi-apple-0]');
-    await p.click('[data-testid=mi-to-basket]');
-    ok('MA05', 'still playable with no sound files', (await at(p))[0] === 'basket');
     const tts = requests.filter((u) => /tts|speech|cognitiveservices|azure/i.test(u));
     ok('MA05', 'no speech-service request while playing', tts.length === 0, tts.join());
+    await p.ctx.close();
+  }
+  {
+    // a clip that cannot be loaded: a short note, the game keeps working
+    const p = await page(1280, 1000);
+    await p.setRequestInterception(true);
+    p.on('request', (r) => (r.url().includes('/math/audio/') ? r.abort() : r.continue()));
+    await open(p);
+    await p.click('[data-testid=mi-listen]');
+    await sleep(800);
+    const missing = !!(await p.$('[data-testid=mi-audio-missing]'));
+    await p.click('[data-testid=mi-apple-0]');
+    await p.click('[data-testid=mi-to-basket]');
+    ok('MA05', 'missing sound file: a note, and the game still plays', missing && (await at(p))[0] === 'basket');
     await p.ctx.close();
   }
 
