@@ -184,3 +184,51 @@ describe('Color Doodle V2 saving (CP07, CP08)', () => {
     expect(validV2(fromV1(null, null))).toBe(true);
   });
 });
+
+import { TEMPLATES, REGIONS_OF } from '../shared/doodle/templates';
+describe('Color Doodle V2 picture templates (CP05, CP06)', () => {
+  it('six templates, 32 regions, unique ids per template, fish keeps the V1 region ids, every region named in zh/en', () => {
+    expect(TEMPLATES.map((t) => t.id)).toEqual(['fish', 'garden', 'butterfly', 'dinosaur', 'rocket', 'house']);
+    expect(TEMPLATES.reduce((n, t) => n + t.regions.length, 0)).toBe(32);
+    for (const t of TEMPLATES) {
+      expect(new Set(t.regions.map((r) => r.id)).size).toBe(t.regions.length);
+      expect([...t.accessibleOrder].sort()).toEqual(t.regions.map((r) => r.id).sort());
+      for (const r of t.regions) expect(r.name.zh && r.name.en && /^M/.test(r.d)).toBeTruthy();
+    }
+    expect([...REGIONS_OF.fish].sort()).toEqual(['body', 'fin', 'tail']);
+  });
+
+  it('CP06: all 29 colours × 32 regions write and read back; regions of one picture are never read from another', () => {
+    let combos = 0;
+    for (const t of TEMPLATES)
+      for (const r of t.regions)
+        for (const c of COLORS) {
+          const v = withWork({ ...blankV2(), sceneId: t.id }, t.id, { ...workOf(blankV2(), t.id), fills: pushScene(empty(), { t: 'fill', region: r.id, color: c.id }, REGIONS_OF[t.id]) });
+          const back = readV2(() => JSON.stringify(v));
+          expect(back.kind).toBe('ok');
+          if (back.kind === 'ok') expect(regionColors(workOf(back.save, t.id).fills, REGIONS_OF[t.id])[r.id]).toBe(c.id);
+          combos++;
+        }
+    expect(combos).toBe(29 * 32);
+    // a region id that belongs to another picture is rejected
+    expect(validV2({ ...blankV2(), scenes: { rocket: { fills: { ops: [{ t: 'fill', region: 'petals', color: 'red' }], n: 1 }, mixedOrange: false, done: false } } })).toBe(false);
+  });
+
+  it('CP05: each picture keeps its own colours and undo history; switching pictures never clears one', () => {
+    let s = blankV2();
+    const fill = (sid: string, region: string, color: string) => {
+      const w = workOf(s, sid);
+      s = withWork(s, sid, { ...w, fills: pushScene(w.fills, { t: 'fill', region, color }, REGIONS_OF[sid]) });
+    };
+    fill('fish', 'body', 'pink');
+    s = { ...s, sceneId: 'butterfly' };
+    fill('butterfly', 'upper_left', 'lavender');
+    fill('butterfly', 'body', 'brown');
+    s = { ...s, sceneId: 'fish' };
+    expect(regionColors(workOf(s, 'fish').fills, REGIONS_OF.fish).body).toBe('pink');
+    expect(regionColors(workOf(s, 'butterfly').fills, REGIONS_OF.butterfly)).toMatchObject({ upper_left: 'lavender', body: 'brown', upper_right: null });
+    expect(workOf(s, 'butterfly').fills.n).toBe(2);
+    expect(workOf(s, 'garden').fills.n).toBe(0);
+    expect(validV2(s)).toBe(true);
+  });
+});

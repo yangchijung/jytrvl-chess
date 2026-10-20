@@ -2,6 +2,7 @@
 // large regions that are filled with one tap. Saved under its own versioned key, never inside the old
 // free/grid save (docs/product/DOODLE_PLAYFUL_V1_1.md §5).
 import { MAX_OPS, V1_COLOR_IDS, empty, push, type ColorId, type History } from './model';
+import { REGIONS_OF } from './templates';
 
 export const SCENE_KEY = 'jy.doodle.scene.v1';
 export const SCENE_IDS = ['fish'] as const;
@@ -9,7 +10,8 @@ export type SceneId = (typeof SCENE_IDS)[number];
 export const FISH_REGIONS = ['body', 'tail', 'fin'] as const;
 /** A region id of a scene (V1: the three fish regions; V2 scenes list their own in SCENE_REGIONS). */
 export type Region = string;
-export const SCENE_REGIONS: Record<string, readonly string[]> = { fish: FISH_REGIONS };
+/** V2: the six templates (fish keeps the three V1 region ids). */
+export const SCENE_REGIONS: Record<string, readonly string[]> = REGIONS_OF;
 
 export type SceneOp = { t: 'fill'; region: Region; color: ColorId | null } | { t: 'clear' };
 

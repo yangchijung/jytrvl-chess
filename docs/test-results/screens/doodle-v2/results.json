@@ -1,7 +1,7 @@
 {
   "base": "http://127.0.0.1:8788",
-  "at": "2026-10-20T18:11:16.469Z",
-  "passed": 32,
+  "at": "2026-10-20T23:42:20.868Z",
+  "passed": 37,
   "failed": 0,
   "results": [
     {
@@ -62,19 +62,49 @@
       "id": "CP06",
       "name": "new colours work on the stamp grid (gray) and the fish (peach body, dark blue fin); undo/redo per region",
       "pass": true,
-      "info": "gray-circle {\"tail\":\"\",\"fin\":\"dark_blue\",\"body\":\"peach\"} undo="
+      "info": "gray-circle {\"tail\":\"\",\"body\":\"peach\",\"fin\":\"dark_blue\"} undo="
     },
     {
       "id": "CP09",
       "name": "fish PNG 1600×1200 on white with the new colours in place (peach #F1B48A body, dark blue #213C68 fin)",
       "pass": true,
-      "info": "{\"w\":1600,\"h\":1200,\"body\":\"f1b48a\",\"fin\":\"213c68\",\"bg\":\"ffffff\"}"
+      "info": "{\"w\":1600,\"h\":1200,\"bg\":\"ffffff\",\"px\":{\"tail\":\"ffffff\",\"body\":\"f1b48a\",\"fin\":\"213c68\"},\"found\":3}"
     },
     {
       "id": "CP05",
       "name": "reload and English keep the open view, the fish colours, the grid stamp and the recent colours",
       "pass": true,
       "info": "scene dark_blue,peach,gray"
+    },
+    {
+      "id": "CP05",
+      "name": "換底圖 opens the six pictures as thumbnails (each with its name and how many parts are coloured)",
+      "pass": true,
+      "info": "fish,garden,butterfly,dinosaur,rocket,house"
+    },
+    {
+      "id": "CP05",
+      "name": "all six pictures: every one of the 32 parts filled (drawing taps and part buttons), each picture shows its own colours",
+      "pass": true,
+      "info": "[[\"fish\",3,true],[\"garden\",6,true],[\"butterfly\",5,true],[\"dinosaur\",5,true],[\"rocket\",6,true],[\"house\",7,true]]"
+    },
+    {
+      "id": "CP09",
+      "name": "six PNGs (1600×1200, white background): the colour inside every part matches the screen",
+      "pass": true,
+      "info": "[[\"fish\",true],[\"garden\",true],[\"butterfly\",true],[\"dinosaur\",true],[\"rocket\",true],[\"house\",true]]"
+    },
+    {
+      "id": "CP05",
+      "name": "eraser empties a part, undo brings it back; another picture keeps all its colours",
+      "pass": true,
+      "info": "|tan|7"
+    },
+    {
+      "id": "CP05",
+      "name": "reload and English keep the open picture (house) and all six works with their own undo histories",
+      "pass": true,
+      "info": "house My fish3 of 3 coloured | Little garden6 of 6 coloured | Butterfly5 of 5 coloured | Walking dinosaur5 of 5 coloured | Rocket launch6 of 6 coloured | My little house7 of 7 coloured"
     },
     {
       "id": "CP07",
@@ -128,31 +158,31 @@
       "id": "CP04",
       "name": "360×780 zh light: no sideways scroll, paints ≥ 48 px, controls ≥ 44 px, paper stays white, the mixed pink shows in the pool",
       "pass": true,
-      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":133}"
+      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":141}"
     },
     {
       "id": "CP04",
       "name": "360×780 /en dark: no sideways scroll, paints ≥ 48 px, controls ≥ 44 px, paper stays white, the mixed pink shows in the pool",
       "pass": true,
-      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":129}"
+      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":141}"
     },
     {
       "id": "CP04",
       "name": "390×844 zh light: no sideways scroll, paints ≥ 48 px, controls ≥ 44 px, paper stays white, the mixed pink shows in the pool",
       "pass": true,
-      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":150}"
+      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":146}"
     },
     {
       "id": "CP04",
       "name": "390×844 /en dark: no sideways scroll, paints ≥ 48 px, controls ≥ 44 px, paper stays white, the mixed pink shows in the pool",
       "pass": true,
-      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":146}"
+      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":141}"
     },
     {
       "id": "CP04",
       "name": "768×1024 zh light: no sideways scroll, paints ≥ 48 px, controls ≥ 44 px, paper stays white, the mixed pink shows in the pool",
       "pass": true,
-      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":156}"
+      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":161}"
     },
     {
       "id": "CP04",
@@ -164,13 +194,13 @@
       "id": "CP04",
       "name": "1024×768 zh light: no sideways scroll, paints ≥ 48 px, controls ≥ 44 px, paper stays white, the mixed pink shows in the pool",
       "pass": true,
-      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":129}"
+      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":133}"
     },
     {
       "id": "CP04",
       "name": "1024×768 /en dark: no sideways scroll, paints ≥ 48 px, controls ≥ 44 px, paper stays white, the mixed pink shows in the pool",
       "pass": true,
-      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":136}"
+      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":129}"
     },
     {
       "id": "CP04",
