@@ -1,4 +1,7 @@
 # 餐廳當老闆 V3｜熱門玩法參考與重新開工
+
+> **2026-10-20：負責人已停止餐廳開發。** 本文件保留為歷史規格；以下恢復改版、補修、驗收後接下一輪的指令已撤回。程式與存檔保留，不刪除或擅自下架。最新新工作見 [數學遊樂島 M0](MATH_ISLAND_M0.md) 與 [platform #28](https://github.com/yangchijung/jytrvl-platform/issues/28)。
+
 日期：2026-10-19（Asia/Taipei）｜產品交付給 Claude｜Issue #4
 
 ## 0. 最新授權與目前狀態
