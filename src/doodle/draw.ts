@@ -122,7 +122,7 @@ export function exportScenePng(colors: Record<Region, ColorId | null>): Promise<
   ctx.lineCap = 'round';
   ctx.strokeStyle = '#1f2328';
   ctx.lineWidth = 4;
-  for (const r of ['tail', 'fin', 'body'] as Region[]) {
+  for (const r of ['tail', 'fin', 'body'] as const) {
     const p = new Path2D(FISH_ART[r]);
     ctx.fillStyle = colors[r] ? colorOf(colors[r]!).hex : '#ffffff';
     ctx.fill(p);

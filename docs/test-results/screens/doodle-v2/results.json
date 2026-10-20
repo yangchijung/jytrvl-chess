@@ -1,0 +1,200 @@
+{
+  "base": "http://127.0.0.1:8788",
+  "at": "2026-10-20T18:11:16.469Z",
+  "passed": 32,
+  "failed": 0,
+  "results": [
+    {
+      "id": "W01",
+      "name": "opens on the white paper with the hand-held palette (five paints, two wells, a pool); indexed official game; no account",
+      "pass": true,
+      "info": "index,follow red,yellow,blue,white,black"
+    },
+    {
+      "id": "CP04",
+      "name": "1024×768 landscape: the paper takes about two thirds of the width, its tools are on screen without scrolling, the palette sits to the right",
+      "pass": true,
+      "info": "{\"paperW\":583,\"toolBottom\":742,\"vh\":768,\"boardLeft\":683,\"paperRight\":633,\"share\":0.6}"
+    },
+    {
+      "id": "W02",
+      "name": "tap a paint = paint with it: the stroke is blue, saved in the V2 document only (\"已存好\"); the V1 key is never created",
+      "pass": true,
+      "info": "已存好 · 畫作只存在這個瀏覽器"
+    },
+    {
+      "id": "CP02",
+      "name": "red + white mixes pink on the palette: wells show red and white, the pool turns pink with its name, \"紅色 ＋ 白色 ＝ 粉紅色\"",
+      "pass": true,
+      "info": "紅色 ＋ 白色 ＝ 粉紅色"
+    },
+    {
+      "id": "CP02",
+      "name": "再加白 puts pink and white in the two wells (one step at a time); mixing gives pale pink",
+      "pass": true,
+      "info": "pink,white"
+    },
+    {
+      "id": "D2",
+      "name": "用這色畫 leaves mixing, paints with pale pink, brings the paper into view and focuses it (not BODY)",
+      "pass": true,
+      "info": "pale_pink focus=paper"
+    },
+    {
+      "id": "CP06",
+      "name": "the mixed colour draws on the paper and is saved with its V2 id; both mixes join 我的顏色; the three optional challenges are ticked",
+      "pass": true,
+      "info": "pink,pale_pink,use"
+    },
+    {
+      "id": "CP02",
+      "name": "orange + blue = brown; the 淺棕色 recipe on the all-colours list puts brown + white on the palette = tan; blue + black = dark blue",
+      "pass": true,
+      "info": "brown,tan,dark_blue"
+    },
+    {
+      "id": "CP03",
+      "name": "red + red: \"還是紅色\" (no new colour); red + green: \"還不能混\", nothing invented, both wells kept, 試試 offers a real pair; three fast taps on 混一混 give one result; the drawing is untouched",
+      "pass": true,
+      "info": "same none tried=red,yellow"
+    },
+    {
+      "id": "CP06",
+      "name": "new colours work on the stamp grid (gray) and the fish (peach body, dark blue fin); undo/redo per region",
+      "pass": true,
+      "info": "gray-circle {\"tail\":\"\",\"fin\":\"dark_blue\",\"body\":\"peach\"} undo="
+    },
+    {
+      "id": "CP09",
+      "name": "fish PNG 1600×1200 on white with the new colours in place (peach #F1B48A body, dark blue #213C68 fin)",
+      "pass": true,
+      "info": "{\"w\":1600,\"h\":1200,\"body\":\"f1b48a\",\"fin\":\"213c68\",\"bg\":\"ffffff\"}"
+    },
+    {
+      "id": "CP05",
+      "name": "reload and English keep the open view, the fish colours, the grid stamp and the recent colours",
+      "pass": true,
+      "info": "scene dark_blue,peach,gray"
+    },
+    {
+      "id": "CP07",
+      "name": "a complete V1 save (strokes, stamp, grid, two tasks, level, mixed colours, fish) moves into V2 once; the page says so; both V1 texts are byte-for-byte unchanged",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "CP07",
+      "name": "after drawing in V2, a later change to the V1 key (an old cached tab) is never imported over the new work",
+      "pass": true,
+      "info": "n=3"
+    },
+    {
+      "id": "CP08",
+      "name": "a newer-version V2 document: notice + download, the original text kept in a backup before anything is written",
+      "pass": true,
+      "info": "brokenFuture"
+    },
+    {
+      "id": "CP08",
+      "name": "storage full: \"還沒存好\" with a picture download, never \"已存好\"; the stroke stays on screen",
+      "pass": true,
+      "info": "還沒存好，先下載圖片。 存成圖片"
+    },
+    {
+      "id": "CP08",
+      "name": "two tabs: the second opens view-only and shows the first tab’s stroke; 改在這裡畫 moves writing to it, the first tab stops; both strokes kept",
+      "pass": true,
+      "info": "writer,viewer 1 viewer,writer n=2"
+    },
+    {
+      "id": "CP11",
+      "name": "touch draws one stroke; a cancelled touch leaves no line",
+      "pass": true,
+      "info": "1 1"
+    },
+    {
+      "id": "CP10",
+      "name": "keyboard only: 玩混色 → yellow → white → 混一混 (result announced once: 黃色加白色，變成淺黃色) → 用這色畫 → stamp grid with arrows/Enter; every paint has its name",
+      "pass": true,
+      "info": "黃色加白色，變成淺黃色。 light_yellow-circle"
+    },
+    {
+      "id": "LESSON",
+      "name": "task 1 (red + yellow → orange, then an orange mark) still completes in the new palette",
+      "pass": true,
+      "info": "DC-L01"
+    },
+    {
+      "id": "CP04",
+      "name": "360×780 zh light: no sideways scroll, paints ≥ 48 px, controls ≥ 44 px, paper stays white, the mixed pink shows in the pool",
+      "pass": true,
+      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":133}"
+    },
+    {
+      "id": "CP04",
+      "name": "360×780 /en dark: no sideways scroll, paints ≥ 48 px, controls ≥ 44 px, paper stays white, the mixed pink shows in the pool",
+      "pass": true,
+      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":129}"
+    },
+    {
+      "id": "CP04",
+      "name": "390×844 zh light: no sideways scroll, paints ≥ 48 px, controls ≥ 44 px, paper stays white, the mixed pink shows in the pool",
+      "pass": true,
+      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":150}"
+    },
+    {
+      "id": "CP04",
+      "name": "390×844 /en dark: no sideways scroll, paints ≥ 48 px, controls ≥ 44 px, paper stays white, the mixed pink shows in the pool",
+      "pass": true,
+      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":146}"
+    },
+    {
+      "id": "CP04",
+      "name": "768×1024 zh light: no sideways scroll, paints ≥ 48 px, controls ≥ 44 px, paper stays white, the mixed pink shows in the pool",
+      "pass": true,
+      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":156}"
+    },
+    {
+      "id": "CP04",
+      "name": "768×1024 /en dark: no sideways scroll, paints ≥ 48 px, controls ≥ 44 px, paper stays white, the mixed pink shows in the pool",
+      "pass": true,
+      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":161}"
+    },
+    {
+      "id": "CP04",
+      "name": "1024×768 zh light: no sideways scroll, paints ≥ 48 px, controls ≥ 44 px, paper stays white, the mixed pink shows in the pool",
+      "pass": true,
+      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":129}"
+    },
+    {
+      "id": "CP04",
+      "name": "1024×768 /en dark: no sideways scroll, paints ≥ 48 px, controls ≥ 44 px, paper stays white, the mixed pink shows in the pool",
+      "pass": true,
+      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":136}"
+    },
+    {
+      "id": "CP04",
+      "name": "1280×900 zh light: no sideways scroll, paints ≥ 48 px, controls ≥ 44 px, paper stays white, the mixed pink shows in the pool",
+      "pass": true,
+      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":151}"
+    },
+    {
+      "id": "CP04",
+      "name": "1280×900 /en dark: no sideways scroll, paints ≥ 48 px, controls ≥ 44 px, paper stays white, the mixed pink shows in the pool",
+      "pass": true,
+      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":146}"
+    },
+    {
+      "id": "CP11",
+      "name": "reduced motion: the mix result appears without animation",
+      "pass": true,
+      "info": "none"
+    },
+    {
+      "id": "ALL",
+      "name": "no page errors",
+      "pass": true,
+      "info": ""
+    }
+  ]
+}
