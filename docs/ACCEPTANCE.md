@@ -744,3 +744,8 @@ AI 只使用玩家看得到的資訊：貪食蛇有單元測試確認對手尚�
 - 領地 T1：Chrome 非四向角度／弧形尾線／方向鍵、390 px 中英版面；精確原碼六組角度等速／轉速／無效輸入／斜線圈地／自交及撞牆／確定性通過。可接 T2，背景暫停缺口為原碼發現，未以真實 hidden 分頁重現。
 - 已查餐廳與領地 CI success；產品未重跑完整工程套件。沒有實機 Safari／觸控／VoiceOver、純 hover、真實多幀率或線上驗收。
 - 詳見 [產品報告、重現步驟與證據](design/RESTAURANT_TERRITORY_RECHECK_2026-10-19.md)。餐廳已恢復開發；兩個預覽仍 noindex、不列首頁。Claude 直接補存檔並收尾 R1-b、領地接 T2，保留其他範圍。
+
+## 27. 領地連續轉向：背景暫停（Issue #8 P2，2026-10-20，工程驗收，PR 預覽）
+
+- `src/territory/flow-page.tsx` 新增 visibilitychange：倒數與遊戲中切到背景都暫停；回來時倒數保留剩餘時間、遊戲從回來那一刻起算（`last` 重設、`acc` 清零），不補走步數。與經典本機領地相同語意。
+- 單元 `tests/territory-flow-pause.test.ts` 3 項；瀏覽器 `scripts/territory-flow-e2e.mjs` 7／7（新增 FL-pause：隱藏 2.6 秒後仍在倒數；遊戲中隱藏 1.5 秒 tick 不變；回來 120 ms 內 2 步）。以覆寫 `document.hidden` 並發出事件模擬，**真實切換分頁／手機鎖屏未測**。
