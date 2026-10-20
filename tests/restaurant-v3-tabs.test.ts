@@ -1,5 +1,5 @@
 // R3-S1: two tabs on the same V3 game must never undo each other's meals, payments or purchases.
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { apply, available, buyRows, newGuided, panItems, type Action, type State } from '../shared/restaurant/engine';
 import { V3Controller, V3_KEY, blankV3, type V3Save } from '../src/restaurant/v3';
 
@@ -36,7 +36,19 @@ const tab = (m: Memory) => {
 };
 const unlock = (c: V3Controller) => ((c as unknown as { lockUntil: number }).lockUntil = 0);
 
-describe('restaurant V3: two tabs on one game (R3-S1)', () => {
+// modern browsers: Web Locks serialise every commit (here the lock is granted at once)
+const nav = globalThis as unknown as { navigator?: unknown };
+const realNav = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+const withLocks = () =>
+  Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { locks: { request: (_n: string, fn: () => void) => (fn(), Promise.resolve()) } } });
+const noLocks = () => Object.defineProperty(globalThis, 'navigator', { configurable: true, value: {} });
+afterAll(() => {
+  if (realNav) Object.defineProperty(globalThis, 'navigator', realNav);
+  else delete nav.navigator;
+});
+
+describe('restaurant V3: two tabs on one game (R3-S1, with Web Locks)', () => {
+  beforeAll(withLocks);
   it('same base: a stale pan change after another tab cooked does not erase the meal; the stale tab adopts it and asks for a new tap', () => {
     const m = seed(bought());
     const a = tab(m),
@@ -150,5 +162,102 @@ describe('restaurant V3: two tabs on one game (R3-S1)', () => {
     expect(a.conflict).toBe(false);
     expect(stored(m).draft.items).toEqual(['rice']);
     expect(stored(m).state.servings).toHaveLength(1);
+  });
+});
+
+describe('restaurant V3: without Web Locks (R3-S2) and late storage events (R3-S3)', () => {
+  beforeAll(noLocks);
+  it('S2: another tab writing between this tab’s read and write is caught by the second look; the meal stays', () => {
+    const m = seed(bought());
+    const a = tab(m),
+      b = tab(m);
+    const get = m.getItem.bind(m);
+    let armed = true;
+    m.getItem = (k: string) => {
+      const v = get(k);
+      if (armed && k === V3_KEY) {
+        armed = false;
+        b.dispatch({ t: 'cook', dish: 'tomato_egg_rice', items: panItems('tomato_egg_rice') });
+      }
+      return v;
+    };
+    a.update({ draft: { dish: 'tomato_egg_rice', items: ['rice'] } });
+    expect(stored(m).state.servings).toHaveLength(1);
+    expect(available(stored(m).state).egg).toBe(5);
+    expect(a.conflict).toBe(true);
+    expect(a.v.state.servings).toHaveLength(1);
+  });
+
+  it('S2: after a write race is caught, this tab stops writing (view-only) until the child takes over', () => {
+    const m = seed(bought());
+    const a = tab(m),
+      b = tab(m);
+    const get = m.getItem.bind(m);
+    let calls = 0;
+    m.getItem = (k: string) => {
+      const v = get(k);
+      // B writes after A's first look but before A's second look (a genuine simultaneous write)
+      if (k === V3_KEY && ++calls === 1) b.dispatch({ t: 'cook', dish: 'tomato_egg_rice', items: panItems('tomato_egg_rice') });
+      return v;
+    };
+    a.update({ draft: { dish: 'tomato_egg_rice', items: ['rice'] } });
+    m.getItem = get;
+    expect(a.readOnly).toBe(true);
+    unlock(a);
+    a.dispatch({ t: 'serve', order: 0, dish: 'tomato_egg_rice' });
+    expect(stored(m).state.cash).toBe(383); // view-only: nothing written
+    unlock(b);
+    b.dispatch({ t: 'serve', order: 0, dish: 'tomato_egg_rice' }); // the other tab keeps playing
+    expect(stored(m).state.cash).toBe(415);
+    a.takeOver();
+    expect(a.readOnly).toBe(false);
+    expect(a.v.state.cash).toBe(415); // adopted the newest progress
+    unlock(a);
+    a.update({ draft: { dish: 'vegetable_egg_rice', items: ['rice'] } });
+    expect(stored(m).draft.items).toEqual(['rice']);
+    expect(stored(m).state.cash).toBe(415);
+  });
+
+  it('S2: tabs used one after another (no simultaneous write) adopt and keep playing without view-only', () => {
+    const m = seed(bought());
+    const a = tab(m),
+      b = tab(m);
+    b.dispatch({ t: 'cook', dish: 'tomato_egg_rice', items: panItems('tomato_egg_rice') });
+    a.update({ draft: { dish: 'tomato_egg_rice', items: ['rice'] } });
+    expect(a.conflict).toBe(true);
+    expect(a.readOnly).toBe(false);
+    unlock(a);
+    a.dispatch({ t: 'serve', order: 0, dish: 'tomato_egg_rice' });
+    expect(stored(m).state.cash).toBe(415);
+  });
+
+  it('S3: a late storage event with an older snapshot does not roll the screen back', () => {
+    const m = seed(bought());
+    const a = tab(m),
+      b = tab(m);
+    b.dispatch({ t: 'cook', dish: 'tomato_egg_rice', items: panItems('tomato_egg_rice') });
+    const older = m.getItem(V3_KEY)!;
+    a.update({ draft: { dish: 'tomato_egg_rice', items: ['rice'] } }); // adopts B's game
+    unlock(a);
+    a.dispatch({ t: 'serve', order: 0, dish: 'tomato_egg_rice' });
+    expect(a.v.state.cash).toBe(415);
+    (a as unknown as { onStorage: (e: { key: string; newValue: string }) => void }).onStorage({ key: V3_KEY, newValue: older });
+    expect(a.v.state.cash).toBe(415);
+    expect(stored(m).state.cash).toBe(415);
+  });
+
+  it('a lock that cannot be had falls back to the guarded (two-look) path, never an unprotected write', async () => {
+    const m = seed(bought());
+    const a = tab(m),
+      b = tab(m);
+    b.dispatch({ t: 'cook', dish: 'tomato_egg_rice', items: panItems('tomato_egg_rice') });
+    Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { locks: { request: () => Promise.reject(new Error('AbortError')) } } });
+    a.update({ draft: { dish: 'tomato_egg_rice', items: ['rice'] } });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(stored(m).state.servings).toHaveLength(1); // B's meal kept
+    expect(a.conflict).toBe(true); // the change was seen and adopted
+    expect(a.v.state.servings).toHaveLength(1);
+    noLocks();
   });
 });

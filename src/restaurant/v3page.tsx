@@ -98,6 +98,8 @@ const T = {
   saved: { zh: '已存好', en: 'Saved' },
   notSaved: { zh: '還沒存好，先別關掉', en: 'Not saved yet. Keep this page open.' },
   otherTab: { zh: '另一個分頁更新了進度', en: 'Updated from another tab' },
+  readOnly: { zh: '這一局正在另一個分頁玩，這裡先只看不改。', en: 'This game is being played in another tab. This tab is view-only for now.' },
+  takeOver: { zh: '改在這裡玩', en: 'Play here instead' },
   tapAgain: { zh: '另一個分頁先更新了，這是最新進度，請再點一次', en: 'Another tab updated first. This is the latest game; please tap again.' },
   classic: { zh: '回到舊版這一局', en: 'Back to the classic game' },
   listen: { zh: '聽', en: 'Listen' },
@@ -175,10 +177,19 @@ export function RestaurantV3({ hasClassic, onClassic }: { hasClassic: boolean; o
           )}
         </div>
       )}
-      {(view.otherTab || view.conflict) && (
-        <p className="rounded-md bg-[var(--surface-2)] px-3 py-2" role="status" data-testid="r3-other-tab" data-conflict={view.conflict}>
-          {tr(view.conflict ? T.tapAgain : T.otherTab)}
-        </p>
+      {view.readOnly ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-md bg-[var(--surface-2)] px-3 py-2" role="status" data-testid="r3-read-only">
+          <p className="flex-1">{tr(T.readOnly)}</p>
+          <Button variant="secondary" size="sm" onClick={() => ctl.takeOver()} data-testid="r3-take-over">
+            {tr(T.takeOver)}
+          </Button>
+        </div>
+      ) : (
+        (view.otherTab || view.conflict) && (
+          <p className="rounded-md bg-[var(--surface-2)] px-3 py-2" role="status" data-testid="r3-other-tab" data-conflict={view.conflict}>
+            {tr(view.conflict ? T.tapAgain : T.otherTab)}
+          </p>
+        )
       )}
 
       {/* stage: the guest and what they want (cropped scene, no dashboard) */}

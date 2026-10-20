@@ -96,6 +96,8 @@ export interface V3View {
   otherTab: boolean;
   /** the last tap was not applied because another tab changed the game first */
   conflict: boolean;
+  /** this tab has stopped writing (no Web Locks and another tab changed the game) until the child takes over */
+  readOnly: boolean;
 }
 
 export class V3Controller {
@@ -138,23 +140,58 @@ export class V3Controller {
     if (this.fxTimer) clearTimeout(this.fxTimer);
     if (typeof window !== 'undefined') window.removeEventListener('storage', this.onStorage);
   }
+  /**
+   * R3-S3: a storage event only says "something changed". It may arrive late and carry an older snapshot, so
+   * the stored text is read again now; only a current text that differs from this tab's base is adopted.
+   */
   private onStorage = (e: StorageEvent) => {
-    if (!this.target || e.key !== this.target || e.newValue === null || e.newValue === this.base) return;
-    const r = readV3(() => e.newValue);
+    if (!this.target || e.key !== this.target) return;
+    let current: string | null;
+    try {
+      current = this.store ? this.store.getItem(this.target) : null;
+    } catch {
+      return;
+    }
+    if (current === null || current === this.base) return;
+    const r = readV3(() => current);
     if (r.kind === 'ok') {
       this.v = r.save;
-      this.base = e.newValue;
+      this.base = current;
       this.otherTab = true;
       this.emit();
     }
   };
+
+  /**
+   * Without Web Locks (or when a lock cannot be had) the store cannot be changed atomically across tabs. Every
+   * write then looks at the stored text twice (before applying and right before writing); a change caught by
+   * the second look means two tabs are writing at once, so this tab stops writing and offers "play here
+   * instead" (R3-S2). With Web Locks (current Chrome, Edge, Firefox, Safari 15.4+) commits are serialised.
+   */
+  readOnly = false;
+  /** Take over this game in this tab (the page asks the child): adopt the newest stored progress, then write again. */
+  takeOver() {
+    this.readOnly = false;
+    this.conflict = false;
+    try {
+      const current = this.target && this.store ? this.store.getItem(this.target) : null;
+      const r = current !== null ? readV3(() => current) : null;
+      if (r?.kind === 'ok') {
+        this.v = r.save;
+        this.base = current;
+      }
+    } catch {
+      /* keep the progress on screen */
+    }
+    this.emit();
+  }
 
   subscribe = (f: () => void) => {
     this.listeners.add(f);
     return () => this.listeners.delete(f);
   };
   snapshot = (): V3View =>
-    (this.cached ??= { v: this.v, error: this.error, saveState: this.saveState, notice: this.notice, oldRaw: this.oldRaw, fx: this.fx, fxKey: this.fxKey, last: this.last, otherTab: this.otherTab, conflict: this.conflict });
+    (this.cached ??= { v: this.v, error: this.error, saveState: this.saveState, notice: this.notice, oldRaw: this.oldRaw, fx: this.fx, fxKey: this.fxKey, last: this.last, otherTab: this.otherTab, conflict: this.conflict, readOnly: this.readOnly });
   private emit() {
     this.cached = null;
     this.listeners.forEach((f) => f());
@@ -166,27 +203,39 @@ export class V3Controller {
    * write nothing and ask the child to tap again — no lost meal, no replayed payment.
    */
   private commit(change: (v: V3Save) => { next: V3Save; ok: boolean }, done: (applied: boolean) => void) {
-    const run = () => {
-      let current: string | null = null;
-      let readable = !!this.store && !!this.target;
-      if (readable) {
-        try {
-          current = this.store!.getItem(this.target!);
-        } catch {
-          readable = false;
-        }
+    const read = (): { ok: boolean; text: string | null } => {
+      if (!this.store || !this.target) return { ok: false, text: null };
+      try {
+        return { ok: true, text: this.store.getItem(this.target) };
+      } catch {
+        return { ok: false, text: null };
       }
-      if (readable && current !== this.base) {
-        const r = readV3(() => current);
-        if (r.kind === 'ok') {
-          this.v = r.save;
-          this.base = current;
-          this.otherTab = true;
-          this.conflict = true;
-          done(false);
-          this.emit();
-          return;
-        }
+    };
+    /** another tab changed the stored game: adopt it whole, write nothing, ask for a new tap */
+    const adopt = (text: string | null, unlocked: boolean): boolean => {
+      const r = readV3(() => text);
+      if (r.kind !== 'ok') return false;
+      this.v = r.save;
+      this.base = text;
+      this.otherTab = true;
+      this.conflict = true;
+      if (unlocked) this.readOnly = true;
+      done(false);
+      this.emit();
+      return true;
+    };
+    const run = (locked: boolean) => {
+      if (this.readOnly) {
+        // this tab stopped writing after another tab changed the game; nothing is applied until "play here"
+        this.conflict = true;
+        done(false);
+        this.emit();
+        return;
+      }
+      const first = read();
+      if (first.ok && first.text !== this.base) {
+        // changed while this tab was idle (e.g. the child played in another tab): adopt and ask for a new tap
+        if (adopt(first.text, false)) return;
         // the stored text is no longer readable: never write over it
         const c = change(this.v);
         if (c.ok) this.v = c.next;
@@ -201,31 +250,50 @@ export class V3Controller {
         this.emit();
         return;
       }
+      if (!first.ok) {
+        this.v = c.next;
+        this.saveState = 'failed';
+        done(true);
+        this.emit();
+        return;
+      }
+      const text = JSON.stringify(c.next);
+      let ok = false;
+      try {
+        if (validV3(JSON.parse(text))) {
+          if (!locked) {
+            // no lock: look once more right before writing; a change made since the first read wins, and since
+            // two tabs are now writing at the same moment this one becomes view-only until the child takes over
+            const again = read();
+            if (again.text !== this.base && adopt(again.text, true)) return;
+          }
+          this.store!.setItem(this.target!, text);
+          ok = this.store!.getItem(this.target!) === text;
+        }
+      } catch {
+        ok = false;
+      }
       this.v = c.next;
       this.conflict = false;
       this.otherTab = false;
-      if (!readable) {
-        this.saveState = 'failed';
-      } else {
-        const text = JSON.stringify(this.v);
-        let ok = false;
-        try {
-          if (validV3(JSON.parse(text))) {
-            this.store!.setItem(this.target!, text);
-            ok = this.store!.getItem(this.target!) === text;
-          }
-        } catch {
-          ok = false;
-        }
-        if (ok) this.base = text;
-        this.saveState = ok ? 'saved' : 'failed';
-      }
+      if (ok) this.base = text;
+      this.saveState = ok ? 'saved' : 'failed';
       done(true);
       this.emit();
     };
     const locks = typeof navigator !== 'undefined' ? (navigator as Navigator & { locks?: LockManager }).locks : undefined;
-    if (locks?.request && this.target) void locks.request(`lock:${this.target}`, run).catch(run);
-    else run();
+    if (locks?.request && this.target) {
+      let ran = false;
+      void locks
+        .request(`lock:${this.target}`, () => {
+          ran = true;
+          run(true);
+        })
+        .catch(() => {
+          // the lock could not be had: never write unprotected — use the guarded single-writer path instead
+          if (!ran) run(false);
+        });
+    } else run(false);
   }
   private play(fx: Fx) {
     if (!fx || reducedMotion()) return;
