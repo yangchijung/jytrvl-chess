@@ -768,7 +768,7 @@ AI 只使用玩家看得到的資訊：貪食蛇有單元測試確認對手尚�
 | MA02 | ✅（桌機） | 滑鼠拖曳、觸控拖曳（CDP 模擬觸控）、先點再點、鍵盤 Enter／Space |
 | MA03 | ✅ | 五題順序、錯答保留、答對才顯示算式與「3 加 4，一共 7 顆。」 |
 | MA04 | ✅ | 半題、答對後、全部完成重整保留；壞檔原文留在備份鍵並提示；寫入失敗提示「沒有存好」；第二分頁只看不改、改在這裡玩後原分頁停止寫入（Web Locks）。無 Web Locks 時明示不協調分頁，不宣稱原子安全 |
-| MA05 | 部分 | 11 句音檔已由負責人以 Azure Neural TTS 產生（zh-TW-HsiaoChenNeural、速度 -10%，manifest 在 `public/math/audio/zh-TW/v1/manifest.json`，文字與程式一致）：11 檔皆 200／audio/mpeg；開始玩後播第一句、可關閉並保存、缺檔提示且可繼續、無語音服務請求。James 逐句試聽確認與 iPad 播放未記錄 |
+| MA05 | 部分 | 11 句音檔已由負責人以 Azure Neural TTS 產生（zh-TW-HsiaoChenNeural、速度 -10%，manifest 在 `public/math/audio/zh-TW/v1/manifest.json`，文字與程式一致）：11 檔皆 200／audio/mpeg；開始玩後播第一句、可關閉並保存、缺檔提示且可繼續、無語音服務請求。2026-10-20 負責人試聽回報「測試完畢 OK」（裝置與瀏覽器版本未記錄） |
 | MA06 | 部分 | 上述尺寸中英、淺深、文字 200%（768）、減少動態；VoiceOver、瀏覽器 400% 縮放、實機旋轉未測 |
 | MA07 | 未測 | iPad 9 代 FPS |
 | MA08 | 未做 | 三位孩子試玩 |
