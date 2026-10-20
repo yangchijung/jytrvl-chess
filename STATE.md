@@ -6,6 +6,8 @@
 Date: 2026-10-20
 Branch/Commit: main（2026-10-19 A3 第八款見最新 commit；存檔複驗原碼 7eae7f3；R5＋塗鴉首版 f80776c）
 Done (with evidence):
+  - 2026-10-20 工程：數學遊樂島 M0-A 蘋果籃（分支 claude/math-m0a，PR 待 James 合併；/math、/math/g1/apple noindex）——5 題固定題、未搬完不判答（MR01）、拖曳／先點再點／鍵盤同一動作規則、48 CSS px 吸附（47/48 進、49 不進）、單指、取消／旋轉回原位、單一寫入者多分頁（Web Locks）、壞檔備份、寫入失敗提示、預錄音檔接線（音檔未產生）。單元 12、瀏覽器 50／50（docs/ACCEPTANCE.md §26）；未做 iPad 實機／Safari／VoiceOver／FPS／孩子試玩
+  - 2026-10-20 工程：餐廳 R3-S2／R3-S3 修正 f72131f 已推送（停止開發前的既有成果，產品稽核 17／17、12／12；本輪不複驗）
   - 2026-10-20 產品附件審查：HANDOFF 與 math-games.zip 已收到並讀完，附錄 A 已取得；整合唯一主規格 docs/product/math-island/開發規格書_v1.md，MATH_ISLAND_M0.md 改導讀。桌機 Chrome 重現蘋果未搬即成功、390 px 裁切、hash 完成態問題，見 docs/reference/math-island-2026-10-20/SOURCE_REVIEW.md（MR01–MR06）。未改遊戲、未部署、未做實機／孩子／FPS 驗收
   - 2026-10-20 產品：依負責人指示停止餐廳／星球救援隊／機器人快遞站／逆風探險賽；不刪程式、存檔或擅自下架。餐廳 f72131f 修正已推送，本輪未複驗、不再派下一輪
   - 2026-10-20 產品：數學遊樂島 M0 規劃核對完成可開工部分（蘋果籃＋分裝工廠、路由／互動／10 固定題／分批 PR／MA01–MA10）；見 docs/product/MATH_ISLAND_M0.md。當時主規格／附錄 A／proto 未找到，現已補齊（見本日附件審查）；銀行與正式帳戶等仍待決，無實作、部署或實機完成宣告

@@ -1,0 +1,308 @@
+{
+  "base": "http://127.0.0.1:8788",
+  "at": "2026-10-20T11:36:53.315Z",
+  "passed": 50,
+  "failed": 0,
+  "results": [
+    {
+      "id": "MA01",
+      "name": "zh /math opens directly and after reload, noindex",
+      "pass": true,
+      "info": "noindex,nofollow"
+    },
+    {
+      "id": "MA01",
+      "name": "zh /math/g1/apple opens directly and after reload, noindex",
+      "pass": true,
+      "info": "noindex,nofollow"
+    },
+    {
+      "id": "MA01",
+      "name": "/en /math opens directly and after reload, noindex",
+      "pass": true,
+      "info": "noindex,nofollow"
+    },
+    {
+      "id": "MA01",
+      "name": "/en /math/g1/apple opens directly and after reload, noindex",
+      "pass": true,
+      "info": "noindex,nofollow"
+    },
+    {
+      "id": "MA01",
+      "name": "island → game → back to island",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "MA01",
+      "name": "robots.txt disallows /math and /en/math",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "MA01",
+      "name": "unknown /math path shows the site 404 page",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "MA02",
+      "name": "mouse drag puts an apple in the basket (saved)",
+      "pass": true,
+      "info": "basket,pile,pile,pile,pile,pile,pile"
+    },
+    {
+      "id": "MA02",
+      "name": "dropping far from any target returns the apple to where it was",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "MA02",
+      "name": "47 and 48 px snap into the basket, 49 px does not",
+      "pass": true,
+      "info": "[[49,\"pile\"],[48,\"basket\"],[47,\"basket\"]]"
+    },
+    {
+      "id": "MA02",
+      "name": "tap an apple, then tap the basket",
+      "pass": true,
+      "info": "pile,pile,pile,pile,basket,pile,pile"
+    },
+    {
+      "id": "MA02",
+      "name": "keyboard: Enter on an apple, then Enter on 放進籃子",
+      "pass": true,
+      "info": "pile,pile,pile,pile,basket,basket,pile"
+    },
+    {
+      "id": "MA02",
+      "name": "keyboard: take an apple back",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "MA02",
+      "name": "double tap on 放進籃子 moves one apple once; still 7 apples",
+      "pass": true,
+      "info": "pile,pile,pile,pile,basket,pile,basket"
+    },
+    {
+      "id": "MA02",
+      "name": "a second finger never takes or moves an apple",
+      "pass": true,
+      "info": "pile,pile,pile,pile,pile,pile,pile"
+    },
+    {
+      "id": "MA02",
+      "name": "touch drag into the basket (DPR 3, 390 px)",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "MA02",
+      "name": "touch cancel returns the apple, nothing saved",
+      "pass": true,
+      "info": "pile,basket,pile,pile,pile,pile,pile transform="
+    },
+    {
+      "id": "MA02",
+      "name": "rotating the screen during a drag cancels it (no move)",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "MA03",
+      "name": "MR01: answering 7 with no apple moved is not accepted (neutral hint)",
+      "pass": true,
+      "info": "hint ↺ 先把兩堆蘋果都放進籃子，再數一數。"
+    },
+    {
+      "id": "MA03",
+      "name": "one apple still out: 7 is still not accepted",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "MA03",
+      "name": "wrong number: \"再數一次看看\", apples stay in the basket",
+      "pass": true,
+      "info": "一共有幾顆？ | hint ↺ 再數一次看看。"
+    },
+    {
+      "id": "MA03",
+      "name": "right: \"3 加 4，一共 7 顆。\" and 3 + 4 = 7; next appears only now",
+      "pass": true,
+      "info": "3 + 4 = 7 | 3 加 4，一共 7 顆。"
+    },
+    {
+      "id": "MA03",
+      "name": "double tap on 下一題 advances exactly one problem",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "MA03",
+      "name": "all five fixed problems in order, then the finished screen",
+      "pass": true,
+      "info": "3+4,2+3=5:5,4+1=5:5,1+2=3:3,4+4=8:8"
+    },
+    {
+      "id": "MA04",
+      "name": "finished state survives a reload",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "MA04",
+      "name": "island offers \"play again\" after all five",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "MA04",
+      "name": "half-done problem survives a reload",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "MA04",
+      "name": "solved problem survives a reload (next still offered)",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "MA04",
+      "name": "island: continue at problem 1 (solved, not yet moved on)",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "MA04",
+      "name": "unreadable save: notice shown, original text kept in a backup key",
+      "pass": true,
+      "info": "jy.math.apple.v1,jy.math.apple.v1.backup-n5t6og19aqfzw"
+    },
+    {
+      "id": "MA04",
+      "name": "storage full: \"沒有存好\" shown, the apple still moved",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "MA04",
+      "name": "second tab opens view-only with 改在這裡玩",
+      "pass": true,
+      "info": "writer,viewer"
+    },
+    {
+      "id": "MA04",
+      "name": "view-only tab shows the other tab’s move (re-read from storage)",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "MA04",
+      "name": "take over: the first tab stops writing, the second continues from the saved progress",
+      "pass": true,
+      "info": "viewer,writer basket,basket,pile,pile,pile,pile,pile"
+    },
+    {
+      "id": "MA05",
+      "name": "after 開始玩 the prompt is requested from a pre-made file; missing file → a note, play continues",
+      "pass": true,
+      "info": "http://127.0.0.1:8788/math/audio/zh-TW/v1/apple_right_01.mp3 http://127.0.0.1:8788/math/audio/zh-TW/v1/apple_task.mp3"
+    },
+    {
+      "id": "MA05",
+      "name": "sound can be turned off and stays off after reload",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "MA05",
+      "name": "still playable with no sound files",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "MA05",
+      "name": "no speech-service request while playing",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "MA06",
+      "name": "768×1024 zh light: all 7 apples visible, no overlap, no sideways scroll, targets ≥ 56/64 px",
+      "pass": true,
+      "info": "{\"hscroll\":false,\"applesInside\":true,\"appleMin\":64,\"overlap\":false,\"minBtn\":56,\"count\":7}"
+    },
+    {
+      "id": "MA06",
+      "name": "768 px with text at 200%: no sideways scroll",
+      "pass": true,
+      "info": "{\"hscroll\":false}"
+    },
+    {
+      "id": "MA06",
+      "name": "768×1024 /en dark: all 7 apples visible, no overlap, no sideways scroll, targets ≥ 56/64 px",
+      "pass": true,
+      "info": "{\"hscroll\":false,\"applesInside\":true,\"appleMin\":64,\"overlap\":false,\"minBtn\":56,\"count\":7}"
+    },
+    {
+      "id": "MA06",
+      "name": "1024×768 zh light: all 7 apples visible, no overlap, no sideways scroll, targets ≥ 56/64 px",
+      "pass": true,
+      "info": "{\"hscroll\":false,\"applesInside\":true,\"appleMin\":64,\"overlap\":false,\"minBtn\":56,\"count\":7}"
+    },
+    {
+      "id": "MA06",
+      "name": "1024×768 /en dark: all 7 apples visible, no overlap, no sideways scroll, targets ≥ 56/64 px",
+      "pass": true,
+      "info": "{\"hscroll\":false,\"applesInside\":true,\"appleMin\":64,\"overlap\":false,\"minBtn\":56,\"count\":7}"
+    },
+    {
+      "id": "MA06",
+      "name": "390×844 zh light: all 7 apples visible, no overlap, no sideways scroll, targets ≥ 56/64 px",
+      "pass": true,
+      "info": "{\"hscroll\":false,\"applesInside\":true,\"appleMin\":64,\"overlap\":false,\"minBtn\":56,\"count\":7}"
+    },
+    {
+      "id": "MA06",
+      "name": "390×844 /en dark: all 7 apples visible, no overlap, no sideways scroll, targets ≥ 56/64 px",
+      "pass": true,
+      "info": "{\"hscroll\":false,\"applesInside\":true,\"appleMin\":64,\"overlap\":false,\"minBtn\":56,\"count\":7}"
+    },
+    {
+      "id": "MA06",
+      "name": "1280×900 zh light: all 7 apples visible, no overlap, no sideways scroll, targets ≥ 56/64 px",
+      "pass": true,
+      "info": "{\"hscroll\":false,\"applesInside\":true,\"appleMin\":64,\"overlap\":false,\"minBtn\":56,\"count\":7}"
+    },
+    {
+      "id": "MA06",
+      "name": "1280×900 /en dark: all 7 apples visible, no overlap, no sideways scroll, targets ≥ 56/64 px",
+      "pass": true,
+      "info": "{\"hscroll\":false,\"applesInside\":true,\"appleMin\":64,\"overlap\":false,\"minBtn\":56,\"count\":7}"
+    },
+    {
+      "id": "MA06",
+      "name": "island 390 px dark: no sideways scroll",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "MA06",
+      "name": "reduced motion: apples move without transition",
+      "pass": true,
+      "info": "0s"
+    },
+    {
+      "id": "ALL",
+      "name": "no page errors",
+      "pass": true,
+      "info": ""
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+/* Math Island (數學遊樂島). Three core colours per spec §2: warm sand, deep ink, island blue; coral only for the
+   "not yet" hint. Apples are counted content, not decoration. Motion: 180 ms causal moves only, none when reduced. */
+.mi {
+  --mi-sand: #fff4e3;
+  --mi-ink: #23303f;
+  --mi-sea: #3a7bd5;
+  --mi-coral-text: #9a3412; /* on sand: 6.6:1 */
+  --mi-coral-bg: #fde4d6;
+  --mi-surface: #fffaf2;
+  --mi-line: #6b5a45; /* control borders on sand: 5.9:1 */
+  --mi-basket: #e9c893;
+  --mi-basket-line: #7a5a2e;
+  --mi-apple: #c8402f;
+  --mi-apple-line: #23303f;
+  --mi-leaf: #3d7a3f;
+  background: var(--mi-sand);
+  color: var(--mi-ink);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .mi {
+    --mi-sand: #1d2530;
+    --mi-ink: #fff4e3;
+    --mi-sea: #8db6ee;
+    --mi-coral-text: #ffc9ad;
+    --mi-coral-bg: #4a2a1f;
+    --mi-surface: #26303d;
+    --mi-line: #b7a991;
+    --mi-basket: #8a6a3b;
+    --mi-basket-line: #e9c893;
+    --mi-apple-line: #fff4e3;
+  }
+}
+:root[data-theme='dark'] .mi {
+  --mi-sand: #1d2530;
+  --mi-ink: #fff4e3;
+  --mi-sea: #8db6ee;
+  --mi-coral-text: #ffc9ad;
+  --mi-coral-bg: #4a2a1f;
+  --mi-surface: #26303d;
+  --mi-line: #b7a991;
+  --mi-basket: #8a6a3b;
+  --mi-basket-line: #e9c893;
+  --mi-apple-line: #fff4e3;
+}
+
+@layer components {
+.mi-btn {
+  min-height: 56px;
+  min-width: 56px;
+  padding: 0 16px;
+  border-radius: 8px;
+  border: 2px solid var(--mi-line);
+  background: var(--mi-surface);
+  color: var(--mi-ink);
+  font-weight: 700;
+  font-size: 1.125rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background-color 150ms;
+}
+.mi-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.mi-btn-primary { background: var(--mi-ink); color: var(--mi-sand); border-color: var(--mi-ink); }
+.mi-big { min-height: 64px; min-width: 64px; font-size: 2rem; }
+.mi-task { font-size: 2rem; line-height: 1.25; font-weight: 800; }
+
+/* drop areas: dashed outline + "放這裡" label while an apple is held, never colour alone */
+.mi-zone { border: 3px solid var(--mi-line); border-radius: 12px; position: relative; }
+.mi-zone[data-hot='true'] { outline: 4px dashed var(--mi-sea); outline-offset: 4px; }
+.mi-basket { background: var(--mi-basket); border-color: var(--mi-basket-line); }
+.mi-slot { width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; }
+.mi-empty { width: 52px; height: 52px; border-radius: 50%; border: 2px dashed var(--mi-line); opacity: 0.6; }
+
+.mi-apple {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  cursor: grab;
+  position: relative;
+  transition: transform 180ms ease-out;
+}
+.mi-apple[data-dragging='true'] { transition: none; cursor: grabbing; z-index: 20; }
+.mi-apple[aria-pressed='true'] { outline: 4px solid var(--mi-sea); outline-offset: 2px; transform: scale(1.08); }
+.mi-apple:disabled { cursor: default; }
+}
+
+/* outside the layer: the site sets touch-action: manipulation on every button. Only the apple itself is
+   none, so the page around it can still scroll and zoom. */
+.mi .mi-apple { touch-action: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mi-apple, .mi-btn { transition: none !important; }
+}
+:root[data-reduce-motion] .mi-apple, :root[data-reduce-motion] .mi-btn { transition: none !important; }
