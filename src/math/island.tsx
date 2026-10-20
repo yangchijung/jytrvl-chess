@@ -3,6 +3,7 @@
 import { Link } from 'react-router-dom';
 import { useI18n } from '../i18n';
 import { APPLE_KEY, APPLE_PROBLEMS, finished, readApple } from '../../shared/math/apple';
+import { FACTORY_KEY, FACTORY_PROBLEMS, SOURCE, finishedF, readFactory } from '../../shared/math/factory';
 import { peek } from './save';
 import { IslandArt } from './art';
 import './math.css';
@@ -14,6 +15,8 @@ const T = {
   zhOnly: { zh: '', en: 'Preview: the questions and voice are in Traditional Chinese for now.' },
   apple: { zh: '蘋果籃', en: 'Apple Basket' },
   appleWhat: { zh: '一年級．把兩堆蘋果放一起，數一數一共幾顆。5 題。', en: 'Grade 1 · put two groups of apples together and count them. 5 problems.' },
+  factory: { zh: '分裝工廠', en: 'Packing Factory' },
+  factoryWhat: { zh: '三年級．把餅乾平分到每一盒，再說每盒有幾個。5 題。', en: 'Grade 3 · share cookies equally into boxes and say how many are in each. 5 problems.' },
   start: { zh: '開始玩', en: 'Start' },
   cont: { zh: '接著玩：第 {n} 題', en: 'Continue: problem {n}' },
   again: { zh: '再玩一次（5 題都完成了）', en: 'Play again (all 5 done)' },
@@ -28,6 +31,8 @@ export function MathIslandPage() {
   const tr = (l: L, v?: Record<string, string | number>) => l[lang].replace(/\{(\w+)\}/g, (_, k) => String(v?.[k] ?? ''));
   const s = peek({ key: APPLE_KEY, read: readApple });
   const label = !s ? tr(T.start) : finished(s) ? tr(T.again) : s.index === 0 && s.at.every((x) => x === 'pile') ? tr(T.start) : tr(T.cont, { n: Math.min(s.index + 1, APPLE_PROBLEMS.length) });
+  const f = peek({ key: FACTORY_KEY, read: readFactory });
+  const flabel = !f ? tr(T.start) : finishedF(f) ? tr(T.again) : f.index === 0 && f.at.every((x) => x === SOURCE) ? tr(T.start) : tr(T.cont, { n: Math.min(f.index + 1, FACTORY_PROBLEMS.length) });
   return (
     <div className="mi rounded-lg px-3 py-4 sm:px-6 sm:py-6" data-testid="mi-island">
       <div className="mx-auto flex max-w-3xl flex-col gap-4">
@@ -47,6 +52,17 @@ export function MathIslandPage() {
           <div>
             <Link to={to('/math/g1/apple')} className="mi-btn mi-btn-primary mi-big px-6 text-xl" data-testid="mi-start-apple">
               {label}
+            </Link>
+          </div>
+        </section>
+        <section className="flex flex-col gap-3 rounded-lg border-2 border-[var(--mi-line)] bg-[var(--mi-surface)] p-4" aria-labelledby="mi-factory-h">
+          <h2 id="mi-factory-h" className="text-2xl font-extrabold">
+            {tr(T.factory)}
+          </h2>
+          <p className="text-lg">{tr(T.factoryWhat)}</p>
+          <div>
+            <Link to={to('/math/g3/factory')} className="mi-btn mi-btn-primary mi-big px-6 text-xl" data-testid="mi-start-factory">
+              {flabel}
             </Link>
           </div>
         </section>
