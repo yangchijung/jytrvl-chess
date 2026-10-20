@@ -6,8 +6,9 @@
 Date: 2026-10-20
 Branch/Commit: main（2026-10-19 A3 第八款見最新 commit；存檔複驗原碼 7eae7f3；R5＋塗鴉首版 f80776c）
 Done (with evidence):
+  - 2026-10-20 產品附件審查：HANDOFF 與 math-games.zip 已收到並讀完，附錄 A 已取得；整合唯一主規格 docs/product/math-island/開發規格書_v1.md，MATH_ISLAND_M0.md 改導讀。桌機 Chrome 重現蘋果未搬即成功、390 px 裁切、hash 完成態問題，見 docs/reference/math-island-2026-10-20/SOURCE_REVIEW.md（MR01–MR06）。未改遊戲、未部署、未做實機／孩子／FPS 驗收
   - 2026-10-20 產品：依負責人指示停止餐廳／星球救援隊／機器人快遞站／逆風探險賽；不刪程式、存檔或擅自下架。餐廳 f72131f 修正已推送，本輪未複驗、不再派下一輪
-  - 2026-10-20 產品：數學遊樂島 M0 規劃核對完成可開工部分（蘋果籃＋分裝工廠、路由／互動／10 固定題／分批 PR／MA01–MA10）；見 docs/product/MATH_ISLAND_M0.md。主規格／附錄 A／proto 未找到，銀行與正式帳戶等仍待決；無實作、部署或實機測試完成宣告
+  - 2026-10-20 產品：數學遊樂島 M0 規劃核對完成可開工部分（蘋果籃＋分裝工廠、路由／互動／10 固定題／分批 PR／MA01–MA10）；見 docs/product/MATH_ISLAND_M0.md。當時主規格／附錄 A／proto 未找到，現已補齊（見本日附件審查）；銀行與正式帳戶等仍待決，無實作、部署或實機完成宣告
   - 2026-10-19 產品複驗（83d0cca）：餐廳原 R3-S1 回歸 17／17；Chrome 雙分頁接續至六客打烊 534、盆栽後 414 與重整通過。擴充另發現 R3-S2 無鎖交錯回蓋、R3-S3 舊通知令 UI 回退（磁碟保留），存檔尚未全過；R1-b 已交，保留成果補修。報告 docs/design/RESTAURANT_TERRITORY_RECHECK_2026-10-19.md
   - 2026-10-19 產品複驗：領地 T1 非四向角度／弧形尾線／鍵盤、390 px 中英版面與六組引擎檢查通過；可接 T2。背景暫停為原碼缺口，實機觸控／讀屏／幀率與線上仍未測；兩項 CI 已查 success，產品未重跑全套工程測試
   - 2026-10-19 工程：領地連續轉向 T1 本機預覽 /territory/flow（noindex）——滑鼠指向／觸碰即轉／拖曳持續、任意角度等速、掃掠碰撞與圈地；單元 6、瀏覽器 6／6（docs/ACCEPTANCE.md §24）；既有領地玩法與線上未變；接著 T2
@@ -47,7 +48,7 @@ Done (with evidence):
   - 兒童能力五款企劃與 Figma 概念板交付：docs/product/KIDS_LEARNING_GAMES_V1.md、KIDS_GAMES_ART_BRIEF_V1.md；餐廳 V2 已部署並暫停；機器人／逆風探險／星球救援已有原型，換位小鎮仍待後續
   - 餐廳菜單／共用食材／庫存規格與 Figma 關係圖交付：docs/product/RESTAURANT_MENU_INVENTORY_V1.md；含 RT01–RT14，工程已回報通過，計算樣例已核對
 In Progress:
-  - 數學遊樂島 M0：依 docs/product/MATH_ISLAND_M0.md 在現站 /math 實作；先 M0-A 蘋果籃＋放置模組，再 M0-B 分裝工廠與保存／語音，附 PR 預覽。ChatGPT 核對 PR，James 合併；M0-C 真實 iPad／孩子試玩，M1 六款，M2 銀行待來源與決策
+  - 數學遊樂島 M0：依 docs/product/MATH_ISLAND_M0.md 在現站 /math 實作；先 M0-A 蘋果籃＋放置模組，再 M0-B 分裝工廠與保存／語音，附 PR 預覽。ChatGPT 核對 PR，James 合併；M0-C 真實 iPad／孩子試玩，M1 六款，M2 銀行來源已取得、交易規則與決策待定
   - 領地控制改造（Issue #8）：T1 已交並完成核心產品複驗；直接接 T2 的背景暫停／連續 AI／教學／同機雙人／碰撞邊界與實機觸控。T3 線上版本相容通過後才替換正式入口；/territory/flow 仍 noindex 預覽，不恢復其他暫停原型
   - 塗鴉 V1.1（Issue #7）：2026-10-19 B1「我的小魚」已交（§22），待產品複驗；B2 兩種藍／花園配色、B3 三步引導、模板內自由筆畫依規格後續；既有七款短練習繼續
   - 色彩塗鴉樂（Issue #7）：存檔修正已通過（§20.6）；2026-10-19 A3 已上線為第八款（§21），待產品複驗；孩子試玩與 VoiceOver 實機仍待後續
@@ -62,7 +63,7 @@ Stopped by owner (2026-10-20):
   - 逆風探險賽：已決定停止，不再等待重設計決策；/trail 既有原型保留（Issue #5）
   - 換位小鎮仍為未排程提案，不依舊四款順序自動開工
 Blocked / requires decision:
-  - 數學遊樂島：主規格／DEV_SPEC／附錄 A／proto 路徑、教學顧問、正式語言、頭像／PIN／家長驗證、每日上限、島幣比例、正式跨裝置策略；M0 可依確認版先做
+  - 數學遊樂島：來源檔已補齊；教學顧問、正式語言、頭像／PIN／家長驗證、每日上限、島幣比例、正式跨裝置策略；M0 可依確認版先做
   - 斷線代打的結果計入該真人名下為既有設計；是否調整屬產品決策
   - 數獨維持不做正式排行；停止的四款不再追年齡與改版決策
 Cost / Security / License alerts:
@@ -75,7 +76,7 @@ Next actions:
   - 產品端複驗 A3（§21）；Claude 接續七款短練習（先數獨）。四款停止開發
   - Claude 請直接依 GAMES_NEXT_SPRINT_2026-10-18.md 開工，不等實機回報或重複開始確認；先可玩增量，附 commit／URL／測試結果；Three.js 可用但不全站重寫
   - 首頁／共用 UI 的 R1–R4 已驗收，不再重複派修；Issue #6 的 R5 已通過，只保留實機／讀屏驗收。其他專屬畫面落差留在 UI_UX_AUDIT_2026-10-16.md；四款停止開發
-  - Claude 接數學 M0-A／B，開 PR 並交預覽與實測；附件未齊列缺口，不假稱已讀。領地既有 T2 派工保留，不再等待餐廳；四款停止開發，不沿用舊修正與擴充指令
+  - Claude 接數學 M0-A／B，開 PR 並交預覽與實測；讀整合主規格及 MR01–MR06，附件已齊，不再等來源。領地既有 T2 派工保留，不再等待餐廳；四款停止開發，不沿用舊修正與擴充指令
   - 實機驗收：iPhone／iPad Safari、Android Chrome、Firefox、Edge；數獨螢幕閱讀器朗讀
 Need from ChatGPT (content/design):
   - 未來產品／美術／文案先遵守 DESIGN.md，先說明設計方向與理由；現有樣稿也納入檢查。數學交付依 docs/product/MATH_ISLAND_M0.md；KIDS_GAMES_HANDOFF_TO_CHATGPT.md 的四款派工已停止

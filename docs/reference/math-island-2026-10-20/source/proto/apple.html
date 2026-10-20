@@ -1,0 +1,36 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="style.css">
+<style>
+.stage{position:relative;height:500px}
+.tree{position:absolute;left:60px;top:10px;width:380px;height:380px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#8FE09B,#4DB27C 70%);box-shadow:var(--shadow)}
+.trunk{position:absolute;left:220px;top:370px;width:60px;height:110px;background:#B9805A;border-radius:12px}
+.apple{position:absolute;width:72px;height:72px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FF9E8A,#E5483B 65%);box-shadow:0 5px 0 rgba(0,0,0,.12);cursor:grab;transition:transform .12s}
+.apple:after{content:"";position:absolute;left:32px;top:-10px;width:8px;height:16px;background:#7A4B2A;border-radius:4px}
+.apple.drag{transform:scale(1.08);box-shadow:0 14px 24px rgba(0,0,0,.25);z-index:9}
+.basket{position:absolute;right:120px;top:210px;width:380px;height:240px;border-radius:30px 30px 90px 90px;background:repeating-linear-gradient(90deg,#E9B872 0 22px,#D9A35B 22px 44px);box-shadow:var(--shadow);display:flex;flex-wrap:wrap;align-content:flex-end;gap:6px;padding:20px 26px}
+.basket.hot{outline:8px dashed var(--sun);outline-offset:6px}
+.basket .apple{position:static}
+.count{position:absolute;right:250px;top:140px;font-size:44px;font-weight:900}
+.answers{display:flex;justify-content:center;gap:20px}
+.ans{width:96px;height:96px;font-size:44px}
+.ans.ok{background:var(--leaf);color:#fff}
+.toast{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);background:#fff;border-radius:28px;padding:22px 40px;font-size:34px;font-weight:900;box-shadow:var(--shadow);display:none}
+</style></head><body>
+<div class="top"><button class="btn">←</button><div class="pill">🍎 蘋果籃 ・ 入門 3 / 5</div><div class="pill">💡 提示</div></div>
+<div class="q">籃子裡有 <span class="num">3</span> 顆，再放 <span class="num">4</span> 顆，一共幾顆？</div>
+<div class="stage" id="stage">
+ <div class="tree"></div><div class="trunk"></div>
+ <div class="basket" id="basket"><div class="apple"></div><div class="apple"></div><div class="apple"></div></div>
+ <div class="count" id="count">3</div>
+ <div class="toast" id="toast">好棒！3 + 4 = 7 🎉</div>
+</div>
+<div class="answers"><button class="btn ans">6</button><button class="btn ans" data-ok>7</button><button class="btn ans">8</button></div>
+<div class="demo">原型示意．拖曳蘋果到籃子，再點答案</div>
+<script>
+const pos=[[120,90],[230,60],[330,110],[180,200],[300,230]];const st=document.getElementById('stage'),bk=document.getElementById('basket'),ct=document.getElementById('count');
+pos.slice(0,4).forEach(([x,y])=>{const a=document.createElement('div');a.className='apple';a.style.left=x+'px';a.style.top=y+'px';a.dataset.x=x;a.dataset.y=y;st.appendChild(a);drag(a)});
+function drag(a){a.onpointerdown=e=>{a.setPointerCapture(e.pointerId);a.classList.add('drag');const r=st.getBoundingClientRect();
+ a.onpointermove=m=>{a.style.left=(m.clientX-r.left-36)+'px';a.style.top=(m.clientY-r.top-36)+'px';const b=bk.getBoundingClientRect();bk.classList.toggle('hot',m.clientX>b.left-48&&m.clientX<b.right+48&&m.clientY>b.top-48&&m.clientY<b.bottom+48)};
+ a.onpointerup=u=>{a.onpointermove=null;a.classList.remove('drag');if(bk.classList.contains('hot')){bk.classList.remove('hot');a.onpointerdown=null;a.style.left=a.style.top='';bk.appendChild(a);ct.textContent=bk.children.length}else{a.style.left=a.dataset.x+'px';a.style.top=a.dataset.y+'px'}}}}
+document.querySelectorAll('.ans').forEach(b=>b.onclick=()=>{if(b.hasAttribute('data-ok')){b.classList.add('ok');document.getElementById('toast').style.display='block'}else{b.animate([{transform:'translateX(0)'},{transform:'translateX(-8px)'},{transform:'translateX(8px)'},{transform:'translateX(0)'}],{duration:240})}});
+if(location.hash=='#done'){document.querySelectorAll('#stage > .apple').forEach(a=>{a.style.left=a.style.top='';bk.appendChild(a)});ct.textContent=7;document.querySelector('[data-ok]').classList.add('ok');document.getElementById('toast').style.display='block'}
+</script></body></html>
