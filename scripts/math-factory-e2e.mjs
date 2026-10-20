@@ -72,6 +72,17 @@ try {
     await p.click('[data-testid=mi-start-factory]');
     await p.waitForSelector('[data-testid=mi-factory]');
     await sleep(500);
+    const files = await p.evaluate(async () => {
+      const m = await (await fetch('/math/audio/zh-TW/v1/manifest.json')).json();
+      const out = [];
+      for (const c of m.filter((x) => x.id.startsWith('factory_'))) {
+        const r = await fetch(`/math/audio/zh-TW/v1/${c.file}`);
+        const buf = new Uint8Array(await r.arrayBuffer());
+        out.push([c.id, r.status, r.headers.get('content-type'), buf.byteLength, buf[0]]);
+      }
+      return out;
+    });
+    ok('MA05', 'all 12 factory clips are served as real mp3 files', files.length === 12 && files.every(([, st, ct, n, b0]) => st === 200 && /audio\/mpeg/.test(ct) && n > 8000 && b0 === 0xff), JSON.stringify(files.slice(0, 2)));
     ok('MA05', 'after 開始玩 the factory prompt is requested from a pre-made file (sound on by default)', requests.some((u) => /v1\/factory_task\.mp3/.test(u)));
     await p.click('[data-testid=mi-back]');
     await p.waitForSelector('[data-testid=mi-island]');

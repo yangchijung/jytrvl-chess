@@ -1,7 +1,7 @@
 {
   "base": "http://127.0.0.1:8788",
-  "at": "2026-10-20T12:27:10.671Z",
-  "passed": 35,
+  "at": "2026-10-20T17:28:06.539Z",
+  "passed": 36,
   "failed": 0,
   "results": [
     {
@@ -21,6 +21,12 @@
       "name": "island shows exactly the two playable games",
       "pass": true,
       "info": "mi-start-apple,mi-start-factory"
+    },
+    {
+      "id": "MA05",
+      "name": "all 12 factory clips are served as real mp3 files",
+      "pass": true,
+      "info": "[[\"factory_task\",200,\"audio/mpeg\",14688,255],[\"factory_ask\",200,\"audio/mpeg\",13392,255]]"
     },
     {
       "id": "MA05",
