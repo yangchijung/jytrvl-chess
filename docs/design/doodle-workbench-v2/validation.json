@@ -1,0 +1,96 @@
+{
+  "scope": "product data and visual design only",
+  "date": "2026-10-20",
+  "colors": 29,
+  "base": 5,
+  "distinctMixableResults": 24,
+  "recipes": 24,
+  "orderedCases": 48,
+  "reachable": 29,
+  "legacyColorsPreserved": 8,
+  "tints": [
+    {
+      "recipe": "tint_red",
+      "lighter": true
+    },
+    {
+      "recipe": "tint_yellow",
+      "lighter": true
+    },
+    {
+      "recipe": "tint_blue",
+      "lighter": true
+    },
+    {
+      "recipe": "tint_orange",
+      "lighter": true
+    },
+    {
+      "recipe": "tint_green",
+      "lighter": true
+    },
+    {
+      "recipe": "tint_purple",
+      "lighter": true
+    },
+    {
+      "recipe": "tint_pink",
+      "lighter": true
+    },
+    {
+      "recipe": "tint_light_yellow",
+      "lighter": true
+    },
+    {
+      "recipe": "tint_light_blue",
+      "lighter": true
+    },
+    {
+      "recipe": "tint_light_green",
+      "lighter": true
+    },
+    {
+      "recipe": "tint_lavender",
+      "lighter": true
+    },
+    {
+      "recipe": "tint_brown",
+      "lighter": true
+    }
+  ],
+  "templates": [
+    {
+      "id": "fish",
+      "regions": 3
+    },
+    {
+      "id": "garden",
+      "regions": 6
+    },
+    {
+      "id": "butterfly",
+      "regions": 5
+    },
+    {
+      "id": "dinosaur",
+      "regions": 5
+    },
+    {
+      "id": "rocket",
+      "regions": 6
+    },
+    {
+      "id": "house",
+      "regions": 7
+    }
+  ],
+  "regionTotal": 32,
+  "notTested": [
+    "implemented UI",
+    "save migration",
+    "device Safari",
+    "VoiceOver",
+    "native 400%",
+    "children trials"
+  ]
+}
