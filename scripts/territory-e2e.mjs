@@ -178,8 +178,8 @@ try {
     await sleep(800);
     const overflow = await p.evaluate(() => document.documentElement.scrollWidth > innerWidth);
     ok('mobile: no horizontal scroll', !overflow);
-    await p.$eval('[role=application] button[aria-pressed]', (b) => b.click()); // joystick toggle (no emoji label since T2)
-    ok('mobile: joystick toggles', await p.$('[aria-pressed=true]').then(Boolean));
+    // since T2 the regular game steers continuously: the finger is followed directly, no virtual joystick
+    ok('mobile: continuous steering, no virtual joystick', !!(await p.$('[role=application][data-flow=true]')) && !(await p.$('[role=application] button[aria-pressed]')));
     await shot(p, 't08-mobile');
     await p.close();
   }
