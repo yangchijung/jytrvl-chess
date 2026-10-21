@@ -1,6 +1,8 @@
 // Local Territory Rush: solo vs computer, two players on one device, and the tutorial sandbox.
 import { TerritoryGame, TICK_MS, mapSizeFor, rng, type Dir } from '../../shared/territory/engine';
 import { botThink, newBotMemory, type BotLevel, type BotMemory } from '../../shared/territory/ai';
+import { FlowGame, STEP_MS } from '../../shared/territory/flow';
+import { flowBotThink, newFlowBotMemory, type FlowBotMemory } from '../../shared/territory/flow-ai';
 import { TerritoryClient } from './client';
 
 export interface LocalTerritoryOptions {
@@ -12,18 +14,31 @@ export interface LocalTerritoryOptions {
   /** custom map size (tutorial) */
   size?: number;
   countdownMs?: number;
+  /** continuous steering (T2): point/touch at any angle; bots steer the same way */
+  flow?: boolean;
 }
 
 export class LocalTerritory extends TerritoryClient {
   readonly opts: LocalTerritoryOptions;
-  private bots: { idx: number; mem: BotMemory; rand: () => number; level: BotLevel }[] = [];
+  private bots: { idx: number; mem: BotMemory; fmem: FlowBotMemory; rand: () => number; level: BotLevel }[] = [];
   private paused = false;
+  private hiddenAt = 0;
   /** hook used by the tutorial to script the board before each step */
   beforeStep: ((g: TerritoryGame) => void) | null = null;
   onStep: ((g: TerritoryGame) => void) | null = null;
+  /** Hidden page = paused, in the countdown and in play; on return the countdown keeps its time left and play
+   *  resumes from now (no catch-up steps). */
   private onVis = () => {
-    this.paused = document.hidden;
-    if (!this.paused) this.lastTickAt = performance.now();
+    const now = performance.now();
+    if (document.hidden) {
+      if (!this.paused) this.hiddenAt = now;
+      this.paused = true;
+      return;
+    }
+    if (!this.paused) return;
+    this.paused = false;
+    if (this.status === 'countdown') this.countdownEnd += now - this.hiddenAt;
+    this.lastTickAt = now;
   };
 
   constructor(opts: LocalTerritoryOptions) {
@@ -38,13 +53,15 @@ export class LocalTerritory extends TerritoryClient {
     const n = o.humans.length + o.bots;
     const size = o.size ?? mapSizeFor(n);
     const seed = o.seed ?? Math.floor(Math.random() * 2 ** 31);
-    const g = new TerritoryGame({ width: size, height: size, durationTicks: Math.round((o.durationMin * 60000) / TICK_MS), seed });
+    this.tickMs = o.flow ? STEP_MS : TICK_MS;
+    const cfg = { width: size, height: size, durationTicks: Math.round((o.durationMin * 60000) / this.tickMs), seed };
+    const g = o.flow ? new FlowGame(cfg) : new TerritoryGame(cfg);
     o.humans.forEach((h, k) => g.addPlayer(`h${k}`, h.name, false));
     const r = rng(seed ^ 0xabcdef);
     this.bots = [];
     for (let k = 0; k < o.bots; k++) {
       const p = g.addPlayer(`b${k}`, botName(k), true);
-      this.bots.push({ idx: p.idx, mem: newBotMemory(), rand: rng(Math.floor(r() * 2 ** 31)), level: o.level });
+      this.bots.push({ idx: p.idx, mem: newBotMemory(), fmem: newFlowBotMemory(), rand: rng(Math.floor(r() * 2 ** 31)), level: o.level });
     }
     g.start();
     this.game = g;
@@ -60,7 +77,15 @@ export class LocalTerritory extends TerritoryClient {
   steer(slot: number, d: Dir) {
     const idx = this.me[slot];
     if (idx === undefined || !this.game || this.status === 'ended') return;
+    if (this.flow && this.status !== 'playing') return; // continuous: the countdown never takes an input
     this.game.steer(idx, d);
+  }
+
+  steerAngle(slot: number, angle: number) {
+    const idx = this.me[slot];
+    const g = this.flow;
+    if (idx === undefined || !g || this.status !== 'playing') return;
+    g.setTarget(idx, angle);
   }
 
   update(now: number) {
@@ -76,8 +101,8 @@ export class LocalTerritory extends TerritoryClient {
     }
     if (this.status !== 'playing') return;
     let steps = 0;
-    while (now - this.lastTickAt >= TICK_MS && steps < 5) {
-      this.stepOnce(this.lastTickAt + TICK_MS);
+    while (now - this.lastTickAt >= this.tickMs && steps < 5) {
+      this.stepOnce(this.lastTickAt + this.tickMs);
       steps++;
       if (this.status !== 'playing') break;
     }
@@ -86,7 +111,11 @@ export class LocalTerritory extends TerritoryClient {
 
   private stepOnce(at: number) {
     const g = this.game!;
-    for (const b of this.bots) botThink(g, b.idx, b.mem, b.level, b.rand);
+    const fg = this.flow;
+    for (const b of this.bots) {
+      if (fg) flowBotThink(fg, b.idx, b.fmem, b.level, b.rand);
+      else botThink(g, b.idx, b.mem, b.level, b.rand);
+    }
     this.beforeStep?.(g);
     this.beforeTick(g);
     g.step();
@@ -118,5 +147,5 @@ export class LocalTerritory extends TerritoryClient {
 
 const BOT_NAMES = ['Nova', 'Pixel', 'Bolt', 'Mochi', 'Echo', 'Kiwi', 'Comet', 'Tofu'];
 export function botName(k: number) {
-  return `${BOT_NAMES[k % BOT_NAMES.length]}🤖`;
+  return BOT_NAMES[k % BOT_NAMES.length];
 }
