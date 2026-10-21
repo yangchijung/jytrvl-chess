@@ -1,5 +1,6 @@
 // Client-side model shared by local and online Territory Rush games (rendering, HUD, input).
 import { TICK_MS, type Dir, type EndResult, type TerritoryEvent, TerritoryGame } from '../../shared/territory/engine';
+import { FlowGame } from '../../shared/territory/flow';
 
 export type TStatus = 'connecting' | 'lobby' | 'countdown' | 'playing' | 'ended';
 
@@ -31,6 +32,8 @@ export abstract class TerritoryClient {
   end: EndInfo | null = null;
   /** head screen position of the followed player, written by the renderer (for mouse steering) */
   screenHead: { x: number; y: number; cell: number } | null = null;
+  /** head screen positions of every player on this device (continuous steering: touch is relative to them) */
+  screenHeads: Record<number, { x: number; y: number; cell: number }> = {};
   version = 0;
   private listeners = new Set<() => void>();
   private feedSeq = 0;
@@ -45,6 +48,12 @@ export abstract class TerritoryClient {
   }
 
   abstract steer(slot: number, d: Dir): void;
+  /** Continuous steering: aim player `slot` at an angle (radians, screen axes). Ignored by four-way games. */
+  steerAngle(_slot: number, _angle: number): void {}
+  /** The game uses continuous steering (FlowGame). */
+  get flow(): FlowGame | null {
+    return this.game instanceof FlowGame ? this.game : null;
+  }
   /** called every animation frame */
   abstract update(now: number): void;
   abstract dispose(): void;
@@ -52,19 +61,21 @@ export abstract class TerritoryClient {
   protected resetBuffers(g: TerritoryGame) {
     this.captureAt = new Float64Array(g.w * g.h);
     this.prev = new Float32Array(g.players.length * 2);
+    this.storePrev(g);
+  }
+  /** Positions in "cell top-left" units: continuous games keep their exact position (centre − 0.5). */
+  private storePrev(g: TerritoryGame) {
+    const f = g instanceof FlowGame ? g.flow : null;
     g.players.forEach((p, k) => {
-      this.prev[k * 2] = p.x;
-      this.prev[k * 2 + 1] = p.y;
+      this.prev[k * 2] = f?.[k] ? f[k].fx - 0.5 : p.x;
+      this.prev[k * 2 + 1] = f?.[k] ? f[k].fy - 0.5 : p.y;
     });
   }
 
   /** Remember positions before applying a tick. */
   protected beforeTick(g: TerritoryGame) {
     if (this.prev.length < g.players.length * 2) this.prev = new Float32Array(g.players.length * 2);
-    g.players.forEach((p, k) => {
-      this.prev[k * 2] = p.x;
-      this.prev[k * 2 + 1] = p.y;
-    });
+    this.storePrev(g);
   }
 
   /** Record visual effects for owner changes and events after a tick. */
@@ -88,6 +99,6 @@ export abstract class TerritoryClient {
   remainingSec(): number | null {
     const g = this.game;
     if (!g || !g.cfg.durationTicks) return null;
-    return Math.max(0, Math.ceil(((g.cfg.durationTicks - g.tick) * TICK_MS) / 1000));
+    return Math.max(0, Math.ceil(((g.cfg.durationTicks - g.tick) * this.tickMs) / 1000));
   }
 }
