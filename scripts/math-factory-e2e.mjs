@@ -64,7 +64,7 @@ try {
       await open(p, F, lang);
       await p.reload({ waitUntil: 'networkidle0' });
       const robots = await p.$eval('meta[name=robots]', (m) => m.content).catch(() => 'missing');
-      ok('MA01', `${lang || 'zh'} ${F} opens directly and after reload, noindex`, /noindex/.test(robots) && (await at(p)).length === 12, robots);
+      ok('MA01', `${lang || 'zh'} ${F} opens directly and after reload, indexable`, /^index/.test(robots) && (await at(p)).length === 12, robots);
     }
     await open(p, '/math');
     const links = await p.$$eval('[data-testid^=mi-start-]', (e) => e.map((x) => x.dataset.testid));

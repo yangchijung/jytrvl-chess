@@ -11,8 +11,8 @@ import './math.css';
 type L = { zh: string; en: string };
 const T = {
   title: { zh: '數學遊樂島', en: 'Math Island' },
-  tag: { zh: '預覽版', en: 'Preview' },
-  zhOnly: { zh: '', en: 'Preview: the questions and voice are in Traditional Chinese for now.' },
+  tag: { zh: '試玩版', en: 'Early version' },
+  zhOnly: { zh: '', en: 'The questions and voice are in Traditional Chinese for now.' },
   apple: { zh: '蘋果籃', en: 'Apple Basket' },
   appleWhat: { zh: '一年級．把兩堆蘋果放一起，數一數一共幾顆。5 題。', en: 'Grade 1 · put two groups of apples together and count them. 5 problems.' },
   factory: { zh: '分裝工廠', en: 'Packing Factory' },
@@ -21,7 +21,7 @@ const T = {
   cont: { zh: '接著玩：第 {n} 題', en: 'Continue: problem {n}' },
   again: { zh: '再玩一次（5 題都完成了）', en: 'Play again (all 5 done)' },
   adults: { zh: '給大人看', en: 'For adults' },
-  a1: { zh: '這是試玩預覽：題目固定、不計時、不扣分，答錯可以再數一次。', en: 'Playtest preview: fixed problems, no timer, no penalties; a wrong answer can be counted again.' },
+  a1: { zh: '目前是試玩版：每款 5 題固定題目，不計時、不扣分，答錯可以再數一次。', en: 'Early version: 5 fixed problems per game, no timer, no penalties; a wrong answer can be counted again.' },
   a2: { zh: '不需要登入，不收集姓名、Email 或生日；進度只存在這台裝置的瀏覽器裡。', en: 'No sign-in; no names, emails or birthdays. Progress stays in this browser on this device.' },
   a3: { zh: '沒有廣告、付費或第三方追蹤。朗讀使用預先錄好的聲音檔，可以關掉。', en: 'No ads, payments or third-party tracking. Spoken prompts use pre-made audio and can be turned off.' },
 };
