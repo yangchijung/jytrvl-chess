@@ -2,7 +2,7 @@
 // pick how many there are altogether. The scene (two piles + basket) is the main content; one short task line,
 // "listen again" and "start over" are always in reach, "next" appears only after a correct answer.
 // Drag, tap-then-tap and keyboard all end in the same moveApple() action; release position uses place.ts.
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type PointerEvent as RPointerEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { Link } from 'react-router-dom';
 import { useI18n } from '../i18n';
 import {
@@ -26,7 +26,7 @@ import {
   type Group,
   type Place,
 } from '../../shared/math/apple';
-import { boxOf, snapTo, type Target } from './place';
+import { useDragPlace, useZones } from './drag';
 import { Progress } from './save';
 import { CLIPS, Speaker } from './audio';
 import { AppleArt } from './art';
@@ -81,14 +81,6 @@ const slotsOf = (items: AppleItem[], group: Group, n: number) => {
 };
 
 type Zone = 'pile-a' | 'pile-b' | 'basket';
-interface Drag {
-  pid: number;
-  i: number;
-  x0: number;
-  y0: number;
-  moved: boolean;
-  el: HTMLElement;
-}
 
 export function ApplePage() {
   const { lang, to } = useI18n();
@@ -108,13 +100,8 @@ export function ApplePage() {
   const s = prog.v;
 
   const [sel, setSel] = useState<number | null>(null);
-  const [hot, setHot] = useState<Zone | null>(null);
   const [msg, setMsg] = useState<{ id: string; text: string; kind: 'info' | 'hint' | 'ok' } | null>(null);
   const [demoSeen, setDemoSeen] = useState(false);
-  const drag = useRef<Drag | null>(null);
-  /** the click that follows a real drag is not a tap; it is ignored only briefly so a missing click never sticks */
-  const suppressClick = useRef<{ i: number; until: number } | null>(null);
-  const zones = useRef<Record<Zone, HTMLDivElement | null>>({ 'pile-a': null, 'pile-b': null, basket: null });
 
   useEffect(() => {
     prog.start();
@@ -208,110 +195,28 @@ export function ApplePage() {
     commit({ ...s, voice });
   };
 
-  // ---------- drag (first finger only; cancel returns to the last committed place) ----------
-  const targetsFor = (it: AppleItem): Target<Zone>[] => {
-    const out: Target<Zone>[] = [];
-    const own: Zone = it.group === 'a' ? 'pile-a' : 'pile-b';
-    for (const z of [own, 'basket'] as Zone[]) {
-      const el = zones.current[z];
-      if (el) out.push({ id: z, box: boxOf(el.getBoundingClientRect()) });
-    }
-    return out;
-  };
-  const centreOf = (el: HTMLElement) => {
-    const r = el.getBoundingClientRect();
-    return { x: (r.left + r.right) / 2, y: (r.top + r.bottom) / 2 };
-  };
-  const reset = (d: Drag) => {
-    d.el.style.transform = '';
-    d.el.removeAttribute('data-dragging');
-    try {
-      if (d.el.hasPointerCapture(d.pid)) d.el.releasePointerCapture(d.pid);
-    } catch {
-      /* ignore */
-    }
-  };
-  const cancelDrag = useCallback(() => {
-    const d = drag.current;
-    if (!d) return;
-    drag.current = null;
-    reset(d);
-    setHot(null);
-    if (d.moved) suppressClick.current = { i: d.i, until: performance.now() + 80 };
-  }, []);
-  useEffect(() => {
-    const onHide = () => document.visibilityState === 'hidden' && cancelDrag();
-    window.addEventListener('blur', cancelDrag);
-    window.addEventListener('resize', cancelDrag);
-    window.addEventListener('orientationchange', cancelDrag);
-    document.addEventListener('visibilitychange', onHide);
-    return () => {
-      window.removeEventListener('blur', cancelDrag);
-      window.removeEventListener('resize', cancelDrag);
-      window.removeEventListener('orientationchange', cancelDrag);
-      document.removeEventListener('visibilitychange', onHide);
-    };
-  }, [cancelDrag]);
-
-  const onDown = (e: RPointerEvent<HTMLButtonElement>, it: AppleItem) => {
-    if (viewer || s.solved || drag.current || !e.isPrimary) return; // a second finger never takes over
-    if (e.pointerType === 'mouse' && e.button !== 0) return;
-    const el = e.currentTarget;
-    try {
-      el.setPointerCapture(e.pointerId);
-    } catch {
-      /* ignore */
-    }
-    drag.current = { pid: e.pointerId, i: it.i, x0: e.clientX, y0: e.clientY, moved: false, el };
-  };
-  const onMove = (e: RPointerEvent<HTMLButtonElement>, it: AppleItem) => {
-    const d = drag.current;
-    if (!d || d.pid !== e.pointerId) return;
-    const dx = e.clientX - d.x0,
-      dy = e.clientY - d.y0;
-    if (!d.moved && Math.hypot(dx, dy) < 8) return;
-    if (!d.moved) {
-      d.moved = true;
-      d.el.setAttribute('data-dragging', 'true');
-      setSel(null);
-    }
-    d.el.style.transform = `translate(${dx}px, ${dy}px) scale(1.08)`;
-    const c = centreOf(d.el);
-    const sn = snapTo(c.x, c.y, targetsFor(it));
-    const z = sn.kind === 'target' ? sn.id : null;
-    setHot((h) => (h === z ? h : z));
-  };
-  const onUp = (e: RPointerEvent<HTMLButtonElement>, it: AppleItem) => {
-    const d = drag.current;
-    if (!d || d.pid !== e.pointerId) return;
-    drag.current = null;
-    if (!d.moved) {
-      reset(d);
-      return; // a tap: the click handler selects the apple
-    }
-    suppressClick.current = { i: d.i, until: performance.now() + 80 };
-    const c = centreOf(d.el);
-    const sn = snapTo(c.x, c.y, targetsFor(it));
-    reset(d);
-    setHot(null);
-    if (sn.kind === 'target') move(it.i, sn.id === 'basket' ? 'basket' : 'pile');
-    else if (sn.kind === 'ambiguous') {
-      setSel(it.i);
+  // ---------- drag: the shared controller (first finger only; cancel returns to the last committed place) ----------
+  const zones = useZones<Zone>();
+  const dragger = useDragPlace<Zone>({
+    enabled: !viewer && !s.solved,
+    targets: (i) => {
+      const it = items[i];
+      return it ? zones.measure([it.group === 'a' ? 'pile-a' : 'pile-b', 'basket']) : [];
+    },
+    onDrop: (i, z) => move(i, z === 'basket' ? 'basket' : 'pile'),
+    onAmbiguous: (i) => {
+      setSel(i);
       setMsg({ id: 'apple_where', text: CLIPS.apple_where, kind: 'info' });
       say('apple_where');
-    }
-  };
-  const onCancel = (e: RPointerEvent<HTMLButtonElement>) => {
-    const d = drag.current;
-    if (!d || d.pid !== e.pointerId) return;
-    cancelDrag();
-  };
+    },
+    onStart: () => setSel(null),
+  });
+  const hot = dragger.hot;
+  const cancelDrag = dragger.cancel;
 
   const onAppleClick = (e: React.MouseEvent, it: AppleItem) => {
     e.stopPropagation();
-    const sup = suppressClick.current;
-    suppressClick.current = null;
-    if (sup && sup.i === it.i && performance.now() < sup.until) return;
+    if (dragger.wasDrag(it.i)) return;
     if (viewer || s.solved) return;
     setSel((v) => (v === it.i ? null : it.i));
   };
@@ -347,13 +252,7 @@ export function ApplePage() {
       aria-pressed={sel === it.i}
       aria-label={tr(T.apple, { g: groupName(it.group), n: it.slot + 1, w: tr(s.at[it.i] === 'basket' ? T.inBasket : T.inPile) })}
       disabled={viewer || s.solved}
-      onPointerDown={(e) => onDown(e, it)}
-      onPointerMove={(e) => onMove(e, it)}
-      onPointerUp={(e) => onUp(e, it)}
-      onPointerCancel={onCancel}
-      onLostPointerCapture={(e) => {
-        if (drag.current && drag.current.pid === e.pointerId) cancelDrag();
-      }}
+      {...dragger.bind(it.i)}
       onClick={(e) => onAppleClick(e, it)}
     >
       <AppleArt />
@@ -361,9 +260,7 @@ export function ApplePage() {
   );
   const holding = sel !== null || hot !== null;
   const zoneAttrs = (z: Zone) => ({
-    ref: (el: HTMLDivElement | null) => {
-      zones.current[z] = el;
-    },
+    ref: zones.ref(z),
     'data-target': z,
     'data-testid': `mi-zone-${z}`,
     'data-hot': hot === z || (sel !== null && hot === null && canGo(z)) ? 'true' : 'false',

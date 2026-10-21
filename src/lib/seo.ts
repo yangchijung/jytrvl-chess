@@ -83,6 +83,11 @@ export const PAGES: Record<string, PageMeta> = {
     description: { zh: '一年級：把兩堆蘋果放一起，數一數一共幾顆。', en: 'Grade 1: put two groups of apples together and count them.' },
     index: false,
   },
+  '/math/g3/factory': {
+    title: { zh: '分裝工廠（數學遊樂島預覽）｜JY Games', en: 'Packing Factory (Math Island preview) | JY Games' },
+    description: { zh: '三年級：把餅乾平分到每一盒，再說每盒有幾個。', en: 'Grade 3: share cookies equally into boxes, then say how many are in each.' },
+    index: false,
+  },
   '/territory/flow': {
     title: { zh: '領地爭奪戰 連續轉向（預覽）｜JY Games', en: 'Territory Rush free steering (preview) | JY Games' },
     description: { zh: '滑鼠指向或手指觸碰就轉向的領地爭奪戰試玩預覽。', en: 'Preview of Territory Rush with point-to-steer and touch steering.' },

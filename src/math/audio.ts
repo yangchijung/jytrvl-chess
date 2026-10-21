@@ -3,6 +3,7 @@
 // served as static files; the page never sends text to a speech service while a child plays. Playing starts only
 // after a tap (browsers may block sound before that), one clip at a time; a missing file never blocks play.
 import { APPLE_PROBLEMS } from '../../shared/math/apple';
+import { FACTORY_PROBLEMS } from '../../shared/math/factory';
 
 export const VOICE = { locale: 'zh-TW', voice: 'zh-TW-HsiaoChenNeural', version: 1 } as const;
 
@@ -15,6 +16,14 @@ export const CLIPS: Record<string, string> = {
   apple_where: '要放哪裡？點一下籃子或原來的地方。',
   apple_done: '五題都完成了。',
   ...Object.fromEntries(APPLE_PROBLEMS.map((p) => [`apple_right_${p.id.slice(-2)}`, `${p.a} 加 ${p.b}，一共 ${p.a + p.b} 顆。`])),
+  factory_task: '每盒放一樣多。',
+  factory_ask: '每盒有幾個？',
+  factory_not_all: '還有沒分完的，先全部放進盒子。',
+  factory_unequal: '每盒要一樣多，再分分看。',
+  factory_again: '再數一次看看。',
+  factory_where: '要放哪裡？點一下盒子或輸送帶。',
+  factory_done: '五題都完成了。',
+  ...Object.fromEntries(FACTORY_PROBLEMS.map((p) => [`factory_right_${p.id.slice(-2)}`, `${p.boxes} 盒，每盒 ${p.total / p.boxes} 個，一共 ${p.total} 個。`])),
 };
 export type ClipId = keyof typeof CLIPS;
 

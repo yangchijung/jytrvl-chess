@@ -1,0 +1,224 @@
+{
+  "base": "http://127.0.0.1:8788",
+  "at": "2026-10-20T17:28:06.539Z",
+  "passed": 36,
+  "failed": 0,
+  "results": [
+    {
+      "id": "MA01",
+      "name": "zh /math/g3/factory opens directly and after reload, noindex",
+      "pass": true,
+      "info": "noindex,nofollow"
+    },
+    {
+      "id": "MA01",
+      "name": "/en /math/g3/factory opens directly and after reload, noindex",
+      "pass": true,
+      "info": "noindex,nofollow"
+    },
+    {
+      "id": "MA01",
+      "name": "island shows exactly the two playable games",
+      "pass": true,
+      "info": "mi-start-apple,mi-start-factory"
+    },
+    {
+      "id": "MA05",
+      "name": "all 12 factory clips are served as real mp3 files",
+      "pass": true,
+      "info": "[[\"factory_task\",200,\"audio/mpeg\",14688,255],[\"factory_ask\",200,\"audio/mpeg\",13392,255]]"
+    },
+    {
+      "id": "MA05",
+      "name": "after 開始玩 the factory prompt is requested from a pre-made file (sound on by default)",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "MA01",
+      "name": "factory → back to island",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "MA02",
+      "name": "mouse drag puts a cookie into box 2 (saved)",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "MA02",
+      "name": "a cookie can be dragged from one box to another",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "MA02",
+      "name": "tap a cookie, then 放進第 1 盒",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "MA02",
+      "name": "tap a cookie, then tap the box itself",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "MA02",
+      "name": "keyboard: Enter on a cookie, Enter on 放進第 3 盒",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "MA02",
+      "name": "a cookie can go back to the conveyor",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "MA02",
+      "name": "double tap on a box button moves one cookie once; still 12 cookies",
+      "pass": true,
+      "info": "2,0,1,-1,0,-1,-1,-1,-1,-1,-1,-1"
+    },
+    {
+      "id": "MA03",
+      "name": "nothing shared yet: 4 is not accepted (\"還有沒分完的\")",
+      "pass": true,
+      "info": "hint ↺ 還有沒分完的，先全部放進盒子。"
+    },
+    {
+      "id": "MA03",
+      "name": "12 shared as 5 / 4 / 3: no answer is accepted, \"每盒要一樣多\"",
+      "pass": true,
+      "info": "5,4,3 | ↺ 每盒要一樣多，再分分看。 / ↺ 每盒要一樣多，再分分看。 / ↺ 每盒要一樣多，再分分看。"
+    },
+    {
+      "id": "MA03",
+      "name": "4 / 4 / 3 with one back on the belt: still \"沒分完\"",
+      "pass": true,
+      "info": "↺ 還有沒分完的，先全部放進盒子。"
+    },
+    {
+      "id": "MA03",
+      "name": "equal boxes, wrong number: \"再數一次看看\", cookies stay",
+      "pass": true,
+      "info": "↺ 再數一次看看。"
+    },
+    {
+      "id": "MA03",
+      "name": "right: 12 ÷ 3 = 4 and \"3 盒，每盒 4 個，一共 12 個。\"; next only now",
+      "pass": true,
+      "info": "12 ÷ 3 = 4 | 3 盒，每盒 4 個，一共 12 個。"
+    },
+    {
+      "id": "MA03",
+      "name": "double tap on 下一題 advances exactly one problem",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "MA03",
+      "name": "all five fixed problems in order, then the finished screen",
+      "pass": true,
+      "info": "18÷3=6,8÷2=4,10÷2=5,15÷3=5"
+    },
+    {
+      "id": "MA04",
+      "name": "finished state survives a reload",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "MA04",
+      "name": "switching games and reloading keeps each game’s own progress (separate saves)",
+      "pass": true,
+      "info": "1,2,-1 basket jy.math.apple.v1,jy.math.factory.v1"
+    },
+    {
+      "id": "MA04",
+      "name": "island offers 接著玩 for both games",
+      "pass": true,
+      "info": "接著玩：第 1 題 | 接著玩：第 1 題"
+    },
+    {
+      "id": "MA04",
+      "name": "unreadable factory save: notice, original kept in a backup, apple save untouched",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "MA04",
+      "name": "factory in two tabs: second view-only, sees the first tab’s move, takes over and continues",
+      "pass": true,
+      "info": "writer,viewer 0 viewer,writer 0,1"
+    },
+    {
+      "id": "MA02",
+      "name": "touch drag a cookie into box 1 (390 px, DPR 3)",
+      "pass": true,
+      "info": "{\"it\":{\"left\":71,\"top\":123,\"right\":127,\"bottom\":179,\"x\":99,\"y\":151},\"bx\":{\"left\":28,\"top\":338,\"right\":362,\"bottom\":546,\"x\":195,\"y\":442}}"
+    },
+    {
+      "id": "MA02",
+      "name": "touch cancel returns the cookie to the conveyor, nothing saved",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "MA06",
+      "name": "768×1024 zh light: 18 cookies in 3 boxes visible, no overlap, no sideways scroll, targets ≥ 56 px",
+      "pass": true,
+      "info": "{\"hscroll\":false,\"inside\":true,\"itemMin\":56,\"overlap\":false,\"minBtn\":56,\"count\":18}"
+    },
+    {
+      "id": "MA06",
+      "name": "768×1024 /en dark: 18 cookies in 3 boxes visible, no overlap, no sideways scroll, targets ≥ 56 px",
+      "pass": true,
+      "info": "{\"hscroll\":false,\"inside\":true,\"itemMin\":56,\"overlap\":false,\"minBtn\":56,\"count\":18}"
+    },
+    {
+      "id": "MA06",
+      "name": "1024×768 zh light: 18 cookies in 3 boxes visible, no overlap, no sideways scroll, targets ≥ 56 px",
+      "pass": true,
+      "info": "{\"hscroll\":false,\"inside\":true,\"itemMin\":56,\"overlap\":false,\"minBtn\":56,\"count\":18}"
+    },
+    {
+      "id": "MA06",
+      "name": "1024×768 /en dark: 18 cookies in 3 boxes visible, no overlap, no sideways scroll, targets ≥ 56 px",
+      "pass": true,
+      "info": "{\"hscroll\":false,\"inside\":true,\"itemMin\":56,\"overlap\":false,\"minBtn\":56,\"count\":18}"
+    },
+    {
+      "id": "MA06",
+      "name": "390×844 zh light: 18 cookies in 3 boxes visible, no overlap, no sideways scroll, targets ≥ 56 px",
+      "pass": true,
+      "info": "{\"hscroll\":false,\"inside\":true,\"itemMin\":56,\"overlap\":false,\"minBtn\":56,\"count\":18}"
+    },
+    {
+      "id": "MA06",
+      "name": "390×844 /en dark: 18 cookies in 3 boxes visible, no overlap, no sideways scroll, targets ≥ 56 px",
+      "pass": true,
+      "info": "{\"hscroll\":false,\"inside\":true,\"itemMin\":56,\"overlap\":false,\"minBtn\":56,\"count\":18}"
+    },
+    {
+      "id": "MA06",
+      "name": "1280×900 zh light: 18 cookies in 3 boxes visible, no overlap, no sideways scroll, targets ≥ 56 px",
+      "pass": true,
+      "info": "{\"hscroll\":false,\"inside\":true,\"itemMin\":56,\"overlap\":false,\"minBtn\":56,\"count\":18}"
+    },
+    {
+      "id": "MA06",
+      "name": "1280×900 /en dark: 18 cookies in 3 boxes visible, no overlap, no sideways scroll, targets ≥ 56 px",
+      "pass": true,
+      "info": "{\"hscroll\":false,\"inside\":true,\"itemMin\":56,\"overlap\":false,\"minBtn\":56,\"count\":18}"
+    },
+    {
+      "id": "ALL",
+      "name": "no page errors",
+      "pass": true,
+      "info": ""
+    }
+  ]
+}

@@ -12,7 +12,7 @@ export function AppleArt() {
   );
 }
 
-/** The island (same colours in both themes, like a printed map): sea, one sandy island and the apple tree where the playable game is. */
+/** The island (same colours in both themes, like a printed map): sea, one sandy island, the apple tree and the factory where the two playable games are. */
 export function IslandArt() {
   return (
     <svg viewBox="0 0 320 160" className="block h-auto w-full" aria-hidden="true" focusable="false">
@@ -23,6 +23,21 @@ export function IslandArt() {
       <circle cx="93" cy="58" r="5" fill="#C8402F" />
       <circle cx="108" cy="66" r="5" fill="#C8402F" />
       <path d="M118 100h30l-4 16h-22z" fill="#E9C893" stroke="#23303F" strokeWidth="3" strokeLinejoin="round" />
+      <path d="M196 74h44v38h-44z" fill="#E9C893" stroke="#23303F" strokeWidth="3" strokeLinejoin="round" />
+      <path d="M204 74V62h10v12" fill="none" stroke="#23303F" strokeWidth="3" />
+      <path d="M204 96h28" stroke="#23303F" strokeWidth="3" />
+    </svg>
+  );
+}
+
+/** One countable cookie for the packing factory: a round biscuit with three chocolate chips. */
+export function CookieArt() {
+  return (
+    <svg viewBox="0 0 64 64" width="48" height="48" aria-hidden="true" focusable="false">
+      <circle cx="32" cy="32" r="24" fill="var(--mi-cookie)" stroke="var(--mi-apple-line)" strokeWidth="2.5" />
+      <circle cx="24" cy="26" r="3.5" fill="var(--mi-chip)" />
+      <circle cx="38" cy="24" r="3.5" fill="var(--mi-chip)" />
+      <circle cx="31" cy="39" r="3.5" fill="var(--mi-chip)" />
     </svg>
   );
 }

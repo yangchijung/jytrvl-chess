@@ -13,6 +13,9 @@
   --mi-apple: #c8402f;
   --mi-apple-line: #23303f;
   --mi-leaf: #3d7a3f;
+  --mi-cookie: #d9a35b;
+  --mi-chip: #5a3a1c;
+  --mi-box: #f3e3c4;
   background: var(--mi-sand);
   color: var(--mi-ink);
 }
@@ -28,6 +31,7 @@
     --mi-basket: #8a6a3b;
     --mi-basket-line: #e9c893;
     --mi-apple-line: #fff4e3;
+    --mi-box: #3a3226;
   }
 }
 :root[data-theme='dark'] .mi {
@@ -41,6 +45,7 @@
   --mi-basket: #8a6a3b;
   --mi-basket-line: #e9c893;
   --mi-apple-line: #fff4e3;
+  --mi-box: #3a3226;
 }
 
 @layer components {
@@ -69,9 +74,12 @@
 .mi-zone { border: 3px solid var(--mi-line); border-radius: 12px; position: relative; }
 .mi-zone[data-hot='true'] { outline: 4px dashed var(--mi-sea); outline-offset: 4px; }
 .mi-basket { background: var(--mi-basket); border-color: var(--mi-basket-line); }
+.mi-box { background: var(--mi-box); border-color: var(--mi-basket-line); }
+.mi-cslot { width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; }
 .mi-slot { width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; }
 .mi-empty { width: 52px; height: 52px; border-radius: 50%; border: 2px dashed var(--mi-line); opacity: 0.6; }
 
+.mi-apple.mi-cookie { width: 56px; height: 56px; }
 .mi-apple {
   width: 64px;
   height: 64px;
