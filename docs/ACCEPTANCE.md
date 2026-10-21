@@ -783,4 +783,10 @@ AI 只使用玩家看得到的資訊：貪食蛇有單元測試確認對手尚�
 
 測試：`npx vitest run` 283／283（新增 `tests/doodle-v2.test.ts` 8 項、`tests/doodle.test.ts` 更新為 V2 資料）；`scripts/doodle-v2-e2e.mjs` 32／32（結果與截圖 `docs/test-results/screens/doodle-v2/`）。舊 `scripts/doodle-e2e.mjs` 針對 V1 介面與 V1 存檔鍵，已由 V2 測試取代（首頁卡片 D-01～D-03 未改）。
 
-未做：C2 其餘五張底圖與分圖選單；iPad Safari／VoiceOver／觸控筆實機；400% 縮放；孩子試玩。
+### 29.1 產品複驗 R1／R2 修正（PR #13 review，2026-10-21）
+
+- **R1（P1）首次遷移漏接 `.recovered`**：遷移改為唯讀、照第一版讀取器的優先序——主鍵有效用主鍵，否則用有效的 `.recovered`；不移動、不改寫任何 V1 鍵。主鍵讀不出來又沒有替代時不匯入，原文保留並顯示「下載舊存檔」。單元補四情境（主檔／小魚 × 主鍵缺失／損壞）：匯入 1 筆、第一次 V2 存入後重開仍是 1 筆、V1 與 recovered 原文逐字不變；瀏覽器 R1 一項。
+- **R2（P2）無 Web Locks 首次保存覆蓋**：未協調模式下，每次寫入前比對儲存區與本分頁最後看到的內容（初始基線 null 也算）；不同就不寫，改顯示最新畫作，並把本分頁這一筆另存到 `jy.doodle.v2.conflict-*`、提示可下載。也會監聽其他分頁的 storage 事件。單元補「兩個新分頁首次寫入」與「交錯寫入」：A 的筆畫不被覆蓋、B 的變更另存；瀏覽器（停用 navigator.locks 的兩分頁）R2 一項。剩餘限制：無鎖瀏覽器在「讀取比對」與「寫入」之間仍有極短的非原子空窗，頁面持續明示「無法協調多個分頁」，目標瀏覽器（Safari 15.4+、Chrome、Edge、Firefox）皆有 Web Locks。
+- 測試：單元 286（doodle-v2 14 項）；`scripts/doodle-v2-e2e.mjs` 34／34。
+
+未做：C2 其餘五張底圖與分圖選單（見 §30）；iPad Safari／VoiceOver／觸控筆實機；400% 縮放；孩子試玩。
