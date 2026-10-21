@@ -20,7 +20,7 @@ function Logo() {
   );
 }
 
-const GAMES = ['chess', 'xiangqi', 'banqi', 'territory', 'snake', 'blocks', 'sudoku', 'doodle'] as const;
+const GAMES = ['chess', 'xiangqi', 'banqi', 'territory', 'snake', 'blocks', 'sudoku', 'doodle', 'coaster'] as const;
 const iconBtn = 'ui-t flex h-11 min-w-11 items-center justify-center rounded-md px-2 hover:bg-[var(--surface-2)]';
 const navLink = ({ isActive }: { isActive: boolean }) =>
   `ui-t flex min-h-11 items-center rounded-md px-3 text-sm font-medium hover:bg-[var(--surface-2)] ${isActive ? 'underline decoration-2 underline-offset-[6px]' : ''}`;
@@ -153,9 +153,15 @@ export function Layout({ children }: { children: ReactNode }) {
                 </li>
                 {GAMES.map((g) => (
                   <li key={g}>
-                    <NavLink to={to(`/${g}`)} className={menuLink}>
-                      {t(`game.${g}`)}
-                    </NavLink>
+                    {g === 'coaster' ? (
+                      <a href={`/coaster/?lang=${lang}`} className={menuLink({ isActive: false })}>
+                        {t(`game.${g}`)}
+                      </a>
+                    ) : (
+                      <NavLink to={to(`/${g}`)} className={menuLink}>
+                        {t(`game.${g}`)}
+                      </NavLink>
+                    )}
                   </li>
                 ))}
               </ul>

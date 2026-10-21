@@ -6,6 +6,8 @@
 Date: 2026-10-20
 Branch/Commit: main（2026-10-19 A3 第八款見最新 commit；存檔複驗原碼 7eae7f3；R5＋塗鴉首版 f80776c）
 Done (with evidence):
+  - 2026-10-21 工程：手繪雲霄飛車（James 交付規格，部署在 JY Games /coaster/，單一檔案）；首頁卡片＋選單；瀏覽器實測見 docs/ACCEPTANCE.md §33；iPad 實機幀率未測
+  - 2026-10-21 上線：領地 T2＋手指跟隨、拿掉虛擬搖桿（#15 含 #11，main f51e82f，正式站實測）
   - 2026-10-20 產品：塗鴉 V2 規格＋Figma 四頁＋24 配方／29 色＋六張可編輯 SVG 交付，見 docs/product/DOODLE_WORKBENCH_V2.md、docs/design/doodle-workbench-v2。已核對來源 8 色／4 配方與基本色限制，完成資料可達性／舊色與加白方向、設計稿目視檢查；未寫遊戲／部署／實機驗收
   - 2026-10-20 產品附件審查：HANDOFF 與 math-games.zip 已收到並讀完，附錄 A 已取得；整合唯一主規格 docs/product/math-island/開發規格書_v1.md，MATH_ISLAND_M0.md 改導讀。桌機 Chrome 重現蘋果未搬即成功、390 px 裁切、hash 完成態問題，見 docs/reference/math-island-2026-10-20/SOURCE_REVIEW.md（MR01–MR06）。未改遊戲、未部署、未做實機／孩子／FPS 驗收
   - 2026-10-20 產品：依負責人指示停止餐廳／星球救援隊／機器人快遞站／逆風探險賽；不刪程式、存檔或擅自下架。餐廳 f72131f 修正已推送，本輪未複驗、不再派下一輪
