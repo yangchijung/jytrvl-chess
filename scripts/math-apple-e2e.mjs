@@ -121,6 +121,29 @@ try {
     await p.click('[data-testid=mi-zone-basket]', { offset: { x: 10, y: 10 } });
     a = await at(p);
     ok('MA02', 'tap an apple, then tap the basket', a[4] === 'basket', a.join());
+    // James 2026-10-21: anywhere in the basket counts — tapping an apple already in the basket also puts the held one in
+    await p.click('[data-testid=mi-apple-6]');
+    await p.click('[data-testid=mi-apple-4]');
+    a = await at(p);
+    ok('MA02', 'holding an apple, tapping an apple that is already in the basket puts the held apple in too (no empty spot needed)', a[6] === 'basket' && a[4] === 'basket' && !(await p.$('[data-testid^=mi-apple-][aria-pressed=true]')), a.join());
+    // dragging by the apple's edge: the finger is just inside the basket, the apple's centre is still outside
+    {
+      await scrollInto(p, '[data-testid=mi-zone-basket]');
+      const b = await rect(p, '[data-testid=mi-zone-basket]');
+      const ap = await rect(p, '[data-testid=mi-apple-5]');
+      const gx = ap.right - 4, gy = ap.y; // grab near the right edge
+      await p.mouse.move(gx, gy);
+      await p.mouse.down();
+      await p.mouse.move((gx + b.left) / 2, (gy + b.bottom - 20) / 2, { steps: 4 });
+      await p.mouse.move(b.left + 3, b.bottom - 20, { steps: 4 });
+      await p.mouse.up();
+      await sleep(250);
+      ok('MA02', 'holding the apple by its edge: the finger just inside the basket is enough', (await at(p))[5] === 'basket', (await at(p)).join());
+      // back to the state the next checks expect: only apple 4 in the basket
+      await p.click('[data-testid=mi-restart]');
+      await p.click('[data-testid=mi-apple-4]');
+      await p.click('[data-testid=mi-zone-basket]', { offset: { x: 10, y: 10 } });
+    }
     await p.focus('[data-testid=mi-apple-5]');
     await p.keyboard.press('Enter');
     await p.waitForSelector('[data-testid=mi-to-basket]');

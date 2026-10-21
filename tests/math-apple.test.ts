@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { APPLE_PROBLEMS, allIn, answerApple, blankApple, choicesOf, finished, itemsOf, moveApple, nextApple, readApple, restartApple, validApple, type AppleSave } from '../shared/math/apple';
-import { SNAP_PX, distToBox, snapTo } from '../src/math/place';
+import { SNAP_PX, distToBox, dropTo, snapTo } from '../src/math/place';
 import { Progress } from '../src/math/save';
 import { APPLE_KEY } from '../shared/math/apple';
 
@@ -117,6 +117,23 @@ describe('placement rule (MA02, MR04)', () => {
     expect(snapTo(260, 150, [basket, pile])).toMatchObject({ kind: 'target', id: 'pile' });
     expect(snapTo(240, 150, [basket, pile])).toEqual({ kind: 'ambiguous', ids: ['basket', 'pile'] });
     expect(snapTo(Number.NaN, 150, [basket])).toEqual({ kind: 'none' });
+  });  // James 2026-10-21: anywhere in the basket counts
+  const apple = (cx: number, cy: number, r = 28) => ({ left: cx - r, top: cy - r, right: cx + r, bottom: cy + r });
+  it('drop: the finger inside the basket counts even when the apple centre is still outside it', () => {
+    // finger just inside the left edge, apple held by its right side so its centre is 20 px outside (and > 48 px from nothing)
+    expect(dropTo({ x: 101, y: 190 }, apple(80, 190), [basket, pile])).toMatchObject({ kind: 'target', id: 'basket' });
+    // any spot in the basket: corners and middle all count
+    for (const [x, y] of [[100, 100], [199, 199], [150, 150], [110, 195]]) expect(dropTo({ x, y }, apple(x, y), [basket])).toMatchObject({ kind: 'target', id: 'basket' });
+  });
+  it('drop: no finger in an area, but the apple touches the basket — counts; the larger overlap wins between two areas', () => {
+    expect(dropTo({ x: 90, y: 150 }, apple(80, 150), [basket])).toMatchObject({ kind: 'target', id: 'basket' }); // 8 px overlap
+    expect(dropTo({ x: 240, y: 150 }, apple(225, 150), [basket, pile])).toMatchObject({ kind: 'target', id: 'basket' });
+    expect(dropTo({ x: 240, y: 150 }, apple(240, 150, 50), [basket, pile])).toEqual({ kind: 'ambiguous', ids: ['basket', 'pile'] });
+  });
+  it('drop: far away still returns (the 48 px rule on the centre is the last resort)', () => {
+    expect(dropTo({ x: 20, y: 150 }, apple(20, 150), [basket])).toEqual({ kind: 'none' }); // edge 52 px away, centre 80 px
+    expect(dropTo({ x: 60, y: 150 }, apple(60, 150, 10), [basket])).toMatchObject({ kind: 'target', id: 'basket' }); // centre 40 px
+    expect(dropTo(null, apple(Number.NaN, 150), [basket])).toEqual({ kind: 'none' });
   });
 });
 

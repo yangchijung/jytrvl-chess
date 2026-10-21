@@ -1,10 +1,10 @@
 // Math Island — the shared drag controller for every placement game (spec §3 共用操作契約, MR04).
 // One finger only (a second pointer never takes over), the object follows the finger, and on release the
-// object's centre goes through place.ts. pointercancel, lost capture, leaving the page, rotation/resize all
+// finger and the object's rectangle go through place.ts (finger in an area, else overlap, else 48 px). pointercancel, lost capture, leaving the page, rotation/resize all
 // return the object to its last committed place without counting anything. Taps are left to the click
 // handler, so tap-then-tap and keyboard (Enter/Space) share the same move action as dragging.
 import { useCallback, useEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
-import { snapTo, type Target } from './place';
+import { dropTo, type Target } from './place';
 
 interface Drag {
   pid: number;
@@ -25,9 +25,9 @@ export interface DragOptions<Z extends string> {
   onStart?: () => void;
 }
 
-const centreOf = (el: HTMLElement) => {
+const rectOf = (el: HTMLElement) => {
   const r = el.getBoundingClientRect();
-  return { x: (r.left + r.right) / 2, y: (r.top + r.bottom) / 2 };
+  return { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
 };
 
 export function useDragPlace<Z extends string>(opts: DragOptions<Z>) {
@@ -94,8 +94,7 @@ export function useDragPlace<Z extends string>(opts: DragOptions<Z>) {
         o.current.onStart?.();
       }
       d.el.style.transform = `translate(${dx}px, ${dy}px) scale(1.08)`;
-      const c = centreOf(d.el);
-      const sn = snapTo(c.x, c.y, o.current.targets(d.i));
+      const sn = dropTo({ x: e.clientX, y: e.clientY }, rectOf(d.el), o.current.targets(d.i));
       const z = sn.kind === 'target' ? sn.id : null;
       setHot((h) => (h === z ? h : z));
     },
@@ -108,8 +107,7 @@ export function useDragPlace<Z extends string>(opts: DragOptions<Z>) {
         return; // a tap: the click handler selects
       }
       suppress.current = { i: d.i, until: performance.now() + 80 };
-      const c = centreOf(d.el);
-      const sn = snapTo(c.x, c.y, o.current.targets(d.i));
+      const sn = dropTo({ x: e.clientX, y: e.clientY }, rectOf(d.el), o.current.targets(d.i));
       reset(d);
       setHot(null);
       if (sn.kind === 'target') o.current.onDrop(d.i, sn.id);
