@@ -163,7 +163,7 @@ export function TerritoryMatchPage() {
   const [err, setErr] = useState(false);
   useEffect(() => {
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-    const ws = new WebSocket(`${proto}://${location.host}/api/territory/match/ws?name=${encodeURIComponent(name)}`);
+    const ws = new WebSocket(`${proto}://${location.host}/api/territory/match/ws?engine=flow&name=${encodeURIComponent(name)}`);
     ws.onmessage = (e) => {
       const m = JSON.parse(e.data);
       if (m.t === 'queue') setWaiting(m.waiting);

@@ -14,6 +14,8 @@ interface Waiter {
   name: string;
   ipHash: string;
   joinedAt: number;
+  /** T3: pages that steer continuously ask for 'flow'; each engine has its own queue object */
+  engine?: 'grid' | 'flow';
 }
 
 const FILL_TO = 4;
@@ -30,6 +32,7 @@ export class TerritoryLobby extends DurableObject<Env> {
       name: req.headers.get('x-jy-name') ?? 'Guest',
       ipHash: req.headers.get('x-jy-ip') ?? '',
       joinedAt: Date.now(),
+      engine: new URL(req.url).searchParams.get('engine') === 'flow' ? 'flow' : 'grid',
     };
     if (!w.playerId) return new Response('no identity', { status: 400 });
     for (const old of this.ctx.getWebSockets(w.playerId)) old.close(4000, 'replaced');
@@ -77,8 +80,8 @@ export class TerritoryLobby extends DurableObject<Env> {
     if (q.length >= 8 || (q.length >= 1 && now >= due - 50)) {
       const group = q.slice(0, 8);
       const seats: TSeat[] = group.map((x) => ({ playerId: x.w.playerId, userId: x.w.userId, name: x.w.name, bot: false, ipHash: x.w.ipHash }));
-      for (let k = 0; seats.length < FILL_TO; k++) seats.push({ playerId: null, userId: null, name: `${BOT_NAMES[k]}🤖`, bot: true, level: 'medium', ipHash: '' });
-      const room = await this.createRoom(seats);
+      for (let k = 0; seats.length < FILL_TO; k++) seats.push({ playerId: null, userId: null, name: BOT_NAMES[k], bot: true, level: 'medium', ipHash: '' });
+      const room = await this.createRoom(seats, group[0].w.engine === 'flow' ? 'flow' : 'grid');
       for (const x of group) {
         x.ws.send(JSON.stringify({ t: 'matched', room } satisfies TServerMsg));
         x.ws.close(1000, 'matched');
@@ -92,10 +95,10 @@ export class TerritoryLobby extends DurableObject<Env> {
     this.notify();
   }
 
-  private async createRoom(seats: TSeat[]): Promise<string> {
+  private async createRoom(seats: TSeat[], engine: 'grid' | 'flow'): Promise<string> {
     for (let i = 0; i < 5; i++) {
       const id = roomCode();
-      const meta: TRoomMeta = { id, kind: 'match', minutes: 3, hostId: null, createdAt: Date.now() };
+      const meta: TRoomMeta = { id, kind: 'match', minutes: 3, hostId: null, createdAt: Date.now(), engine };
       const stub = this.env.TROOMS.get(this.env.TROOMS.idFromName(id));
       const res = await stub.fetch('https://room/init', { method: 'POST', body: JSON.stringify({ meta, seats }) });
       if (res.ok) return id;

@@ -2,7 +2,10 @@
 // Only steering input is sent; the server owns positions, trails, land and results.
 // Latency handling: entity interpolation between server ticks for everyone, plus an immediate local
 // turn preview for your own runner (the server confirms on the next tick).
-import { TerritoryGame, type Dir } from '../../shared/territory/engine';
+// T3: in a 'flow' room the server runs FlowGame; this page sends target angles ('aim', throttled) and mirrors
+// the continuous positions from each tick. Four-way ('grid') rooms behave exactly as before.
+import { TICK_MS, TerritoryGame, type Dir } from '../../shared/territory/engine';
+import { FlowGame, STEP_MS, dirAngle, wrapAngle } from '../../shared/territory/flow';
 import type { BotLevel } from '../../shared/territory/ai';
 import type { TClientMsg, TLobbyMsg, TServerMsg } from '../../realtime/src/territoryProtocol';
 import { TerritoryClient } from './client';
@@ -19,6 +22,11 @@ export class OnlineTerritory extends TerritoryClient {
   private disposed = false;
   private ping: ReturnType<typeof setInterval>;
   private lastSent: Dir | null = null;
+  /** continuous steering: last angle sent, when, and an angle waiting for the next send slot */
+  private aimSent: number | null = null;
+  private aimAt = 0;
+  private aimTimer: ReturnType<typeof setTimeout> | null = null;
+  private aimNext: number | null = null;
 
   constructor(
     private path: string, // e.g. /api/territory/rooms/ABCD12/ws
@@ -90,8 +98,10 @@ export class OnlineTerritory extends TerritoryClient {
         break;
       case 'snap': {
         this.tracker.synced();
-        const g = TerritoryGame.fromSnapshot(m.snap);
+        const g = m.flow ? FlowGame.fromFlowSnapshot(m.snap, m.flow) : TerritoryGame.fromSnapshot(m.snap);
         this.game = g;
+        this.tickMs = m.flow ? STEP_MS : TICK_MS;
+        this.aimSent = null;
         this.resetBuffers(g);
         this.me = m.mySeat !== null ? [m.mySeat] : [];
         this.status = m.status === 'lobby' ? 'lobby' : m.status;
@@ -124,7 +134,20 @@ export class OnlineTerritory extends TerritoryClient {
           changed.push(m.oc[i]);
           values.push(m.oc[i + 1]);
         }
-        for (let i = 0; i < m.tc.length; i += 2) g.trail[m.tc[i]] = m.tc[i + 1];
+        for (let i = 0; i < m.tc.length; i += 2) {
+          const c: number = m.tc[i];
+          const v: number = m.tc[i + 1];
+          const was: number = g.trail[c];
+          // keep each player's trail list in step (the continuous line is drawn while it is non-empty)
+          if (was >= 0 && was !== v) {
+            const tr = g.players[was]?.trail;
+            const at = tr ? tr.indexOf(c) : -1;
+            if (at >= 0) tr!.splice(at, 1);
+          }
+          if (v >= 0 && was !== v) g.players[v]?.trail.push(c);
+          g.trail[c] = v;
+        }
+        if (g instanceof FlowGame && m.fl) g.applyFlowTick(m.fl);
         for (const ev of m.ev) if (ev.type === 'death') g.players[ev.player].killedBy = ev.by ?? null;
         this.afterTick(now, changed, values, m.ev);
         this.lastSent = null;
@@ -152,7 +175,9 @@ export class OnlineTerritory extends TerritoryClient {
     if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(m));
   }
 
-  steer(_slot: number, d: Dir) {
+  steer(slot: number, d: Dir) {
+    // keys in a continuous room: aim at that direction
+    if (this.flow) return this.steerAngle(slot, dirAngle(d));
     if (this.status !== 'playing' && this.status !== 'countdown') return;
     const g = this.game;
     const me = this.me[0];
@@ -164,6 +189,30 @@ export class OnlineTerritory extends TerritoryClient {
     // local preview: show the new heading right away (server confirms next tick)
     p.dir = d;
     this.send({ t: 'dir', d });
+  }
+
+  /** Continuous rooms: aim at an angle. Sent at most every 70 ms and only when it changed by more than ~0.6°. */
+  steerAngle(_slot: number, angle: number) {
+    const g = this.flow;
+    const me = this.me[0];
+    if (!g || this.status !== 'playing' || me === undefined || !g.players[me]?.alive || !Number.isFinite(angle)) return;
+    const a = wrapAngle(angle);
+    g.flow[me].target = a; // shown at once; the server's next tick confirms it
+    if (this.aimSent !== null && Math.abs(wrapAngle(a - this.aimSent)) < 0.01) return;
+    const wait = 70 - (performance.now() - this.aimAt);
+    if (wait <= 0) return this.sendAim(a);
+    this.aimNext = a;
+    if (!this.aimTimer)
+      this.aimTimer = setTimeout(() => {
+        this.aimTimer = null;
+        if (this.aimNext !== null) this.sendAim(this.aimNext);
+      }, wait);
+  }
+  private sendAim(a: number) {
+    this.aimNext = null;
+    this.aimSent = a;
+    this.aimAt = performance.now();
+    this.send({ t: 'aim', a: Math.round(a * 1000) / 1000 });
   }
 
   start() {
@@ -186,6 +235,7 @@ export class OnlineTerritory extends TerritoryClient {
   dispose() {
     this.disposed = true;
     clearInterval(this.ping);
+    if (this.aimTimer) clearTimeout(this.aimTimer);
     this.ws?.close();
   }
 }
