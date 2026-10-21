@@ -696,7 +696,7 @@ const g3 = (A, i) => [A[i * 3], A[i * 3 + 1], A[i * 3 + 2]];
    until then); everywhere else a light version (3-sided rails, beam, no ties) that the
    fog makes indistinguishable. Full chunks are built when first needed and a few dozen are kept, so a track
    of any length stays light on memory and frame time. */
-const CH = 200, NEAR_M = 90, NEAR_MAX = 10, KEEP_MAX = 32, BUILD_PER_FRAME = 2;
+const CH = 200, NEAR_M = 90, NEAR_MAX = 10, KEEP_MAX = 32, BUILD_PER_FRAME = 1;
 const RED = hex3('#d8413a'), RED2 = hex3('#a92f29'), TIE = hex3('#5d4c40');
 function trackPiece(f, tr, i0, i1, m, full) {
   const ring = full ? 2 : 8, sides = full ? 6 : 3, GA = 0.55, RR = full ? 0.085 : 0.11;
