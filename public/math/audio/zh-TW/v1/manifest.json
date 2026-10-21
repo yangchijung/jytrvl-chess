@@ -1,0 +1,209 @@
+[
+  {
+    "id": "apple_task",
+    "text": "把蘋果放一起。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "apple_task.mp3",
+    "version": 1
+  },
+  {
+    "id": "apple_ask",
+    "text": "一共有幾顆？",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "apple_ask.mp3",
+    "version": 1
+  },
+  {
+    "id": "apple_not_ready",
+    "text": "先把兩堆蘋果都放進籃子，再數一數。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "apple_not_ready.mp3",
+    "version": 1
+  },
+  {
+    "id": "apple_again",
+    "text": "再數一次看看。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "apple_again.mp3",
+    "version": 1
+  },
+  {
+    "id": "apple_where",
+    "text": "要放哪裡？點一下籃子或原來的地方。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "apple_where.mp3",
+    "version": 1
+  },
+  {
+    "id": "apple_done",
+    "text": "五題都完成了。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "apple_done.mp3",
+    "version": 1
+  },
+  {
+    "id": "apple_right_01",
+    "text": "3 加 4，一共 7 顆。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "apple_right_01.mp3",
+    "version": 1
+  },
+  {
+    "id": "apple_right_02",
+    "text": "2 加 3，一共 5 顆。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "apple_right_02.mp3",
+    "version": 1
+  },
+  {
+    "id": "apple_right_03",
+    "text": "4 加 1，一共 5 顆。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "apple_right_03.mp3",
+    "version": 1
+  },
+  {
+    "id": "apple_right_04",
+    "text": "1 加 2，一共 3 顆。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "apple_right_04.mp3",
+    "version": 1
+  },
+  {
+    "id": "apple_right_05",
+    "text": "4 加 4，一共 8 顆。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "apple_right_05.mp3",
+    "version": 1
+  },
+  {
+    "id": "factory_task",
+    "text": "每盒放一樣多。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-15%",
+    "file": "factory_task.mp3",
+    "version": 1
+  },
+  {
+    "id": "factory_ask",
+    "text": "每盒有幾個？",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-15%",
+    "file": "factory_ask.mp3",
+    "version": 1
+  },
+  {
+    "id": "factory_not_all",
+    "text": "還有沒分完的，先全部放進盒子。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-15%",
+    "file": "factory_not_all.mp3",
+    "version": 1
+  },
+  {
+    "id": "factory_unequal",
+    "text": "每盒要一樣多，再分分看。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-15%",
+    "file": "factory_unequal.mp3",
+    "version": 1
+  },
+  {
+    "id": "factory_again",
+    "text": "再數一次看看。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-15%",
+    "file": "factory_again.mp3",
+    "version": 1
+  },
+  {
+    "id": "factory_where",
+    "text": "要放哪裡？點一下盒子或輸送帶。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-15%",
+    "file": "factory_where.mp3",
+    "version": 1
+  },
+  {
+    "id": "factory_done",
+    "text": "五題都完成了。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-15%",
+    "file": "factory_done.mp3",
+    "version": 1
+  },
+  {
+    "id": "factory_right_01",
+    "text": "3 盒，每盒 4 個，一共 12 個。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-15%",
+    "file": "factory_right_01.mp3",
+    "version": 1
+  },
+  {
+    "id": "factory_right_02",
+    "text": "3 盒，每盒 6 個，一共 18 個。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-15%",
+    "file": "factory_right_02.mp3",
+    "version": 1
+  },
+  {
+    "id": "factory_right_03",
+    "text": "2 盒，每盒 4 個，一共 8 個。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-15%",
+    "file": "factory_right_03.mp3",
+    "version": 1
+  },
+  {
+    "id": "factory_right_04",
+    "text": "2 盒，每盒 5 個，一共 10 個。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-15%",
+    "file": "factory_right_04.mp3",
+    "version": 1
+  },
+  {
+    "id": "factory_right_05",
+    "text": "3 盒，每盒 5 個，一共 15 個。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-15%",
+    "file": "factory_right_05.mp3",
+    "version": 1
+  }
+]
