@@ -74,19 +74,19 @@ export const PAGES: Record<string, PageMeta> = {
     index: true,
   },
   '/math': {
-    title: { zh: '數學遊樂島（預覽）｜JY Games', en: 'Math Island (preview) | JY Games' },
-    description: { zh: '動手擺一擺再數一數的數學小遊戲試玩預覽。', en: 'Preview of hands-on maths games: move things, then count.' },
-    index: false,
+    title: { zh: '數學遊樂島｜一年級、三年級動手數學遊戲｜JY Games', en: 'Math Island | Hands-on Maths Games for Grades 1 and 3 | JY Games' },
+    description: { zh: '免登入的兒童數學小遊戲：一年級蘋果籃（合起來數一數）、三年級分裝工廠（平分）。動手擺一擺再數一數，附國語朗讀，不計時、不扣分。', en: 'Free kids maths games with no sign-in: Apple Basket (grade 1, putting together) and Packing Factory (grade 3, equal sharing). Move things, then count; Mandarin voice prompts, no timer, no penalties.' },
+    index: true,
   },
   '/math/g1/apple': {
-    title: { zh: '蘋果籃（數學遊樂島預覽）｜JY Games', en: 'Apple Basket (Math Island preview) | JY Games' },
-    description: { zh: '一年級：把兩堆蘋果放一起，數一數一共幾顆。', en: 'Grade 1: put two groups of apples together and count them.' },
-    index: false,
+    title: { zh: '蘋果籃｜一年級合起來數一數｜數學遊樂島｜JY Games', en: 'Apple Basket | Grade 1 Putting Together | Math Island | JY Games' },
+    description: { zh: '一年級：把兩堆蘋果放進籃子，數一數一共幾顆。5 題，答錯可以再數一次。', en: 'Grade 1: put two groups of apples into the basket and count them. 5 problems; a wrong answer can be counted again.' },
+    index: true,
   },
   '/math/g3/factory': {
-    title: { zh: '分裝工廠（數學遊樂島預覽）｜JY Games', en: 'Packing Factory (Math Island preview) | JY Games' },
-    description: { zh: '三年級：把餅乾平分到每一盒，再說每盒有幾個。', en: 'Grade 3: share cookies equally into boxes, then say how many are in each.' },
-    index: false,
+    title: { zh: '分裝工廠｜三年級平分｜數學遊樂島｜JY Games', en: 'Packing Factory | Grade 3 Equal Sharing | Math Island | JY Games' },
+    description: { zh: '三年級：把餅乾平分到每一盒，再說每盒有幾個。5 題，答錯可以再分一次。', en: 'Grade 3: share cookies equally into boxes, then say how many are in each. 5 problems; a wrong answer can be shared again.' },
+    index: true,
   },
   '/territory/flow': {
     title: { zh: '領地爭奪戰 連續轉向（預覽）｜JY Games', en: 'Territory Rush free steering (preview) | JY Games' },

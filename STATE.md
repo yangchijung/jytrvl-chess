@@ -6,6 +6,7 @@
 Date: 2026-10-20
 Branch/Commit: main（2026-10-19 A3 第八款見最新 commit；存檔複驗原碼 7eae7f3；R5＋塗鴉首版 f80776c）
 Done (with evidence):
+  - 2026-10-21 工程：數學遊樂島正式入口 PR（M0-R，疊在 #12）——首頁「動手學數學」卡片、選單、可索引與 sitemap；首頁 15／15、蘋果籃 51／51、分裝工廠 36／36（docs/ACCEPTANCE.md §32）。合併順序 #10 → #12 → M0-R；實機與孩子試玩未測
   - 2026-10-20 產品：塗鴉 V2 規格＋Figma 四頁＋24 配方／29 色＋六張可編輯 SVG 交付，見 docs/product/DOODLE_WORKBENCH_V2.md、docs/design/doodle-workbench-v2。已核對來源 8 色／4 配方與基本色限制，完成資料可達性／舊色與加白方向、設計稿目視檢查；未寫遊戲／部署／實機驗收
   - 2026-10-20 工程：數學遊樂島 M0-A 蘋果籃（分支 claude/math-m0a，PR 待 James 合併；/math、/math/g1/apple noindex）——5 題固定題、未搬完不判答（MR01）、拖曳／先點再點／鍵盤同一動作規則、48 CSS px 吸附（47/48 進、49 不進）、單指、取消／旋轉回原位、單一寫入者多分頁（Web Locks）、壞檔備份、寫入失敗提示、預錄音檔接線（音檔未產生）。單元 12、瀏覽器 50／50（docs/ACCEPTANCE.md §26）；未做 iPad 實機／Safari／VoiceOver／FPS／孩子試玩
   - 2026-10-20 工程：餐廳 R3-S2／R3-S3 修正 f72131f 已推送（停止開發前的既有成果，產品稽核 17／17、12／12；本輪不複驗）

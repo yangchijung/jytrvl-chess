@@ -35,10 +35,10 @@ async function page(w = 1280, h = 900, opts = {}) {
   p.ctx = ctx;
   return p;
 }
-const GAMES = ['chess', 'xiangqi', 'banqi', 'territory', 'snake', 'blocks', 'sudoku', 'doodle'];
+const GAMES = ['chess', 'xiangqi', 'banqi', 'territory', 'snake', 'blocks', 'sudoku', 'doodle', 'math'];
 const NAMES = {
-  zh: ['西洋棋', '中國象棋', '台灣暗棋', '領地爭奪戰', '貪食蛇競技場', '方塊消除對戰', '數獨', '色彩塗鴉樂'],
-  en: ['Chess', 'Xiangqi', 'Banqi', 'Territory Rush', 'Snake Arena', 'Block Puzzle Battle', 'Sudoku', 'Color Doodle'],
+  zh: ['西洋棋', '中國象棋', '台灣暗棋', '領地爭奪戰', '貪食蛇競技場', '方塊消除對戰', '數獨', '色彩塗鴉樂', '數學遊樂島'],
+  en: ['Chess', 'Xiangqi', 'Banqi', 'Territory Rush', 'Snake Arena', 'Block Puzzle Battle', 'Sudoku', 'Color Doodle', 'Math Island'],
 };
 const pre = (lang) => (lang === 'en' ? '/en' : '');
 
@@ -85,7 +85,7 @@ for (const lang of ['zh', 'en']) {
       decor: main.querySelectorAll('.rounded-full.border-\\[18px\\], [class*=hero]').length,
     };
   }, NAMES[lang]);
-  ok(`HU01-${lang}`, `home ${lang}: 8 games, 3 categories, each name once, H1 = tagline, no emoji / generic /play / prototypes`, m.cards === 8 && m.h2 === 3 && m.counts.every((c) => c === 1) && m.tagline && !m.emoji && m.play === 0 && m.proto === 0 && m.decor === 0, JSON.stringify(m));
+  ok(`HU01-${lang}`, `home ${lang}: 9 games, 4 categories, each name once, H1 = tagline, no emoji / generic /play / prototypes`, m.cards === 9 && m.h2 === 4 && m.counts.every((c) => c === 1) && m.tagline && !m.emoji && m.play === 0 && m.proto === 0 && m.decor === 0, JSON.stringify(m));
   await p.ctx.close();
 }
 
@@ -95,7 +95,8 @@ for (const lang of ['zh', 'en']) {
   const bad = [];
   for (const lang of ['zh', 'en']) {
     for (const g of GAMES) {
-      for (const [kind, path] of [['play', `/${g}`], ['rules', `/learn/${g}`]]) {
+      // Math Island has its demo inside each game, so its card has no separate How to play link
+      for (const [kind, path] of g === 'math' ? [['play', '/math']] : [['play', `/${g}`], ['rules', `/learn/${g}`]]) {
         await p.goto(`${BASE}${pre(lang)}/`, { waitUntil: 'networkidle0' });
         const label = await p.$eval(`[data-testid=${kind}-${g}]`, (a) => a.getAttribute('aria-label') + '|' + a.textContent);
         await Promise.all([p.waitForFunction((x) => location.pathname === x, { timeout: 8000 }, `${pre(lang)}${path}`).catch(() => {}), p.click(`[data-testid=${kind}-${g}]`)]);
@@ -108,7 +109,7 @@ for (const lang of ['zh', 'en']) {
   }
   await p.goto(`${BASE}/play`, { waitUntil: 'networkidle0' });
   const playOk = (await p.evaluate(() => document.querySelector('main')?.innerText.length ?? 0)) > 20;
-  ok('HU02', '32 links (8 Play + 8 How to play × zh/en) reach the right page in the same language; old /play still works', bad.length === 0 && playOk, bad.join(' ; '));
+  ok('HU02', '34 links (9 Play + 8 How to play × zh/en) reach the right page in the same language; old /play still works', bad.length === 0 && playOk, bad.join(' ; '));
   await p.ctx.close();
 }
 
@@ -241,7 +242,7 @@ for (const lang of ['zh', 'en']) {
   await p.screenshot({ path: `${OUT}/menu-1280-open.png` });
   await p.ctx.close();
   if (homeCur.join() !== '/' || lbCur.join() !== '/leaderboard') fails.push(`desktop current home=${homeCur} lb=${lbCur}`);
-  ok('HU05', 'menu opens/closes at 360/768/1280 and a short 1280×480 screen; 8 games + leaderboard/history/settings/profile/login; Esc returns focus; outside click does not; route change closes; correct aria-current', fails.length === 0, fails.join(' ; '));
+  ok('HU05', 'menu opens/closes at 360/768/1280 and a short 1280×480 screen; 9 games + leaderboard/history/settings/profile/login; Esc returns focus; outside click does not; route change closes; correct aria-current', fails.length === 0, fails.join(' ; '));
 }
 
 // ---------------------------------------------------------------- HU06: sign-in states, language, theme

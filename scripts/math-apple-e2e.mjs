@@ -76,7 +76,7 @@ try {
       await open(p, path, lang);
       await p.reload({ waitUntil: 'networkidle0' });
       const robots = await p.$eval('meta[name=robots]', (m) => m.content).catch(() => 'missing');
-      ok('MA01', `${lang || 'zh'} ${path} opens directly and after reload, noindex`, (await p.$(path === APPLE ? '[data-testid=mi-apple]' : '[data-testid=mi-island]')) && /noindex/.test(robots), robots);
+      ok('MA01', `${lang || 'zh'} ${path} opens directly and after reload, indexable (public since the release PR)`, (await p.$(path === APPLE ? '[data-testid=mi-apple]' : '[data-testid=mi-island]')) && /^index/.test(robots), robots);
     }
     await open(p, '/math');
     await p.click('[data-testid=mi-start-apple]');
@@ -85,7 +85,7 @@ try {
     await p.waitForSelector('[data-testid=mi-island]');
     ok('MA01', 'island → game → back to island', true);
     const robotsTxt = await (await fetch(`${BASE}/robots.txt`)).text();
-    ok('MA01', 'robots.txt disallows /math and /en/math', /Disallow: \/math\n/.test(robotsTxt) && /Disallow: \/en\/math\n/.test(robotsTxt));
+    ok('MA01', 'robots.txt no longer blocks /math or /en/math; sitemap lists them', !/Disallow: \/(en\/)?math/.test(robotsTxt) && /\/math<\/loc>/.test(await (await fetch(`${BASE}/sitemap.xml`)).text()));
     await p.goto(`${BASE}/math/g1/nothing`, { waitUntil: 'networkidle0' });
     ok('MA01', 'unknown /math path shows the site 404 page', /找不到|not found|404/i.test(await p.$eval('main', (m) => m.textContent)));
     await p.ctx.close();
@@ -300,7 +300,8 @@ try {
     const files = await p.evaluate(async () => {
       const m = await (await fetch('/math/audio/zh-TW/v1/manifest.json')).json();
       const out = [];
-      for (const c of m) {
+      // the manifest is shared with Packing Factory (23 clips); this game owns the apple_* clips
+      for (const c of m.filter((x) => x.id.startsWith('apple_'))) {
         const r = await fetch(`/math/audio/zh-TW/v1/${c.file}`);
         const b = await r.arrayBuffer();
         out.push([c.id, r.status, r.headers.get('content-type'), b.byteLength, new Uint8Array(b)[0]]);
