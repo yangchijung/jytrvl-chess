@@ -7,6 +7,8 @@ import { SnakePreview } from '../snake/pages';
 import { BlocksPreview } from '../blocks/pages';
 import { SudokuPreview } from '../sudoku/preview';
 import { DoodlePreview } from '../doodle/preview';
+import { CoasterPreview } from '../coaster/preview';
+import { IslandArt } from '../math/art';
 import type { GameId } from '../../shared/types';
 
 export function GamePreview({ game }: { game: GameId }) {
@@ -57,14 +59,17 @@ export function GamePreview({ game }: { game: GameId }) {
 // Home = game catalogue (HOME_SHARED_UI_V1 §2). Task: pick a game and go straight in.
 // Primary action per game: "Play" (its own entry); secondary: "How to play" (its tutorial).
 export function Home() {
-  const { t, to } = useI18n();
-  type AnyGame = GameId | 'territory' | 'snake' | 'blocks' | 'sudoku' | 'doodle';
-  const categories: { key: 'home.cat.board' | 'home.cat.realtime' | 'home.cat.puzzle'; games: AnyGame[] }[] = [
+  const { t, to, lang } = useI18n();
+  // Sketch Coaster is its own page (/coaster/), opened with a full page load in the same language
+  const playHref = (g: AnyGame) => (g === 'coaster' ? `/coaster/?lang=${lang}` : to(`/${g}`));
+  type AnyGame = GameId | 'territory' | 'snake' | 'blocks' | 'sudoku' | 'doodle' | 'coaster' | 'math';
+  const categories: { key: 'home.cat.board' | 'home.cat.realtime' | 'home.cat.puzzle' | 'home.cat.learn'; games: AnyGame[] }[] = [
     { key: 'home.cat.board', games: ['chess', 'xiangqi', 'banqi'] },
     { key: 'home.cat.realtime', games: ['territory', 'snake'] },
-    { key: 'home.cat.puzzle', games: ['blocks', 'sudoku', 'doodle'] },
+    { key: 'home.cat.puzzle', games: ['blocks', 'sudoku', 'doodle', 'coaster'] },
+    { key: 'home.cat.learn', games: ['math'] },
   ];
-  const preview = (g: AnyGame) => (g === 'territory' ? <TerritoryPreview /> : g === 'snake' ? <SnakePreview /> : g === 'blocks' ? <BlocksPreview /> : g === 'sudoku' ? <SudokuPreview /> : g === 'doodle' ? <DoodlePreview /> : <GamePreview game={g} />);
+  const preview = (g: AnyGame) => (g === 'territory' ? <TerritoryPreview /> : g === 'snake' ? <SnakePreview /> : g === 'blocks' ? <BlocksPreview /> : g === 'sudoku' ? <SudokuPreview /> : g === 'doodle' ? <DoodlePreview /> : g === 'coaster' ? <CoasterPreview /> : g === 'math' ? <IslandArt /> : <GamePreview game={g} />);
   return (
     <div className="pb-4" data-testid="home">
       <header className="py-6">
@@ -94,12 +99,14 @@ export function Home() {
                       </div>
                     </div>
                     <div className="mt-4 flex flex-wrap items-center gap-2">
-                      <LinkButton to={to(`/${g}`)} className="min-h-12 px-5" aria-label={t('home.v2.playLabel', { game: name })} data-testid={`play-${g}`}>
+                      <LinkButton to={playHref(g)} reload={g === 'coaster'} className="min-h-12 px-5" aria-label={t('home.v2.playLabel', { game: name })} data-testid={`play-${g}`}>
                         {t('home.v2.play')}
                       </LinkButton>
+                      {g !== 'coaster' && g !== 'math' && (
                       <Link to={to(`/learn/${g}`)} className="ui-t inline-flex min-h-11 items-center rounded-md px-3 font-medium text-[var(--ui-accent-text)] underline underline-offset-4 hover:bg-[var(--surface-2)]" aria-label={t('home.v2.rulesLabel', { game: name })} data-testid={`rules-${g}`}>
                         {t('home.v2.rules')}
                       </Link>
+                      )}
                     </div>
                   </li>
                 );
