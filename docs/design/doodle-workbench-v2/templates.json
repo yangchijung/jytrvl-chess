@@ -1,0 +1,376 @@
+{
+  "version": 2,
+  "kind": "design_handoff_not_runtime",
+  "viewBox": {
+    "width": 400,
+    "height": 300
+  },
+  "templates": [
+    {
+      "id": "fish",
+      "name": {
+        "zh": "我的小魚",
+        "en": "My fish"
+      },
+      "regions": [
+        {
+          "id": "tail",
+          "name": {
+            "zh": "尾巴",
+            "en": "Tail"
+          },
+          "d": "M268 150 C300 118 330 92 368 78 C356 116 354 184 368 222 C330 208 300 182 268 150 Z"
+        },
+        {
+          "id": "body",
+          "name": {
+            "zh": "身體",
+            "en": "Body"
+          },
+          "d": "M44 150 C70 84 150 58 220 70 C262 78 292 110 300 150 C292 190 262 222 220 230 C150 242 70 216 44 150 Z"
+        },
+        {
+          "id": "fin",
+          "name": {
+            "zh": "魚鰭",
+            "en": "Fin"
+          },
+          "d": "M128 84 C150 34 214 24 256 64 C238 70 214 74 200 80 C176 76 150 78 128 84 Z"
+        }
+      ],
+      "details": "<circle cx=\"96\" cy=\"132\" r=\"10\" fill=\"#253A35\" stroke=\"none\"/><path d=\"M50 160 C58 164 66 164 72 160\" fill=\"none\"/>",
+      "svg": "line-art/fish.svg",
+      "accessibleOrder": [
+        "body",
+        "tail",
+        "fin"
+      ]
+    },
+    {
+      "id": "garden",
+      "name": {
+        "zh": "小小花園",
+        "en": "Little garden"
+      },
+      "regions": [
+        {
+          "id": "stem",
+          "name": {
+            "zh": "花莖",
+            "en": "Stem"
+          },
+          "d": "M192 115 H208 V225 H192 Z"
+        },
+        {
+          "id": "leaf_left",
+          "name": {
+            "zh": "左葉",
+            "en": "Left leaf"
+          },
+          "d": "M192 202 C132 200 104 162 116 138 C158 139 188 158 192 202 Z"
+        },
+        {
+          "id": "leaf_right",
+          "name": {
+            "zh": "右葉",
+            "en": "Right leaf"
+          },
+          "d": "M208 183 C252 181 282 150 276 126 C235 127 211 150 208 183 Z"
+        },
+        {
+          "id": "petals",
+          "name": {
+            "zh": "花瓣",
+            "en": "Petals"
+          },
+          "d": "M200 38 C226 6 263 32 248 61 C289 57 300 103 264 117 C278 150 239 171 219 145 C202 180 162 163 168 133 C128 148 108 110 138 89 C106 64 132 31 165 47 C167 13 197 11 200 38 Z"
+        },
+        {
+          "id": "center",
+          "name": {
+            "zh": "花心",
+            "en": "Flower centre"
+          },
+          "d": "M231 91 A31 31 0 1 1 169 91 A31 31 0 1 1 231 91 Z"
+        },
+        {
+          "id": "pot",
+          "name": {
+            "zh": "花盆",
+            "en": "Flowerpot"
+          },
+          "d": "M112 211 H288 L270 282 H130 Z"
+        }
+      ],
+      "details": "<path d=\"M118 232 H282\" fill=\"none\"/>",
+      "svg": "line-art/garden.svg",
+      "accessibleOrder": [
+        "stem",
+        "leaf_left",
+        "leaf_right",
+        "petals",
+        "center",
+        "pot"
+      ]
+    },
+    {
+      "id": "butterfly",
+      "name": {
+        "zh": "彩色蝴蝶",
+        "en": "Butterfly"
+      },
+      "regions": [
+        {
+          "id": "upper_left",
+          "name": {
+            "zh": "左上翅",
+            "en": "Upper left wing"
+          },
+          "d": "M192 140 C171 35 80 17 52 62 C27 105 81 155 185 160 Z"
+        },
+        {
+          "id": "upper_right",
+          "name": {
+            "zh": "右上翅",
+            "en": "Upper right wing"
+          },
+          "d": "M208 140 C229 35 320 17 348 62 C373 105 319 155 215 160 Z"
+        },
+        {
+          "id": "lower_left",
+          "name": {
+            "zh": "左下翅",
+            "en": "Lower left wing"
+          },
+          "d": "M185 157 C102 141 58 194 83 237 C113 285 175 236 194 171 Z"
+        },
+        {
+          "id": "lower_right",
+          "name": {
+            "zh": "右下翅",
+            "en": "Lower right wing"
+          },
+          "d": "M215 157 C298 141 342 194 317 237 C287 285 225 236 206 171 Z"
+        },
+        {
+          "id": "body",
+          "name": {
+            "zh": "身體",
+            "en": "Body"
+          },
+          "d": "M184 106 C182 88 218 88 216 106 L210 229 Q200 246 190 229 Z"
+        }
+      ],
+      "details": "<path d=\"M194 96 Q189 68 174 63 M206 96 Q211 68 226 63\" fill=\"none\"/><circle cx=\"194\" cy=\"118\" r=\"3\" fill=\"#253A35\" stroke=\"none\"/><circle cx=\"206\" cy=\"118\" r=\"3\" fill=\"#253A35\" stroke=\"none\"/>",
+      "svg": "line-art/butterfly.svg",
+      "accessibleOrder": [
+        "upper_left",
+        "upper_right",
+        "lower_left",
+        "lower_right",
+        "body"
+      ]
+    },
+    {
+      "id": "dinosaur",
+      "name": {
+        "zh": "散步恐龍",
+        "en": "Walking dinosaur"
+      },
+      "regions": [
+        {
+          "id": "plates",
+          "name": {
+            "zh": "背上的角",
+            "en": "Back plates"
+          },
+          "d": "M99 142 L110 100 L137 123 L162 82 L184 119 L213 83 L230 123 L255 105 L268 151 Z"
+        },
+        {
+          "id": "back_leg",
+          "name": {
+            "zh": "後腳",
+            "en": "Back leg"
+          },
+          "d": "M231 190 H280 L273 260 H229 Z"
+        },
+        {
+          "id": "front_leg",
+          "name": {
+            "zh": "前腳",
+            "en": "Front leg"
+          },
+          "d": "M133 191 H178 L173 260 H130 Z"
+        },
+        {
+          "id": "body",
+          "name": {
+            "zh": "身體",
+            "en": "Body"
+          },
+          "d": "M110 149 C151 110 234 110 268 145 L295 163 L328 150 Q350 144 347 160 C330 191 312 210 275 209 C226 243 170 235 134 208 L99 209 L85 150 L54 137 Q30 116 50 88 Q79 53 111 85 Q128 100 110 149 Z"
+        },
+        {
+          "id": "belly",
+          "name": {
+            "zh": "肚子",
+            "en": "Belly"
+          },
+          "d": "M162 177 C190 154 242 155 263 180 C253 219 199 228 170 204 Z"
+        }
+      ],
+      "details": "<circle cx=\"73\" cy=\"104\" r=\"6\" fill=\"#253A35\" stroke=\"none\"/><path d=\"M44 121 Q56 131 68 126 M139 250 H163 M239 250 H262\" fill=\"none\"/>",
+      "svg": "line-art/dinosaur.svg",
+      "accessibleOrder": [
+        "plates",
+        "back_leg",
+        "front_leg",
+        "body",
+        "belly"
+      ]
+    },
+    {
+      "id": "rocket",
+      "name": {
+        "zh": "出發火箭",
+        "en": "Rocket launch"
+      },
+      "regions": [
+        {
+          "id": "flame",
+          "name": {
+            "zh": "火焰",
+            "en": "Flame"
+          },
+          "d": "M173 219 Q155 256 183 278 L199 262 L215 285 Q247 255 227 219 Z"
+        },
+        {
+          "id": "left_fin",
+          "name": {
+            "zh": "左翼",
+            "en": "Left fin"
+          },
+          "d": "M153 143 Q98 162 103 233 L160 206 Z"
+        },
+        {
+          "id": "right_fin",
+          "name": {
+            "zh": "右翼",
+            "en": "Right fin"
+          },
+          "d": "M247 143 Q302 162 297 233 L240 206 Z"
+        },
+        {
+          "id": "body",
+          "name": {
+            "zh": "機身",
+            "en": "Rocket body"
+          },
+          "d": "M158 87 Q200 59 242 87 L250 215 Q200 231 150 215 Z"
+        },
+        {
+          "id": "nose",
+          "name": {
+            "zh": "尖頂",
+            "en": "Nose cone"
+          },
+          "d": "M158 87 Q165 44 200 18 Q235 44 242 87 Z"
+        },
+        {
+          "id": "window",
+          "name": {
+            "zh": "窗戶",
+            "en": "Window"
+          },
+          "d": "M230 143 A30 30 0 1 1 170 143 A30 30 0 1 1 230 143 Z"
+        }
+      ],
+      "details": "<path d=\"M155 200 H245\" fill=\"none\"/>",
+      "svg": "line-art/rocket.svg",
+      "accessibleOrder": [
+        "flame",
+        "left_fin",
+        "right_fin",
+        "body",
+        "nose",
+        "window"
+      ]
+    },
+    {
+      "id": "house",
+      "name": {
+        "zh": "我的小屋",
+        "en": "My little house"
+      },
+      "regions": [
+        {
+          "id": "chimney",
+          "name": {
+            "zh": "煙囪",
+            "en": "Chimney"
+          },
+          "d": "M264 40 H300 V112 H264 Z"
+        },
+        {
+          "id": "wall",
+          "name": {
+            "zh": "牆壁",
+            "en": "Walls"
+          },
+          "d": "M80 126 H320 V274 H80 Z"
+        },
+        {
+          "id": "roof",
+          "name": {
+            "zh": "屋頂",
+            "en": "Roof"
+          },
+          "d": "M48 130 L200 25 L352 130 Z"
+        },
+        {
+          "id": "door",
+          "name": {
+            "zh": "門",
+            "en": "Door"
+          },
+          "d": "M169 183 Q200 155 231 183 V274 H169 Z"
+        },
+        {
+          "id": "left_window",
+          "name": {
+            "zh": "左窗",
+            "en": "Left window"
+          },
+          "d": "M101 155 H151 V213 H101 Z"
+        },
+        {
+          "id": "right_window",
+          "name": {
+            "zh": "右窗",
+            "en": "Right window"
+          },
+          "d": "M249 155 H299 V213 H249 Z"
+        },
+        {
+          "id": "bush",
+          "name": {
+            "zh": "小樹叢",
+            "en": "Bush"
+          },
+          "d": "M35 275 Q24 242 54 240 Q59 218 81 236 Q115 233 111 275 Z"
+        }
+      ],
+      "details": "<circle cx=\"214\" cy=\"230\" r=\"4\" fill=\"#253A35\" stroke=\"none\"/><path d=\"M126 155 V213 M101 184 H151 M274 155 V213 M249 184 H299\" fill=\"none\"/>",
+      "svg": "line-art/house.svg",
+      "accessibleOrder": [
+        "chimney",
+        "wall",
+        "roof",
+        "door",
+        "left_window",
+        "right_window",
+        "bush"
+      ]
+    }
+  ]
+}
