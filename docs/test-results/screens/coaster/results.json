@@ -1,6 +1,6 @@
 {
-  "at": "2026-10-21T13:15:47.084Z",
-  "passed": 16,
+  "at": "2026-10-21T14:54:33.513Z",
+  "passed": 18,
   "failed": 0,
   "results": [
     {
@@ -73,7 +73,19 @@
       "id": "R4",
       "name": "at the top of a loop the seat is upside down: the 3D view shows the ground at the top of the screen",
       "pass": true,
-      "info": "{\"up\":{\"tx\":-0.9584191037573461,\"g\":-0.03940467103854248,\"sky\":[[37,42,51],[116,192,91]]},\"sky\":[[37,42,51],[116,192,91]]}"
+      "info": "{\"up\":{\"tx\":-0.9532667993488642,\"g\":-0.03253542597067976,\"sky\":[[37,42,50],[116,192,91]]},\"sky\":[[37,42,50],[116,192,91]]}"
+    },
+    {
+      "id": "L2",
+      "name": "a line longer than 1,500 m is kept whole (no length limit) and becomes a track",
+      "pass": true,
+      "info": "{\"mode\":\"ready\",\"len\":1709}"
+    },
+    {
+      "id": "L3",
+      "name": "a 5821 m track with many loops rides to the end; the 3D track stays light (light mesh for far parts, a few full-detail chunks near the eye)",
+      "pass": true,
+      "info": "{\"len\":5821,\"done\":true,\"t\":411.95833333304085,\"flipped\":true,\"buildMs\":14968,\"scenery\":168792,\"chunks\":118,\"farVerts\":176460,\"fullKept\":48,\"px\":[[116,118,120],[193,54,47]]}"
     },
     {
       "id": "SH1",

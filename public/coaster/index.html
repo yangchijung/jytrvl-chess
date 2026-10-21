@@ -104,7 +104,7 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
    World units are metres. x = horizontal, y = height above the ground (up). Screen: PX_PER_M px per metre
    in the drawing view; the ground line is always GROUND_PX above the bottom of the screen.
    ===================================================================================================== */
-const PX_PER_M = 10, GROUND_PX = 76, MIN_Y = 1.2, MIN_LEN = 25, MAX_LEN = 1500, STATION = 30;
+const PX_PER_M = 10, GROUND_PX = 76, MIN_Y = 1.2, MIN_LEN = 25, STATION = 30; // no maximum length (James 2026-10-21)
 const G = 9.81, SUB_DT = 1 / 240, HOLD = 2.2, VMIN = 10, V0 = 1.5, BRAKE_LEFT = 14, CAR_LEN = 2.4, CAR_GAP = 0.25;
 const DS = 0.25; // track sample spacing (m)
 
@@ -691,37 +691,54 @@ function frames3D(tr) {
 }
 const g3 = (A, i) => [A[i * 3], A[i * 3 + 1], A[i * 3 + 2]];
 
-function buildWorld(tr) {
-  const f = frames3D(tr), m = new Mesh();
-  const RED = hex3('#d8413a'), RED2 = hex3('#a92f29'), TIE = hex3('#5d4c40'), SUP = hex3('#e8ebf0'), SUP2 = hex3('#9ba3b0');
-  const ring = 2; // every 0.5 m
-  const GA = 0.55, RR = 0.085;
-  // rails: 6-sided tubes, smooth normals
+/* Track geometry is built in chunks of CH samples (50 m). Near the eye a chunk is drawn in full detail
+   (6-sided rails, beam, ties, struts); everywhere else a light version (3-sided rails, beam, no ties) that the
+   fog makes indistinguishable. Full chunks are built when first needed and a few dozen are kept, so a track
+   of any length stays light on memory and frame time. */
+const CH = 200, NEAR_M = 140, NEAR_MAX = 24, KEEP_MAX = 48;
+const RED = hex3('#d8413a'), RED2 = hex3('#a92f29'), TIE = hex3('#5d4c40');
+function trackPiece(f, tr, i0, i1, m, full) {
+  const ring = full ? 2 : 8, sides = full ? 6 : 3, GA = 0.55, RR = full ? 0.085 : 0.11;
+  const steps = [];
+  for (let i = i0; i < i1; i += ring) steps.push(i);
+  steps.push(i1);
   for (const side of [-1, 1]) {
     let prev = null;
-    for (let i = 0; i < tr.n; i += ring) {
+    for (const i of steps) {
       const c = add(g3(f.P, i), mul(g3(f.B, i), GA * side)), b = g3(f.B, i), u = g3(f.U, i);
       const pts = [], nrm = [];
-      for (let k = 0; k < 6; k++) { const a = (k / 6) * Math.PI * 2; const d = add(mul(b, Math.cos(a)), mul(u, Math.sin(a))); nrm.push(d); pts.push(add(c, mul(d, RR))); }
-      if (prev) for (let k = 0; k < 6; k++) { const k2 = (k + 1) % 6; m.squad(prev.pts[k], pts[k], pts[k2], prev.pts[k2], prev.nrm[k], nrm[k], nrm[k2], prev.nrm[k2], RED); }
+      for (let k = 0; k < sides; k++) { const a = (k / sides) * Math.PI * 2 + (full ? 0 : Math.PI / 2); const d = add(mul(b, Math.cos(a)), mul(u, Math.sin(a))); nrm.push(d); pts.push(add(c, mul(d, RR))); }
+      if (prev) for (let k = 0; k < sides; k++) { const k2 = (k + 1) % sides; m.squad(prev.pts[k], pts[k], pts[k2], prev.pts[k2], prev.nrm[k], nrm[k], nrm[k2], prev.nrm[k2], RED); }
       prev = { pts, nrm };
     }
   }
   // main beam under the rails: square tube
-  {
-    let prev = null;
-    for (let i = 0; i < tr.n; i += ring) {
-      const c = add(g3(f.P, i), mul(g3(f.U, i), -0.46)), b = g3(f.B, i), u = g3(f.U, i);
-      const pts = [add(add(c, mul(b, 0.17)), mul(u, 0.17)), add(add(c, mul(b, -0.17)), mul(u, 0.17)), add(add(c, mul(b, -0.17)), mul(u, -0.17)), add(add(c, mul(b, 0.17)), mul(u, -0.17))];
-      if (prev) for (let k = 0; k < 4; k++) { const k2 = (k + 1) % 4; m.quad(prev[k], pts[k], pts[k2], prev[k2], RED2); }
-      prev = pts;
-    }
+  let prev = null;
+  for (const i of steps) {
+    const c = add(g3(f.P, i), mul(g3(f.U, i), -0.46)), b = g3(f.B, i), u = g3(f.U, i);
+    const pts = [add(add(c, mul(b, 0.17)), mul(u, 0.17)), add(add(c, mul(b, -0.17)), mul(u, 0.17)), add(add(c, mul(b, -0.17)), mul(u, -0.17)), add(add(c, mul(b, 0.17)), mul(u, -0.17))];
+    if (prev) for (let k = 0; k < 4; k++) { const k2 = (k + 1) % 4; m.quad(prev[k], pts[k], pts[k2], prev[k2], RED2); }
+    prev = pts;
   }
+  if (!full) return;
   // ties and struts
-  for (let i = 0; i < tr.n; i += 3) {
+  for (let i = i0 - (i0 % 3) + (i0 % 3 ? 3 : 0); i < i1; i += 3) {
     const p = g3(f.P, i), t = g3(f.T, i), u = g3(f.U, i), b = g3(f.B, i);
     m.box(add(p, mul(u, -0.1)), b, u, t, GA + 0.08, 0.05, 0.07, TIE);
     if (i % 6 === 0) m.box(add(p, mul(u, -0.24)), b, u, t, 0.05, 0.12, 0.05, RED2);
+  }
+}
+function buildWorld(tr) {
+  const f = frames3D(tr), m = new Mesh();
+  const SUP = hex3('#e8ebf0'), SUP2 = hex3('#9ba3b0');
+  // light version of every chunk, one buffer, with each chunk's range and centre
+  const far = new Mesh(), chunks = [];
+  for (let i0 = 0; i0 < tr.n - 1; i0 += CH) {
+    const i1 = Math.min(tr.n - 1, i0 + CH), first = far.count;
+    trackPiece(f, tr, i0, i1, far, false);
+    let cx = 0, cy = 0, cz = 0, k = 0;
+    for (let i = i0; i <= i1; i += 8) { cx += f.P[i * 3]; cy += f.P[i * 3 + 1]; cz += f.P[i * 3 + 2]; k++; }
+    chunks.push({ i0, i1, first, count: far.count - first, c: [cx / k, cy / k, cz / k] });
   }
   // supports from the beam to the ground where the track is upright
   for (let i = 0; i < tr.n; i += Math.round(5 / DS)) {
@@ -784,7 +801,7 @@ function buildWorld(tr) {
     const col = jitter(hex3('#5f7fa3'), MR, 0.12);
     m.tri([cx + Math.cos(a0) * r, 0, Math.sin(a0) * r], [cx + Math.cos(am) * (r - 30), hgt, Math.sin(am) * (r - 30)], [cx + Math.cos(a1) * r, 0, Math.sin(a1) * r], col, norm([-Math.cos(am), 0.4, -Math.sin(am)]));
   }
-  return { f, mesh: m };
+  return { f, mesh: m, far, chunks, full: new Map() };
 }
 
 const GL = { gl: null, prog: null, buf: null, count: 0, sky: null, skyCount: 0, ok: false };
@@ -828,6 +845,33 @@ function uploadWorld(w) {
   gl.bindBuffer(gl.ARRAY_BUFFER, GL.buf);
   gl.bufferData(gl.ARRAY_BUFFER, w.mesh.data(), gl.STATIC_DRAW);
   GL.count = w.mesh.count;
+  if (!GL.far) GL.far = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, GL.far);
+  gl.bufferData(gl.ARRAY_BUFFER, w.far.data(), gl.STATIC_DRAW);
+  w.far = null; // the data lives on the GPU now
+  for (const c of w.full.values()) gl.deleteBuffer(c.buf);
+  w.full.clear();
+}
+/** The full-detail mesh of one chunk, built on first use; the least recently used are dropped. */
+function fullChunk(w, k) {
+  const gl = GL.gl;
+  let c = w.full.get(k);
+  if (!c) {
+    const m = new Mesh(), ch = w.chunks[k];
+    trackPiece(w.f, track, ch.i0, ch.i1, m, true);
+    c = { buf: gl.createBuffer(), count: m.count, used: 0 };
+    gl.bindBuffer(gl.ARRAY_BUFFER, c.buf);
+    gl.bufferData(gl.ARRAY_BUFFER, m.data(), gl.STATIC_DRAW);
+    w.full.set(k, c);
+    if (w.full.size > KEEP_MAX) {
+      let old = null;
+      for (const [kk, v] of w.full) if (!old || v.used < old[1].used) old = [kk, v];
+      gl.deleteBuffer(old[1].buf);
+      w.full.delete(old[0]);
+    }
+  }
+  c.used = performance.now();
+  return c;
 }
 function perspective(fov, asp, n, f) { const t = 1 / Math.tan(fov / 2), nf = 1 / (n - f); return [t / asp, 0, 0, 0, 0, t, 0, 0, 0, 0, (f + n) * nf, -1, 0, 0, 2 * f * n * nf, 0]; }
 function lookAt(e, c, up) {
@@ -870,6 +914,13 @@ function draw3D(s) {
   gl.uniformMatrix4fv(GL.loc.uM, false, new Float32Array(mat(proj, viewM)));
   gl.uniform3fv(GL.loc.uEye, eye); gl.uniform3fv(GL.loc.uL, norm([0.55, 0.8, 0.45])); gl.uniform1f(GL.loc.uLit, 1); gl.uniform2f(GL.loc.uFog, 60, 1500);
   gl.drawArrays(gl.TRIANGLES, 0, GL.count);
+  // track: full detail for the nearest chunks, the light version for the rest
+  const d2 = world.chunks.map((c, k) => [k, (c.c[0] - eye[0]) ** 2 + (c.c[1] - eye[1]) ** 2 + (c.c[2] - eye[2]) ** 2]);
+  d2.sort((a, b) => a[1] - b[1]);
+  const near = new Set(d2.filter((x, j) => j < NEAR_MAX && x[1] < (NEAR_M + 30) ** 2).map((x) => x[0]));
+  gl.bindBuffer(gl.ARRAY_BUFFER, GL.far); bindAttribs(gl);
+  world.chunks.forEach((c, k) => { if (!near.has(k) && c.count) gl.drawArrays(gl.TRIANGLES, c.first, c.count); });
+  for (const k of near) { const c = fullChunk(world, k); gl.bindBuffer(gl.ARRAY_BUFFER, c.buf); bindAttribs(gl); gl.drawArrays(gl.TRIANGLES, 0, c.count); }
   // the front of the first car and the lap bar, riding with you
   const T = T1, B = norm(cross(T, U)), c = new Mesh(), YEL = hex3('#f4c430'), YD = hex3('#d9a514'), BAR = hex3('#3a4250');
   const at3 = (ft, fu, fb) => add(add(add(P, mul(T, ft)), mul(U, fu)), mul(B, fb));
@@ -1079,7 +1130,7 @@ let drawId = null;
 function toWorld(e) { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / view.scale + view.ox, y: Math.max(MIN_Y, (gy() - (e.clientY - r.top)) / view.scale) }; }
 function addPoint(p) {
   const last = raw[raw.length - 1];
-  if (last) { const d = Math.hypot(p.x - last.x, p.y - last.y); if (d < 0.2) return; if (rawLen + d > MAX_LEN) return; rawLen += d; }
+  if (last) { const d = Math.hypot(p.x - last.x, p.y - last.y); if (d < 0.2) return; rawLen += d; }
   raw.push(p);
 }
 cv.addEventListener('pointerdown', (e) => {
@@ -1189,7 +1240,9 @@ window.__coaster = {
     while (r.phase !== 'stopped' && steps < 240 * 600) { stepRide(tr, r); steps++; if (steps % 24 === 0) trace.push(r.s.toFixed(6), r.v.toFixed(6), r.gf.toFixed(6)); if (r.phase === 'run' && at(tr, r.s).tx * tr.sigma < -0.5) flipped = true; }
     return { steps, time: r.time, maxV: r.maxV, maxG: r.maxG, air: r.air, flipped, hash: hashStr(trace.join(',')), sigma: tr.sigma };
   },
-  smoothLine, encode, decode, buildTrack,
+  smoothLine, encode, decode, buildTrack, buildWorld, frames3D,
+  /** 3D load: vertices in the always-on mesh and the light track, and full-detail chunks currently kept */
+  worldStats() { return world ? { scenery: GL.count, chunks: world.chunks.length, farVerts: world.chunks.reduce((n, c) => n + c.count, 0), fullKept: world.full.size } : null; },
   /** run the live ride forward by `sec` seconds of simulation (slow test machines) */
   ff(sec) { if (!ride) return null; for (let k = 0; k < Math.round(sec / SUB_DT); k++) { stepRide(track, ride); ride.events.length = 0; } return { s: ride.s, v: ride.v, gf: ride.gf, phase: ride.phase }; },
   /** draw one 3D frame now and read pixels at relative points (no preserveDrawingBuffer needed) */
