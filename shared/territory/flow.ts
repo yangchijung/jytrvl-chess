@@ -175,3 +175,15 @@ export class FlowGame extends TerritoryGame {
     return true;
   }
 }
+
+/** A turn counts once the heading has changed by more than this since the last counted turn (tutorial, T2). */
+export const BIG_TURN = (70 * Math.PI) / 180;
+/** Counts big turns from a stream of headings (tiny per-frame changes never add up to a turn by themselves). */
+export function turnCounter(start: number) {
+  let ref = start;
+  return (heading: number) => {
+    if (Math.abs(wrapAngle(heading - ref)) < BIG_TURN) return false;
+    ref = heading;
+    return true;
+  };
+}

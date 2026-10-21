@@ -40,6 +40,25 @@ interface Run {
   acc: number;
   last: number;
   prev: [number, number][];
+  /** when the page went to the background (null while visible) */
+  hiddenAt: number | null;
+}
+
+/**
+ * Background pause (Issue #8 P2), same meaning as the classic local game: while the page is hidden nothing
+ * moves, in the countdown or in play. On return the countdown keeps the time it had left and play resumes from
+ * this moment with an empty step budget, so there is no catch-up burst.
+ */
+export function setHidden(R: Pick<Run, 'status' | 'startAt' | 'acc' | 'last' | 'hiddenAt'>, hidden: boolean, now: number) {
+  if (hidden) {
+    if (R.hiddenAt === null) R.hiddenAt = now;
+    return;
+  }
+  if (R.hiddenAt === null) return;
+  if (R.status === 'countdown') R.startAt += now - R.hiddenAt;
+  R.last = now;
+  R.acc = 0;
+  R.hiddenAt = null;
 }
 function newRun(now: number): Run {
   const seed = Math.floor(Math.random() * 2 ** 31);
@@ -48,7 +67,7 @@ function newRun(now: number): Run {
   const r = rng(seed ^ 0x51ed);
   const bots = BOTS.map((name) => ({ idx: g.addPlayer(`b-${name}`, name, true).idx, mem: newBotMemory(), rand: rng(Math.floor(r() * 2 ** 31)) }));
   g.start();
-  return { g, bots, status: 'countdown', startAt: now + COUNTDOWN_MS, acc: 0, last: now, prev: g.flow.map((f) => [f.fx, f.fy]) };
+  return { g, bots, status: 'countdown', startAt: now + COUNTDOWN_MS, acc: 0, last: now, prev: g.flow.map((f) => [f.fx, f.fy]), hiddenAt: typeof document !== 'undefined' && document.hidden ? now : null };
 }
 
 export function TerritoryFlowPage() {
@@ -72,6 +91,10 @@ export function TerritoryFlowPage() {
       raf = requestAnimationFrame(loop);
       const R = run.current;
       const g = R.g;
+      if (R.hiddenAt !== null) {
+        draw(now);
+        return;
+      }
       if (R.status === 'countdown' && now >= R.startAt) {
         R.status = 'playing';
         R.last = now;
@@ -183,8 +206,16 @@ export function TerritoryFlowPage() {
       }
       void now;
     };
+    const onVis = () => {
+      setHidden(run.current, document.hidden, performance.now());
+      rerender();
+    };
+    document.addEventListener('visibilitychange', onVis);
     raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      document.removeEventListener('visibilitychange', onVis);
+    };
   }, [rerender]);
 
   // keyboard
