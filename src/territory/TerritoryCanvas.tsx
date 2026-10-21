@@ -64,6 +64,11 @@ export function TerritoryCanvas({ client, overlay }: { client: TerritoryClient; 
     prevStatus.current = client.status;
   });
 
+  // test hook (read-only view of the client in the browser checks)
+  useEffect(() => {
+    (window as unknown as { __tr?: TerritoryClient }).__tr = client;
+  }, [client]);
+
   // render loop
   useEffect(() => {
     let raf = 0;
@@ -136,16 +141,65 @@ export function TerritoryCanvas({ client, overlay }: { client: TerritoryClient; 
     return () => window.removeEventListener('keydown', onKey);
   }, [client]);
 
+  // ---- continuous steering (FlowGame): point / touch at any angle, relative to the player's drawn head ----
+  const flow = !!client.flow;
+  const [hint, setHint] = useState<'mouse' | 'touch'>(() => (typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches ? 'touch' : 'mouse'));
+  /** one finger per player: pointerId → slot */
+  const touches = useRef<Map<number, number>>(new Map());
+  useEffect(() => {
+    touches.current.clear(); // a new round / client never inherits a pressed finger
+  }, [client]);
+  const slotOf = (clientX: number) => {
+    const rect = wrap.current!.getBoundingClientRect();
+    return client.me.length === 2 && clientX - rect.left > rect.width / 2 ? 1 : 0;
+  };
+  const aim = (slot: number, clientX: number, clientY: number) => {
+    const idx = client.me[slot];
+    const sh = idx === undefined ? null : client.screenHeads[idx];
+    if (!sh) return;
+    const rect = wrap.current!.getBoundingClientRect();
+    const dx = clientX - rect.left - sh.x,
+      dy = clientY - rect.top - sh.y;
+    if (Math.hypot(dx, dy) < sh.cell * 0.6) return; // dead zone on top of the player: keep the heading
+    client.steerAngle(slot, Math.atan2(dy, dx));
+  };
+  const flowDown = (e: React.PointerEvent) => {
+    if (e.pointerType === 'mouse') return;
+    setHint('touch');
+    const slot = slotOf(e.clientX);
+    if ([...touches.current.values()].includes(slot)) return; // a second finger never takes over
+    touches.current.set(e.pointerId, slot);
+    try {
+      wrap.current?.setPointerCapture(e.pointerId);
+    } catch {
+      /* ignore */
+    }
+    aim(slot, e.clientX, e.clientY); // turns at once, no swipe distance
+  };
+  const flowMove = (e: React.PointerEvent) => {
+    if (e.pointerType === 'mouse') {
+      if (client.me.length !== 1) return; // one mouse never steers two players
+      setHint('mouse');
+      aim(0, e.clientX, e.clientY);
+      return;
+    }
+    const slot = touches.current.get(e.pointerId);
+    if (slot !== undefined) aim(slot, e.clientX, e.clientY);
+  };
+  const flowUp = (e: React.PointerEvent) => touches.current.delete(e.pointerId); // the last heading is kept
+
   // mouse / touch
   const swipe = useRef<Map<number, { x: number; y: number; slot: number }>>(new Map());
   const lastMouseDir = useRef<Dir | null>(null);
   const onPointerDown = (e: React.PointerEvent) => {
+    if (flow) return flowDown(e);
     if (e.pointerType === 'mouse') return;
     const rect = wrap.current!.getBoundingClientRect();
     const slot = client.me.length === 2 && e.clientX - rect.left > rect.width / 2 ? 1 : 0;
     swipe.current.set(e.pointerId, { x: e.clientX, y: e.clientY, slot });
   };
   const onPointerMove = (e: React.PointerEvent) => {
+    if (flow) return flowMove(e);
     if (e.pointerType === 'mouse') {
       const sh = client.screenHead;
       if (!sh || client.me.length !== 1) return;
@@ -169,7 +223,10 @@ export function TerritoryCanvas({ client, overlay }: { client: TerritoryClient; 
     client.steer(s.slot, d);
     swipe.current.set(e.pointerId, { x: e.clientX, y: e.clientY, slot: s.slot });
   };
-  const onPointerUp = (e: React.PointerEvent) => swipe.current.delete(e.pointerId);
+  const onPointerUp = (e: React.PointerEvent) => {
+    if (flow) return flowUp(e);
+    swipe.current.delete(e.pointerId);
+  };
 
   // virtual joystick
   const joyRef = useRef<HTMLDivElement>(null);
@@ -182,7 +239,10 @@ export function TerritoryCanvas({ client, overlay }: { client: TerritoryClient; 
     const kx = len > max ? (dx / len) * max : dx,
       ky = len > max ? (dy / len) * max : dy;
     setKnob([kx, ky]);
-    if (len > 16) client.steer(0, Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : 3) : dy > 0 ? 2 : 0);
+    if (len > 16) {
+      if (flow) client.steerAngle(0, Math.atan2(dy, dx)); // analog: any angle
+      else client.steer(0, Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : 3) : dy > 0 ? 2 : 0);
+    }
   };
 
   const g = client.game;
@@ -202,11 +262,13 @@ export function TerritoryCanvas({ client, overlay }: { client: TerritoryClient; 
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
+      onLostPointerCapture={flow ? onPointerUp : undefined}
       role="application"
       aria-label={t('game.territory')}
       data-status={client.status}
       data-tick={g?.tick}
       data-dir={mePlayers[0]?.dir}
+      data-flow={flow ? 'true' : undefined}
       data-alive={mePlayers[0] ? String(mePlayers[0].alive) : undefined}
     >
       <canvas ref={canvas} className="absolute inset-0 h-full w-full" />
@@ -214,7 +276,7 @@ export function TerritoryCanvas({ client, overlay }: { client: TerritoryClient; 
       {/* HUD: own stats */}
       <div className="pointer-events-none absolute left-2 top-2 flex flex-col gap-1">
         {mePlayers.map((p) => (
-          <div key={p.idx} className="rounded-xl bg-black/55 px-3 py-1.5 text-white backdrop-blur-sm">
+          <div key={p.idx} className="rounded-lg bg-black/70 px-3 py-1.5 text-white">
             <div className="flex items-center gap-2 text-sm font-semibold">
               <span className="h-3 w-3 rounded-sm" style={{ background: PALETTE[p.color % 8].base }} />
               {p.name}
@@ -228,13 +290,13 @@ export function TerritoryCanvas({ client, overlay }: { client: TerritoryClient; 
         ))}
         {remaining !== null && (
           <div className="w-fit rounded-lg bg-black/55 px-3 py-1 font-mono text-sm text-white tabular-nums" role="timer" aria-label={t('tr.hud.time')}>
-            ⏱ {fmtTime(remaining)}
+            {fmtTime(remaining)}
           </div>
         )}
       </div>
 
       {/* HUD: leaderboard */}
-      <div className="pointer-events-none absolute right-2 top-2 w-44 rounded-xl bg-black/55 p-2 text-xs text-white backdrop-blur-sm sm:w-52" aria-live="off">
+      <div className="pointer-events-none absolute right-2 top-2 w-44 rounded-lg bg-black/70 p-2 text-xs text-white sm:w-52" aria-live="off">
         <div className="mb-1 font-semibold opacity-80">{t('tr.hud.rank')}</div>
         <ol className="space-y-0.5">
           {ranking.slice(0, 5).map((p, i) => (
@@ -262,7 +324,7 @@ export function TerritoryCanvas({ client, overlay }: { client: TerritoryClient; 
         {feed.map((f) => {
           if (f.ev.type === 'capture')
             return (
-              <div key={f.id} className="rounded-full bg-[var(--accent-fill)] px-3 py-1 text-sm font-semibold text-white shadow">
+              <div key={f.id} className="rounded-md bg-[var(--accent-fill)] px-3 py-1 text-sm font-semibold text-white">
                 +{f.ev.cells}
               </div>
             );
@@ -275,8 +337,8 @@ export function TerritoryCanvas({ client, overlay }: { client: TerritoryClient; 
                 : t('tr.ev.killed', { killer: name(f.ev.by), name: name(f.ev.player) })
               : t(`tr.ev.died.${f.ev.reason}` as StringKey, { name: name(f.ev.player) });
           return (
-            <div key={f.id} className={`rounded-full px-3 py-1 text-sm font-semibold shadow ${byMe ? 'bg-[var(--gold)] text-black' : mine ? 'bg-red-600 text-white' : 'bg-black/60 text-white'}`}>
-              {mine && !byMe ? `💥 ${t('tr.ev.youDied')} — ` : ''}
+            <div key={f.id} className={`rounded-md px-3 py-1 text-sm font-semibold ${byMe ? 'bg-[var(--gold)] text-black' : mine ? 'bg-red-600 text-white' : 'bg-black/60 text-white'}`}>
+              {mine && !byMe ? `${t('tr.ev.youDied')} — ` : ''}
               {text}
             </div>
           );
@@ -284,14 +346,16 @@ export function TerritoryCanvas({ client, overlay }: { client: TerritoryClient; 
       </div>
 
       {/* minimap */}
-      <canvas ref={mini} className="pointer-events-none absolute bottom-2 right-2 h-24 w-24 rounded-lg border-2 border-white/70 shadow sm:h-32 sm:w-32" style={{ imageRendering: 'pixelated' }} aria-hidden="true" />
+      <canvas ref={mini} className="pointer-events-none absolute bottom-2 right-2 h-24 w-24 rounded-lg border-2 border-white/70 sm:h-32 sm:w-32" style={{ imageRendering: 'pixelated' }} aria-hidden="true" />
 
       {/* controls hint & joystick toggle */}
-      <div className="absolute bottom-2 left-2 flex items-center gap-2">
-        <span className="pointer-events-none hidden rounded-lg bg-black/45 px-2 py-1 text-xs text-white sm:inline">{client.me.length === 2 ? t('tr.hud.controls2p') : t('tr.hud.controls')}</span>
+      <div className="absolute bottom-2 left-2 right-28 flex flex-wrap items-end gap-2 sm:right-36">
+        <span className={`pointer-events-none rounded-lg bg-black/60 px-2 py-1 text-xs text-white ${flow ? 'inline' : 'hidden sm:inline'}`} data-testid="tr-hint">
+          {flow ? (client.me.length === 2 ? t('tr.hud.flow2p') : hint === 'touch' ? t('tr.hud.flowTouch') : t('tr.hud.flowMouse')) : client.me.length === 2 ? t('tr.hud.controls2p') : t('tr.hud.controls')}
+        </span>
         {client.me.length === 1 && (
           <button type="button" onClick={() => setJoystick((j) => !j)} className="min-h-11 rounded-lg bg-black/45 px-3 text-xs text-white" aria-pressed={joystick}>
-            🕹 {t('tr.hud.joystick')}
+            {t('tr.hud.joystick')}
           </button>
         )}
       </div>
@@ -313,13 +377,13 @@ export function TerritoryCanvas({ client, overlay }: { client: TerritoryClient; 
             setKnob(null);
           }}
         >
-          <div className="absolute left-1/2 top-1/2 h-12 w-12 rounded-full bg-white/80 shadow" style={{ transform: `translate(calc(-50% + ${knob?.[0] ?? 0}px), calc(-50% + ${knob?.[1] ?? 0}px))` }} />
+          <div className="absolute left-1/2 top-1/2 h-12 w-12 rounded-full bg-white/80" style={{ transform: `translate(calc(-50% + ${knob?.[0] ?? 0}px), calc(-50% + ${knob?.[1] ?? 0}px))` }} />
         </div>
       )}
 
       {client.status === 'countdown' && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25">
-          <div className="animate-pulse rounded-2xl bg-black/60 px-8 py-4 text-center text-white">
+          <div className="rounded-xl bg-black/70 px-8 py-4 text-center text-white">
             <div className="text-lg">{t('tr.hud.countdown')}</div>
             <div className="text-6xl font-bold tabular-nums">{Math.max(1, Math.ceil((client.countdownEnd - now) / 1000))}</div>
           </div>

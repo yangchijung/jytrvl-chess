@@ -178,7 +178,7 @@ try {
     await sleep(800);
     const overflow = await p.evaluate(() => document.documentElement.scrollWidth > innerWidth);
     ok('mobile: no horizontal scroll', !overflow);
-    await clickText(p, '🕹');
+    await p.$eval('[role=application] button[aria-pressed]', (b) => b.click()); // joystick toggle (no emoji label since T2)
     ok('mobile: joystick toggles', await p.$('[aria-pressed=true]').then(Boolean));
     await shot(p, 't08-mobile');
     await p.close();

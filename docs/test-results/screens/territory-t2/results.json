@@ -1,0 +1,110 @@
+{
+  "base": "http://127.0.0.1:8788",
+  "at": "2026-10-21T04:27:09.347Z",
+  "passed": 17,
+  "failed": 0,
+  "results": [
+    {
+      "id": "TC01",
+      "name": "regular solo game (home → 領地爭奪戰 → 單人 → 開始): pointing the mouse at 30° makes the runner travel at 30°, not a right angle",
+      "pass": true,
+      "info": "{\"target\":\"29.8\",\"moved\":\"29.8\",\"hint\":\"滑鼠指向哪裡，就往哪裡走\"}"
+    },
+    {
+      "id": "TC05",
+      "name": "the countdown takes no input (target unchanged while counting down)",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "TC01",
+      "name": "more angles: 60°, 135°, −150° each become the target (head keeps moving while the mouse does, so ±3°)",
+      "pass": true,
+      "info": "-149.3"
+    },
+    {
+      "id": "BG",
+      "name": "hidden page pauses the regular game (runner alive, game running); on return it resumes without a catch-up burst",
+      "pass": true,
+      "info": "playing 39 39 44 alive=true"
+    },
+    {
+      "id": "TC05",
+      "name": "arrow key takes over (−90°), a still mouse does not grab it back",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "TC07",
+      "name": "computer players move with the same continuous steering (headings off the four axes)",
+      "pass": true,
+      "info": "-180,52"
+    },
+    {
+      "id": "TC03",
+      "name": "touch: a tap turns at once (120°, no swipe distance), dragging updates (−45°), a second finger cannot take over, lifting keeps the heading",
+      "pass": true,
+      "info": "{\"tap\":\"119.9\",\"drag\":\"-44.7\",\"second\":\"-44.7\"}"
+    },
+    {
+      "id": "TC09",
+      "name": "390 px phone: no sideways scroll; only the play area blocks page gestures",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "TC07",
+      "name": "two players on one device: each half of the screen steers only its own player (both at once); WASD and arrow keys are separate",
+      "pass": true,
+      "info": "{\"p1\":\"46\",\"want1\":\"45\",\"p2\":\"-22\",\"want2\":\"-21\"}"
+    },
+    {
+      "id": "TC07",
+      "name": "tutorial uses continuous steering with a picture per lesson; small wiggles do not count, three real turns complete lesson 1",
+      "pass": true,
+      "info": "wiggle=0"
+    },
+    {
+      "id": "TC09",
+      "name": "360×780 zh light: continuous game opens from the hub, no sideways scroll, controls ≥ 44 px",
+      "pass": true,
+      "info": "{\"hscroll\":false,\"joy\":44}"
+    },
+    {
+      "id": "TC09",
+      "name": "360×780 /en dark: continuous game opens from the hub, no sideways scroll, controls ≥ 44 px",
+      "pass": true,
+      "info": "{\"hscroll\":false,\"joy\":44}"
+    },
+    {
+      "id": "TC09",
+      "name": "768×1024 zh light: continuous game opens from the hub, no sideways scroll, controls ≥ 44 px",
+      "pass": true,
+      "info": "{\"hscroll\":false,\"joy\":44}"
+    },
+    {
+      "id": "TC09",
+      "name": "768×1024 /en dark: continuous game opens from the hub, no sideways scroll, controls ≥ 44 px",
+      "pass": true,
+      "info": "{\"hscroll\":false,\"joy\":44}"
+    },
+    {
+      "id": "TC09",
+      "name": "1280×900 zh light: continuous game opens from the hub, no sideways scroll, controls ≥ 44 px",
+      "pass": true,
+      "info": "{\"hscroll\":false,\"joy\":44}"
+    },
+    {
+      "id": "TC09",
+      "name": "1280×900 /en dark: continuous game opens from the hub, no sideways scroll, controls ≥ 44 px",
+      "pass": true,
+      "info": "{\"hscroll\":false,\"joy\":44}"
+    },
+    {
+      "id": "ALL",
+      "name": "no page errors",
+      "pass": true,
+      "info": ""
+    }
+  ]
+}
