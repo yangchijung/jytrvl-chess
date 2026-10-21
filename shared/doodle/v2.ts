@@ -49,7 +49,13 @@ export interface SavedV2 {
   active: LessonRun | null;
   /** where this document came from the first time (kept for support; never re-imported) */
   origin: 'new' | 'v1';
+  /**
+   * Saves this version builds on, oldest first (at most ANC_MAX tokens "tab.n"). Lets a tab without Web Locks
+   * check later that its save is still part of the stored drawing (product review R2a).
+   */
+  anc?: string[];
 }
+export const ANC_MAX = 64;
 
 export const blankWork = (): SceneWork => ({ fills: empty<SceneOp>(), mixedOrange: false, done: false });
 export function blankV2(): SavedV2 {
@@ -104,6 +110,7 @@ export function validV2(x: unknown): x is SavedV2 {
   if (!s.scenes || typeof s.scenes !== 'object') return false;
   for (const [id, w] of Object.entries(s.scenes)) if (!(id in SCENE_REGIONS) || !validWork(w, SCENE_REGIONS[id])) return false;
   if (!(s.active === null || validRun(s.active, isColorId))) return false;
+  if (s.anc !== undefined && !(Array.isArray(s.anc) && s.anc.length <= ANC_MAX && s.anc.every((t) => typeof t === 'string' && t.length > 0 && t.length <= 40))) return false;
   return s.origin === 'new' || s.origin === 'v1';
 }
 

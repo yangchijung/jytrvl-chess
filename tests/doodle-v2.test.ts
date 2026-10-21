@@ -72,7 +72,16 @@ function v1Data() {
 }
 function mem(init: Record<string, string> = {}) {
   const m = new Map(Object.entries(init));
-  return { m, getItem: (k: string) => (m.has(k) ? m.get(k)! : null), setItem: (k: string, v: string) => void m.set(k, v) };
+  return {
+    m,
+    getItem: (k: string) => (m.has(k) ? m.get(k)! : null),
+    setItem: (k: string, v: string) => void m.set(k, v),
+    removeItem: (k: string) => void m.delete(k),
+    key: (i: number) => [...m.keys()][i] ?? null,
+    get length() {
+      return m.size;
+    },
+  };
 }
 const noLocks = () => Object.defineProperty(globalThis, 'navigator', { configurable: true, value: {} });
 
@@ -288,5 +297,89 @@ describe('Product review R1/R2 (PR #13)', () => {
     expect(a.commit({ ...a.v, free: pushFree(a.v.free, { t: 'stroke', color: 'gray', size: 'm', pts: [[0.3, 0.3], [0.4, 0.4]] })! })).toBe(false);
     const stored = JSON.parse(st.m.get(V2_KEY)!);
     expect([stored.free.n, stored.grid.n]).toEqual([1, 1]);
+  });
+
+  // Product review R2a (PR #13 comment 6309136330): the check and the write are not one step without Web Locks.
+  it('R2a: B saves between A\'s check and A\'s write — B\'s stamp is kept aside, B says so, nothing is lost', () => {
+    noLocks();
+    const st = mem();
+    const a = new DoodleStore(st);
+    const b = new DoodleStore(st);
+    a.start();
+    b.start();
+    const write = st.setItem;
+    let interleave = true;
+    st.setItem = (key: string, value: string) => {
+      if (interleave && key === V2_KEY) {
+        interleave = false;
+        b.commit({ ...b.v, grid: { ops: [{ t: 'cell', i: 2, value: { color: 'blue', shape: 'circle' } }], n: 1 } });
+      }
+      write(key, value);
+    };
+    a.commit({ ...a.v, free: pushFree(empty(), { t: 'stroke', color: 'pink', size: 'm', pts: [[0.1, 0.1], [0.2, 0.2]] })! });
+    st.setItem = write;
+    // the shared document holds A's stroke (A did write last)
+    const stored = JSON.parse(st.m.get(V2_KEY)!);
+    expect([stored.free.n, stored.grid.n]).toEqual([1, 0]);
+    // B finds out (storage event, its own check after saving, its next change or leaving the page)
+    b.verify();
+    expect(b.status).not.toBe('ok');
+    expect(b.conflict && JSON.parse(b.conflict).grid.ops[0].i).toBe(2);
+    const aside = [...st.m.entries()].filter(([k]) => k.startsWith(`${V2_KEY}.conflict-`)).map(([, v]) => JSON.parse(v));
+    expect(aside.some((d) => d.grid.n === 1 && d.grid.ops[0].value.color === 'blue')).toBe(true);
+    // B now shows A's drawing and can keep going on top of it; both saves end up in the shared document
+    expect(b.v.free.n).toBe(1);
+    expect(b.commit({ ...b.v, grid: { ops: [{ t: 'cell', i: 2, value: { color: 'blue', shape: 'circle' } }], n: 1 } })).toBe(true);
+    const after = JSON.parse(st.m.get(V2_KEY)!);
+    expect([after.free.n, after.grid.n]).toEqual([1, 1]);
+    // A is not falsely warned: B built on A's save
+    a.verify();
+    expect(a.conflict).toBeNull();
+    expect([...st.m.keys()].filter((k) => k.startsWith(`${V2_KEY}.tab-`))).toHaveLength(1); // B's newest copy until A builds on it
+  });
+
+  it('R2a: a tab that closed before it could check — its overwritten save is copied aside on the next load', () => {
+    noLocks();
+    const st = mem();
+    const a = new DoodleStore(st);
+    const b = new DoodleStore(st);
+    a.start();
+    b.start();
+    const write = st.setItem;
+    let interleave = true;
+    st.setItem = (key: string, value: string) => {
+      if (interleave && key === V2_KEY) {
+        interleave = false;
+        b.commit({ ...b.v, grid: { ops: [{ t: 'cell', i: 4, value: { color: 'green', shape: 'circle' } }], n: 1 } });
+      }
+      write(key, value);
+    };
+    a.commit({ ...a.v, free: pushFree(empty(), { t: 'stroke', color: 'pink', size: 'm', pts: [[0.1, 0.1], [0.2, 0.2]] })! });
+    st.setItem = write;
+    // B's tab is closed without running anything more; its own copy is old by the time the child comes back
+    const k = [...st.m.keys()].find((x) => x.startsWith(`${V2_KEY}.tab-`) && JSON.parse(st.m.get(x)!).doc.includes('green'))!;
+    st.m.set(k, JSON.stringify({ ...JSON.parse(st.m.get(k)!), at: Date.now() - 60_000 }));
+    const c = new DoodleStore(st);
+    c.start();
+    expect(c.conflict && JSON.parse(c.conflict).grid.ops[0].value.color).toBe('green');
+    expect(st.m.has(k)).toBe(false);
+    expect([...st.m.entries()].some(([x, v]) => x.startsWith(`${V2_KEY}.conflict-`) && v.includes('green'))).toBe(true);
+  });
+
+  it('R2a: ordinary turns between tabs raise no false conflicts and leave no copies behind', () => {
+    noLocks();
+    const st = mem();
+    const a = new DoodleStore(st);
+    a.start();
+    a.commit({ ...a.v, free: pushFree(a.v.free, { t: 'stroke', color: 'pink', size: 'm', pts: [[0.1, 0.1], [0.2, 0.2]] })! });
+    const b = new DoodleStore(st); // opened after A saved
+    b.start();
+    b.commit({ ...b.v, grid: { ops: [{ t: 'cell', i: 1, value: { color: 'blue', shape: 'circle' } }], n: 1 } });
+    a.verify();
+    expect(a.conflict).toBeNull();
+    expect(a.status).toBe('ok');
+    expect(validV2(JSON.parse(st.m.get(V2_KEY)!))).toBe(true);
+    expect(JSON.parse(st.m.get(V2_KEY)!).anc).toHaveLength(2);
+    expect([...st.m.keys()].filter((k) => k.includes('.conflict-'))).toHaveLength(0);
   });
 });

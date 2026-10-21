@@ -365,6 +365,52 @@ try {
     await ctx.close();
   }
 
+  // ---------------------------------------------------------------- R2a: an overlapping write from another tab
+  // A real cross-tab race cannot be scheduled from the outside, so tab A writes the shared document directly
+  // with a version that does not build on B's save (what A's late write looks like); B must notice.
+  {
+    const ctx = await browser.createBrowserContext();
+    const mk = async () => {
+      const q = await page(1280, 900, { ctx });
+      await q.evaluateOnNewDocument(() => {
+        try {
+          Object.defineProperty(Navigator.prototype, 'locks', { configurable: true, get: () => undefined });
+        } catch {
+          /* ignore */
+        }
+      });
+      await go(q);
+      return q;
+    };
+    const a = await mk();
+    const b = await mk();
+    await b.bringToFront();
+    await tap(b, '[data-testid=surface-grid]');
+    await tap(b, '[data-testid=cell-2]');
+    await sleep(200);
+    const savedB = await V2(b);
+    // A's late write: the same document without B's stamp, with A's own stroke, not built on B's save
+    const stale = await a.evaluate(() => {
+      const raw = localStorage.getItem('jy.doodle.v2');
+      const d = raw ? JSON.parse(raw) : null;
+      if (!d) return null;
+      d.grid = { ops: [], n: 0 };
+      d.free = { ops: [{ t: 'stroke', color: 'pink', size: 'm', pts: [[0.1, 0.1], [0.3, 0.3]] }], n: 1 };
+      d.anc = ['othertab.1'];
+      localStorage.setItem('jy.doodle.v2', JSON.stringify(d));
+      return true;
+    });
+    await sleep(400);
+    const after = await b.evaluate(() => ({
+      aside: Object.entries(localStorage).filter(([k]) => k.startsWith('jy.doodle.v2.conflict-')).map(([, v]) => JSON.parse(v).grid.n),
+      banner: !!document.querySelector('[data-testid=tab-conflict]'),
+      status: window.__doodle?.status,
+      free: window.__doodle?.s.free.n,
+    }));
+    ok('R2a', 'no Web Locks: another tab writes over B’s saved stamp — B keeps the stamp aside, shows the alert with a download, no longer says saved, and shows the newest drawing', stale !== null && savedB.grid.n === 1 && after.aside.includes(1) && after.banner && after.status !== 'ok' && after.free === 1, JSON.stringify({ stale: !!stale, savedB: savedB.grid.n, ...after }));
+    await ctx.close();
+  }
+
   // ---------------------------------------------------------------- CP08 broken / newer V2, storage full, two tabs
   {
     const p = await page(1280, 900);
