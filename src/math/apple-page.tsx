@@ -218,6 +218,11 @@ export function ApplePage() {
     e.stopPropagation();
     if (dragger.wasDrag(it.i)) return;
     if (viewer || s.solved) return;
+    // holding another apple: tapping anywhere in a place it can go (even on an apple already there) puts it there
+    if (sel !== null && sel !== it.i) {
+      const z: Zone = s.at[it.i] === 'basket' ? 'basket' : it.group === 'a' ? 'pile-a' : 'pile-b';
+      if (canGo(z)) return onZoneClick(z);
+    }
     setSel((v) => (v === it.i ? null : it.i));
   };
   const onZoneClick = (z: Zone) => {

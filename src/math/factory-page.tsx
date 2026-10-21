@@ -158,6 +158,8 @@ export function FactoryPage() {
       onClick={(e) => {
         e.stopPropagation();
         if (dragger.wasDrag(i) || viewer || s.solved) return;
+        // holding another cookie: tapping a cookie in a box (or on the belt) puts the held one in that same place
+        if (sel !== null && sel !== i && canGo(zoneOf(s.at[i]))) return move(sel, s.at[i]);
         setSel((v) => (v === i ? null : i));
       }}
     >
