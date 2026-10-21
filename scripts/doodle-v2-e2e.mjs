@@ -315,6 +315,56 @@ try {
     await p.ctx.close();
   }
 
+  // ---------------------------------------------------------------- R1 (PR #13 review): a drawing kept in .recovered
+  {
+    const p = await page(1280, 900);
+    await p.goto(`${BASE}/`, { waitUntil: 'networkidle0' });
+    const v1 = JSON.stringify({ schemaVersion: 1, free: { ops: [{ t: 'stroke', color: 'green', size: 'm', pts: [[0.2, 0.2], [0.5, 0.4]] }], n: 1 }, grid: { ops: [], n: 0 }, done: [], level: 'easy', mixedColors: [], surface: 'free', active: null });
+    await p.evaluate((t) => (localStorage.clear(), localStorage.setItem('jy.doodle.v1', '{"broken'), localStorage.setItem('jy.doodle.v1.recovered', t)), v1);
+    await go(p);
+    await tap(p, '[data-testid=swatch-red]');
+    await stroke(p, 0.3, 0.7);
+    await p.reload({ waitUntil: 'networkidle0' });
+    await sleep(200);
+    const d = await D(p);
+    const keep = await p.evaluate(() => [localStorage.getItem('jy.doodle.v1'), localStorage.getItem('jy.doodle.v1.recovered')]);
+    ok('R1', 'a V1 drawing kept only in the alternate place (main key unreadable) moves into V2 and is still there after drawing and reloading; both V1 texts unchanged', d.s.free.n === 2 && d.s.free.ops[0].color === 'green' && keep[0] === '{"broken' && keep[1] === v1, `n=${d.s.free.n}`);
+    await p.ctx.close();
+  }
+  // ---------------------------------------------------------------- R2: two tabs in a browser without Web Locks
+  {
+    const ctx = await browser.createBrowserContext();
+    const mk = async () => {
+      const q = await page(1280, 900, { ctx });
+      await q.evaluateOnNewDocument(() => {
+        try {
+          Object.defineProperty(Navigator.prototype, 'locks', { configurable: true, get: () => undefined });
+        } catch {
+          /* ignore */
+        }
+      });
+      await go(q);
+      return q;
+    };
+    const a = await mk();
+    const b = await mk();
+    const roles = [(await D(a)).role, (await D(b)).role];
+    await a.bringToFront();
+    await tap(a, '[data-testid=swatch-pink]').catch(async () => {
+      await tap(a, '[data-testid=all-colours]');
+      await tap(a, '[data-testid=swatch-pink]');
+    });
+    await stroke(a);
+    await b.bringToFront();
+    await tap(b, '[data-testid=surface-grid]');
+    await tap(b, '[data-testid=cell-0]');
+    await sleep(200);
+    const v2 = await V2(b);
+    const conflict = await b.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('jy.doodle.v2.conflict-')).length);
+    ok('R2', 'no Web Locks, two fresh tabs: A’s first stroke is never overwritten by B; B shows the newest drawing, keeps its own change aside and says so', roles.join() === 'uncoordinated,uncoordinated' && v2.free.n === 1 && (await D(b)).s.free.n === 1 && (conflict >= 1 || v2.grid.n === 1) && (!!(await b.$('[data-testid=tab-conflict]')) || v2.grid.n === 1), `${roles} free=${v2.free.n} grid=${v2.grid.n} conflict=${conflict}`);
+    await ctx.close();
+  }
+
   // ---------------------------------------------------------------- CP08 broken / newer V2, storage full, two tabs
   {
     const p = await page(1280, 900);

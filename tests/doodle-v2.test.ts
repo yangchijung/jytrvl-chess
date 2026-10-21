@@ -232,3 +232,61 @@ describe('Color Doodle V2 picture templates (CP05, CP06)', () => {
     expect(validV2(s)).toBe(true);
   });
 });
+
+describe('Product review R1/R2 (PR #13)', () => {
+  const v1 = () => v1Data();
+  for (const where of ['main', 'scene'] as const)
+    for (const primary of ['missing', 'broken'] as const)
+      it(`R1: a valid ${where} drawing kept only in .recovered (primary ${primary}) is imported, stays after the first V2 save and reopening; V1 texts unchanged`, () => {
+        noLocks();
+        const { main, scene } = v1();
+        const key = where === 'main' ? V1_KEY : SCENE_KEY;
+        const text = JSON.stringify(where === 'main' ? main : scene);
+        const init: Record<string, string> = { [`${key}.recovered`]: text };
+        if (primary === 'broken') init[key] = '{"broken';
+        const st = mem(init);
+        const before = new Map(st.m);
+        const a = new DoodleStore(st);
+        a.start();
+        a.commit(useRecent(a.v, 'pink'));
+        const b = new DoodleStore(st);
+        const visible = where === 'main' ? b.v.free.n : workOf(b.v, 'fish').fills.n;
+        expect(visible).toBe(1);
+        for (const [k, v] of before) expect(st.m.get(k)).toBe(v); // V1 / recovered originals untouched
+        expect(b.v.recent).toEqual(['pink']);
+      });
+
+  it('R1: an unreadable V1 save with no readable alternative is not imported, kept untouched and offered for download', () => {
+    noLocks();
+    const st = mem({ [V1_KEY]: '{"broken' });
+    const a = new DoodleStore(st);
+    expect(a.v1Raw).toEqual(['{"broken']);
+    expect(a.v.origin).toBe('new');
+    a.start();
+    expect(st.m.get(V1_KEY)).toBe('{"broken');
+  });
+
+  it('R2: without Web Locks two new tabs never overwrite each other (first save and interleaved saves)', () => {
+    noLocks();
+    const st = mem();
+    const a = new DoodleStore(st);
+    const b = new DoodleStore(st);
+    a.start();
+    b.start();
+    expect([a.role, b.role]).toEqual(['uncoordinated', 'uncoordinated']);
+    // A draws a pink stroke and saves
+    expect(a.commit({ ...a.v, free: pushFree(a.v.free, { t: 'stroke', color: 'pink', size: 'm', pts: [[0.1, 0.1], [0.2, 0.2]] })! })).toBe(true);
+    // B, which has not seen it, stamps the grid: refused, its change kept aside, B now shows A's drawing
+    expect(b.commit({ ...b.v, grid: { ops: [{ t: 'cell', i: 0, value: { color: 'blue', shape: 'circle' } }], n: 1 } })).toBe(false);
+    expect(JSON.parse(st.m.get(V2_KEY)!).free.n).toBe(1);
+    expect(b.v.free.n).toBe(1);
+    expect(b.conflict && JSON.parse(b.conflict).grid.n).toBe(1);
+    expect([...st.m.keys()].some((k) => k.startsWith(`${V2_KEY}.conflict-`))).toBe(true);
+    // B stamps again on top of what it now sees: saved, A's stroke kept
+    expect(b.commit({ ...b.v, grid: { ops: [{ t: 'cell', i: 0, value: { color: 'blue', shape: 'circle' } }], n: 1 } })).toBe(true);
+    // A (stale) tries again: refused, nothing overwritten
+    expect(a.commit({ ...a.v, free: pushFree(a.v.free, { t: 'stroke', color: 'gray', size: 'm', pts: [[0.3, 0.3], [0.4, 0.4]] })! })).toBe(false);
+    const stored = JSON.parse(st.m.get(V2_KEY)!);
+    expect([stored.free.n, stored.grid.n]).toEqual([1, 1]);
+  });
+});

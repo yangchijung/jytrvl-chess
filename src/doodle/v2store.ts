@@ -21,6 +21,24 @@ const locksOf = (): LockManagerLike | null => {
   }
 };
 
+/**
+ * Read-only V1 pick with the first release's priority: a valid main key wins; otherwise a valid alternate
+ * (`.recovered`) that the old loader would have opened. Nothing is written or moved here.
+ */
+function pickV1<T>(st: Store, key: string, read: (get: () => string | null) => { kind: 'ok'; save: T } | { kind: string; raw?: string }): { save?: T; broken?: string } {
+  const main = read(() => st.getItem(key));
+  if (main.kind === 'ok') return { save: (main as { save: T }).save };
+  let altText: string | null = null;
+  try {
+    altText = st.getItem(`${key}.recovered`);
+  } catch {
+    altText = null;
+  }
+  const alt = read(() => (altText === '' ? null : altText));
+  if (alt.kind === 'ok') return { save: (alt as { save: T }).save };
+  return main.kind === 'broken' ? { broken: (main as { raw: string }).raw } : {};
+}
+
 export class DoodleStore {
   v: SavedV2;
   role: Role = 'writer';
@@ -29,6 +47,10 @@ export class DoodleStore {
   status: SaveStatus = 'none';
   /** this tab built the V2 document from V1 data and has not written it yet */
   imported: boolean;
+  /** unreadable V1 texts with no readable alternative (kept untouched; offered as a download) */
+  v1Raw: string[] = [];
+  /** a change this tab could not save because another tab had changed the drawing first (kept, downloadable) */
+  conflict: string | null = null;
   private target: string | null;
   private store: Store | null;
   private base: string | null = null;
@@ -52,9 +74,10 @@ export class DoodleStore {
     }
     const first = () => {
       if (hadV2 || !st) return blankV2();
-      const m = readSave(() => st!.getItem(V1_KEY));
-      const sc = readScene(() => st!.getItem(SCENE_KEY));
-      return fromV1(m.kind === 'ok' ? m.save : null, sc.kind === 'ok' ? sc.save : null);
+      const m = pickV1(st, V1_KEY, readSave);
+      const sc = pickV1(st, SCENE_KEY, readScene);
+      this.v1Raw = [m.broken, sc.broken].filter((x): x is string => !!x);
+      return fromV1(m.save ?? null, sc.save ?? null);
     };
     const l = loadKeyed<SavedV2>({ key: V2_KEY, read: readV2, blank: first }, st ?? undefined);
     this.v = l.s;
@@ -90,6 +113,7 @@ export class DoodleStore {
     if (!locks) {
       this.role = 'uncoordinated';
       this.writeImport();
+      if (typeof window !== 'undefined') window.addEventListener('storage', this.onStorage);
       this.emit();
       return;
     }
@@ -157,10 +181,16 @@ export class DoodleStore {
    */
   commit(next: SavedV2): boolean {
     if (this.role === 'viewer') return false;
-    if (this.role === 'uncoordinated' && this.base !== null && this.adoptStored()) {
-      this.status = 'none';
-      this.emit();
-      return false;
+    if (this.role === 'uncoordinated') {
+      // no lock: never write over a document this tab has not seen (including the very first save)
+      const raw = this.readRaw();
+      if (raw !== this.base) {
+        this.keepConflict(next);
+        if (raw !== null) this.adoptStored();
+        this.status = 'none';
+        this.emit();
+        return false;
+      }
     }
     this.v = next;
     const text = JSON.stringify(next);
@@ -180,5 +210,17 @@ export class DoodleStore {
     if (ok) this.base = text;
     this.emit();
     return true;
+  }
+
+  /** The refused change is copied to its own key (and offered as a download) so neither tab's work is lost. */
+  private keepConflict(next: SavedV2) {
+    const text = JSON.stringify(next);
+    this.conflict = text;
+    if (!this.store) return;
+    try {
+      this.store.setItem(`${V2_KEY}.conflict-${Date.now().toString(36)}`, text);
+    } catch {
+      /* the in-memory copy is still offered as a download */
+    }
   }
 }
