@@ -151,7 +151,7 @@ try {
     await q.evaluate(() => window.__coaster.ff(30));
     const st = await q.evaluate(() => ({ ...window.__coaster.worldStats(), px: window.__coaster.glSample([[0.5, 0.15], [0.5, 0.9]]) }));
     await q.screenshot({ path: `${OUT}/09-long-track-fp.png` });
-    ok('L3', `a ${Math.round(info.len)} m track with many loops rides to the end; the 3D track stays light (light mesh for far parts, a few full-detail chunks near the eye)`, info.len > 5000 && info.done && info.flipped && st.farVerts < 700000 && st.fullKept <= 48 && st.px && JSON.stringify(st.px[0]) !== JSON.stringify(st.px[1]), JSON.stringify({ ...info, buildMs: Math.round(buildMs), ...st }));
+    ok('L3', `a ${Math.round(info.len)} m track with many loops rides to the end; the 3D track stays light (light mesh for far parts, a few full-detail chunks near the eye)`, info.len > 5000 && info.done && info.flipped && st.farVerts < 700000 && st.fullKept <= 32 && st.px && JSON.stringify(st.px[0]) !== JSON.stringify(st.px[1]), JSON.stringify({ ...info, buildMs: Math.round(buildMs), ...st }));
     await q.ctx.close();
   }
 

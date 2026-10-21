@@ -692,10 +692,11 @@ function frames3D(tr) {
 const g3 = (A, i) => [A[i * 3], A[i * 3 + 1], A[i * 3 + 2]];
 
 /* Track geometry is built in chunks of CH samples (50 m). Near the eye a chunk is drawn in full detail
-   (6-sided rails, beam, ties, struts); everywhere else a light version (3-sided rails, beam, no ties) that the
+   (6-sided rails, beam, ties, struts; at most BUILD_PER_FRAME new ones per frame, the light version stands in
+   until then); everywhere else a light version (3-sided rails, beam, no ties) that the
    fog makes indistinguishable. Full chunks are built when first needed and a few dozen are kept, so a track
    of any length stays light on memory and frame time. */
-const CH = 200, NEAR_M = 140, NEAR_MAX = 24, KEEP_MAX = 48;
+const CH = 200, NEAR_M = 90, NEAR_MAX = 10, KEEP_MAX = 32, BUILD_PER_FRAME = 2;
 const RED = hex3('#d8413a'), RED2 = hex3('#a92f29'), TIE = hex3('#5d4c40');
 function trackPiece(f, tr, i0, i1, m, full) {
   const ring = full ? 2 : 8, sides = full ? 6 : 3, GA = 0.55, RR = full ? 0.085 : 0.11;
@@ -853,10 +854,11 @@ function uploadWorld(w) {
   w.full.clear();
 }
 /** The full-detail mesh of one chunk, built on first use; the least recently used are dropped. */
-function fullChunk(w, k) {
+function fullChunk(w, k, mayBuild) {
   const gl = GL.gl;
   let c = w.full.get(k);
   if (!c) {
+    if (!mayBuild) return null;
     const m = new Mesh(), ch = w.chunks[k];
     trackPiece(w.f, track, ch.i0, ch.i1, m, true);
     c = { buf: gl.createBuffer(), count: m.count, used: 0 };
@@ -917,10 +919,18 @@ function draw3D(s) {
   // track: full detail for the nearest chunks, the light version for the rest
   const d2 = world.chunks.map((c, k) => [k, (c.c[0] - eye[0]) ** 2 + (c.c[1] - eye[1]) ** 2 + (c.c[2] - eye[2]) ** 2]);
   d2.sort((a, b) => a[1] - b[1]);
-  const near = new Set(d2.filter((x, j) => j < NEAR_MAX && x[1] < (NEAR_M + 30) ** 2).map((x) => x[0]));
+  let budget = BUILD_PER_FRAME;
+  const near = new Map();
+  for (const [k, dd] of d2) {
+    if (near.size >= NEAR_MAX || dd > (NEAR_M + 25) ** 2) break;
+    const had = world.full.has(k);
+    const c = fullChunk(world, k, budget > 0);
+    if (!had && c) budget--;
+    if (c) near.set(k, c);
+  }
   gl.bindBuffer(gl.ARRAY_BUFFER, GL.far); bindAttribs(gl);
   world.chunks.forEach((c, k) => { if (!near.has(k) && c.count) gl.drawArrays(gl.TRIANGLES, c.first, c.count); });
-  for (const k of near) { const c = fullChunk(world, k); gl.bindBuffer(gl.ARRAY_BUFFER, c.buf); bindAttribs(gl); gl.drawArrays(gl.TRIANGLES, 0, c.count); }
+  for (const c of near.values()) { gl.bindBuffer(gl.ARRAY_BUFFER, c.buf); bindAttribs(gl); gl.drawArrays(gl.TRIANGLES, 0, c.count); }
   // the front of the first car and the lap bar, riding with you
   const T = T1, B = norm(cross(T, U)), c = new Mesh(), YEL = hex3('#f4c430'), YD = hex3('#d9a514'), BAR = hex3('#3a4250');
   const at3 = (ft, fu, fb) => add(add(add(P, mul(T, ft)), mul(U, fu)), mul(B, fb));
