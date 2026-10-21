@@ -53,6 +53,16 @@ let lastFeedId = 0;
 
 export function headPos(c: TerritoryClient, g: TerritoryGame, k: number, f: number): [number, number] {
   const p = g.players[k];
+  const fl = c.flow?.flow[k];
+  if (fl) {
+    // continuous steering: exact positions, interpolated between fixed steps
+    const cx = fl.fx - 0.5,
+      cy = fl.fy - 0.5;
+    const px = c.prev[k * 2] ?? cx,
+      py = c.prev[k * 2 + 1] ?? cy;
+    if (Math.hypot(px - cx, py - cy) > 2) return [cx, cy];
+    return [px + (cx - px) * f, py + (cy - py) * f];
+  }
   const px = c.prev[k * 2] ?? p.x,
     py = c.prev[k * 2 + 1] ?? p.y;
   // teleport guard (respawn/snapshot)
@@ -157,8 +167,28 @@ export function draw(ctx: CanvasRenderingContext2D, wPx: number, hPx: number, c:
         ctx.fillRect(ox + x * cs + inset, oy + y * cs + inset, cs - inset * 2, cs - inset * 2);
       }
   }
-  // trails
-  for (let y = y0; y <= y1; y++)
+  const fg = c.flow;
+  const f = c.frac(now);
+  // trails: continuous games draw the path actually travelled (a smooth line through the trail cells)
+  if (fg) {
+    g.players.forEach((p, k) => {
+      const fl = fg.flow[k];
+      if (!p.alive || !fl || !p.trail.length || !fl.path.length) return;
+      const [hx, hy] = headPos(c, g, k, f);
+      const pal = PALETTE[p.color % PALETTE.length];
+      ctx.strokeStyle = pal.base;
+      ctx.globalAlpha = 0.7;
+      ctx.lineWidth = cs * 0.5;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(ox + fl.path[0][0] * cs, oy + fl.path[0][1] * cs);
+      for (const [x, y] of fl.path) ctx.lineTo(ox + x * cs, oy + y * cs);
+      ctx.lineTo(ox + (hx + 0.5) * cs, oy + (hy + 0.5) * cs);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    });
+  } else for (let y = y0; y <= y1; y++)
     for (let x = x0; x <= x1; x++) {
       const t = g.trail[y * g.w + x];
       if (t < 0) continue;
@@ -175,7 +205,7 @@ export function draw(ctx: CanvasRenderingContext2D, wPx: number, hPx: number, c:
   ctx.strokeRect(ox, oy, g.w * cs, g.h * cs);
 
   // heads
-  const f = c.frac(now);
+  c.screenHeads = {};
   g.players.forEach((p, k) => {
     if (!p.alive) return;
     const [hx, hy] = headPos(c, g, k, f);
@@ -183,17 +213,15 @@ export function draw(ctx: CanvasRenderingContext2D, wPx: number, hPx: number, c:
     const px = ox + (hx + 0.5) * cs,
       py = oy + (hy + 0.5) * cs;
     const r = cs * 0.62;
-    ctx.fillStyle = 'rgba(0,0,0,0.25)';
-    roundRect(ctx, px - r, py - r + cs * 0.12, r * 2, r * 2, r * 0.45);
-    ctx.fill();
     ctx.fillStyle = pal.base;
     roundRect(ctx, px - r, py - r, r * 2, r * 2, r * 0.45);
     ctx.fill();
     ctx.lineWidth = Math.max(1.5, cs * 0.1);
     ctx.strokeStyle = '#ffffff';
     ctx.stroke();
-    // eyes looking in the move direction
-    const [dx, dy] = DIRS[p.dir];
+    // eyes looking in the move direction (the exact heading when steering is continuous)
+    const hd = fg?.flow[k]?.heading;
+    const [dx, dy] = hd !== undefined ? [Math.cos(hd), Math.sin(hd)] : DIRS[p.dir];
     const ex = dx * r * 0.32,
       ey = dy * r * 0.32;
     const sx = -dy * r * 0.36,
@@ -215,6 +243,7 @@ export function draw(ctx: CanvasRenderingContext2D, wPx: number, hPx: number, c:
       ctx.fillText(p.name, px, py - r - 6);
     }
     if (c.me.includes(k) && c.me.length === 1) c.screenHead = { x: px, y: py, cell: cs };
+    if (c.me.includes(k)) c.screenHeads[k] = { x: px, y: py, cell: cs };
   });
 
   // death particles from the event feed

@@ -106,6 +106,24 @@ const near = (a, b, tol = 2) => Math.abs(((deg(a) - b + 540) % 360) - 180) < tol
   await sleep(200);
   const again = await F(p);
   ok('FL-again', 'after being knocked out, “再玩一次” starts a fresh round (countdown, alive, tick 0)', again.status === 'countdown' && again.alive && again.tick === 0, JSON.stringify(again));
+  // background pause (Issue #8 P2): hidden in the countdown and in play, no catch-up on return
+  const vis = (hidden) => p.evaluate((h) => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => h }); Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => (h ? 'hidden' : 'visible') }); document.dispatchEvent(new Event('visibilitychange')); }, hidden);
+  await vis(true);
+  await sleep(2600);
+  const cdHidden = await F(p);
+  await vis(false);
+  await sleep(150);
+  const cdBack = await F(p);
+  await playing(p);
+  await sleep(300);
+  const p0 = (await F(p)).tick;
+  await vis(true);
+  await sleep(1500);
+  const tHidden = (await F(p)).tick;
+  await vis(false);
+  await sleep(120);
+  const tBack = (await F(p)).tick;
+  ok('FL-pause', 'hidden page: the countdown waits (still counting down after 2.6 s hidden) and play stops (no ticks while hidden); on return no catch-up burst (≤ 4 steps in 120 ms)', cdHidden.status === 'countdown' && cdBack.status === 'countdown' && tHidden - p0 <= 1 && tBack - tHidden <= 4, JSON.stringify({ cd: [cdHidden.status, cdBack.status], p0, tHidden, tBack }));
   await p.ctx.close();
 }
 
