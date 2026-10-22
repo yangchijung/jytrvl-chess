@@ -41,3 +41,46 @@ export function CookieArt() {
     </svg>
   );
 }
+
+/** One rider for the make-ten train: a round head and a body, one clear silhouette per person. */
+export function RiderArt({ fixed = false, size = 44 }: { fixed?: boolean; size?: number }) {
+  return (
+    <svg viewBox="0 0 48 48" width={size} height={size} aria-hidden="true" focusable="false">
+      <circle cx="24" cy="15" r="9" fill={fixed ? 'var(--mi-rider-old)' : 'var(--mi-rider)'} stroke="var(--mi-apple-line)" strokeWidth="2.5" />
+      <path d="M9 44c0-11 7-18 15-18s15 7 15 18z" fill={fixed ? 'var(--mi-rider-old)' : 'var(--mi-rider)'} stroke="var(--mi-apple-line)" strokeWidth="2.5" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** New Taiwan dollar coins, simplified: size in proportion to the real coins, the value printed large. */
+const COIN_LOOK: Record<number, { d: number; fill: string }> = {
+  1: { d: 56, fill: '#C98A4B' }, // 20 mm, bronze
+  5: { d: 62, fill: '#C9CED3' }, // 22 mm, cupronickel
+  10: { d: 70, fill: '#C9CED3' }, // 26 mm, cupronickel
+  50: { d: 76, fill: '#E2B93B' }, // 28 mm, brass
+};
+export const coinSize = (v: number) => COIN_LOOK[v]?.d ?? 56;
+export function CoinArt({ value }: { value: number }) {
+  const c = COIN_LOOK[value] ?? COIN_LOOK[1];
+  return (
+    <svg viewBox="0 0 64 64" width={c.d} height={c.d} aria-hidden="true" focusable="false">
+      <circle cx="32" cy="32" r="29" fill={c.fill} stroke="#23303F" strokeWidth="3" />
+      <circle cx="32" cy="32" r="23" fill="none" stroke="#23303F" strokeWidth="1.5" opacity="0.55" />
+      <text x="32" y="38" textAnchor="middle" fontSize={value >= 10 ? 20 : 24} fontWeight="800" fill="#23303F">
+        {value}
+      </text>
+      <text x="32" y="52" textAnchor="middle" fontSize="9" fontWeight="700" fill="#23303F">
+        元
+      </text>
+    </svg>
+  );
+}
+
+/** One block for the balance scale: a plain cube face. */
+export function BlockArt({ size = 40, fixed = false }: { size?: number; fixed?: boolean }) {
+  return (
+    <svg viewBox="0 0 40 40" width={size} height={size} aria-hidden="true" focusable="false">
+      <rect x="3" y="3" width="34" height="34" rx="4" fill={fixed ? 'var(--mi-block-old)' : 'var(--mi-block)'} stroke="var(--mi-apple-line)" strokeWidth="2.5" />
+    </svg>
+  );
+}
