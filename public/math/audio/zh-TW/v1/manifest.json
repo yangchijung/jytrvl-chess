@@ -538,5 +538,428 @@
     "rate": "-10%",
     "file": "balance_right_05.mp3",
     "version": 1
+  },
+  {
+    "id": "clock_task_01",
+    "text": "上午 8 點上學，請把時鐘撥到上午 8 點。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "clock_task_01.mp3",
+    "version": 1
+  },
+  {
+    "id": "clock_task_02",
+    "text": "下午 1 點半上才藝課，請把時鐘撥到下午 1 點半。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "clock_task_02.mp3",
+    "version": 1
+  },
+  {
+    "id": "clock_task_03",
+    "text": "上午 9 點 15 分下課，請把時鐘撥到上午 9 點 15 分。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "clock_task_03.mp3",
+    "version": 1
+  },
+  {
+    "id": "clock_task_04",
+    "text": "下午 4 點 50 分回到家，請把時鐘撥到下午 4 點 50 分。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "clock_task_04.mp3",
+    "version": 1
+  },
+  {
+    "id": "clock_task_05",
+    "text": "上午 10 點 37 分吃點心，請把時鐘撥到上午 10 點 37 分。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "clock_task_05.mp3",
+    "version": 1
+  },
+  {
+    "id": "clock_wrong",
+    "text": "再看看長針和短針指在哪裡。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "clock_wrong.mp3",
+    "version": 1
+  },
+  {
+    "id": "clock_wrong_part",
+    "text": "鐘面對了，再看看是上午還是下午。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "clock_wrong_part.mp3",
+    "version": 1
+  },
+  {
+    "id": "clock_done",
+    "text": "五題都完成了。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "clock_done.mp3",
+    "version": 1
+  },
+  {
+    "id": "clock_right_01",
+    "text": "對了，上午 8 點。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "clock_right_01.mp3",
+    "version": 1
+  },
+  {
+    "id": "clock_right_02",
+    "text": "對了，下午 1 點半。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "clock_right_02.mp3",
+    "version": 1
+  },
+  {
+    "id": "clock_right_03",
+    "text": "對了，上午 9 點 15 分。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "clock_right_03.mp3",
+    "version": 1
+  },
+  {
+    "id": "clock_right_04",
+    "text": "對了，下午 4 點 50 分。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "clock_right_04.mp3",
+    "version": 1
+  },
+  {
+    "id": "clock_right_05",
+    "text": "對了，上午 10 點 37 分。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "clock_right_05.mp3",
+    "version": 1
+  },
+  {
+    "id": "garden_task_01",
+    "text": "每排種 4 朵，種 3 排。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "garden_task_01.mp3",
+    "version": 1
+  },
+  {
+    "id": "garden_task_02",
+    "text": "每排種 5 朵，種 2 排。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "garden_task_02.mp3",
+    "version": 1
+  },
+  {
+    "id": "garden_task_03",
+    "text": "種 12 朵花，每排一樣多。找出 2 種不同的種法。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "garden_task_03.mp3",
+    "version": 1
+  },
+  {
+    "id": "garden_task_04",
+    "text": "每排種 3 朵，種 6 排。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "garden_task_04.mp3",
+    "version": 1
+  },
+  {
+    "id": "garden_task_05",
+    "text": "每排種 7 朵，種 4 排。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "garden_task_05.mp3",
+    "version": 1
+  },
+  {
+    "id": "garden_shape",
+    "text": "再看看每排幾朵、種了幾排。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "garden_shape.mp3",
+    "version": 1
+  },
+  {
+    "id": "garden_not_equal",
+    "text": "要剛好 12 朵，而且每排一樣多。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "garden_not_equal.mp3",
+    "version": 1
+  },
+  {
+    "id": "garden_again",
+    "text": "這種種過了，換一種排法。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "garden_again.mp3",
+    "version": 1
+  },
+  {
+    "id": "garden_found",
+    "text": "找到一種了，再找一種。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "garden_found.mp3",
+    "version": 1
+  },
+  {
+    "id": "garden_ask",
+    "text": "一共有幾朵花？",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "garden_ask.mp3",
+    "version": 1
+  },
+  {
+    "id": "garden_not_planted",
+    "text": "先拉好花圃，再按種下去。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "garden_not_planted.mp3",
+    "version": 1
+  },
+  {
+    "id": "garden_wrong",
+    "text": "再數一次看看。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "garden_wrong.mp3",
+    "version": 1
+  },
+  {
+    "id": "garden_done",
+    "text": "五題都完成了。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "garden_done.mp3",
+    "version": 1
+  },
+  {
+    "id": "garden_right_01",
+    "text": "每排 4 朵，有 3 排，4 乘以 3 等於 12。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "garden_right_01.mp3",
+    "version": 1
+  },
+  {
+    "id": "garden_right_02",
+    "text": "每排 5 朵，有 2 排，5 乘以 2 等於 10。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "garden_right_02.mp3",
+    "version": 1
+  },
+  {
+    "id": "garden_right_03",
+    "text": "找到兩種種法了，花的數量都一樣。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "garden_right_03.mp3",
+    "version": 1
+  },
+  {
+    "id": "garden_right_04",
+    "text": "每排 3 朵，有 6 排，3 乘以 6 等於 18。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "garden_right_04.mp3",
+    "version": 1
+  },
+  {
+    "id": "garden_right_05",
+    "text": "7 乘以 4，可以拆成 5 乘以 4 和 2 乘以 4，20 加 8，一共 28 朵。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "garden_right_05.mp3",
+    "version": 1
+  },
+  {
+    "id": "frog_task_01",
+    "text": "從 3 開始，往右跳 4 次，每次跳 2。青蛙會停在哪裡？",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "frog_task_01.mp3",
+    "version": 1
+  },
+  {
+    "id": "frog_task_02",
+    "text": "從 15 開始，往左跳 3 次，每次跳 3。青蛙會停在哪裡？",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "frog_task_02.mp3",
+    "version": 1
+  },
+  {
+    "id": "frog_task_03",
+    "text": "從 30 開始，往右跳 4 次，每次跳 10。青蛙會停在哪裡？",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "frog_task_03.mp3",
+    "version": 1
+  },
+  {
+    "id": "frog_task_04",
+    "text": "從 200 開始，往右跳 3 次，每次跳 200。青蛙會停在哪裡？",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "frog_task_04.mp3",
+    "version": 1
+  },
+  {
+    "id": "frog_task_05",
+    "text": "從 0 開始，往右跳 3 次，每次跳 20。青蛙會停在哪裡？",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "frog_task_05.mp3",
+    "version": 1
+  },
+  {
+    "id": "frog_no_pick",
+    "text": "先點數線，選青蛙會停在哪裡。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "frog_no_pick.mp3",
+    "version": 1
+  },
+  {
+    "id": "frog_start",
+    "text": "那是青蛙出發的地方喔。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "frog_start.mp3",
+    "version": 1
+  },
+  {
+    "id": "frog_other_way",
+    "text": "看看青蛙是往哪一邊跳。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "frog_other_way.mp3",
+    "version": 1
+  },
+  {
+    "id": "frog_not_on_path",
+    "text": "青蛙這樣跳，跳不到那裡。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "frog_not_on_path.mp3",
+    "version": 1
+  },
+  {
+    "id": "frog_jumps",
+    "text": "跳到那裡的次數不一樣，再算算看。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "frog_jumps.mp3",
+    "version": 1
+  },
+  {
+    "id": "frog_done",
+    "text": "五題都完成了。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "frog_done.mp3",
+    "version": 1
+  },
+  {
+    "id": "frog_right_01",
+    "text": "從 3 跳 4 次，每次 2，停在 11。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "frog_right_01.mp3",
+    "version": 1
+  },
+  {
+    "id": "frog_right_02",
+    "text": "從 15 跳 3 次，每次 3，停在 6。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "frog_right_02.mp3",
+    "version": 1
+  },
+  {
+    "id": "frog_right_03",
+    "text": "從 30 跳 4 次，每次 10，停在 70。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "frog_right_03.mp3",
+    "version": 1
+  },
+  {
+    "id": "frog_right_04",
+    "text": "從 200 跳 3 次，每次 200，停在 800。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "frog_right_04.mp3",
+    "version": 1
+  },
+  {
+    "id": "frog_right_05",
+    "text": "從 0 跳 3 次，每次 20，停在 60。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "frog_right_05.mp3",
+    "version": 1
   }
 ]

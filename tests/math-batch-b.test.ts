@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { CLOCK_PROBLEMS, blankClock, checkClock, hourAngle, isPM, minuteAngle, nextClock, nudge, readClock, sayTime, turnTo, validClock, type ClockSave } from '../shared/math/clock';
 import { GARDEN_PROBLEMS, answerGarden, blankGarden, choicesOfG, nextGarden, plant, sizeTo, validGarden, waysOf, type GardenSave } from '../shared/math/garden';
 import { FROG_PROBLEMS, blankFrog, checkFrog, jumpsTo, landing, nudgePick, pickAt, ticksOf, validFrog, type FrogSave } from '../shared/math/frog';
-import { CLIPS } from '../src/math/audio';
+import { existsSync, readFileSync } from 'node:fs';
+import { CLIPS, VOICE } from '../src/math/audio';
 
 describe('Clock Repair (N-1-6, N-2-13)', () => {
   it('grade 1 problems are whole or half hours with 30-minute steps; grade 2 adds 5- and 1-minute steps; no seconds', () => {
@@ -185,3 +186,19 @@ describe('batch B spoken prompts', () => {
     expect(CLIPS.clock_right_04).toBe('對了，下午 4 點 50 分。');
   });
 });
+
+describe('batch B audio files (Azure, made by James 2026-10-22)', () => {
+  it('every clock/garden/frog clip has its mp3 and the reviewed manifest has the same text and voice', () => {
+    const dir = `public/math/audio/${VOICE.locale}/v${VOICE.version}`;
+    const manifest = JSON.parse(readFileSync(`${dir}/manifest.json`, 'utf8')) as { id: string; text: string; voice: string }[];
+    const ids = Object.keys(CLIPS).filter((id) => /^(clock|garden|frog)_/.test(id));
+    expect(ids.length).toBe(47);
+    for (const id of ids) {
+      expect(existsSync(`${dir}/${id}.mp3`), id).toBe(true);
+      const m = manifest.find((x) => x.id === id);
+      expect(m?.text, id).toBe(CLIPS[id]);
+      expect(m?.voice).toBe(VOICE.voice);
+    }
+  });
+});
+
