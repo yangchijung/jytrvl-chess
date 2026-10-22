@@ -152,6 +152,16 @@ try {
     const st = await q.evaluate(() => ({ ...window.__coaster.worldStats(), px: window.__coaster.glSample([[0.5, 0.15], [0.5, 0.9]]) }));
     await q.screenshot({ path: `${OUT}/09-long-track-fp.png` });
     ok('L3', `a ${Math.round(info.len)} m track with many loops rides to the end; the 3D track stays light (light mesh for far parts, a few full-detail chunks near the eye)`, info.len > 5000 && info.done && info.flipped && st.farVerts < 700000 && st.fullKept <= 32 && st.px && JSON.stringify(st.px[0]) !== JSON.stringify(st.px[1]), JSON.stringify({ ...info, buildMs: Math.round(buildMs), ...st }));
+    // switching to another track frees the old full-detail chunk buffers on the GPU
+    const freed = await q.evaluate(async (c) => {
+      let del = 0;
+      for (const P of [window.WebGLRenderingContext, window.WebGL2RenderingContext].filter(Boolean).map((k) => k.prototype)) { const d0 = P.deleteBuffer; P.deleteBuffer = function (b) { del++; return d0.call(this, b); }; }
+      const kept = window.__coaster.worldStats().fullKept;
+      location.hash = 't=' + c;
+      await new Promise((r) => setTimeout(r, 200));
+      return { kept, del, mode: window.__coaster.mode, world: window.__coaster.worldStats() };
+    }, code);
+    ok('L4', 'loading another track frees every full-detail chunk buffer of the previous 3D world', freed.kept > 0 && freed.del >= freed.kept && freed.mode === 'shared' && freed.world === null, JSON.stringify(freed));
     await q.ctx.close();
   }
 
