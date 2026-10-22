@@ -3,8 +3,9 @@
 // --out writes the files to any folder (e.g. the computer's Public folder) instead of the project.
 // The key is read from the environment only (never committed, never in the front-end bundle). Writes
 // public/math/audio/<locale>/v<version>/<id>.mp3 plus a manifest of text / locale / voice / file for review.
+// --missing only makes the clips that have no file yet (e.g. after a new game added its prompts).
 // Not yet run: no key is available to engineering (docs/ACCEPTANCE.md §25 lists MA05 audio as untested).
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { CLIPS, VOICE } from '../src/math/audio';
 
@@ -21,7 +22,9 @@ if (process.argv.includes('--list') || !key || !region) {
 }
 mkdirSync(dir, { recursive: true });
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const onlyMissing = process.argv.includes('--missing');
 for (const c of manifest) {
+  if (onlyMissing && existsSync(join(dir, c.file))) continue;
   const ssml = `<speak version="1.0" xml:lang="${c.locale}"><voice name="${c.voice}"><prosody rate="-10%">${esc(c.text)}</prosody></voice></speak>`;
   const res = await fetch(`https://${region}.tts.speech.microsoft.com/cognitiveservices/v1`, {
     method: 'POST',

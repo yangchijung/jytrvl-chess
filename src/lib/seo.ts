@@ -74,13 +74,28 @@ export const PAGES: Record<string, PageMeta> = {
     index: true,
   },
   '/math': {
-    title: { zh: '數學遊樂島｜一年級、三年級動手數學遊戲｜JY Games', en: 'Math Island | Hands-on Maths Games for Grades 1 and 3 | JY Games' },
-    description: { zh: '免登入的兒童數學小遊戲：一年級蘋果籃（合起來數一數）、三年級分裝工廠（平分）。動手擺一擺再數一數，附國語朗讀，不計時、不扣分。', en: 'Free kids maths games with no sign-in: Apple Basket (grade 1, putting together) and Packing Factory (grade 3, equal sharing). Move things, then count; Mandarin voice prompts, no timer, no penalties.' },
+    title: { zh: '數學遊樂島｜一到三年級動手數學遊戲｜JY Games', en: 'Math Island | Hands-on Maths Games for Grades 1–3 | JY Games' },
+    description: { zh: '免登入的兒童數學小遊戲：一年級蘋果籃（合起來數一數）、湊十小火車（先湊成 10）、零錢小商店（用錢幣付錢）、天平等一等（等號的意思），三年級分裝工廠（平分）。動手擺一擺再數一數，附國語朗讀，不計時、不扣分。', en: 'Free kids maths games with no sign-in: Apple Basket (putting together), Make-Ten Train, Coin Shop and Balance Scale for grades 1–2, and Packing Factory (grade 3, equal sharing). Move things, then count; Mandarin voice prompts, no timer, no penalties.' },
     index: true,
   },
   '/math/g1/apple': {
     title: { zh: '蘋果籃｜一年級合起來數一數｜數學遊樂島｜JY Games', en: 'Apple Basket | Grade 1 Putting Together | Math Island | JY Games' },
     description: { zh: '一年級：把兩堆蘋果放進籃子，數一數一共幾顆。5 題，答錯可以再數一次。', en: 'Grade 1: put two groups of apples into the basket and count them. 5 problems; a wrong answer can be counted again.' },
+    index: true,
+  },
+  '/math/g1/train': {
+    title: { zh: '湊十小火車｜一年級先湊成 10｜數學遊樂島｜JY Games', en: 'Make-Ten Train | Grade 1 Make Ten First | Math Island | JY Games' },
+    description: { zh: '一年級：請乘客上火車，第一節坐滿 10 人再坐第二節，看懂 8 加 5 是 10 和 3。5 題，答錯可以再數一次。', en: 'Grade 1: board the riders, filling car 1 to ten before car 2, and see 8 + 5 as 10 and 3. 5 problems; a wrong answer can be counted again.' },
+    index: true,
+  },
+  '/math/g1/shop': {
+    title: { zh: '零錢小商店｜一、二年級用錢幣付錢｜數學遊樂島｜JY Games', en: 'Coin Shop | Grades 1–2 Paying with Coins | Math Island | JY Games' },
+    description: { zh: '一、二年級：用 1、5、10、50 元硬幣湊出剛好的價錢。錢不夠或付太多會告訴你差多少。5 題。', en: 'Grades 1–2: pay the exact price with 1, 5, 10 and 50 dollar coins. Too little or too much tells you by how much. 5 problems.' },
+    index: true,
+  },
+  '/math/g1/balance': {
+    title: { zh: '天平等一等｜一、二年級等號的意思｜數學遊樂島｜JY Games', en: 'Balance Scale | Grades 1–2 What = Means | Math Island | JY Games' },
+    description: { zh: '一、二年級：放積木讓天平兩邊一樣重，認識等號是「兩邊一樣多」，□ 不一定在右邊。5 題。', en: 'Grades 1–2: add blocks until the scale is level, and learn that = means both sides are the same; the box is not always on the right. 5 problems.' },
     index: true,
   },
   '/math/g3/factory': {
