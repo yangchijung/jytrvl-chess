@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { CAR, PLATFORM, TRAIN_PROBLEMS, answerTrain, blankTrain, cars, choicesOfT, moveRider, nextTrain, readTrain, restartTrain, validTrain, type TrainSave } from '../shared/math/train';
 import { COINS, PURSE, SHOP_PROBLEMS, TRAY, blankShop, moveCoin, nextShop, paid, payShop, readShop, validShop, type ShopSave } from '../shared/math/shop';
 import { BALANCE_PROBLEMS, BIN, PAN, SUPPLY, blankBalance, checkBalance, equation, moveBlock, nextBalance, readBalance, unknownOf, validBalance, weights, type BalanceSave } from '../shared/math/balance';
-import { CLIPS } from '../src/math/audio';
+import { existsSync, readFileSync } from 'node:fs';
+import { CLIPS, VOICE } from '../src/math/audio';
 
 /** count on one by one: an independent check that does not use the program's addition of a and b */
 const countOn = (a: number, b: number) => {
@@ -161,3 +162,19 @@ describe('batch A spoken prompts', () => {
     expect(CLIPS.balance_right_03).toBe('5 加 3 等於 6 加 2，兩邊一樣重。');
   });
 });
+
+describe('batch A audio files (Azure, made by James 2026-10-22)', () => {
+  it('every train/shop/balance clip has its mp3 and the reviewed manifest has the same text and voice', () => {
+    const dir = `public/math/audio/${VOICE.locale}/v${VOICE.version}`;
+    const manifest = JSON.parse(readFileSync(`${dir}/manifest.json`, 'utf8')) as { id: string; text: string; voice: string; file: string }[];
+    const ids = Object.keys(CLIPS).filter((id) => /^(train|shop|balance)_/.test(id));
+    expect(ids.length).toBe(37);
+    for (const id of ids) {
+      expect(existsSync(`${dir}/${id}.mp3`), id).toBe(true);
+      const m = manifest.find((x) => x.id === id);
+      expect(m?.text, id).toBe(CLIPS[id]);
+      expect(m?.voice).toBe(VOICE.voice);
+    }
+  });
+});
+
