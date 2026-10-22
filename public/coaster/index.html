@@ -850,8 +850,13 @@ function uploadWorld(w) {
   gl.bindBuffer(gl.ARRAY_BUFFER, GL.far);
   gl.bufferData(gl.ARRAY_BUFFER, w.far.data(), gl.STATIC_DRAW);
   w.far = null; // the data lives on the GPU now
-  for (const c of w.full.values()) gl.deleteBuffer(c.buf);
   w.full.clear();
+}
+/** Forget the current 3D world and free its full-detail chunk buffers on the GPU. */
+function dropWorld() {
+  if (world && GL.gl) for (const c of world.full.values()) GL.gl.deleteBuffer(c.buf);
+  if (world) world.full.clear();
+  world = null;
 }
 /** The full-detail mesh of one chunk, built on first use; the least recently used are dropped. */
 function fullChunk(w, k, mayBuild) {
@@ -1085,7 +1090,7 @@ function shareUrl() {
 function loadCode(c, shared) {
   const cp = decode(c);
   if (!cp) return false;
-  code = c; ctrl = cp; track = buildTrack(cp); world = null;
+  code = c; ctrl = cp; track = buildTrack(cp); dropWorld();
   fromShare = shared;
   fitView(track); trackCache = null; miniCache = null;
   setMode(shared ? 'shared' : 'ready');
@@ -1101,7 +1106,7 @@ function finishDrawing() {
   loadCode(c, false);
 }
 function newDrawing() {
-  raw = []; rawLen = 0; track = null; ride = null; code = ''; world = null;
+  raw = []; rawLen = 0; track = null; ride = null; code = ''; dropWorld();
   history.replaceState(null, '', location.pathname + location.search);
   view = { scale: PX_PER_M, ox: 0 };
   setMode('draw');
