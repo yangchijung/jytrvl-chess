@@ -45,7 +45,7 @@ export class ChaseCam {
     if (t.drifting) want.applyAxisAngle(new THREE.Vector3(0, 1, 0), -t.steer * 0.35); // look into the corner
     this.dir.lerp(want, 1 - Math.exp(-dt * (t.drifting ? 3 : 5))).normalize();
 
-    const back = 7.5 + Math.min(3, t.kmh / 45) + (t.airborne ? 2.5 : 0);
+    const back = 7.5 + Math.min(2, t.kmh / 70) + (t.airborne ? 2.5 : 0);
     const height = 3.2 + (t.airborne ? 1.2 : 0);
     const goal = t.pos.clone().addScaledVector(this.dir, -back).add(new THREE.Vector3(0, height, 0));
     const lookAt = t.pos.clone().addScaledVector(this.dir, 4).add(new THREE.Vector3(0, 1.2, 0));
@@ -70,7 +70,8 @@ export class ChaseCam {
       this.look.copy(lookAt);
       this.first = false;
     }
-    const k = 1 - Math.exp(-dt * 8);
+    // stiffer at speed so the taxi does not shrink into the distance on a long straight
+    const k = 1 - Math.exp(-dt * (8 + t.kmh / 20));
     this.pos.lerp(goal, k);
     this.look.lerp(lookAt, 1 - Math.exp(-dt * 12));
     this.cam.position.copy(this.pos);

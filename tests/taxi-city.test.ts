@@ -99,4 +99,30 @@ describe('Rush Taxi city (stage 3)', () => {
     expect(L.walks.length).toBeGreaterThan(100);
     expect(L.trees.length).toBeGreaterThan(50);
   });
+  it('street furniture stays on the pavement: scooters, lamps, traffic lights and palms are off the carriageway', () => {
+    const d = L.decor!;
+    const onRoad = (x: number, z: number, m: number) =>
+      L.graph!.edges.some(([a, b]) => {
+        const A = L.graph!.nodes[a],
+          B = L.graph!.nodes[b];
+        const vx = B.x - A.x,
+          vz = B.z - A.z;
+        const t = Math.max(0, Math.min(1, ((x - A.x) * vx + (z - A.z) * vz) / (vx * vx + vz * vz)));
+        return Math.hypot(A.x + vx * t - x, A.z + vz * t - z) < 7 - m;
+      });
+    const bad = [
+      ...d.scooters.filter((s) => onRoad(s.x + Math.sin(s.yaw) * 0.8, s.z + Math.cos(s.yaw) * 0.8, 0)).map((s) => `scooter ${s.x},${s.z}`),
+      ...d.lamps.filter((s) => onRoad(s.x, s.z, 0)).map((s) => `lamp ${s.x},${s.z}`),
+      ...d.signals.filter((s) => onRoad(s.x, s.z, 0)).map((s) => `signal ${s.x},${s.z}`),
+      ...d.palms.filter((s) => onRoad(s.x, s.z, 0)).map((s) => `palm ${s.x},${s.z}`),
+    ];
+    expect(bad.slice(0, 8)).toEqual([]);
+    // enough of the Taiwanese street scene to read as one
+    expect(d.scooters.length).toBeGreaterThan(500);
+    expect(d.shopSigns.length).toBeGreaterThan(200);
+    expect(d.tanks.length).toBeGreaterThan(100);
+    expect(d.signals.length).toBeGreaterThan(300);
+    // no scooter parked where a passenger stands
+    for (const st of L.stops) expect(d.scooters.some((s) => Math.hypot(s.x - st.cx!, s.z - st.cz!) < 1.2), st.id).toBe(false);
+  });
 });

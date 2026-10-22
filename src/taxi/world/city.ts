@@ -5,7 +5,7 @@
 // boards, passenger stops on every street, the road graph for traffic and sidewalk
 // loops for pedestrians. Deterministic: the same JSON always gives the same city.
 import CITY from './city.json';
-import type { Level, Prim, Rect, Shape, Sign, Tree, Walk } from './level';
+import type { Decor, Level, Prim, Rect, Shape, Sign, Tree, Walk } from './level';
 import type { Place, Spot } from '../gameplay/rules';
 
 type PrimRow = (string | number)[];
@@ -41,6 +41,18 @@ export function districtOf(gx: number, gz: number): District {
   const quad = (gz > 0 ? 'N' : 'S') + (gx < 0 ? 'W' : 'E');
   return (Object.keys(CITY.districts) as District[]).find((k) => CITY.districts[k].quad === quad)!;
 }
+
+/** generic shop words for the vertical signboards (no brands) */
+export const SHOP_WORDS = ['小吃', '牙醫', '診所', '藥局', '早餐', '麵店', '書局', '機車行', '眼鏡', '冰品', '便當', '洗衣', '五金', '茶行', '水果', '文具', '髮廊', '鞋店', '海產', '旅社', '鐘錶', '電器', '豆花', '肉圓'];
+export const SIGN_COLORS = [
+  ['#C62828', '#FFFFFF'],
+  ['#F9A825', '#23303F'],
+  ['#1565C0', '#FFFFFF'],
+  ['#FFFFFF', '#C62828'],
+  ['#2E7D32', '#FFFFFF'],
+  ['#FFFFFF', '#1565C0'],
+];
+const LOOK: Record<string, number> = { alley: 0, towers: 1, campus: 2, warehouses: 3 };
 
 export function cityLevel(): Level {
   const { pitch, road, half, lines, river, spawn } = CITY;
@@ -97,6 +109,8 @@ export function cityLevel(): Level {
   const landmarks = new Map<string, LandmarkJson>((CITY.landmarks as LandmarkJson[]).map((l) => [`${l.block[0]},${l.block[1]}`, l]));
   const parks = new Set(CITY.parks.map((p) => `${p[0]},${p[1]}`));
   const stunt = `${CITY.stuntPark.block[0]},${CITY.stuntPark.block[1]}`;
+  const blds: { x: number; z: number; w: number; d: number; h: number; look: number; cx: number; cz: number; gx: number; gz: number; k: number }[] = [];
+  const shopBlocks: { cx: number; cz: number; gx: number; gz: number; dist: District }[] = [];
   const span = Math.round((lines.length - 1) / 2); // blocks from −5 to 5
   for (let gx = -span; gx <= span; gx++)
     for (let gz = -span; gz <= span; gz++) {
@@ -107,7 +121,7 @@ export function cityLevel(): Level {
       const key = `${gx},${gz}`;
       const dist = districtOf(gx, gz);
       const style = CITY.districts[dist] as { style: string; height: number[]; colors: string[] };
-      walks.push({ cx, cz, h: lot / 2 - 1.5 });
+      walks.push({ cx, cz, h: lot / 2 - 2.4 }); // between the house fronts and the parked scooters
       const lm = landmarks.get(key);
       if (lm) {
         lots.push({ x: cx, z: cz, w: lot, d: lot, color: C.lot });
@@ -130,12 +144,15 @@ export function cityLevel(): Level {
         continue;
       }
       lots.push({ x: cx, z: cz, w: lot, d: lot, color: dist === 'harbor' ? C.harborLot : C.lot });
+      shopBlocks.push({ cx, cz, gx, gz, dist });
       const [h0, h1] = style.height;
       const hgt = (k: number) => Math.round(h0 + h(gx, gz, k, 7) * (h1 - h0));
       const col = (k: number) => pick(style.colors, h(gx, gz, k, 3));
       const building = (x: number, z: number, w: number, d: number, k: number) => {
         const y = hgt(k);
-        box([cx + x, y / 2, cz + z], [w, y, d], col(k));
+        const look = LOOK[style.style] ?? 0;
+        shapes.push({ kind: 'box', id: `c${n++}`, p: [cx + x, y / 2, cz + z], size: [w, y, d], color: col(k), look });
+        blds.push({ x: cx + x, z: cz + z, w, d, h: y, look, cx, cz, gx, gz, k });
       };
       const alongX = h(gx, gz, 11) < 0.5;
       if (style.style === 'alley') {
@@ -243,7 +260,7 @@ export function cityLevel(): Level {
     const len = Math.hypot(B.x - A.x, B.z - A.z);
     const ux = (B.x - A.x) / len,
       uz = (B.z - A.z) / len;
-    for (let s = road / 2 + 2; s + 3 < len - road / 2; s += 6) {
+    for (let s = road / 2 + 6; s + 3 < len - road / 2 - 5; s += 6) {
       const x = A.x + ux * (s + 1.5),
         z = A.z + uz * (s + 1.5);
       marks.push({ x, z, w: ux ? 3 : 0.3, d: uz ? 3 : 0.3, color: C.mark });
@@ -270,6 +287,148 @@ export function cityLevel(): Level {
     }
   }
 
+  const decor = makeDecor();
+  // palm trunks are solid
+  for (const p of decor.palms) shapes.push({ kind: 'cyl', id: `c${n++}`, p: [p.x, 2, p.z], r: 0.3, h: 4, color: '#8D6E63', hidden: true });
+
+  function makeDecor(): Decor {
+    const d: Decor = { tanks: [], sheds: [], acs: [], shopSigns: [], scooters: [], lamps: [], signals: [], palms: [], curbs: [], boats: [] };
+    const SHED = ['#5B8DB8', '#D9DCE1', '#8FA3B5', '#4F7D5C', '#B0BEC5'];
+    const SCOOT = ['#E53935', '#FFFFFF', '#1E88E5', '#212121', '#FDD835', '#90A4AE', '#8E24AA', '#43A047'];
+    for (const b of blds) {
+      const r = (...k: number[]) => h(b.gx, b.gz, b.k, ...k);
+      // the faces that look onto a street: near the lot edge, facing out of the block
+      const faces: { nx: number; nz: number; cx: number; cz: number; len: number }[] = [];
+      const rx = b.x - b.cx,
+        rz2 = b.z - b.cz;
+      if (rx + b.w / 2 > 12) faces.push({ nx: 1, nz: 0, cx: b.x + b.w / 2, cz: b.z, len: b.d });
+      if (rx - b.w / 2 < -12) faces.push({ nx: -1, nz: 0, cx: b.x - b.w / 2, cz: b.z, len: b.d });
+      if (rz2 + b.d / 2 > 12) faces.push({ nx: 0, nz: 1, cx: b.x, cz: b.z + b.d / 2, len: b.w });
+      if (rz2 - b.d / 2 < -12) faces.push({ nx: 0, nz: -1, cx: b.x, cz: b.z - b.d / 2, len: b.w });
+      faces.forEach((f, fi) => {
+        const tx = -f.nz,
+          tz = f.nx; // along the face
+        // shop signboards: old town and downtown, above the arcade
+        if ((b.look === 0 || b.look === 1) && b.h >= 7) {
+          const count = Math.min(3, Math.floor(f.len / 4.5));
+          for (let i = 0; i < count; i++) {
+            if (r(fi, i, 1) < 0.25) continue;
+            const t = (((i + 0.5) / count) - 0.5) * (f.len - 2) + (r(fi, i, 2) - 0.5) * 1.2;
+            d.shopSigns.push({ x: f.cx + tx * t + f.nx * 0.65, y: 5.2 + r(fi, i, 3) * 1.2, z: f.cz + tz * t + f.nz * 0.65, yaw: Math.atan2(tx, tz), word: Math.floor(r(fi, i, 4) * SHOP_WORDS.length), color: Math.floor(r(fi, i, 5) * SIGN_COLORS.length) });
+          }
+        }
+        // air conditioners on the upper floors (not on glass towers)
+        if (b.look !== 1) {
+          const floors = Math.max(0, Math.floor((b.h - 3.4) / 3));
+          const count = Math.min(6, Math.floor(f.len / 4) * floors > 0 ? 2 + Math.floor(r(fi, 6) * 4) : 0);
+          for (let i = 0; i < count; i++) {
+            const fl = Math.floor(r(fi, i, 7) * floors);
+            const t = (r(fi, i, 8) - 0.5) * (f.len - 2);
+            d.acs.push({ x: f.cx + tx * t + f.nx * 0.24, y: 3.6 + fl * 3 + 0.5, z: f.cz + tz * t + f.nz * 0.24, yaw: Math.atan2(f.nx, f.nz) });
+          }
+        }
+      });
+      // rooftops: water tanks (houses, halls, warehouses) and sheet-metal extensions (old town)
+      if (b.look !== 1) {
+        const tanks = 1 + (r(9) < 0.5 ? 1 : 0);
+        for (let i = 0; i < tanks; i++) d.tanks.push({ x: b.x + (r(10, i) - 0.5) * (b.w - 3), y: b.h, z: b.z + (r(11, i) - 0.5) * (b.d - 3) });
+      }
+      if (b.look === 0 && r(12) < 0.45) {
+        const w = b.w * 0.55,
+          dd = b.d * 0.55;
+        const sx = r(13) < 0.5 ? -1 : 1,
+          sz = r(14) < 0.5 ? -1 : 1;
+        d.sheds.push({ x: b.x + sx * (b.w - w) / 2, y: b.h, z: b.z + sz * (b.d - dd) / 2, w, d: dd, h: 2.4, color: SHED[Math.floor(r(15) * SHED.length)] });
+      }
+    }
+    // the pavement of each ordinary block: scooters parked nose to the kerb, a lamp per side, painted kerbs
+    for (const blk of shopBlocks) {
+      const sides: [number, number][] = [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+      ];
+      sides.forEach(([nx, nz], si) => {
+        const tx = -nz,
+          tz = nx;
+        const e = lot / 2;
+        // a river-side street has no kerb on the river side to worry about: blocks never face the river directly
+        d.lamps.push({ x: blk.cx + nx * (e - 0.5) + tx * 12, z: blk.cz + nz * (e - 0.5) + tz * 12, yaw: Math.atan2(nx, nz) });
+        const kerbCol = blk.dist === 'downtown' ? '#C62828' : blk.dist === 'hamasen' ? '#F2C230' : '#C9CDD2';
+        d.curbs.push({ x: blk.cx + nx * (e - 0.15), z: blk.cz + nz * (e - 0.15), w: nx ? 0.3 : lot, d: nx ? lot : 0.3, color: kerbCol });
+        if (blk.dist !== 'hamasen' && blk.dist !== 'downtown') return;
+        // rows of scooters, clear of the stop in the middle of the side, the lamp and the corners
+        for (const [a, b2] of [
+          [-18.5, -5],
+          [5, 18.5],
+        ]) {
+          if (h(blk.gx, blk.gz, si, a) < 0.4) continue;
+          const from = a + h(blk.gx, blk.gz, si, a, 1) * 3,
+            to = b2 - h(blk.gx, blk.gz, si, a, 2) * 3;
+          for (let t = from; t <= to; t += 0.9) {
+            if (Math.abs(t - 12) < 1.2) continue;
+            if (h(blk.gx, blk.gz, si, Math.round(t * 10)) < 0.2) continue; // a gap here and there
+            d.scooters.push({ x: blk.cx + nx * (e - 1.0) + tx * t, z: blk.cz + nz * (e - 1.0) + tz * t, yaw: Math.atan2(nx, nz), color: SCOOT[Math.floor(h(blk.gx, blk.gz, si, Math.round(t * 10), 3) * SCOOT.length)] });
+          }
+        }
+      });
+    }
+    // traffic lights at every crossing with three or more streets: one head on the far right corner for each
+    // direction of travel (as in Taiwan)
+    const deg = nodes.map(() => 0);
+    for (const [a, b] of edges) deg[a]++, deg[b]++;
+    nodes.forEach((nd, i) => {
+      if (deg[i] < 3) return;
+      const o = road / 2 + 1.2;
+      d.signals.push({ x: nd.x + o, z: nd.z + o, yaw: -Math.PI / 2, axis: 'x' }); // for traffic heading +x
+      d.signals.push({ x: nd.x - o, z: nd.z - o, yaw: Math.PI / 2, axis: 'x' }); // heading −x
+      d.signals.push({ x: nd.x - o, z: nd.z + o, yaw: Math.PI, axis: 'z' }); // heading +z
+      d.signals.push({ x: nd.x + o, z: nd.z - o, yaw: 0, axis: 'z' }); // heading −z
+    });
+    // palms: along both river promenades and on the harbour's corners
+    for (let x = -330; x <= 330; x += 22) {
+      if (river.bridges.some((b) => Math.abs(x - b) < 11) || CITY.ramps.some((rr) => Math.abs(x - rr.p[0]) < 9)) continue;
+      for (const sz of [1, -1]) d.palms.push({ x, z: sz * (rz + 2.6), h: 7 + h(x, sz) * 3 });
+    }
+    for (const blk of shopBlocks)
+      if (blk.dist === 'harbor')
+        for (const [sx, sz] of [
+          [-1, -1],
+          [1, -1],
+          [-1, 1],
+          [1, 1],
+        ])
+          d.palms.push({ x: blk.cx + sx * (lot / 2 - 1.2), z: blk.cz + sz * (lot / 2 - 1.2), h: 6 + h(blk.gx, blk.gz, sx, sz) * 3 });
+    // Love River cruise boats
+    d.boats = [
+      { z: 7, x0: -320, x1: 320, speed: 4, color: '#E53935' },
+      { z: -7, x0: -320, x1: 320, speed: 3.2, color: '#1E88E5' },
+      { z: 6, x0: -320, x1: 320, speed: 3.6, color: '#FFB300' },
+    ];
+    return d;
+  }
+
+  // crossings: zebra stripes before every crossing and a stop line on the approaching lane
+  for (const [a, b] of edges)
+    for (const [from, to] of [
+      [a, b],
+      [b, a],
+    ]) {
+      const A = nodes[from],
+        B = nodes[to];
+      const len = Math.hypot(B.x - A.x, B.z - A.z);
+      const ux = (B.x - A.x) / len,
+        uz = (B.z - A.z) / len;
+      const cx = B.x - ux * (road / 2 + 2.4),
+        cz = B.z - uz * (road / 2 + 2.4);
+      for (let s2 = -road / 2 + 1; s2 <= road / 2 - 1; s2 += 1.1) marks.push({ x: cx - uz * s2, z: cz + ux * s2, w: ux ? 3 : 0.55, d: uz ? 3 : 0.55, color: C.mark });
+      // stop line across the right-hand lane only
+      const sx = B.x - ux * (road / 2 + 4.6) - uz * 3.5,
+        sz = B.z - uz * (road / 2 + 4.6) + ux * 3.5;
+      marks.push({ x: sx, z: sz, w: ux ? 0.4 : 6.4, d: uz ? 0.4 : 6.4, color: C.mark });
+    }
+
   return {
     id: 'city',
     bounds: half,
@@ -287,5 +446,6 @@ export function cityLevel(): Level {
     graph: { nodes, edges },
     walks,
     avoid,
+    decor,
   };
 }

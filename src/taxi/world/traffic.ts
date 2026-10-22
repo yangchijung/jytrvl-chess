@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import type RAPIER_NS from '@dimforge/rapier3d-compat';
 import type { RoadGraph } from './level';
+import { sedanGeometry } from '../fx/taxiModel';
 
 type R = typeof RAPIER_NS;
 /** collision groups (membership << 16 | filter): the taxi is group 2; a knocked car stops colliding with it, so the
@@ -13,6 +14,12 @@ type R = typeof RAPIER_NS;
 export const TAXI_GROUPS = (0x0002 << 16) | 0xffff;
 const FLYING_GROUPS = (0x0004 << 16) | (0xffff & ~0x0002);
 const LANE = 3.5;
+/** traffic lights, shared by every crossing (a 20 s cycle): streets along x go first, then those along z */
+export function lightFor(axis: 'x' | 'z', t: number): 'green' | 'yellow' | 'red' {
+  const p = ((t % 20) + 20) % 20;
+  if (axis === 'x') return p < 8 ? 'green' : p < 10 ? 'yellow' : 'red';
+  return p < 10 ? 'red' : p < 18 ? 'green' : 'yellow';
+}
 const HALF = { x: 1.0, y: 0.75, z: 2.1 };
 const CRUISE = 11; // m/s (about 40 km/h)
 const TURN = 6;
@@ -53,11 +60,12 @@ export type TrafficEvent = { t: 'hit'; speed: number } | { t: 'near' };
 
 export class Traffic {
   cars: Npc[] = [];
+  /** the traffic clock (s): the lights follow it */
+  time = 0;
   private adj: number[][];
   private seed: number;
   private bodyMesh: THREE.InstancedMesh;
   private cabinMesh: THREE.InstancedMesh;
-  private tyreMesh: THREE.InstancedMesh;
   private m4 = new THREE.Matrix4();
 
   constructor(
@@ -72,11 +80,12 @@ export class Traffic {
     this.adj = graph.nodes.map(() => []);
     for (const [a, b] of graph.edges) this.adj[a].push(b), this.adj[b].push(a);
     const mat = (o: THREE.MeshLambertMaterialParameters = {}) => new THREE.MeshLambertMaterial({ flatShading: true, ...o });
-    this.bodyMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(HALF.x * 2, 0.9, HALF.z * 2), mat(), count);
-    this.cabinMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1.7, 0.65, 2.1), mat({ color: '#4E6B87' }), count);
-    this.tyreMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(HALF.x * 2 + 0.1, 0.55, HALF.z * 2 - 0.7), mat({ color: '#1E2228' }), count);
+    // sedans: the paint takes each car's colour, glass, bumpers, lights and wheels keep theirs
+    const geo = sedanGeometry();
+    this.bodyMesh = new THREE.InstancedMesh(geo.paint, mat({ vertexColors: true }), count);
+    this.cabinMesh = new THREE.InstancedMesh(geo.detail, mat({ vertexColors: true }), count);
     this.bodyMesh.castShadow = this.cabinMesh.castShadow = true;
-    scene.add(this.bodyMesh, this.cabinMesh, this.tyreMesh);
+    scene.add(this.bodyMesh, this.cabinMesh);
     const used = new Set<number>();
     for (let i = 0; i < count; i++) {
       // spread over the network: a different street for each car
@@ -182,6 +191,7 @@ export class Traffic {
   update(dt: number, taxi: TaxiNow): TrafficEvent[] {
     const ev: TrafficEvent[] = [];
     const taxiSpeed = Math.hypot(taxi.vx, taxi.vz);
+    this.time += dt;
     for (const n of this.cars) {
       if (n.flying > 0) {
         n.flying += dt;
@@ -232,13 +242,23 @@ export class Traffic {
       if (lz > 0 && Math.abs(lx) < 2.6) gap = lz - HALF.z * 2;
       for (const o of this.cars) {
         if (o === n || o.flying) continue;
+        // on the same piece only the car behind waits (no two cars waiting for each other)
+        if (o.from === n.from && o.to === n.to && o.piece.turn === n.piece.turn && o.s <= n.s) continue;
         const ox = o.pos.x - n.pos.x,
           oz = o.pos.y - n.pos.y;
         const fz = ox * s + oz * c,
           fx = ox * c - oz * s;
         if (fz > 0 && fz < gap + HALF.z * 2 && Math.abs(fx) < 2.4 && Math.cos(o.yaw - n.yaw) > 0.3) gap = fz - HALF.z * 2;
       }
-      const want = gap < 3 ? 0 : gap < 14 ? Math.min(n.piece.turn ? TURN : CRUISE, (gap - 3) * 1.1) : n.piece.turn ? TURN : CRUISE;
+      let want = gap < 3 ? 0 : gap < 14 ? Math.min(n.piece.turn ? TURN : CRUISE, (gap - 3) * 1.1) : n.piece.turn ? TURN : CRUISE;
+      // red light ahead (crossings with three or more streets): stop at the stop line; on yellow, go if too close
+      if (!n.piece.turn && this.adj[n.to].length >= 3) {
+        const A = this.graph.nodes[n.from],
+          B = this.graph.nodes[n.to];
+        const light = lightFor(Math.abs(B.x - A.x) > Math.abs(B.z - A.z) ? 'x' : 'z', this.time);
+        const left = n.piece.len - n.s;
+        if (light === 'red' || (light === 'yellow' && left > 7)) want = Math.min(want, left < 2.8 ? 0 : (left - 2.6) * 0.9);
+      }
       n.speed += Math.max(-12 * dt, Math.min(4 * dt, want - n.speed));
       n.s += n.speed * dt;
       while (n.s >= n.piece.len) {
@@ -263,15 +283,12 @@ export class Traffic {
         r = n.body.rotation();
       q.set(r.x, r.y, r.z, r.w);
       p.set(t.x, t.y, t.z);
-      this.m4.compose(off.set(0, 0.05, 0).applyQuaternion(q).add(p), q, one);
+      this.m4.compose(off.set(0, 0.2, 0).applyQuaternion(q).add(p), q, one);
       this.bodyMesh.setMatrixAt(i, this.m4);
       this.bodyMesh.setColorAt(i, n.color);
-      this.m4.compose(off.set(0, 0.75, -0.2).applyQuaternion(q).add(p), q, one);
       this.cabinMesh.setMatrixAt(i, this.m4);
-      this.m4.compose(off.set(0, -0.45, 0).applyQuaternion(q).add(p), q, one);
-      this.tyreMesh.setMatrixAt(i, this.m4);
     });
-    for (const m of [this.bodyMesh, this.cabinMesh, this.tyreMesh]) m.instanceMatrix.needsUpdate = true;
+    for (const m of [this.bodyMesh, this.cabinMesh]) m.instanceMatrix.needsUpdate = true;
     if (this.bodyMesh.instanceColor) this.bodyMesh.instanceColor.needsUpdate = true;
   }
 }
