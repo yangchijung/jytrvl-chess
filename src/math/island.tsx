@@ -1,140 +1,168 @@
-// Math Island M0 — /math. Task: pick a game and start (or continue). Only playable games are shown (spec §2:
-// no "coming soon" cards). Parent information is one level down.
-import { Link } from 'react-router-dom';
+// Math Island — /math as an island map for children who cannot read yet. Each game is one big picture button
+// with its name (≤ 5 characters) and a coloured flag for the grade (green 1, yellow 2, blue 3). Tapping says the
+// game's name and what to do, then opens it. Everything written for adults is on /math/parent.
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../i18n';
-import { APPLE_KEY, APPLE_PROBLEMS, finished, readApple } from '../../shared/math/apple';
-import { FACTORY_KEY, FACTORY_PROBLEMS, SOURCE, finishedF, readFactory } from '../../shared/math/factory';
-import { TRAIN_KEY, TRAIN_PROBLEMS, PLATFORM, finishedT, readTrain } from '../../shared/math/train';
-import { SHOP_KEY, SHOP_PROBLEMS, PURSE, finishedS, readShop } from '../../shared/math/shop';
-import { BALANCE_KEY, BALANCE_PROBLEMS, BIN, finishedB, readBalance } from '../../shared/math/balance';
-import { CLOCK_KEY, CLOCK_PROBLEMS, finishedC, readClock } from '../../shared/math/clock';
-import { GARDEN_KEY, GARDEN_PROBLEMS, finishedG, readGarden } from '../../shared/math/garden';
-import { FROG_KEY, FROG_PROBLEMS, finishedF2, readFrog } from '../../shared/math/frog';
+import { APPLE_KEY, APPLE_PROBLEMS, readApple } from '../../shared/math/apple';
+import { FACTORY_KEY, readFactory } from '../../shared/math/factory';
+import { TRAIN_KEY, readTrain } from '../../shared/math/train';
+import { SHOP_KEY, readShop } from '../../shared/math/shop';
+import { BALANCE_KEY, readBalance } from '../../shared/math/balance';
+import { CLOCK_KEY, readClock } from '../../shared/math/clock';
+import { GARDEN_KEY, readGarden } from '../../shared/math/garden';
+import { FROG_KEY, readFrog } from '../../shared/math/frog';
 import { peek } from './save';
-import { IslandArt } from './art';
+import { GameArt, type GameId } from './art';
+import { Speaker } from './audio';
+import { HandDemo, KidBar } from './kid';
+import type { L } from './shell';
 import './math.css';
 
-type L = { zh: string; en: string };
-const T = {
+type Grade = 1 | 2 | 3;
+interface Game {
+  id: GameId;
+  path: string;
+  name: L;
+  grade: Grade;
+  key: string;
+  read: (get: () => string | null) => { kind: string; save?: unknown };
+}
+const GAMES: Game[] = [
+  { id: 'apple', path: '/math/g1/apple', name: { zh: '蘋果籃', en: 'Apples' }, grade: 1, key: APPLE_KEY, read: readApple },
+  { id: 'train', path: '/math/g1/train', name: { zh: '湊十小火車', en: 'Train' }, grade: 1, key: TRAIN_KEY, read: readTrain },
+  { id: 'shop', path: '/math/g1/shop', name: { zh: '零錢小商店', en: 'Shop' }, grade: 1, key: SHOP_KEY, read: readShop },
+  { id: 'balance', path: '/math/g1/balance', name: { zh: '天平等一等', en: 'Balance' }, grade: 1, key: BALANCE_KEY, read: readBalance },
+  { id: 'clock', path: '/math/g1/clock', name: { zh: '時鐘修理站', en: 'Clock' }, grade: 1, key: CLOCK_KEY, read: readClock },
+  { id: 'garden', path: '/math/g2/garden', name: { zh: '乘法花圃', en: 'Garden' }, grade: 2, key: GARDEN_KEY, read: readGarden },
+  { id: 'factory', path: '/math/g3/factory', name: { zh: '分裝工廠', en: 'Factory' }, grade: 3, key: FACTORY_KEY, read: readFactory },
+  { id: 'frog', path: '/math/g3/frog', name: { zh: '數線青蛙', en: 'Frog' }, grade: 3, key: FROG_KEY, read: readFrog },
+];
+const FLAG: Record<Grade, string> = { 1: '#3D7A3F', 2: '#E2B93B', 3: '#3A7BD5' };
+const A11Y = {
   title: { zh: '數學遊樂島', en: 'Math Island' },
-  tag: { zh: '試玩版', en: 'Early version' },
-  zhOnly: { zh: '', en: 'The questions and voice are in Traditional Chinese for now.' },
-  apple: { zh: '蘋果籃', en: 'Apple Basket' },
-  appleWhat: { zh: '一年級．把兩堆蘋果放一起，數一數一共幾顆。5 題。', en: 'Grade 1 · put two groups of apples together and count them. 5 problems.' },
-  factory: { zh: '分裝工廠', en: 'Packing Factory' },
-  factoryWhat: { zh: '三年級．把餅乾平分到每一盒，再說每盒有幾個。5 題。', en: 'Grade 3 · share cookies equally into boxes and say how many are in each. 5 problems.' },
-  train: { zh: '湊十小火車', en: 'Make-Ten Train' },
-  trainWhat: { zh: '一年級．請乘客上火車，第一節坐滿 10 人再坐第二節，數一數一共幾人。5 題。', en: 'Grade 1 · board the riders, filling car 1 to ten first, then count them all. 5 problems.' },
-  shop: { zh: '零錢小商店', en: 'Coin Shop' },
-  shopWhat: { zh: '一、二年級．用 1、5、10、50 元硬幣付剛好的錢。5 題。', en: 'Grades 1–2 · pay the exact price with 1, 5, 10 and 50 dollar coins. 5 problems.' },
-  balance: { zh: '天平等一等', en: 'Balance Scale' },
-  balanceWhat: { zh: '一、二年級．放積木讓天平兩邊一樣重，看懂等號的意思。5 題。', en: 'Grades 1–2 · add blocks until both sides weigh the same, and see what = means. 5 problems.' },
-  clock: { zh: '時鐘修理站', en: 'Clock Repair' },
-  clockWhat: { zh: '一、二年級．轉長針撥時鐘，看短針怎麼跟著走，分清上午、下午。5 題。', en: 'Grades 1–2 · turn the minute hand, watch the hour hand follow, and tell morning from afternoon. 5 problems.' },
-  garden: { zh: '乘法花圃', en: 'Multiplication Garden' },
-  gardenWhat: { zh: '二年級．拉出每排一樣多的花圃，看懂乘法。5 題。', en: 'Grade 2 · pull out a bed of equal rows and see what multiplying means. 5 problems.' },
-  frog: { zh: '數線青蛙', en: 'Number-Line Frog' },
-  frogWhat: { zh: '三年級．青蛙在數線上跳，選出牠會停在哪裡。5 題。', en: 'Grade 3 · the frog jumps along the number line; pick where it lands. 5 problems.' },
-  start: { zh: '開始玩', en: 'Start' },
-  cont: { zh: '接著玩：第 {n} 題', en: 'Continue: problem {n}' },
-  again: { zh: '再玩一次（5 題都完成了）', en: 'Play again (all 5 done)' },
-  adults: { zh: '給大人看', en: 'For adults' },
-  a1: { zh: '目前是試玩版：每款 5 題固定題目，不計時、不扣分，答錯可以再數一次。', en: 'Early version: 5 fixed problems per game, no timer, no penalties; a wrong answer can be counted again.' },
-  a2: { zh: '不需要登入，不收集姓名、Email 或生日；進度只存在這台裝置的瀏覽器裡。', en: 'No sign-in; no names, emails or birthdays. Progress stays in this browser on this device.' },
-  a3: { zh: '沒有廣告、付費或第三方追蹤。朗讀使用預先錄好的聲音檔，可以關掉。', en: 'No ads, payments or third-party tracking. Spoken prompts use pre-made audio and can be turned off.' },
+  grade: { zh: '{g} 年級', en: 'grade {g}' },
+  done: { zh: '做完 {n} 題', en: '{n} done' },
+};
+const MENU_KEY = 'jy.math.menu.v1';
+
+/** how many of a game's 5 problems are done, from its own save (read-only) */
+function doneOf(g: Game): number {
+  const s = peek({ key: g.key, read: g.read as never }) as { done?: string[] } | null;
+  return Math.min(5, s?.done?.length ?? 0);
+}
+const readVoice = () => {
+  try {
+    return localStorage.getItem(MENU_KEY) !== '{"voice":false}';
+  } catch {
+    return true;
+  }
 };
 
 export function MathIslandPage() {
   const { lang, to } = useI18n();
   const tr = (l: L, v?: Record<string, string | number>) => l[lang].replace(/\{(\w+)\}/g, (_, k) => String(v?.[k] ?? ''));
-  const s = peek({ key: APPLE_KEY, read: readApple });
-  const label = !s ? tr(T.start) : finished(s) ? tr(T.again) : s.index === 0 && s.at.every((x) => x === 'pile') ? tr(T.start) : tr(T.cont, { n: Math.min(s.index + 1, APPLE_PROBLEMS.length) });
-  const f = peek({ key: FACTORY_KEY, read: readFactory });
-  const flabel = !f ? tr(T.start) : finishedF(f) ? tr(T.again) : f.index === 0 && f.at.every((x) => x === SOURCE) ? tr(T.start) : tr(T.cont, { n: Math.min(f.index + 1, FACTORY_PROBLEMS.length) });
-  const lab = (v: { index: number; at: number[] } | null, total: number, done: boolean, untouched: (a: number[]) => boolean) =>
-    !v ? tr(T.start) : done ? tr(T.again) : v.index === 0 && untouched(v.at) ? tr(T.start) : tr(T.cont, { n: Math.min(v.index + 1, total) });
-  const t = peek({ key: TRAIN_KEY, read: readTrain });
-  const sh = peek({ key: SHOP_KEY, read: readShop });
-  const b = peek({ key: BALANCE_KEY, read: readBalance });
-  const more = [
-    { id: 'train', path: '/math/g1/train', name: T.train, what: T.trainWhat, label: lab(t, TRAIN_PROBLEMS.length, !!t && finishedT(t), (a) => a.every((x) => x === PLATFORM)) },
-    { id: 'shop', path: '/math/g1/shop', name: T.shop, what: T.shopWhat, label: lab(sh, SHOP_PROBLEMS.length, !!sh && finishedS(sh), (a) => a.every((x) => x === PURSE)) },
-    { id: 'balance', path: '/math/g1/balance', name: T.balance, what: T.balanceWhat, label: lab(b, BALANCE_PROBLEMS.length, !!b && finishedB(b), (a) => a.every((x) => x === BIN)) },
-  ];
-  const ck = peek({ key: CLOCK_KEY, read: readClock });
-  const gd = peek({ key: GARDEN_KEY, read: readGarden });
-  const fr = peek({ key: FROG_KEY, read: readFrog });
-  const lab2 = (v: { index: number } | null, total: number, done: boolean, untouched: boolean) => (!v ? tr(T.start) : done ? tr(T.again) : v.index === 0 && untouched ? tr(T.start) : tr(T.cont, { n: Math.min(v.index + 1, total) }));
-  more.push({ id: 'clock', path: '/math/g1/clock', name: T.clock, what: T.clockWhat, label: lab2(ck, CLOCK_PROBLEMS.length, !!ck && finishedC(ck), !!ck && ck.minutes === CLOCK_PROBLEMS[0].start) });
-  more.push({ id: 'garden', path: '/math/g2/garden', name: T.garden, what: T.gardenWhat, label: lab2(gd, GARDEN_PROBLEMS.length, !!gd && finishedG(gd), !!gd && gd.rows === 0 && gd.cols === 0) });
-  const late = [{ id: 'frog', path: '/math/g3/frog', name: T.frog, what: T.frogWhat, label: lab2(fr, FROG_PROBLEMS.length, !!fr && finishedF2(fr), !!fr && fr.pick === null) }];
+  const navigate = useNavigate();
+  const speaker = useMemo(() => new Speaker(), []);
+  const sub = useCallback((f: () => void) => speaker.subscribe(f), [speaker]);
+  const audio = useSyncExternalStore(sub, () => speaker.state, () => 'idle' as const);
+  const [voice, setVoice] = useState(readVoice);
+  const [going, setGoing] = useState<GameId | null>(null);
+  const progress = useMemo(() => Object.fromEntries(GAMES.map((g) => [g.id, doneOf(g)])) as Record<GameId, number>, []);
+  const firstVisit = useMemo(() => Object.values(progress).every((n) => n === 0) && !peek({ key: APPLE_KEY, read: readApple }), [progress]);
+  const [touched, setTouched] = useState(false);
+  const stage = useRef<HTMLDivElement>(null);
+  const appleBtn = useRef<HTMLAnchorElement>(null);
+
+  useEffect(() => () => speaker.stop(), [speaker]);
+  // the greeting plays by itself only when the child has already tapped (browsers block sound before that)
+  useEffect(() => {
+    const ua = (navigator as unknown as { userActivation?: { hasBeenActive: boolean } }).userActivation;
+    if (ua?.hasBeenActive && voice) speaker.play('menu_hello');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // open the game when its spoken name ends (or at once without sound); a second tap skips the wait
+  const pending = useRef<{ path: string; t: ReturnType<typeof setTimeout> } | null>(null);
+  const go = (path: string) => {
+    if (pending.current) clearTimeout(pending.current.t);
+    pending.current = null;
+    navigate(to(path));
+  };
+  useEffect(() => {
+    if (pending.current && audio !== 'playing') go(pending.current.path);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [audio]);
+  const open = (e: React.MouseEvent, g: Game) => {
+    e.preventDefault();
+    setTouched(true);
+    if (pending.current || !voice) return go(g.path);
+    setGoing(g.id);
+    speaker.play(`menu_${g.id}`);
+    pending.current = { path: g.path, t: setTimeout(() => go(g.path), 4500) };
+    if (speaker.state !== 'playing') go(g.path);
+  };
+  useEffect(
+    () => () => {
+      if (pending.current) clearTimeout(pending.current.t);
+    },
+    [],
+  );
+  const toggleVoice = () => {
+    const v = !voice;
+    setVoice(v);
+    if (!v) speaker.stop();
+    try {
+      localStorage.setItem(MENU_KEY, JSON.stringify({ voice: v }));
+    } catch {
+      /* the choice just is not remembered */
+    }
+  };
+
   return (
-    <div className="mi rounded-lg px-3 py-4 sm:px-6 sm:py-6" data-testid="mi-island">
-      <div className="mx-auto flex max-w-3xl flex-col gap-4">
-        <div className="flex flex-wrap items-baseline gap-3">
-          <h1 className="text-3xl font-extrabold">{tr(T.title)}</h1>
-          <span className="text-base font-bold">{tr(T.tag)}</span>
-        </div>
-        {lang === 'en' && <p className="text-base">{tr(T.zhOnly)}</p>}
-        <div className="overflow-hidden rounded-lg border-2 border-[var(--mi-ink)]">
-          <IslandArt />
-        </div>
-        <section className="flex flex-col gap-3 rounded-lg border-2 border-[var(--mi-line)] bg-[var(--mi-surface)] p-4" aria-labelledby="mi-apple-h">
-          <h2 id="mi-apple-h" className="text-2xl font-extrabold">
-            {tr(T.apple)}
-          </h2>
-          <p className="text-lg">{tr(T.appleWhat)}</p>
-          <div>
-            <Link to={to('/math/g1/apple')} className="mi-btn mi-btn-primary mi-big px-6 text-xl" data-testid="mi-start-apple">
-              {label}
-            </Link>
-          </div>
-        </section>
-        {more.map((m) => (
-          <section key={m.id} className="flex flex-col gap-3 rounded-lg border-2 border-[var(--mi-line)] bg-[var(--mi-surface)] p-4" aria-labelledby={`mi-${m.id}-h`}>
-            <h2 id={`mi-${m.id}-h`} className="text-2xl font-extrabold">
-              {tr(m.name)}
-            </h2>
-            <p className="text-lg">{tr(m.what)}</p>
-            <div>
-              <Link to={to(m.path)} className="mi-btn mi-btn-primary mi-big px-6 text-xl" data-testid={`mi-start-${m.id}`}>
-                {m.label}
-              </Link>
-            </div>
-          </section>
-        ))}
-        <section className="flex flex-col gap-3 rounded-lg border-2 border-[var(--mi-line)] bg-[var(--mi-surface)] p-4" aria-labelledby="mi-factory-h">
-          <h2 id="mi-factory-h" className="text-2xl font-extrabold">
-            {tr(T.factory)}
-          </h2>
-          <p className="text-lg">{tr(T.factoryWhat)}</p>
-          <div>
-            <Link to={to('/math/g3/factory')} className="mi-btn mi-btn-primary mi-big px-6 text-xl" data-testid="mi-start-factory">
-              {flabel}
-            </Link>
-          </div>
-        </section>
-        {late.map((m) => (
-          <section key={m.id} className="flex flex-col gap-3 rounded-lg border-2 border-[var(--mi-line)] bg-[var(--mi-surface)] p-4" aria-labelledby={`mi-${m.id}-h`}>
-            <h2 id={`mi-${m.id}-h`} className="text-2xl font-extrabold">
-              {tr(m.name)}
-            </h2>
-            <p className="text-lg">{tr(m.what)}</p>
-            <div>
-              <Link to={to(m.path)} className="mi-btn mi-btn-primary mi-big px-6 text-xl" data-testid={`mi-start-${m.id}`}>
-                {m.label}
-              </Link>
-            </div>
-          </section>
-        ))}
-        <details className="rounded-lg border-2 border-[var(--mi-line)] p-4">
-          <summary className="min-h-11 cursor-pointer text-lg font-bold">{tr(T.adults)}</summary>
-          <ul className="mt-2 list-disc space-y-1 pl-6 text-base">
-            <li>{tr(T.a1)}</li>
-            <li>{tr(T.a2)}</li>
-            <li>{tr(T.a3)}</li>
+    <div className="mi min-h-dvh" data-testid="mi-island">
+      <h1 className="sr-only">{tr(A11Y.title)}</h1>
+      <KidBar back="site" voice={voice} onSpeak={() => speaker.play('menu_hello')} onVoice={toggleVoice} />
+      <div ref={stage} className="relative mx-auto max-w-[1180px] px-3 pb-6 sm:px-5" onPointerDown={() => setTouched(true)}>
+        {/* the island: sea all round, one sandy shape, the eight places on it */}
+        <div className="relative overflow-hidden rounded-[28px] bg-[#3A7BD5] p-4 sm:p-8">
+          <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M6 22C10 6 34 3 52 5s40 1 43 18c3 14-2 30 1 46s-4 27-24 28-44 0-58-4S1 76 3 58 2 34 6 22z" fill="#FFF4E3" stroke="#23303F" strokeWidth="0.6" vectorEffect="non-scaling-stroke" />
+          </svg>
+          <ul className="relative grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-4" role="list">
+            {GAMES.map((g) => (
+              <li key={g.id}>
+                <a
+                  ref={g.id === 'apple' ? appleBtn : undefined}
+                  href={to(g.path)}
+                  onClick={(e) => open(e, g)}
+                  className="kid-place flex flex-col items-center gap-1 rounded-[20px] border-[3px] border-[#23303F] bg-[#FFFAF2] px-2 pb-3 pt-2 text-[#23303F]"
+                  data-testid={`mi-start-${g.id}`}
+                  data-grade={g.grade}
+                  data-going={going === g.id}
+                  aria-label={`${tr(g.name)}，${tr(A11Y.grade, { g: g.grade })}${progress[g.id] ? `，${tr(A11Y.done, { n: progress[g.id] })}` : ''}`}
+                >
+                  <span className="flex w-full items-start justify-between">
+                    <svg viewBox="0 0 28 32" width="28" height="32" aria-hidden="true">
+                      <path d="M4 30V3" stroke="#23303F" strokeWidth="3" strokeLinecap="round" />
+                      <path d="M5 4h19l-5 6 5 6H5z" fill={FLAG[g.grade]} stroke="#23303F" strokeWidth="2.5" strokeLinejoin="round" />
+                    </svg>
+                    <span className="flex gap-1 pt-1" aria-hidden="true">
+                      {Array.from({ length: APPLE_PROBLEMS.length }, (_, k) => (
+                        <span key={k} className="h-2.5 w-2.5 rounded-full border-2 border-[#23303F]" style={{ background: k < progress[g.id] ? '#3D7A3F' : 'transparent' }} />
+                      ))}
+                    </span>
+                  </span>
+                  <GameArt game={g.id} size={150} />
+                  <span className="text-2xl font-extrabold leading-tight" lang={lang === 'zh' ? 'zh-Hant' : 'en'}>
+                    {tr(g.name)}
+                  </span>
+                </a>
+              </li>
+            ))}
           </ul>
-        </details>
+        </div>
+        <HandDemo show={firstVisit && !touched} from={appleBtn} to={appleBtn} stage={stage} />
       </div>
     </div>
   );

@@ -27,6 +27,10 @@ const navLink = ({ isActive }: { isActive: boolean }) =>
 const menuLink = ({ isActive }: { isActive: boolean }) =>
   `ui-t flex min-h-11 items-center rounded-md px-3 font-medium hover:bg-[var(--surface-2)] ${isActive ? 'border-l-4 border-[var(--ui-accent-text)] bg-[var(--surface-2)] pl-2' : ''}`;
 
+/** Math Island pages already redesigned for children who cannot read yet */
+const KID_PATHS = ['/math', '/math/g1/apple'];
+const isKidPath = (path: string) => KID_PATHS.includes(path.replace(/^\/en(?=\/|$)/, '').replace(/\/$/, '') || '/');
+
 export function Layout({ children }: { children: ReactNode }) {
   usePageMeta();
   const { t, to, switchTo, lang } = useI18n();
@@ -77,6 +81,17 @@ export function Layout({ children }: { children: ReactNode }) {
     );
   const authError = new URLSearchParams(loc.search).get('auth_error');
   const user = me?.kind === 'user' ? me : null;
+
+  // Math Island pages for young children: no site header or footer (no words to read); the page draws its own
+  // icon bar with a way back and a "for adults" page that has everything else. Rolled out page by page.
+  if (isKidPath(loc.pathname))
+    return (
+      <div className="flex min-h-dvh flex-col">
+        <main id="main" tabIndex={-1} className="w-full flex-1">
+          {children}
+        </main>
+      </div>
+    );
 
   return (
     <div className="flex min-h-dvh flex-col">
