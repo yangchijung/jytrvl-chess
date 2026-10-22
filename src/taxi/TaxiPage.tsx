@@ -83,7 +83,7 @@ export function TaxiPage() {
             lastHud = now;
             setHud(h);
           }
-        }, { lowPower: touchUi, lang, onEvent: (e) => onEvent.current(e), onPause: (p) => setPaused(p) });
+        }, { lowPower: touchUi, lang, track: new URLSearchParams(location.search).get('track') === 'test' ? 'test' : 'city', onEvent: (e) => onEvent.current(e), onPause: (p) => setPaused(p) });
         if (!alive) return g.dispose();
         game.current = g;
         (window as unknown as { __taxi: Game }).__taxi = g;

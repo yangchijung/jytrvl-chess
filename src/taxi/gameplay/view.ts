@@ -68,10 +68,15 @@ export class RunView {
     const g = new THREE.Group();
     g.position.set(p.stop.x, 0, p.stop.z);
     const fig = figure(p.id);
+    // the person stands on the kerb beside the stop circle, facing the street
+    const kx = (p.stop.cx ?? p.stop.x) - p.stop.x,
+      kz = (p.stop.cz ?? p.stop.z) - p.stop.z;
+    fig.position.set(kx, 0, kz);
+    if (kx || kz) fig.rotation.y = Math.atan2(-kx, -kz);
     g.add(fig);
     const ring = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.12, 8, 24), new THREE.MeshBasicMaterial({ color: BAND_COLOR[p.band] }));
     ring.rotation.x = Math.PI / 2;
-    ring.position.y = 2.6;
+    ring.position.set(kx, 2.6, kz);
     const circle = new THREE.Mesh(new THREE.RingGeometry(RULES.pickRadius - 0.5, RULES.pickRadius, 40), new THREE.MeshBasicMaterial({ color: BAND_COLOR[p.band], transparent: true, opacity: 0.7, side: THREE.DoubleSide }));
     circle.rotation.x = -Math.PI / 2;
     circle.position.y = 0.04;

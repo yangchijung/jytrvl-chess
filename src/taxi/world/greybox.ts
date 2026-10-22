@@ -2,9 +2,12 @@
 // jump with a landing slope, a hill, a long wall to slide along and knock-over cones. Described as data (like the
 // city JSON later) and turned into Rapier colliders here; the renderer draws the same shapes.
 
+/** `hidden` shapes only collide (their look is drawn elsewhere, e.g. a landmark's merged mesh) */
 export type Shape =
-  | { kind: 'box'; id: string; p: [number, number, number]; size: [number, number, number]; yaw?: number; color: string; dynamic?: boolean }
-  | { kind: 'wedge'; id: string; p: [number, number, number]; size: [number, number, number]; yaw?: number; color: string };
+  | { kind: 'box'; id: string; p: [number, number, number]; size: [number, number, number]; yaw?: number; color: string; dynamic?: boolean; hidden?: boolean }
+  | { kind: 'wedge'; id: string; p: [number, number, number]; size: [number, number, number]; yaw?: number; color: string }
+  | { kind: 'cyl'; id: string; p: [number, number, number]; r: number; h: number; color: string; hidden?: boolean }
+  | { kind: 'ball'; id: string; p: [number, number, number]; r: number; color: string; hidden?: boolean };
 
 export const GROUND = 400;
 export const ROAD = 14; // road width (m)

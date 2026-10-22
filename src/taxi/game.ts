@@ -1,15 +1,19 @@
-// Rush Taxi — stage 1 grey box. Boots Rapier (WASM) and Three.js, builds the test ground, runs physics on a fixed
-// 1/60 s step with an accumulator and draws with interpolation between the last two steps.
+// Rush Taxi — boots Rapier (WASM) and Three.js, builds the level (the city, or the grey-box test ground with
+// ?track=test), runs physics on a fixed 1/60 s step with an accumulator and draws with interpolation between the
+// last two steps. Traffic and people move on the same fixed step.
 import * as THREE from 'three';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { Input, type Controls } from './core/input';
 import { Car, HALF } from './vehicle/car';
 import { TUNING, type Tuning } from './vehicle/tuning';
 import { ChaseCam } from './fx/camera';
-import { GROUND, greybox, wedgePoints, type Shape } from './world/greybox';
 import { newRun, tick, type Mode, type RunEvent, type RunState } from './gameplay/rules';
-import { PLACES, STOPS } from './gameplay/places';
 import { RunView } from './gameplay/view';
+import { testLevel, type Level } from './world/level';
+import { cityLevel } from './world/city';
+import { buildPhysics, buildScene } from './world/build';
+import { TAXI_GROUPS, Traffic, type TaxiNow } from './world/traffic';
+import { People } from './world/people';
 
 export const STEP = 1 / 60;
 const PALETTE = { sky: '#8FD0F5', asphalt: '#3A3F47', taxi: '#FFC72C', ink: '#23303F', tyre: '#1E2228', glass: '#5C7A99' };
@@ -41,12 +45,15 @@ export interface Game {
   startRun(mode: Mode | null, seed?: number): void;
   run(): RunState | null;
   setPaused(p: boolean): void;
+  level: Level;
+  traffic: Traffic | null;
+  people: People | null;
 }
 
-export const SPAWN = { p: { x: 0, y: 1.0, z: -60 }, yaw: 0 };
-
-export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) => void, opts: { lowPower?: boolean; lang?: 'zh' | 'en'; onEvent?: (e: RunEvent) => void; onPause?: (paused: boolean) => void } = {}): Promise<Game> {
+export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) => void, opts: { lowPower?: boolean; lang?: 'zh' | 'en'; track?: 'city' | 'test'; onEvent?: (e: RunEvent) => void; onPause?: (paused: boolean) => void } = {}): Promise<Game> {
   await RAPIER.init();
+  const level = opts.track === 'test' ? testLevel() : cityLevel();
+  const SPAWN = level.spawn;
   const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
   world.timestep = STEP;
 
@@ -57,7 +64,7 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
   renderer.shadowMap.type = THREE.PCFShadowMap;
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(PALETTE.sky);
-  scene.fog = new THREE.Fog(PALETTE.sky, 160, 420);
+  scene.fog = level.id === 'city' ? new THREE.Fog(PALETTE.sky, 190, 560) : new THREE.Fog(PALETTE.sky, 160, 420);
   scene.add(new THREE.HemisphereLight('#EAF6FF', '#6B6F5A', 1.6));
   const sun = new THREE.DirectionalLight('#FFF4DC', 2.2);
   sun.castShadow = true;
@@ -70,66 +77,21 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
   scene.add(sun, sun.target);
   const chase = new ChaseCam(canvas.clientWidth / Math.max(1, canvas.clientHeight));
 
-  // ground: asphalt with a light grid so speed reads well
-  const groundCol = world.createCollider(RAPIER.ColliderDesc.cuboid(GROUND / 2, 0.5, GROUND / 2).setTranslation(0, -0.5, 0).setFriction(1));
-  /** hits on these never count as a crash (the ground, knock-over props) */
-  const soft = new Set<number>([groundCol.handle]);
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(GROUND, GROUND), new THREE.MeshLambertMaterial({ color: PALETTE.asphalt }));
-  ground.rotation.x = -Math.PI / 2;
-  ground.receiveShadow = true;
-  scene.add(ground);
-  const grid = new THREE.GridHelper(GROUND, GROUND / 10, '#5A616B', '#4A5059');
-  (grid.position.y = 0.02), scene.add(grid);
-
-  // ---------- the test ground: static boxes in one instanced mesh, wedges, dynamic cones ----------
-  const shapes = greybox();
-  const statics = shapes.filter((s): s is Extract<Shape, { kind: 'box' }> => s.kind === 'box' && !s.dynamic);
-  const boxGeo = new THREE.BoxGeometry(1, 1, 1);
-  const inst = new THREE.InstancedMesh(boxGeo, new THREE.MeshLambertMaterial({ flatShading: true }), statics.length);
-  const m4 = new THREE.Matrix4();
-  statics.forEach((s, i) => {
-    const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), s.yaw ?? 0);
-    m4.compose(new THREE.Vector3(...s.p), q, new THREE.Vector3(...s.size));
-    inst.setMatrixAt(i, m4);
-    inst.setColorAt(i, new THREE.Color(s.color));
-    world.createCollider(RAPIER.ColliderDesc.cuboid(s.size[0] / 2, s.size[1] / 2, s.size[2] / 2).setTranslation(...s.p).setRotation({ x: 0, y: Math.sin((s.yaw ?? 0) / 2), z: 0, w: Math.cos((s.yaw ?? 0) / 2) }).setRestitution(0.2).setFriction(0.4));
-  });
-  scene.add(inst);
-  for (const s of shapes) {
-    if (s.kind !== 'wedge') continue;
-    const pts = wedgePoints(s.size);
-    const flat = new Float32Array(pts.flat());
-    const rot = { x: 0, y: Math.sin((s.yaw ?? 0) / 2), z: 0, w: Math.cos((s.yaw ?? 0) / 2) };
-    const desc = RAPIER.ColliderDesc.convexHull(flat);
-    if (desc) world.createCollider(desc.setTranslation(...s.p).setRotation(rot).setFriction(1));
-    const g = new THREE.BufferGeometry();
-    // two sides, slope, back, bottom omitted (never seen)
-    const tri = [0, 2, 4, 1, 5, 3, 0, 4, 5, 0, 5, 1, 2, 3, 5, 2, 5, 4];
-    const pos: number[] = [];
-    for (const i of tri) pos.push(...pts[i]);
-    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-    g.computeVertexNormals();
-    const mesh = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color: s.color, flatShading: true, side: THREE.DoubleSide }));
-    mesh.position.set(...s.p);
-    mesh.rotation.y = s.yaw ?? 0;
-    mesh.receiveShadow = true;
-    scene.add(mesh);
-  }
-  const cones = shapes
-    .filter((s): s is Extract<Shape, { kind: 'box' }> => s.kind === 'box' && !!s.dynamic)
-    .map((s) => {
-      const b = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(...s.p));
-      soft.add(world.createCollider(RAPIER.ColliderDesc.cuboid(s.size[0] / 2, s.size[1] / 2, s.size[2] / 2).setDensity(40).setRestitution(0.3), b).handle);
-      const mesh = new THREE.Mesh(new THREE.BoxGeometry(...s.size), new THREE.MeshLambertMaterial({ color: s.color }));
-      mesh.castShadow = true;
-      scene.add(mesh);
-      return { b, mesh };
-    });
+  // ---------- the level: colliders and the drawn world ----------
+  const { soft, dynamics } = buildPhysics(RAPIER, world, level);
+  const { props } = buildScene(scene, level, opts.lang ?? 'zh');
+  const cones = dynamics.map((d, i) => ({ b: d.b, mesh: props[i] }));
 
   // ---------- the car ----------
   const tuning: Tuning = { ...TUNING };
   const car = new Car(RAPIER, world, SPAWN.p, SPAWN.yaw, tuning);
+  car.collider.setCollisionGroups(TAXI_GROUPS);
   const view = new RunView(scene, opts.lang ?? 'zh');
+  const traffic = level.graph ? new Traffic(RAPIER, world, scene, level.graph, opts.lowPower ? 22 : 30) : null;
+  const people = level.walks.length ? new People(scene, level.walks, opts.lowPower ? 50 : 80) : null;
+  /** the last spot where the car stood on flat ground, to come back to after a splash in the river */
+  const safe = { p: { ...SPAWN.p }, yaw: SPAWN.yaw, t: 0 };
+  let wet = 0;
   const events = new RAPIER.EventQueue(true);
   let run: RunState | null = null;
   let landSeen = 0;
@@ -186,24 +148,66 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
     return hit ? hit.timeOfImpact : len;
   };
 
+  const taxiNow = (): TaxiNow => {
+    const t = car.body.translation(),
+      v = car.body.linvel(),
+      f = car.forward();
+    return { x: t.x, z: t.z, vx: v.x, vz: v.z, yaw: Math.atan2(f.x, f.z), kmh: car.kmh() };
+  };
   const step = (c: Controls) => {
     prev.p.copy(cur.p);
     prev.q.copy(cur.q);
     car.update(c, STEP);
-    world.step(events);
     let crash = false;
+    let nearMiss = false;
+    const tx = taxiNow();
+    if (traffic)
+      for (const e of traffic.update(STEP, tx)) {
+        if (e.t === 'hit') {
+          crash = true;
+          chase.bump(Math.min(0.4, e.speed / 40));
+          // the car flies off; the taxi keeps most of its speed
+          const v = car.body.linvel();
+          car.body.setLinvel({ x: v.x * 0.8, y: v.y, z: v.z * 0.8 }, true);
+        } else nearMiss = true;
+      }
+    people?.update(STEP, tx);
+    world.step(events);
     events.drainContactForceEvents((e) => {
       const a = e.collider1(),
         b = e.collider2();
       const other = a === car.collider.handle ? b : b === car.collider.handle ? a : -1;
-      if (other >= 0 && !soft.has(other)) crash = true;
+      // cars count through the traffic's own hit check (once per car, not again while it flies)
+      if (other >= 0 && !soft.has(other) && !traffic?.isCar(other)) crash = true;
     });
+    // fell in the river: back to the last flat spot after a moment
+    const pos = car.body.translation();
+    if (level.water && pos.y < level.water.y - 0.4) {
+      wet += STEP;
+      if (wet > 0.6) {
+        wet = 0;
+        car.reset(safe.p, safe.yaw);
+        snap(cur);
+        prev.p.copy(cur.p);
+        prev.q.copy(cur.q);
+        chase.snap();
+      }
+    } else {
+      wet = 0;
+      safe.t += STEP;
+      if (safe.t > 0.5 && car.wheelsDown() >= 3 && Math.abs(pos.y - 0.6) < 0.5 && car.kmh() < 160) {
+        const f = car.forward();
+        safe.t = 0;
+        safe.p = { x: pos.x, y: 1, z: pos.z };
+        safe.yaw = Math.atan2(f.x, f.z);
+      }
+    }
     snap(cur);
     if (run && run.phase === 'play') {
       const landed = car.ev.landings !== landSeen;
       landSeen = car.ev.landings;
       const t = car.body.translation();
-      const ev = tick(run, STEP, { x: t.x, z: t.z, kmh: car.kmh(), drifting: car.drifting, airborne: car.airborne, landedAfter: landed ? car.ev.lastAir : 0, crash, nearMiss: false }, STOPS, PLACES);
+      const ev = tick(run, STEP, { x: t.x, z: t.z, kmh: car.kmh(), drifting: car.drifting, airborne: car.airborne, landedAfter: landed ? car.ev.lastAir : 0, crash, nearMiss }, level.stops, level.places);
       for (const e of ev) opts.onEvent?.(e);
     }
   };
@@ -223,6 +227,8 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
       w.rotateY(i < 2 ? car.steer : 0);
       w.rotateX(car.vehicle.wheelRotation(i) ?? 0);
     }
+    traffic?.draw();
+    people?.draw();
     for (const c of cones) {
       const t = c.b.translation(),
         r = c.b.rotation();
@@ -336,11 +342,16 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
       prev.q.copy(cur.q);
       chase.snap();
       landSeen = car.ev.landings;
-      run = mode ? newRun(mode, STOPS, PLACES, { x: SPAWN.p.x, z: SPAWN.p.z }, seed ?? (Date.now() & 0x7fffffff)) : null;
+      run = mode ? newRun(mode, level.stops, level.places, { x: SPAWN.p.x, z: SPAWN.p.z }, seed ?? (Date.now() & 0x7fffffff)) : null;
+      safe.p = { ...SPAWN.p };
+      safe.yaw = SPAWN.yaw;
       paused = false;
       acc = 0;
     },
     run: () => run,
+    level,
+    traffic,
+    people,
     setPaused(p) {
       paused = p;
       last = performance.now();
