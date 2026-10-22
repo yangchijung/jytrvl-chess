@@ -196,7 +196,7 @@ export function TerritoryNewRoom() {
   const [err, setErr] = useState<string | null>(null);
   const create = async () => {
     try {
-      const r = await api<{ id: string }>('/territory/rooms', { method: 'POST', body: JSON.stringify({ minutes: Number(minutes) }) });
+      const r = await api<{ id: string }>('/territory/rooms', { method: 'POST', body: JSON.stringify({ minutes: Number(minutes), engine: 'flow' }) });
       nav(to(`/territory/room/${r.id}`));
     } catch (e) {
       setErr(e instanceof ApiError && e.status === 429 ? t('err.rateLimit') : t('err.generic'));

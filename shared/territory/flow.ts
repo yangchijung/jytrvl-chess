@@ -13,7 +13,7 @@
 //  * Coming home with a trail captures the trail and everything it encloses (TerritoryGame.capture).
 //
 // Inputs are target headings only (validated, finite); positions and scores are never taken from input.
-import { DIRS, TerritoryGame, type Dir, type TPlayer } from './engine';
+import { DIRS, TerritoryGame, type Dir, type TPlayer, type TerritorySnapshot } from './engine';
 
 export const STEP_MS = 50; // fixed simulation step (20 per second)
 export const SPEED = 0.5; // cells per step = 10 cells per second, as before
@@ -40,8 +40,61 @@ export const dirAngle = (d: Dir) => Math.atan2(DIRS[d][1], DIRS[d][0]);
 /** Nearest of the four directions (for bots and the minimap, which read p.dir). */
 export const nearestDir = (a: number): Dir => (((Math.round(a / (Math.PI / 2)) % 4) + 4 + 1) % 4) as Dir;
 
+/** Network form of one player's continuous state (T3): position, heading, target and the drawn trail line. */
+export interface FlowPublic {
+  fx: number;
+  fy: number;
+  h: number;
+  t: number;
+  path: [number, number][];
+}
+/** Numbers per player in a tick's `fl` array: fx, fy, heading, target (×FL_SCALE, integers). */
+export const FL_FIELDS = 4;
+export const FL_SCALE = 1000;
+const r3 = (v: number) => Math.round(v * 1000) / 1000;
+
 export class FlowGame extends TerritoryGame {
   flow: FlowState[] = [];
+
+  /** Snapshot plus every player's continuous state (reconnects and late joiners see the same curves). */
+  flowPublic(): FlowPublic[] {
+    return this.flow.map((f) => ({ fx: r3(f.fx), fy: r3(f.fy), h: r3(f.heading), t: r3(f.target), path: f.path.map(([x, y]) => [r3(x), r3(y)] as [number, number]) }));
+  }
+  /** Compact per-tick continuous state: [fx, fy, heading, target] × FL_SCALE per player. */
+  flowTick(): number[] {
+    const out: number[] = [];
+    for (const f of this.flow) out.push(Math.round(f.fx * FL_SCALE), Math.round(f.fy * FL_SCALE), Math.round(f.heading * FL_SCALE), Math.round(f.target * FL_SCALE));
+    return out;
+  }
+  static fromFlowSnapshot(s: TerritorySnapshot, flow: FlowPublic[]): FlowGame {
+    const g = TerritoryGame.fromSnapshot(s, (cfg) => new FlowGame(cfg));
+    g.flow = g.players.map((p, k) => {
+      const f = flow[k];
+      if (f && [f.fx, f.fy, f.h, f.t].every(Number.isFinite)) return { fx: f.fx, fy: f.fy, heading: f.h, target: f.t, path: Array.isArray(f.path) ? f.path.slice() : [] };
+      const a = dirAngle(p.dir);
+      return { fx: p.x + 0.5, fy: p.y + 0.5, heading: a, target: a, path: [] };
+    });
+    return g;
+  }
+  /**
+   * Mirror one server tick on a client copy (positions only; land and trail cells arrive separately).
+   * The drawn line grows while the player is out and resets when it is home or dead.
+   */
+  applyFlowTick(fl: number[]) {
+    this.flow.forEach((f, k) => {
+      const o = k * FL_FIELDS;
+      if (o + 3 >= fl.length) return;
+      f.fx = fl[o] / FL_SCALE;
+      f.fy = fl[o + 1] / FL_SCALE;
+      f.heading = fl[o + 2] / FL_SCALE;
+      f.target = fl[o + 3] / FL_SCALE;
+      const p = this.players[k];
+      if (p?.alive && p.trail.length) {
+        if (!f.path.length) f.path.push([f.fx, f.fy]);
+        f.path.push([f.fx, f.fy]);
+      } else f.path = [];
+    });
+  }
 
   start() {
     super.start();

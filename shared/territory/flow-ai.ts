@@ -125,6 +125,8 @@ export function flowBotThink(g: FlowGame, idx: number, mem: FlowBotMemory, level
     }
     target = mem.outAngle;
   } else {
+    // taking over a runner that is already out (autopilot of a disconnected player): bring it home first
+    if (mem.phase === 'home') mem.phase = 'back';
     if (mem.phase === 'out' && p.trail.length >= mem.outLen) mem.phase = 'arc';
     if (mem.phase === 'arc') {
       // sweep round at a steady rate (well below the turning limit), so the loop is a wide curve

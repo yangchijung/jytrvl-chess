@@ -19,4 +19,6 @@ export interface Env {
   BROOMS: DurableObjectNamespace<BlocksRoom>;
   ALOBBY: DurableObjectNamespace<ArenaLobby>;
   RROOMS: DurableObjectNamespace<RescueRoom>;
+  /** "off" makes every new Territory room four-way again (T3 kill switch); anything else allows 'flow' rooms */
+  TERRITORY_FLOW?: string;
 }

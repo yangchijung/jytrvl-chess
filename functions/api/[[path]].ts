@@ -358,14 +358,16 @@ export const onRequest = async (ctx: Ctx): Promise<Response> => {
     // ---------- Territory Rush ----------
     if (route === 'POST /territory/rooms') {
       if (await limited(env, req, 'troom', 30, 600000)) return err('rate_limited', 429);
-      const body = (await req.json().catch(() => ({}))) as { minutes?: number };
+      const body = (await req.json().catch(() => ({}))) as { minutes?: number; engine?: string };
       const minutes = [2, 3, 5].includes(Number(body.minutes)) ? Number(body.minutes) : 3;
+      // T3: pages that steer continuously ask for 'flow'; older pages (no field) keep getting four-way rooms
+      const engine = body.engine === 'flow' ? 'flow' : 'grid';
       for (let i = 0; i < 5; i++) {
         const id = roomCode();
         const stub = env.TROOMS.get(env.TROOMS.idFromName(id));
         const res = await stub.fetch('https://do/init', {
           method: 'POST',
-          body: JSON.stringify({ meta: { id, kind: 'private', minutes, hostId: me.playerId, createdAt: Date.now() } }),
+          body: JSON.stringify({ meta: { id, kind: 'private', minutes, hostId: me.playerId, createdAt: Date.now(), engine } }),
         });
         if (res.ok) return reply(json({ id }));
       }
@@ -386,9 +388,11 @@ export const onRequest = async (ctx: Ctx): Promise<Response> => {
     }
     if (route === 'GET /territory/match/ws') {
       if (await limited(env, req, 'tmatch', 60, 600000)) return err('rate_limited', 429);
-      const stub = env.TLOBBY.get(env.TLOBBY.idFromName('public'));
+      // T3: one queue per engine, so continuous and four-way players are never put in the same room
+      const flow = url.searchParams.get('engine') === 'flow';
+      const stub = env.TLOBBY.get(env.TLOBBY.idFromName(flow ? 'public-flow' : 'public'));
       const name = me.kind === 'user' ? me.nickname : cleanGuestName(url.searchParams.get('name'), me.nickname);
-      return forwardWs(req, stub, me, { 'x-jy-name': name }, '/ws');
+      return forwardWs(req, stub, me, { 'x-jy-name': name }, '/ws', flow ? '?engine=flow' : '');
     }
     if (route === 'GET /territory/leaderboard') {
       const sort = ({ score: 'best_score', wins: 'wins', kills: 'kills', pct: 'best_pct' } as Record<string, string>)[url.searchParams.get('sort') ?? 'score'] ?? 'best_score';

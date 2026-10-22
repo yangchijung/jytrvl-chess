@@ -1,6 +1,14 @@
 // Territory Rush realtime protocol (browser ⇄ TerritoryRoom Durable Object).
 import type { Dir, EndResult, TerritoryEvent, TerritorySnapshot } from '../../shared/territory/engine';
 import type { BotLevel } from '../../shared/territory/ai';
+import type { FlowPublic } from '../../shared/territory/flow';
+
+/**
+ * Movement engine of a room, fixed when the room is created and never changed afterwards (T3 versioning):
+ * 'grid' = the original four-way game (every room created before T3, and rooms asked for by old pages);
+ * 'flow' = continuous steering. A room without the field is 'grid'.
+ */
+export type TEngine = 'grid' | 'flow';
 
 export type TRoomStatus = 'lobby' | 'countdown' | 'playing' | 'ended';
 
@@ -15,6 +23,8 @@ export interface TSeatPublic {
 
 export type TClientMsg =
   | { t: 'dir'; d: Dir }
+  /** continuous steering: target heading in radians (screen axes); only in 'flow' rooms */
+  | { t: 'aim'; a: number }
   | { t: 'start' }
   | { t: 'bot'; op: 'add'; level: BotLevel }
   | { t: 'bot'; op: 'remove'; seat: number }
@@ -27,6 +37,8 @@ export interface TLobbyMsg {
   kind: 'private' | 'match';
   status: TRoomStatus;
   minutes: number;
+  /** absent = 'grid' (servers before T3) */
+  engine?: TEngine;
   hostSeat: number | null;
   mySeat: number | null;
   seats: TSeatPublic[];
@@ -39,6 +51,8 @@ export interface TSnapMsg {
   mySeat: number | null;
   /** ms until play starts (countdown) */
   countdownMs: number;
+  /** 'flow' rooms: every player's continuous state */
+  flow?: FlowPublic[];
 }
 
 /** Per-tick delta. pl = flat [x, y, dir, alive, land, kills, bestLand] per player. */
@@ -49,6 +63,8 @@ export interface TTickMsg {
   oc: number[]; // owner changes: index, value, …
   tc: number[]; // trail changes: index, value, …
   ev: TerritoryEvent[];
+  /** 'flow' rooms: [fx, fy, heading, target] × FL_SCALE per player (pl stays filled for older pages) */
+  fl?: number[];
 }
 
 export interface TEndMsg {

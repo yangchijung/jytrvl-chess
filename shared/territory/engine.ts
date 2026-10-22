@@ -457,8 +457,9 @@ export class TerritoryGame {
     };
   }
 
-  static fromSnapshot(s: TerritorySnapshot): TerritoryGame {
-    const g = new TerritoryGame({ width: s.w, height: s.h, durationTicks: s.durationTicks, seed: 0 });
+  /** Rebuild a game from a snapshot; `make` lets a subclass (FlowGame) be rebuilt with the same code. */
+  static fromSnapshot<G extends TerritoryGame = TerritoryGame>(s: TerritorySnapshot, make: (cfg: TerritoryConfig) => G = (cfg) => new TerritoryGame(cfg) as G): G {
+    const g = make({ width: s.w, height: s.h, durationTicks: s.durationTicks, seed: 0 });
     unrle(s.owner, g.owner);
     unrle(s.trail, g.trail);
     g.tick = s.tick;
