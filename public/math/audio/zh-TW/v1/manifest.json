@@ -205,5 +205,338 @@
     "rate": "-15%",
     "file": "factory_right_05.mp3",
     "version": 1
+  },
+  {
+    "id": "train_task",
+    "text": "請月台上的人上火車。第一節坐滿 10 人，才能坐第二節。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "train_task.mp3",
+    "version": 1
+  },
+  {
+    "id": "train_ask",
+    "text": "火車上一共有幾個人？",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "train_ask.mp3",
+    "version": 1
+  },
+  {
+    "id": "train_full",
+    "text": "第一節坐滿了，請坐第二節。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "train_full.mp3",
+    "version": 1
+  },
+  {
+    "id": "train_fill_first",
+    "text": "先把第一節坐滿。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "train_fill_first.mp3",
+    "version": 1
+  },
+  {
+    "id": "train_not_all",
+    "text": "月台上還有人，先讓大家都上車。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "train_not_all.mp3",
+    "version": 1
+  },
+  {
+    "id": "train_again",
+    "text": "再數一次看看。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "train_again.mp3",
+    "version": 1
+  },
+  {
+    "id": "train_where",
+    "text": "要坐哪裡？點一下車廂或月台。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "train_where.mp3",
+    "version": 1
+  },
+  {
+    "id": "train_done",
+    "text": "五題都完成了。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "train_done.mp3",
+    "version": 1
+  },
+  {
+    "id": "train_right_01",
+    "text": "7 加 3，剛好 10 人。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "train_right_01.mp3",
+    "version": 1
+  },
+  {
+    "id": "train_right_02",
+    "text": "8 加 5，先湊成 10，再多 3，一共 13 人。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "train_right_02.mp3",
+    "version": 1
+  },
+  {
+    "id": "train_right_03",
+    "text": "9 加 4，先湊成 10，再多 3，一共 13 人。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "train_right_03.mp3",
+    "version": 1
+  },
+  {
+    "id": "train_right_04",
+    "text": "7 加 6，先湊成 10，再多 3，一共 13 人。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "train_right_04.mp3",
+    "version": 1
+  },
+  {
+    "id": "train_right_05",
+    "text": "8 加 8，先湊成 10，再多 6，一共 16 人。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "train_right_05.mp3",
+    "version": 1
+  },
+  {
+    "id": "shop_task_01",
+    "text": "鉛筆一個 7 元，請付剛好的錢。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "shop_task_01.mp3",
+    "version": 1
+  },
+  {
+    "id": "shop_task_02",
+    "text": "橡皮擦一個 12 元，請付剛好的錢。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "shop_task_02.mp3",
+    "version": 1
+  },
+  {
+    "id": "shop_task_03",
+    "text": "果汁一個 25 元，請付剛好的錢。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "shop_task_03.mp3",
+    "version": 1
+  },
+  {
+    "id": "shop_task_04",
+    "text": "筆記本一個 36 元，請付剛好的錢。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "shop_task_04.mp3",
+    "version": 1
+  },
+  {
+    "id": "shop_task_05",
+    "text": "彩色筆一個 60 元，請付剛好的錢。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "shop_task_05.mp3",
+    "version": 1
+  },
+  {
+    "id": "shop_empty",
+    "text": "先把錢幣放到托盤上，再按付錢。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "shop_empty.mp3",
+    "version": 1
+  },
+  {
+    "id": "shop_short",
+    "text": "錢還不夠喔。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "shop_short.mp3",
+    "version": 1
+  },
+  {
+    "id": "shop_over",
+    "text": "付太多了喔。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "shop_over.mp3",
+    "version": 1
+  },
+  {
+    "id": "shop_where",
+    "text": "要放哪裡？點一下托盤或錢包。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "shop_where.mp3",
+    "version": 1
+  },
+  {
+    "id": "shop_done",
+    "text": "五題都完成了。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "shop_done.mp3",
+    "version": 1
+  },
+  {
+    "id": "shop_right_01",
+    "text": "剛好 7 元，謝謝！",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "shop_right_01.mp3",
+    "version": 1
+  },
+  {
+    "id": "shop_right_02",
+    "text": "剛好 12 元，謝謝！",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "shop_right_02.mp3",
+    "version": 1
+  },
+  {
+    "id": "shop_right_03",
+    "text": "剛好 25 元，謝謝！",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "shop_right_03.mp3",
+    "version": 1
+  },
+  {
+    "id": "shop_right_04",
+    "text": "剛好 36 元，謝謝！",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "shop_right_04.mp3",
+    "version": 1
+  },
+  {
+    "id": "shop_right_05",
+    "text": "剛好 60 元，謝謝！",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "shop_right_05.mp3",
+    "version": 1
+  },
+  {
+    "id": "balance_task",
+    "text": "放積木，讓天平兩邊一樣重。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "balance_task.mp3",
+    "version": 1
+  },
+  {
+    "id": "balance_not_level",
+    "text": "還沒有平衡，看看哪一邊比較重。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "balance_not_level.mp3",
+    "version": 1
+  },
+  {
+    "id": "balance_where",
+    "text": "要放哪裡？點一下盤子或積木箱。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "balance_where.mp3",
+    "version": 1
+  },
+  {
+    "id": "balance_done",
+    "text": "五題都完成了。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "balance_done.mp3",
+    "version": 1
+  },
+  {
+    "id": "balance_right_01",
+    "text": "5 加 3 等於 8，兩邊一樣重。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "balance_right_01.mp3",
+    "version": 1
+  },
+  {
+    "id": "balance_right_02",
+    "text": "6 等於 4 加 2，兩邊一樣重。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "balance_right_02.mp3",
+    "version": 1
+  },
+  {
+    "id": "balance_right_03",
+    "text": "5 加 3 等於 6 加 2，兩邊一樣重。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "balance_right_03.mp3",
+    "version": 1
+  },
+  {
+    "id": "balance_right_04",
+    "text": "6 加 4 等於 7 加 3，兩邊一樣重。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "balance_right_04.mp3",
+    "version": 1
+  },
+  {
+    "id": "balance_right_05",
+    "text": "7 加 5 等於 9 加 3，兩邊一樣重。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "balance_right_05.mp3",
+    "version": 1
   }
 ]
