@@ -47,6 +47,7 @@ const data = (p, game) => p.$eval(`[data-testid=mi-${game}]`, (e) => ({ ...e.dat
 const center = (p, sel) => p.$eval(sel, (e) => { const r = e.getBoundingClientRect(); return { x: (r.left + r.right) / 2, y: (r.top + r.bottom) / 2 }; });
 async function dragTo(p, from, to) {
   await p.$eval(from, (e) => e.scrollIntoView({ block: 'center' }));
+  await sleep(120); // let the scroll settle before measuring
   const a = await center(p, from);
   const b = await center(p, to);
   await p.mouse.move(a.x, a.y);
@@ -79,7 +80,7 @@ try {
     const p = await page();
     await p.goto(`${BASE}/math`, { waitUntil: 'networkidle0' });
     const links = await p.$$eval('[data-testid^=mi-start-]', (e) => e.map((x) => x.dataset.testid.slice(9)));
-    ok('A-01', 'the island lists the five playable games in grade order (apple, train, shop, balance, factory)', links.join() === 'apple,train,shop,balance,factory', links.join());
+    ok('A-01', 'the island lists the playable games in grade order', links.join() === 'apple,train,shop,balance,clock,garden,factory,frog', links.join());
     for (const g of Object.keys(GAMES))
       for (const lang of ['', '/en']) {
         await open(p, g, lang);

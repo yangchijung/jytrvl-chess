@@ -84,3 +84,49 @@ export function BlockArt({ size = 40, fixed = false }: { size?: number; fixed?: 
     </svg>
   );
 }
+
+/** One flower for the multiplication garden: five round petals and a centre, one clear unit to count. */
+export function FlowerArt({ size = 30 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 32 32" width={size} height={size} aria-hidden="true" focusable="false">
+      {[0, 72, 144, 216, 288].map((a) => (
+        <circle key={a} cx={16 + Math.sin((a * Math.PI) / 180) * 7} cy={16 - Math.cos((a * Math.PI) / 180) * 7} r="5.5" fill="var(--mi-petal)" stroke="var(--mi-apple-line)" strokeWidth="1.5" />
+      ))}
+      <circle cx="16" cy="16" r="4.5" fill="#E2B93B" stroke="var(--mi-apple-line)" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+/** The frog on the number line: a simple round body with two eyes. */
+export function FrogArt({ size = 40 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 40 32" width={size} height={(size * 32) / 40} aria-hidden="true" focusable="false">
+      <ellipse cx="20" cy="20" rx="15" ry="10" fill="var(--mi-leaf)" stroke="var(--mi-apple-line)" strokeWidth="2" />
+      <circle cx="13" cy="9" r="5" fill="var(--mi-leaf)" stroke="var(--mi-apple-line)" strokeWidth="2" />
+      <circle cx="27" cy="9" r="5" fill="var(--mi-leaf)" stroke="var(--mi-apple-line)" strokeWidth="2" />
+      <circle cx="13" cy="9" r="2" fill="var(--mi-apple-line)" />
+      <circle cx="27" cy="9" r="2" fill="var(--mi-apple-line)" />
+    </svg>
+  );
+}
+
+/** 上午 / 下午 marker for the clock: a sun or a setting sun over a line, drawn as plain shapes. */
+export function DayPartArt({ pm, size = 36 }: { pm: boolean; size?: number }) {
+  return (
+    <svg viewBox="0 0 36 36" width={size} height={size} aria-hidden="true" focusable="false">
+      {pm ? (
+        <>
+          <path d="M6 24a12 12 0 0 1 24 0z" fill="#E9853B" stroke="var(--mi-apple-line)" strokeWidth="2" />
+          <path d="M3 26h30" stroke="var(--mi-apple-line)" strokeWidth="2.5" strokeLinecap="round" />
+        </>
+      ) : (
+        <>
+          <circle cx="18" cy="18" r="7" fill="#E2B93B" stroke="var(--mi-apple-line)" strokeWidth="2" />
+          {[0, 45, 90, 135, 180, 225, 270, 315].map((a) => (
+            <path key={a} d={`M${18 + Math.sin((a * Math.PI) / 180) * 11} ${18 - Math.cos((a * Math.PI) / 180) * 11}L${18 + Math.sin((a * Math.PI) / 180) * 15} ${18 - Math.cos((a * Math.PI) / 180) * 15}`} stroke="var(--mi-apple-line)" strokeWidth="2.5" strokeLinecap="round" />
+          ))}
+        </>
+      )}
+    </svg>
+  );
+}

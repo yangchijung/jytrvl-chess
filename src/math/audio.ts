@@ -7,6 +7,9 @@ import { FACTORY_PROBLEMS } from '../../shared/math/factory';
 import { TRAIN_PROBLEMS } from '../../shared/math/train';
 import { SHOP_PROBLEMS } from '../../shared/math/shop';
 import { BALANCE_PROBLEMS, unknownOf, type BalanceProblem } from '../../shared/math/balance';
+import { CLOCK_PROBLEMS, sayTime } from '../../shared/math/clock';
+import { GARDEN_PROBLEMS } from '../../shared/math/garden';
+import { FROG_PROBLEMS, landing, taskOf } from '../../shared/math/frog';
 
 /** "5 加 3 等於 6 加 2" — the solved equation as it is read aloud */
 const spokenEq = (p: BalanceProblem) => {
@@ -54,6 +57,40 @@ export const CLIPS: Record<string, string> = {
   balance_where: '要放哪裡？點一下盤子或積木箱。',
   balance_done: '五題都完成了。',
   ...Object.fromEntries(BALANCE_PROBLEMS.map((p) => [`balance_right_${p.id.slice(-2)}`, `${spokenEq(p)}，兩邊一樣重。`])),
+  ...Object.fromEntries(CLOCK_PROBLEMS.map((p) => [`clock_task_${p.id.slice(-2)}`, p.task])),
+  clock_wrong: '再看看長針和短針指在哪裡。',
+  clock_wrong_part: '鐘面對了，再看看是上午還是下午。',
+  clock_done: '五題都完成了。',
+  ...Object.fromEntries(CLOCK_PROBLEMS.map((p) => [`clock_right_${p.id.slice(-2)}`, `對了，${sayTime(p.goal)}。`])),
+  ...Object.fromEntries(
+    GARDEN_PROBLEMS.map((p) => [`garden_task_${p.id.slice(-2)}`, p.kind === 'make' ? `每排種 ${p.cols} 朵，種 ${p.rows} 排。` : `種 ${p.total} 朵花，每排一樣多。找出 ${p.need} 種不同的種法。`]),
+  ),
+  garden_shape: '再看看每排幾朵、種了幾排。',
+  garden_not_equal: '要剛好 12 朵，而且每排一樣多。',
+  garden_again: '這種種過了，換一種排法。',
+  garden_found: '找到一種了，再找一種。',
+  garden_ask: '一共有幾朵花？',
+  garden_not_planted: '先拉好花圃，再按種下去。',
+  garden_wrong: '再數一次看看。',
+  garden_done: '五題都完成了。',
+  ...Object.fromEntries(
+    GARDEN_PROBLEMS.map((p) => [
+      `garden_right_${p.id.slice(-2)}`,
+      p.kind === 'ways'
+        ? '找到兩種種法了，花的數量都一樣。'
+        : p.split
+          ? `${p.cols} 乘以 ${p.rows}，可以拆成 ${p.split} 乘以 ${p.rows} 和 ${p.cols - p.split} 乘以 ${p.rows}，${p.split * p.rows} 加 ${(p.cols - p.split) * p.rows}，一共 ${p.cols * p.rows} 朵。`
+          : `每排 ${p.cols} 朵，有 ${p.rows} 排，${p.cols} 乘以 ${p.rows} 等於 ${p.cols * p.rows}。`,
+    ]),
+  ),
+  ...Object.fromEntries(FROG_PROBLEMS.map((p) => [`frog_task_${p.id.slice(-2)}`, taskOf(p)])),
+  frog_no_pick: '先點數線，選青蛙會停在哪裡。',
+  frog_start: '那是青蛙出發的地方喔。',
+  frog_other_way: '看看青蛙是往哪一邊跳。',
+  frog_not_on_path: '青蛙這樣跳，跳不到那裡。',
+  frog_jumps: '跳到那裡的次數不一樣，再算算看。',
+  frog_done: '五題都完成了。',
+  ...Object.fromEntries(FROG_PROBLEMS.map((p) => [`frog_right_${p.id.slice(-2)}`, `從 ${p.start} 跳 ${p.times} 次，每次 ${Math.abs(p.jump)}，停在 ${landing(p)}。`])),
 };
 export type ClipId = keyof typeof CLIPS;
 

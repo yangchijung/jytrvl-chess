@@ -21,6 +21,9 @@
   --mi-block: #3d7a3f;
   --mi-block-old: #3a7bd5;
   --mi-car: #f3e3c4;
+  --mi-petal: #e8889a;
+  --mi-soil: #c9a46c;
+  --mi-face: #fffaf2;
   background: var(--mi-sand);
   color: var(--mi-ink);
 }
@@ -42,6 +45,9 @@
     --mi-block: #6fb071;
     --mi-block-old: #8db6ee;
     --mi-car: #3a3226;
+    --mi-petal: #f0a3b2;
+    --mi-soil: #6b5236;
+    --mi-face: #26303d;
   }
 }
 :root[data-theme='dark'] .mi {
@@ -61,6 +67,9 @@
   --mi-block: #6fb071;
   --mi-block-old: #8db6ee;
   --mi-car: #3a3226;
+  --mi-petal: #f0a3b2;
+  --mi-soil: #6b5236;
+  --mi-face: #26303d;
 }
 
 @layer components {
