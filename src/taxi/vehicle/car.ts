@@ -174,7 +174,7 @@ export class Car {
     this.gasWas = gas;
     this.rushCool = Math.max(0, this.rushCool - dt);
     const slow = Math.abs(sp) < 2.5;
-    if (down >= 3 && this.rushCool === 0 && ((gasEdge && slow && this.now - this.gasReleasedAt < t.rushWindow) || (c.rush && Math.abs(sp) < 7))) {
+    if (down >= 2 && this.rushCool === 0 && ((gasEdge && slow && this.now - this.gasReleasedAt < t.rushWindow) || (c.rush && Math.abs(sp) < 7))) {
       const f = this.forward();
       this.body.applyImpulse({ x: f.x * m * t.rushBoost, y: 0, z: f.z * m * t.rushBoost }, true);
       this.rushLeft = t.rushTime;
