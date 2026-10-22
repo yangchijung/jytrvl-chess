@@ -38,10 +38,11 @@ export function LinkButton({
   children,
   variant = 'primary',
   className = '',
+  reload = false,
   ...rest
-}: { to: string; children: ReactNode; variant?: 'primary' | 'secondary'; className?: string } & Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'href' | 'className' | 'children'>) {
+}: { to: string; children: ReactNode; variant?: 'primary' | 'secondary'; className?: string; /** full page load (a page outside the app, e.g. /coaster/) */ reload?: boolean } & Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'href' | 'className' | 'children'>) {
   return (
-    <Link to={to} className={`ui-t inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-4 font-medium ${VARIANT[variant]} ${className}`} {...rest}>
+    <Link to={to} reloadDocument={reload} className={`ui-t inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-4 font-medium ${VARIANT[variant]} ${className}`} {...rest}>
       {children}
     </Link>
   );

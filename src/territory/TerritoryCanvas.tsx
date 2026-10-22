@@ -112,6 +112,7 @@ export function TerritoryCanvas({ client, overlay }: { client: TerritoryClient; 
       cam.current = { cx: c0.cx + (target.cx - c0.cx) * k, cy: c0.cy + (target.cy - c0.cy) * k, cell: c0.cell + (target.cell - c0.cell) * k };
       client.screenHead = null;
       draw(ctx, w, h, client, cam.current, theme.current, now, animRef.current);
+      reaim.current?.(); // continuous steering: keep heading for the finger / pointer as the runner moves
       if (mini.current && now - lastMini > 250) {
         lastMini = now;
         const m = mini.current;
@@ -135,6 +136,9 @@ export function TerritoryCanvas({ client, overlay }: { client: TerritoryClient; 
       if ((e.target as HTMLElement)?.tagName === 'INPUT') return;
       e.preventDefault();
       const [slot, d] = m;
+      // keys take over: a resting mouse or finger stops being followed until it moves again
+      if (mouse.current) mouse.current.reached = true;
+      for (const t of touches.current.values()) if (t.slot === (client.me.length === 2 ? slot : 0)) t.reached = true;
       client.steer(client.me.length === 2 ? slot : 0, d);
     };
     window.addEventListener('keydown', onKey);
@@ -144,8 +148,11 @@ export function TerritoryCanvas({ client, overlay }: { client: TerritoryClient; 
   // ---- continuous steering (FlowGame): point / touch at any angle, relative to the player's drawn head ----
   const flow = !!client.flow;
   const [hint, setHint] = useState<'mouse' | 'touch'>(() => (typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches ? 'touch' : 'mouse'));
-  /** one finger per player: pointerId → slot */
-  const touches = useRef<Map<number, number>>(new Map());
+  /** one finger per player: pointerId → slot and where the finger is (it is followed every frame) */
+  const touches = useRef<Map<number, { slot: number; x: number; y: number; reached: boolean }>>(new Map());
+  /** last mouse position over the board (single player) */
+  const mouse = useRef<{ x: number; y: number; reached: boolean } | null>(null);
+  const reaim = useRef<(() => void) | null>(null);
   useEffect(() => {
     touches.current.clear(); // a new round / client never inherits a pressed finger
   }, [client]);
@@ -153,38 +160,65 @@ export function TerritoryCanvas({ client, overlay }: { client: TerritoryClient; 
     const rect = wrap.current!.getBoundingClientRect();
     return client.me.length === 2 && clientX - rect.left > rect.width / 2 ? 1 : 0;
   };
-  const aim = (slot: number, clientX: number, clientY: number) => {
+  /**
+   * Head for the point under the finger / pointer. Called on every pointer event and every frame, so the runner
+   * goes where the finger is even when the finger stays still. Once the runner gets there it keeps its heading
+   * (no circling round a resting finger) until the finger moves again.
+   */
+  const aim = (slot: number, clientX: number, clientY: number, st?: { reached: boolean }) => {
     const idx = client.me[slot];
     const sh = idx === undefined ? null : client.screenHeads[idx];
-    if (!sh) return;
-    const rect = wrap.current!.getBoundingClientRect();
+    if (!sh || !wrap.current) return;
+    const rect = wrap.current.getBoundingClientRect();
     const dx = clientX - rect.left - sh.x,
       dy = clientY - rect.top - sh.y;
-    if (Math.hypot(dx, dy) < sh.cell * 0.6) return; // dead zone on top of the player: keep the heading
+    const d = Math.hypot(dx, dy);
+    if (st?.reached) return;
+    if (d < sh.cell * 1.2) {
+      if (st) st.reached = true; // arrived: keep going straight
+      return;
+    }
     client.steerAngle(slot, Math.atan2(dy, dx));
+  };
+  reaim.current = flow
+    ? () => {
+        for (const t of touches.current.values()) aim(t.slot, t.x, t.y, t);
+        if (mouse.current && client.me.length === 1) aim(0, mouse.current.x, mouse.current.y, mouse.current);
+      }
+    : null;
+  const moved = (st: { x: number; y: number; reached: boolean }, x: number, y: number) => {
+    if (Math.hypot(x - st.x, y - st.y) > 6) st.reached = false; // the finger moved on: follow it again
+    st.x = x;
+    st.y = y;
   };
   const flowDown = (e: React.PointerEvent) => {
     if (e.pointerType === 'mouse') return;
     setHint('touch');
     const slot = slotOf(e.clientX);
-    if ([...touches.current.values()].includes(slot)) return; // a second finger never takes over
-    touches.current.set(e.pointerId, slot);
+    if ([...touches.current.values()].some((t) => t.slot === slot)) return; // a second finger never takes over
+    const st = { slot, x: e.clientX, y: e.clientY, reached: false };
+    touches.current.set(e.pointerId, st);
     try {
       wrap.current?.setPointerCapture(e.pointerId);
     } catch {
       /* ignore */
     }
-    aim(slot, e.clientX, e.clientY); // turns at once, no swipe distance
+    aim(slot, e.clientX, e.clientY, st); // turns at once, no swipe distance
   };
   const flowMove = (e: React.PointerEvent) => {
     if (e.pointerType === 'mouse') {
       if (client.me.length !== 1) return; // one mouse never steers two players
       setHint('mouse');
-      aim(0, e.clientX, e.clientY);
+      if (!mouse.current) mouse.current = { x: e.clientX, y: e.clientY, reached: false };
+      moved(mouse.current, e.clientX, e.clientY);
+      aim(0, e.clientX, e.clientY, mouse.current);
       return;
     }
-    const slot = touches.current.get(e.pointerId);
-    if (slot !== undefined) aim(slot, e.clientX, e.clientY);
+    const st = touches.current.get(e.pointerId);
+    if (st) {
+      moved(st, e.clientX, e.clientY);
+      aim(st.slot, e.clientX, e.clientY, st);
+    }
   };
   const flowUp = (e: React.PointerEvent) => touches.current.delete(e.pointerId); // the last heading is kept
 
@@ -353,13 +387,13 @@ export function TerritoryCanvas({ client, overlay }: { client: TerritoryClient; 
         <span className={`pointer-events-none rounded-lg bg-black/60 px-2 py-1 text-xs text-white ${flow ? 'inline' : 'hidden sm:inline'}`} data-testid="tr-hint">
           {flow ? (client.me.length === 2 ? t('tr.hud.flow2p') : hint === 'touch' ? t('tr.hud.flowTouch') : t('tr.hud.flowMouse')) : client.me.length === 2 ? t('tr.hud.controls2p') : t('tr.hud.controls')}
         </span>
-        {client.me.length === 1 && (
+        {client.me.length === 1 && !flow && (
           <button type="button" onClick={() => setJoystick((j) => !j)} className="min-h-11 rounded-lg bg-black/45 px-3 text-xs text-white" aria-pressed={joystick}>
             {t('tr.hud.joystick')}
           </button>
         )}
       </div>
-      {joystick && client.me.length === 1 && (
+      {joystick && client.me.length === 1 && !flow && (
         <div
           ref={joyRef}
           className="absolute bottom-12 left-4 h-32 w-32 rounded-full border-2 border-white/60 bg-black/25"

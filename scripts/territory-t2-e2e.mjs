@@ -78,7 +78,7 @@ try {
     const b = await S(p);
     const moved = Math.atan2(b.players[0].y - y0, b.players[0].x - x0);
     const hint = await p.$eval('[data-testid=tr-hint]', (e) => e.textContent);
-    ok('TC01', 'regular solo game (home → 領地爭奪戰 → 單人 → 開始): pointing the mouse at 30° makes the runner travel at 30°, not a right angle', cd.flow && near(a.players[0].target, 30, 1.5) && near(moved, 30, 3) && /滑鼠指向哪裡/.test(hint), JSON.stringify({ target: deg(a.players[0].target).toFixed(1), moved: deg(moved).toFixed(1), hint }));
+    ok('TC01', 'regular solo game (home → 領地爭奪戰 → 單人 → 開始): pointing the mouse at 30° makes the runner travel towards the pointer (≈30°, re-aimed every frame as the camera settles), not at a right angle', cd.flow && near(a.players[0].target, 30, 8) && near(moved, b.players[0].target * 180 / Math.PI, 4) && /滑鼠指向哪裡/.test(hint), JSON.stringify({ target: deg(a.players[0].target).toFixed(1), moved: deg(moved).toFixed(1), hint }));
     ok('TC05', 'the countdown takes no input (target unchanged while counting down)', cd.status === 'countdown' && during.players[0].target === cd.players[0].target);
     for (const ang of [60, 135, -150]) {
       await point(p, 0, ang);
@@ -137,7 +137,7 @@ try {
     await sleep(300);
     const lifted = await S(p);
     const hint = await p.$eval('[data-testid=tr-hint]', (e) => e.textContent);
-    ok('TC03', 'touch: a tap turns at once (120°, no swipe distance), dragging updates (−45°), a second finger cannot take over, lifting keeps the heading', near(tap.players[0].target, 120, 3) && near(drag.players[0].target, -45, 3) && near(second.players[0].target, -45, 3) && near(lifted.players[0].target, -45, 3) && /點一下轉向/.test(hint), JSON.stringify({ tap: deg(tap.players[0].target).toFixed(1), drag: deg(drag.players[0].target).toFixed(1), second: deg(second.players[0].target).toFixed(1) }));
+    ok('TC03', 'touch: a tap turns at once (120°, no swipe distance), dragging updates (−45°), a second finger cannot take over, lifting keeps the heading; no virtual joystick', near(tap.players[0].target, 120, 3) && near(drag.players[0].target, -45, 3) && near(second.players[0].target, -45, 3) && near(lifted.players[0].target, -45, 3) && /手指放在哪裡/.test(hint) && !(await p.$('[role=application] button[aria-pressed]')), JSON.stringify({ tap: deg(tap.players[0].target).toFixed(1), drag: deg(drag.players[0].target).toFixed(1), second: deg(second.players[0].target).toFixed(1) }));
     const sc = await p.evaluate(() => document.documentElement.scrollWidth > innerWidth);
     await p.screenshot({ path: `${OUT}/solo-390-touch.png` });
     ok('TC09', '390 px phone: no sideways scroll; only the play area blocks page gestures', !sc && (await p.$eval('[role=application]', (e) => getComputedStyle(e).touchAction)) === 'none' && (await p.evaluate(() => getComputedStyle(document.body).touchAction)) !== 'none');
@@ -163,8 +163,10 @@ try {
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [tp(1, a1.x, a1.y), tp(2, a2.x, a2.y)] });
     await sleep(40);
     const s = await S(p);
-    const want1 = Math.atan2(a1.y - (r.top + h1.y), a1.x - (r.left + h1.x));
-    const want2 = Math.atan2(a2.y - (r.top + h2.y), a2.x - (r.left + h2.x));
+    // the finger is followed every frame, so compare with the direction from where each runner is now
+    const n1 = s.heads[s.me[0]], n2 = s.heads[s.me[1]];
+    const want1 = Math.atan2(a1.y - (r.top + n1.y), a1.x - (r.left + n1.x));
+    const want2 = Math.atan2(a2.y - (r.top + n2.y), a2.x - (r.left + n2.x));
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     // keyboards: WASD player 1, arrows player 2
     await p.keyboard.press('KeyS');
@@ -173,6 +175,40 @@ try {
     const k = await S(p);
     ok('TC07', 'two players on one device: each half of the screen steers only its own player (both at once); WASD and arrow keys are separate', Math.abs(s.players[s.me[0]].target - want1) < 0.12 && Math.abs(s.players[s.me[1]].target - want2) < 0.12 && near(k.players[k.me[0]].target, 90, 0.5) && near(k.players[k.me[1]].target, 180, 0.5), JSON.stringify({ p1: deg(s.players[s.me[0]].target).toFixed(0), want1: deg(want1).toFixed(0), p2: deg(s.players[s.me[1]].target).toFixed(0), want2: deg(want2).toFixed(0) }));
     await p.screenshot({ path: `${OUT}/two-player-1024.png` });
+    await p.ctx.close();
+  }
+
+  // ---------------------------------------------------------------- finger held still: the runner goes there (two players, whole board on screen)
+  {
+    const p = await page(1024, 768, { touch: true, dpr: 1 });
+    await enter(p, 'local');
+    await playing(p);
+    await sleep(150);
+    const cdp = await p.target().createCDPSession();
+    const r = await wrapRect(p);
+    const s0 = await S(p);
+    const i = s0.me[0];
+    const h = s0.heads[i];
+    // a point 6 cells away, 50° off the current heading, on player 1's half
+    const a = s0.players[i].heading + 0.87;
+    let fx = r.left + h.x + Math.cos(a) * h.cell * 6, fy = r.top + h.y + Math.sin(a) * h.cell * 6;
+    const W = await p.$eval('[role=application]', (e) => e.getBoundingClientRect().width);
+    fx = Math.max(r.left + 10, Math.min(r.left + W / 2 - 10, fx));
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: fx, y: fy, id: 1, radiusX: 4, radiusY: 4, force: 1 }] });
+    let best = Infinity, reachedAt = null;
+    for (let k = 0; k < 30; k++) {
+      await sleep(80);
+      const s = await S(p);
+      const hh = s.heads[i];
+      if (!hh) break;
+      const d = Math.hypot(r.left + hh.x - fx, r.top + hh.y - fy) / hh.cell;
+      if (d < best) best = d;
+      if (d < 1.5 && reachedAt === null) reachedAt = s.players[i].target;
+    }
+    const after = await S(p);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    ok('TC10', 'a finger held still on the board: the runner goes to the finger (within 1.5 cells) and then keeps its heading instead of circling round it', best < 1.5 && after.players[i].alive && reachedAt !== null && Math.abs(after.players[i].target - reachedAt) < 0.01, JSON.stringify({ best: best.toFixed(2), alive: after.players[i].alive }));
+    await p.screenshot({ path: `${OUT}/finger-follow-1024.png` });
     await p.ctx.close();
   }
 
