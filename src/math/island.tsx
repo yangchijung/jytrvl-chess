@@ -4,6 +4,9 @@ import { Link } from 'react-router-dom';
 import { useI18n } from '../i18n';
 import { APPLE_KEY, APPLE_PROBLEMS, finished, readApple } from '../../shared/math/apple';
 import { FACTORY_KEY, FACTORY_PROBLEMS, SOURCE, finishedF, readFactory } from '../../shared/math/factory';
+import { TRAIN_KEY, TRAIN_PROBLEMS, PLATFORM, finishedT, readTrain } from '../../shared/math/train';
+import { SHOP_KEY, SHOP_PROBLEMS, PURSE, finishedS, readShop } from '../../shared/math/shop';
+import { BALANCE_KEY, BALANCE_PROBLEMS, BIN, finishedB, readBalance } from '../../shared/math/balance';
 import { peek } from './save';
 import { IslandArt } from './art';
 import './math.css';
@@ -17,6 +20,12 @@ const T = {
   appleWhat: { zh: '一年級．把兩堆蘋果放一起，數一數一共幾顆。5 題。', en: 'Grade 1 · put two groups of apples together and count them. 5 problems.' },
   factory: { zh: '分裝工廠', en: 'Packing Factory' },
   factoryWhat: { zh: '三年級．把餅乾平分到每一盒，再說每盒有幾個。5 題。', en: 'Grade 3 · share cookies equally into boxes and say how many are in each. 5 problems.' },
+  train: { zh: '湊十小火車', en: 'Make-Ten Train' },
+  trainWhat: { zh: '一年級．請乘客上火車，第一節坐滿 10 人再坐第二節，數一數一共幾人。5 題。', en: 'Grade 1 · board the riders, filling car 1 to ten first, then count them all. 5 problems.' },
+  shop: { zh: '零錢小商店', en: 'Coin Shop' },
+  shopWhat: { zh: '一、二年級．用 1、5、10、50 元硬幣付剛好的錢。5 題。', en: 'Grades 1–2 · pay the exact price with 1, 5, 10 and 50 dollar coins. 5 problems.' },
+  balance: { zh: '天平等一等', en: 'Balance Scale' },
+  balanceWhat: { zh: '一、二年級．放積木讓天平兩邊一樣重，看懂等號的意思。5 題。', en: 'Grades 1–2 · add blocks until both sides weigh the same, and see what = means. 5 problems.' },
   start: { zh: '開始玩', en: 'Start' },
   cont: { zh: '接著玩：第 {n} 題', en: 'Continue: problem {n}' },
   again: { zh: '再玩一次（5 題都完成了）', en: 'Play again (all 5 done)' },
@@ -33,6 +42,16 @@ export function MathIslandPage() {
   const label = !s ? tr(T.start) : finished(s) ? tr(T.again) : s.index === 0 && s.at.every((x) => x === 'pile') ? tr(T.start) : tr(T.cont, { n: Math.min(s.index + 1, APPLE_PROBLEMS.length) });
   const f = peek({ key: FACTORY_KEY, read: readFactory });
   const flabel = !f ? tr(T.start) : finishedF(f) ? tr(T.again) : f.index === 0 && f.at.every((x) => x === SOURCE) ? tr(T.start) : tr(T.cont, { n: Math.min(f.index + 1, FACTORY_PROBLEMS.length) });
+  const lab = (v: { index: number; at: number[] } | null, total: number, done: boolean, untouched: (a: number[]) => boolean) =>
+    !v ? tr(T.start) : done ? tr(T.again) : v.index === 0 && untouched(v.at) ? tr(T.start) : tr(T.cont, { n: Math.min(v.index + 1, total) });
+  const t = peek({ key: TRAIN_KEY, read: readTrain });
+  const sh = peek({ key: SHOP_KEY, read: readShop });
+  const b = peek({ key: BALANCE_KEY, read: readBalance });
+  const more = [
+    { id: 'train', path: '/math/g1/train', name: T.train, what: T.trainWhat, label: lab(t, TRAIN_PROBLEMS.length, !!t && finishedT(t), (a) => a.every((x) => x === PLATFORM)) },
+    { id: 'shop', path: '/math/g1/shop', name: T.shop, what: T.shopWhat, label: lab(sh, SHOP_PROBLEMS.length, !!sh && finishedS(sh), (a) => a.every((x) => x === PURSE)) },
+    { id: 'balance', path: '/math/g1/balance', name: T.balance, what: T.balanceWhat, label: lab(b, BALANCE_PROBLEMS.length, !!b && finishedB(b), (a) => a.every((x) => x === BIN)) },
+  ];
   return (
     <div className="mi rounded-lg px-3 py-4 sm:px-6 sm:py-6" data-testid="mi-island">
       <div className="mx-auto flex max-w-3xl flex-col gap-4">
@@ -55,6 +74,19 @@ export function MathIslandPage() {
             </Link>
           </div>
         </section>
+        {more.map((m) => (
+          <section key={m.id} className="flex flex-col gap-3 rounded-lg border-2 border-[var(--mi-line)] bg-[var(--mi-surface)] p-4" aria-labelledby={`mi-${m.id}-h`}>
+            <h2 id={`mi-${m.id}-h`} className="text-2xl font-extrabold">
+              {tr(m.name)}
+            </h2>
+            <p className="text-lg">{tr(m.what)}</p>
+            <div>
+              <Link to={to(m.path)} className="mi-btn mi-btn-primary mi-big px-6 text-xl" data-testid={`mi-start-${m.id}`}>
+                {m.label}
+              </Link>
+            </div>
+          </section>
+        ))}
         <section className="flex flex-col gap-3 rounded-lg border-2 border-[var(--mi-line)] bg-[var(--mi-surface)] p-4" aria-labelledby="mi-factory-h">
           <h2 id="mi-factory-h" className="text-2xl font-extrabold">
             {tr(T.factory)}

@@ -4,6 +4,15 @@
 // after a tap (browsers may block sound before that), one clip at a time; a missing file never blocks play.
 import { APPLE_PROBLEMS } from '../../shared/math/apple';
 import { FACTORY_PROBLEMS } from '../../shared/math/factory';
+import { TRAIN_PROBLEMS } from '../../shared/math/train';
+import { SHOP_PROBLEMS } from '../../shared/math/shop';
+import { BALANCE_PROBLEMS, unknownOf, type BalanceProblem } from '../../shared/math/balance';
+
+/** "5 加 3 等於 6 加 2" — the solved equation as it is read aloud */
+const spokenEq = (p: BalanceProblem) => {
+  const side = (t: (number | 'x')[]) => t.map((x) => (x === 'x' ? unknownOf(p) : x)).join(' 加 ');
+  return `${side(p.left)} 等於 ${side(p.right)}`;
+};
 
 export const VOICE = { locale: 'zh-TW', voice: 'zh-TW-HsiaoChenNeural', version: 1 } as const;
 
@@ -24,6 +33,27 @@ export const CLIPS: Record<string, string> = {
   factory_where: '要放哪裡？點一下盒子或輸送帶。',
   factory_done: '五題都完成了。',
   ...Object.fromEntries(FACTORY_PROBLEMS.map((p) => [`factory_right_${p.id.slice(-2)}`, `${p.boxes} 盒，每盒 ${p.total / p.boxes} 個，一共 ${p.total} 個。`])),
+  train_task: '請月台上的人上火車。第一節坐滿 10 人，才能坐第二節。',
+  train_ask: '火車上一共有幾個人？',
+  train_full: '第一節坐滿了，請坐第二節。',
+  train_fill_first: '先把第一節坐滿。',
+  train_not_all: '月台上還有人，先讓大家都上車。',
+  train_again: '再數一次看看。',
+  train_where: '要坐哪裡？點一下車廂或月台。',
+  train_done: '五題都完成了。',
+  ...Object.fromEntries(TRAIN_PROBLEMS.map((p) => [`train_right_${p.id.slice(-2)}`, p.a + p.b === 10 ? `${p.a} 加 ${p.b}，剛好 10 人。` : `${p.a} 加 ${p.b}，先湊成 10，再多 ${p.a + p.b - 10}，一共 ${p.a + p.b} 人。`])),
+  ...Object.fromEntries(SHOP_PROBLEMS.map((p) => [`shop_task_${p.id.slice(-2)}`, `${p.item}一個 ${p.price} 元，請付剛好的錢。`])),
+  shop_empty: '先把錢幣放到托盤上，再按付錢。',
+  shop_short: '錢還不夠喔。',
+  shop_over: '付太多了喔。',
+  shop_where: '要放哪裡？點一下托盤或錢包。',
+  shop_done: '五題都完成了。',
+  ...Object.fromEntries(SHOP_PROBLEMS.map((p) => [`shop_right_${p.id.slice(-2)}`, `剛好 ${p.price} 元，謝謝！`])),
+  balance_task: '放積木，讓天平兩邊一樣重。',
+  balance_not_level: '還沒有平衡，看看哪一邊比較重。',
+  balance_where: '要放哪裡？點一下盤子或積木箱。',
+  balance_done: '五題都完成了。',
+  ...Object.fromEntries(BALANCE_PROBLEMS.map((p) => [`balance_right_${p.id.slice(-2)}`, `${spokenEq(p)}，兩邊一樣重。`])),
 };
 export type ClipId = keyof typeof CLIPS;
 
