@@ -117,6 +117,12 @@ try {
     await p.click('[data-testid=mi-item-2]');
     await p.click('[data-testid=mi-zone-box-1]', { offset: { x: 12, y: 12 } });
     ok('MA02', 'tap a cookie, then tap the box itself', (await at(p))[2] === 1);
+    // James 2026-10-21: anywhere in the box counts — tapping a cookie already in box 2 puts the held cookie there too
+    await p.click('[data-testid=mi-item-6]');
+    await p.click('[data-testid=mi-item-2]');
+    ok('MA02', 'holding a cookie, tapping a cookie already in box 2 puts the held cookie in box 2 (no empty spot needed)', (await at(p))[6] === 1 && (await at(p))[2] === 1 && !(await p.$('[data-testid^=mi-item-][aria-pressed=true]')), (await at(p)).join());
+    await p.click('[data-testid=mi-item-6]');
+    await p.click('[data-testid=mi-zone-belt]', { offset: { x: 12, y: 12 } });
     await p.focus('[data-testid=mi-item-3]');
     await p.keyboard.press('Enter');
     await p.focus('[data-testid=mi-to-box-2]');

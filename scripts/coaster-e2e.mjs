@@ -119,6 +119,42 @@ try {
     await q.ctx.close();
   }
 
+  // ------------------------------------------------ no length limit (James 2026-10-21)
+  {
+    const q = await page(1280, 800);
+    await q.goto(BASE + '?lang=zh', { waitUntil: 'load' });
+    // a mouse scribble far longer than the old 1,500 m limit: 14 sweeps across the screen
+    await q.mouse.move(60, 600);
+    await q.mouse.down();
+    for (let k = 0; k < 14; k++) {
+      const y = 600 - k * 30;
+      for (let x = 60; x <= 1220; x += 8) await q.mouse.move(k % 2 ? 1280 - x : x, y - Math.sin(x / 40) * 12);
+    }
+    await q.mouse.up();
+    await sleep(500);
+    const drawn = await q.evaluate(() => ({ mode: window.__coaster.mode, len: window.__coaster.track?.ctrlLen }));
+    ok('L2', 'a line longer than 1,500 m is kept whole (no length limit) and becomes a track', drawn.mode === 'ready' && drawn.len > 1600, JSON.stringify(drawn));
+    // a very long track with many loops (≈ 6 km), opened as a shared link
+    const big = await q.evaluate(() => {
+      const pts = [];
+      let x = 5, dir = 1, y = 14;
+      for (let k = 0; k < 110; k++) {
+        for (let a = 0; a < Math.PI * 2; a += 0.04) pts.push({ x: x + Math.sin(a) * 7 * dir, y: y + 7 - Math.cos(a) * 7 });
+        for (let j = 0; j < 30; j++) { x += 0.3 * dir; pts.push({ x, y }); }
+        if (x > 110 || x < 5) { dir = -dir; y = 14 + ((k * 7) % 30); }
+      }
+      return window.__coaster.encode(window.__coaster.smoothLine(pts));
+    });
+    await q.goto(`${BASE}?lang=zh#t=${big}`, { waitUntil: 'load' });
+    const info = await q.evaluate(() => { const s = window.__coaster.simulate(); return { len: window.__coaster.track.ctrlLen, done: s.steps < 240 * 3600, t: s.time, flipped: s.flipped }; });
+    const buildMs = await q.evaluate(() => { const t0 = performance.now(); document.querySelector('#bar .btn.primary').click(); return performance.now() - t0; });
+    await q.evaluate(() => window.__coaster.ff(30));
+    const st = await q.evaluate(() => ({ ...window.__coaster.worldStats(), px: window.__coaster.glSample([[0.5, 0.15], [0.5, 0.9]]) }));
+    await q.screenshot({ path: `${OUT}/09-long-track-fp.png` });
+    ok('L3', `a ${Math.round(info.len)} m track with many loops rides to the end; the 3D track stays light (light mesh for far parts, a few full-detail chunks near the eye)`, info.len > 5000 && info.done && info.flipped && st.farVerts < 700000 && st.fullKept <= 32 && st.px && JSON.stringify(st.px[0]) !== JSON.stringify(st.px[1]), JSON.stringify({ ...info, buildMs: Math.round(buildMs), ...st }));
+    await q.ctx.close();
+  }
+
   // ------------------------------------------------ the shared link, opened ten times
   const hashes = [];
   for (let k = 0; k < 10; k++) {
