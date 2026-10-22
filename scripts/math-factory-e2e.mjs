@@ -68,7 +68,7 @@ try {
     }
     await open(p, '/math');
     const links = await p.$$eval('[data-testid^=mi-start-]', (e) => e.map((x) => x.dataset.testid));
-    ok('MA01', 'island shows exactly the two playable games', links.join() === 'mi-start-apple,mi-start-factory', links.join());
+    ok('MA01', 'island shows only playable games (apple and factory among them, nothing else)', links.join() === 'mi-start-apple,mi-start-train,mi-start-shop,mi-start-balance,mi-start-factory', links.join());
     await p.click('[data-testid=mi-start-factory]');
     await p.waitForSelector('[data-testid=mi-factory]');
     await sleep(500);
@@ -204,8 +204,8 @@ try {
     const keys = await p.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('jy.math')).sort());
     ok('MA04', 'switching games and reloading keeps each game’s own progress (separate saves)', fa[0] === 1 && fa[1] === 2 && aa === 'basket' && keys.join() === 'jy.math.apple.v1,jy.math.factory.v1', `${fa.slice(0, 3).join()} ${aa} ${keys.join()}`);
     await open(p, '/math');
-    const labels = await p.$$eval('[data-testid^=mi-start-]', (e) => e.map((x) => x.textContent));
-    ok('MA04', 'island offers 接著玩 for both games', labels.every((l) => /接著玩/.test(l)), labels.join(' | '));
+    const labels = await p.$$eval('[data-testid=mi-start-apple], [data-testid=mi-start-factory]', (e) => e.map((x) => x.textContent));
+    ok('MA04', 'island offers 接著玩 for both games played', labels.length === 2 && labels.every((l) => /接著玩/.test(l)), labels.join(' | '));
     await p.evaluate(() => localStorage.setItem('jy.math.factory.v1', '[1,2'));
     await open(p);
     const kept = await p.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('jy.math.factory.v1.backup-')).map((k) => localStorage.getItem(k)));

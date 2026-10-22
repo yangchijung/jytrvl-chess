@@ -16,6 +16,11 @@
   --mi-cookie: #d9a35b;
   --mi-chip: #5a3a1c;
   --mi-box: #f3e3c4;
+  --mi-rider: #3a7bd5;
+  --mi-rider-old: #e9c893;
+  --mi-block: #3d7a3f;
+  --mi-block-old: #3a7bd5;
+  --mi-car: #f3e3c4;
   background: var(--mi-sand);
   color: var(--mi-ink);
 }
@@ -32,6 +37,11 @@
     --mi-basket-line: #e9c893;
     --mi-apple-line: #fff4e3;
     --mi-box: #3a3226;
+    --mi-rider: #8db6ee;
+    --mi-rider-old: #8a6a3b;
+    --mi-block: #6fb071;
+    --mi-block-old: #8db6ee;
+    --mi-car: #3a3226;
   }
 }
 :root[data-theme='dark'] .mi {
@@ -46,6 +56,11 @@
   --mi-basket-line: #e9c893;
   --mi-apple-line: #fff4e3;
   --mi-box: #3a3226;
+  --mi-rider: #8db6ee;
+  --mi-rider-old: #8a6a3b;
+  --mi-block: #6fb071;
+  --mi-block-old: #8db6ee;
+  --mi-car: #3a3226;
 }
 
 @layer components {
@@ -94,6 +109,18 @@
 .mi-apple[data-dragging='true'] { transition: none; cursor: grabbing; z-index: 20; }
 .mi-apple[aria-pressed='true'] { outline: 4px solid var(--mi-sea); outline-offset: 2px; transform: scale(1.08); }
 .mi-apple:disabled { cursor: default; }
+
+/* batch A: ten-frame seats, coins, balance */
+.mi-seat { width: 52px; height: 52px; border: 2px dashed var(--mi-line); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+.mi-seat[data-filled='true'] { border-style: solid; }
+.mi-car { background: var(--mi-car); border-color: var(--mi-basket-line); }
+.mi-apple.mi-rider { width: 52px; height: 52px; border-radius: 8px; }
+.mi-apple.mi-coin { width: auto; height: auto; border-radius: 50%; }
+.mi-apple.mi-block { width: 44px; height: 44px; border-radius: 6px; }
+.mi-beam { transition: transform 180ms ease-out; transform-origin: 50% 50%; }
+.mi-pan { transition: transform 180ms ease-out; }
+@media (prefers-reduced-motion: reduce) { .mi-beam, .mi-pan { transition: none !important; } }
+:root[data-reduce-motion] .mi-beam, :root[data-reduce-motion] .mi-pan { transition: none !important; }
 }
 
 /* outside the layer: the site sets touch-action: manipulation on every button. Only the apple itself is
