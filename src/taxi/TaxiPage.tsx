@@ -11,6 +11,7 @@ import { rankOf } from './gameplay/rules';
 import { TUNING_RANGE, type Tuning } from './vehicle/tuning';
 import { ClockIcon, CoinIcon, Hud, RiderIcon } from './ui/Hud';
 import { BAND_COLOR } from './gameplay/view';
+import { Music, type Track } from './audio/music';
 import './taxi.css';
 
 const T = {
@@ -32,6 +33,8 @@ const T = {
   menu: { zh: '回選單', en: 'Menu' },
   resume: { zh: '繼續', en: 'Resume' },
   pause: { zh: '暫停', en: 'Pause' },
+  music: { zh: '音樂', en: 'Music' },
+  sfx: { zh: '音效', en: 'Sound effects' },
   rides: { zh: '載客數', en: 'Rides' },
   combo: { zh: '最長連擊', en: 'Best combo' },
   rank: { zh: '評級', en: 'Rank' },
@@ -51,6 +54,8 @@ export function TaxiPage() {
   const [screen, setScreen] = useState<'menu' | 'play' | 'over'>('menu');
   const [paused, setPaused] = useState(false);
   const [pops, setPops] = useState<Pop[]>([]);
+  const [music] = useState(() => new Music());
+  const [vol, setVol] = useState(() => music.volumes);
   const lastMode = useRef<Mode>('arcade');
   const popId = useRef(0);
   const pop = (p: Omit<Pop, 'id'>, ms = 1600) => {
@@ -86,7 +91,8 @@ export function TaxiPage() {
         }, { lowPower: touchUi, lang, track: new URLSearchParams(location.search).get('track') === 'test' ? 'test' : 'city', onEvent: (e) => onEvent.current(e), onPause: (p) => setPaused(p) });
         if (!alive) return g.dispose();
         game.current = g;
-        (window as unknown as { __taxi: Game }).__taxi = g;
+        (window as unknown as { __taxi: Game; __taxiMusic: Music }).__taxi = g;
+        (window as unknown as { __taxiMusic: Music }).__taxiMusic = music;
         setState('ready');
       } catch (e) {
         console.error(e);
@@ -95,12 +101,22 @@ export function TaxiPage() {
     })();
     const onResize = () => game.current?.resize();
     const onKey = (e: KeyboardEvent) => e.code === 'Backquote' && setDev((d) => !d);
+    // sound may only start after a tap or a key (iOS); any gesture on the page unlocks it
+    const unlock = () => music.unlock();
+    const onVis = () => music.suspend(document.hidden);
     window.addEventListener('resize', onResize);
     window.addEventListener('keydown', onKey);
+    // iOS Safari counts touchend and click (not touchstart / pointerdown) as the gesture that may start audio
+    const gestures = ['pointerdown', 'touchend', 'click', 'keydown'] as const;
+    for (const g of gestures) window.addEventListener(g, unlock);
+    document.addEventListener('visibilitychange', onVis);
     return () => {
       alive = false;
       window.removeEventListener('resize', onResize);
       window.removeEventListener('keydown', onKey);
+      for (const g of gestures) window.removeEventListener(g, unlock);
+      document.removeEventListener('visibilitychange', onVis);
+      music.dispose();
       g?.dispose();
       game.current = null;
     };
@@ -154,6 +170,19 @@ export function TaxiPage() {
     setPaused(p);
   };
   const result = screen === 'over' ? (game.current?.run() ?? null) : null;
+
+  // ---------- music: one track per screen; faster in the last 10 s; quieter while paused ----------
+  const track: Track = screen === 'menu' ? 'menu' : screen === 'over' ? 'results' : lastMode.current === 'practice' ? 'practice' : 'arcade';
+  useEffect(() => {
+    void music.play(track);
+  }, [music, track]);
+  useEffect(() => music.duck(paused), [music, paused]);
+  const hurry = screen === 'play' && hud?.run?.mode === 'arcade' && hud.run.time <= 10;
+  useEffect(() => music.setRate(hurry ? 1.08 : 1), [music, hurry]);
+  const volume = (kind: 'music' | 'sfx', v: number) => {
+    music.setVolume(kind, v);
+    setVol({ ...music.volumes });
+  };
 
   const tune = (k: keyof Tuning, v: number) => {
     const g = game.current;
@@ -277,6 +306,17 @@ export function TaxiPage() {
               </svg>
               <span>{tr(T.menu)}</span>
             </button>
+          </div>
+          <div className="taxi-volumes">
+            {(['music', 'sfx'] as const).map((k) => (
+              <label key={k} className="taxi-volume">
+                <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  {k === 'music' ? <path d="M9 18V5l11-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0zm11-2a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" /> : <path d="M4 9v6h4l5 4V5L8 9zm12 0a4 4 0 0 1 0 6m2.5-8.5a7.5 7.5 0 0 1 0 11" />}
+                </svg>
+                <span>{tr(T[k])}</span>
+                <input type="range" min={0} max={100} step={5} value={Math.round(vol[k] * 100)} onChange={(e) => volume(k, Number(e.target.value) / 100)} data-testid={`taxi-volume-${k}`} />
+              </label>
+            ))}
           </div>
         </div>
       )}

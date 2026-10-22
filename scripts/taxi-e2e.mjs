@@ -128,13 +128,17 @@ try {
   ok('X-01', 'the menu: two big picture buttons (arcade, practice) with two-character names', !!(await p.$('[data-testid=taxi-start-arcade]')) && !!(await p.$('[data-testid=taxi-start-practice]')) && menuWords <= 4, `chinese chars: ${menuWords}`);
 
   // ---------------- arcade ----------------
-  await p.$eval('[data-testid=taxi-start-arcade]', (b) => b.click());
+  await p.click('[data-testid=taxi-start-arcade]'); // a real tap: it also unlocks the sound
   await p.evaluate(() => window.__taxi.setPaused(true));
   await ff(1 / 30);
   await settle();
   let r = await run();
-  ok('X-02', 'arcade starts with 50 s on the clock, 0 money, five people waiting, the arrow (yellow) pointing to the nearest one', r.time > 49.9 && r.money === 0 && r.waiting.length === 5 && (await p.$eval('[data-testid=taxi-arrow]', (e) => e.dataset.to)) === 'pickup' && (await p.$eval('[data-testid=taxi-time]', (e) => e.dataset.value)) === '50', JSON.stringify({ time: r.time, waiting: r.waiting.length }));
+  ok('X-02', 'arcade starts with 50 s on the clock, 0 money, five people waiting, the arrow (yellow) pointing to the nearest one', r.time > 49.5 && r.money === 0 && r.waiting.length === 5 && (await p.$eval('[data-testid=taxi-arrow]', (e) => e.dataset.to)) === 'pickup' && (await p.$eval('[data-testid=taxi-time]', (e) => e.dataset.value)) === '50', JSON.stringify({ time: r.time, waiting: r.waiting.length }));
   await shot('2-start');
+  // music: the tap on "arcade" unlocked sound; the arcade track is playing (decoded from the mp3)
+  await p.waitForFunction(() => window.__taxiMusic?.current?.track === 'arcade', { timeout: 15000 }).catch(() => null);
+  const mus = await p.evaluate(() => ({ unlocked: window.__taxiMusic.unlocked, track: window.__taxiMusic.current?.track, loop: window.__taxiMusic.current?.src.loop, loopEnd: window.__taxiMusic.current?.src.loopEnd, dur: window.__taxiMusic.current?.src.buffer.duration }));
+  ok('X-15', 'music: starts with the first tap, the arcade track loops between its bar-line loop points', mus.unlocked && mus.track === 'arcade' && mus.loop && mus.loopEnd > 80 && mus.loopEnd < mus.dur, JSON.stringify(mus));
   // drive to the first (nearest) passenger
   const sp = await p.evaluate(() => window.__taxi.level.spawn.p);
   const nearest = r.waiting.reduce((a, b) => (Math.hypot(a.x - sp.x, a.z - sp.z) < Math.hypot(b.x - sp.x, b.z - sp.z) ? a : b));
@@ -197,7 +201,7 @@ try {
   await p.evaluate(() => window.__taxi.setPaused(false));
   await p.keyboard.press('Escape');
   await new Promise((res) => setTimeout(res, 300));
-  ok('X-08', 'Esc pauses: resume / restart / menu', !!(await p.$('[data-testid=taxi-paused]')));
+  ok('X-08', 'Esc pauses: resume / restart / menu, plus separate music and sound-effect volume', !!(await p.$('[data-testid=taxi-paused]')) && !!(await p.$('[data-testid=taxi-volume-music]')) && !!(await p.$('[data-testid=taxi-volume-sfx]')));
   await shot('6-pause');
   await p.$eval('[data-testid=taxi-resume]', (b) => b.click());
   await p.evaluate(() => window.__taxi.setPaused(true));
@@ -208,6 +212,8 @@ try {
   const rank = await p.$eval('[data-testid=taxi-rank]', (e) => e.textContent).catch(() => '');
   ok('X-09', 'at 0 s the run ends: results with rank, money, rides, best combo', r.phase === 'over' && /^[SABCD]$/.test(rank) && (await p.$eval('[data-testid=taxi-result-rides]', (e) => e.textContent)) === String(r.rides), `rank ${rank} money ${r.money} rides ${r.rides}`);
   await shot('7-results');
+  await p.waitForFunction(() => window.__taxiMusic?.current?.track === 'results', { timeout: 10000 }).catch(() => null);
+  ok('X-16', 'music: the results fanfare plays once at the end of a run', await p.evaluate(() => window.__taxiMusic.current?.track === 'results' && !window.__taxiMusic.current.src.loop));
   await p.$eval('[data-testid=taxi-again]', (b) => b.click());
   await p.evaluate(() => window.__taxi.setPaused(true));
   await ff(1 / 30);
@@ -224,6 +230,8 @@ try {
   await settle();
   r = await run();
   ok('X-11', 'practice: no clock on screen and the run never ends', r.phase === 'play' && !(await p.$('[data-testid=taxi-time]')));
+  await p.waitForFunction(() => window.__taxiMusic?.current?.track === 'practice', { timeout: 10000 }).catch(() => null);
+  ok('X-17', 'music: practice has its own relaxed track', await p.evaluate(() => window.__taxiMusic.current?.track === 'practice'));
   // touch controls
   const small = await p.$$eval('.taxi-gas, .taxi-brake, .taxi-drift, .taxi-rush', (e) => e.map((x) => Math.min(x.getBoundingClientRect().width, x.getBoundingClientRect().height)));
   ok('X-12', 'touch: gas and brake buttons at least 72 px', small.length === 4 && small[0] >= 72 && small[1] >= 72, JSON.stringify(small));
