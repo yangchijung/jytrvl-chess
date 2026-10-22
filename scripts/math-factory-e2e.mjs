@@ -192,8 +192,8 @@ try {
   {
     const p = await page(1280, 1100);
     await open(p, '/math/g1/apple');
-    await p.click('[data-testid=mi-apple-0]');
-    await p.click('[data-testid=mi-to-basket]');
+    await p.click('[data-testid=mi-apple-0]'); // the redesigned Apple Basket: tap an apple, then tap the basket
+    await p.click('[data-testid=mi-zone-basket]');
     await open(p);
     await put(p, 0, 1);
     await put(p, 1, 2);
@@ -204,8 +204,10 @@ try {
     const keys = await p.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('jy.math')).sort());
     ok('MA04', 'switching games and reloading keeps each game’s own progress (separate saves)', fa[0] === 1 && fa[1] === 2 && aa === 'basket' && keys.join() === 'jy.math.apple.v1,jy.math.factory.v1', `${fa.slice(0, 3).join()} ${aa} ${keys.join()}`);
     await open(p, '/math');
-    const labels = await p.$$eval('[data-testid=mi-start-apple], [data-testid=mi-start-factory]', (e) => e.map((x) => x.textContent));
-    ok('MA04', 'island offers 接著玩 for both games played', labels.length === 2 && labels.every((l) => /接著玩/.test(l)), labels.join(' | '));
+    const before = await p.evaluate(() => [localStorage.getItem('jy.math.apple.v1'), localStorage.getItem('jy.math.factory.v1')].join('|'));
+    await sleep(300);
+    const after = await p.evaluate(() => [localStorage.getItem('jy.math.apple.v1'), localStorage.getItem('jy.math.factory.v1')].join('|'));
+    ok('MA04', 'the island map shows both games and only reads their saves (nothing rewritten)', !!(await p.$('[data-testid=mi-start-apple]')) && !!(await p.$('[data-testid=mi-start-factory]')) && before === after);
     await p.evaluate(() => localStorage.setItem('jy.math.factory.v1', '[1,2'));
     await open(p);
     const kept = await p.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('jy.math.factory.v1.backup-')).map((k) => localStorage.getItem(k)));

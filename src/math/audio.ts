@@ -21,6 +21,17 @@ export const VOICE = { locale: 'zh-TW', voice: 'zh-TW-HsiaoChenNeural', version:
 
 /** Every clip with its exact text (also the source list for generating the files). */
 export const CLIPS: Record<string, string> = {
+  menu_hello: '想玩哪一個？點一下圖片。',
+  menu_apple: '蘋果籃，把蘋果放進籃子！',
+  menu_train: '湊十小火車，請乘客上火車！',
+  menu_shop: '零錢小商店，用硬幣付錢！',
+  menu_balance: '天平等一等，讓天平平衡！',
+  menu_clock: '時鐘修理站，把時鐘撥對！',
+  menu_garden: '乘法花圃，種一排一排的花！',
+  menu_factory: '分裝工廠，把餅乾平分到盒子裡！',
+  menu_frog: '數線青蛙，幫青蛙找到落點！',
+  ...Object.fromEntries(Array.from({ length: 10 }, (_, k) => [`n_${k + 1}`, String(k + 1)])),
+  apple_card: '一共幾顆？把數字卡放進籃子。',
   apple_task: '把蘋果放一起。',
   apple_ask: '一共有幾顆？',
   apple_not_ready: '先把兩堆蘋果都放進籃子，再數一數。',

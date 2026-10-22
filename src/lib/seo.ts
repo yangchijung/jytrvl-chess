@@ -78,6 +78,11 @@ export const PAGES: Record<string, PageMeta> = {
     description: { zh: '免登入的兒童數學小遊戲：一年級蘋果籃（合起來數一數）、湊十小火車（先湊成 10）、零錢小商店（用錢幣付錢）、天平等一等（等號的意思）、時鐘修理站（撥時鐘），二年級乘法花圃，三年級分裝工廠（平分）、數線青蛙。動手擺一擺再數一數，附國語朗讀，不計時、不扣分。', en: 'Free kids maths games with no sign-in: Apple Basket (putting together), Make-Ten Train, Coin Shop, Balance Scale and Clock Repair for grades 1–2, Multiplication Garden for grade 2, and Packing Factory and Number-Line Frog for grade 3. Move things, then count; Mandarin voice prompts, no timer, no penalties.' },
     index: true,
   },
+  '/math/parent': {
+    title: { zh: '給大人看｜數學遊樂島｜JY Games', en: 'For adults | Math Island | JY Games' },
+    description: { zh: '數學遊樂島的大人說明：每款遊戲練什麼、對應課綱、年級顏色、隱私與朗讀。', en: 'Math Island for adults: what each game practises, curriculum links, grade colours, privacy and spoken prompts.' },
+    index: true,
+  },
   '/math/g1/apple': {
     title: { zh: '蘋果籃｜一年級合起來數一數｜數學遊樂島｜JY Games', en: 'Apple Basket | Grade 1 Putting Together | Math Island | JY Games' },
     description: { zh: '一年級：把兩堆蘋果放進籃子，數一數一共幾顆。5 題，答錯可以再數一次。', en: 'Grade 1: put two groups of apples into the basket and count them. 5 problems; a wrong answer can be counted again.' },
