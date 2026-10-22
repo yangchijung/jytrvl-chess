@@ -29,6 +29,7 @@ const RescueRoomPage = lazy(() => import('./rescue/pages').then((m) => ({ defaul
 const TrailPage = lazy(() => import('./trail/pages').then((m) => ({ default: m.TrailPage })));
 const RobotPage = lazy(() => import('./robot/pages').then((m) => ({ default: m.RobotPage })));
 const RestaurantPage = lazy(() => import('./restaurant/pages').then((m) => ({ default: m.RestaurantPage })));
+const TaxiPage = lazy(() => import('./taxi/TaxiPage').then((m) => ({ default: m.TaxiPage })));
 const MathIslandPage = lazy(() => import('./math/island').then((m) => ({ default: m.MathIslandPage })));
 const FactoryPage = lazy(() => import('./math/factory-page').then((m) => ({ default: m.FactoryPage })));
 const ApplePage = lazy(() => import('./math/apple-page').then((m) => ({ default: m.ApplePage })));
@@ -60,6 +61,7 @@ function pages(prefix: string) {
     <Route key={p('/trail')} path={p('/trail')} element={lazyEl(<TrailPage />)} />,
     <Route key={p('/robot')} path={p('/robot')} element={lazyEl(<RobotPage />)} />,
     <Route key={p('/restaurant')} path={p('/restaurant')} element={lazyEl(<RestaurantPage />)} />,
+    <Route key={p('/taxi')} path={p('/taxi')} element={lazyEl(<TaxiPage />)} />,
     <Route key={p('/math')} path={p('/math')} element={lazyEl(<MathIslandPage />)} />,
     <Route key={p('/math/g1/apple')} path={p('/math/g1/apple')} element={lazyEl(<ApplePage />)} />,
     <Route key={p('/math/g1/train')} path={p('/math/g1/train')} element={lazyEl(<TrainPage />)} />,

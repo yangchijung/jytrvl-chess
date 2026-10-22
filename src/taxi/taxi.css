@@ -1,0 +1,28 @@
+/* Rush Taxi: full-screen canvas with an icon HUD. Arcade palette: taxi yellow #FFC72C, asphalt #3A3F47. */
+.taxi { position: fixed; inset: 0; background: #8fd0f5; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; overscroll-behavior: none; }
+.taxi-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+.taxi-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 800; color: #23303f; }
+.taxi-btn { position: absolute; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 3px solid #23303f; background: rgba(255, 250, 242, 0.92); color: #23303f; touch-action: none; }
+.taxi-btn:active { background: #ffc72c; }
+.taxi-home { top: 12px; left: 12px; width: 56px; height: 56px; border-radius: 14px; }
+.taxi-hud { position: absolute; top: 12px; right: 12px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; pointer-events: none; color: #fff; }
+.taxi-speed { background: rgba(35, 48, 63, 0.82); border-radius: 14px; padding: 6px 14px; display: flex; align-items: baseline; gap: 6px; }
+.taxi-speed-n { font-size: 2.6rem; font-weight: 900; font-variant-numeric: tabular-nums; min-width: 3ch; text-align: right; line-height: 1; }
+.taxi-speed-u { font-size: 0.9rem; font-weight: 700; }
+.taxi-badges { display: flex; gap: 6px; }
+.taxi-badge { width: 48px; height: 48px; border-radius: 12px; background: rgba(35, 48, 63, 0.55); display: flex; align-items: center; justify-content: center; opacity: 0.35; transition: opacity 120ms; }
+.taxi-badge[data-on='true'] { opacity: 1; background: rgba(35, 48, 63, 0.9); }
+.taxi-fps { font-size: 0.75rem; background: rgba(35, 48, 63, 0.6); border-radius: 6px; padding: 1px 6px; }
+.taxi-stick { position: absolute; left: 0; bottom: 0; width: 50%; height: 60%; touch-action: none; }
+.taxi-stick-base { position: absolute; left: 48px; bottom: 48px; width: 160px; height: 72px; border-radius: 36px; border: 3px solid rgba(35, 48, 63, 0.7); background: rgba(255, 250, 242, 0.35); display: flex; align-items: center; justify-content: center; }
+.taxi-stick-knob { width: 64px; height: 64px; border-radius: 50%; background: #fffaf2; border: 3px solid #23303f; }
+.taxi-gas { right: 28px; bottom: 36px; width: 96px; height: 96px; background: rgba(76, 175, 80, 0.92); }
+.taxi-brake { right: 140px; bottom: 28px; width: 80px; height: 80px; background: rgba(229, 115, 115, 0.92); }
+.taxi-drift { right: 28px; bottom: 150px; width: 76px; height: 76px; }
+.taxi-rush { right: 118px; bottom: 132px; width: 72px; height: 72px; }
+.taxi-reset { top: 12px; left: 80px; width: 56px; height: 56px; border-radius: 14px; }
+.taxi-dev { position: absolute; left: 12px; top: 80px; max-height: calc(100% - 100px); overflow: auto; background: rgba(35, 48, 63, 0.9); color: #fff; padding: 10px; border-radius: 10px; font: 12px/1.3 ui-monospace, Menlo, monospace; width: 270px; }
+.taxi-dev label { display: block; margin: 4px 0; }
+.taxi-dev input { width: 100%; }
+.taxi-dev button { margin-top: 8px; padding: 6px 10px; background: #ffc72c; color: #23303f; border-radius: 6px; font-weight: 700; }
+@media (prefers-reduced-motion: reduce) { .taxi-badge { transition: none; } }

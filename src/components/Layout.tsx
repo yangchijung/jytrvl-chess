@@ -27,6 +27,9 @@ const navLink = ({ isActive }: { isActive: boolean }) =>
 const menuLink = ({ isActive }: { isActive: boolean }) =>
   `ui-t flex min-h-11 items-center rounded-md px-3 font-medium hover:bg-[var(--surface-2)] ${isActive ? 'border-l-4 border-[var(--ui-accent-text)] bg-[var(--surface-2)] pl-2' : ''}`;
 
+const FULL_SCREEN = ['/taxi'];
+const isFullScreen = (path: string) => FULL_SCREEN.includes(path.replace(/^\/en(?=\/|$)/, '').replace(/\/$/, '') || '/');
+
 export function Layout({ children }: { children: ReactNode }) {
   usePageMeta();
   const { t, to, switchTo, lang } = useI18n();
@@ -77,6 +80,16 @@ export function Layout({ children }: { children: ReactNode }) {
     );
   const authError = new URLSearchParams(loc.search).get('auth_error');
   const user = me?.kind === 'user' ? me : null;
+
+  // full-screen games draw their own controls (no site header or footer)
+  if (isFullScreen(loc.pathname))
+    return (
+      <div className="flex min-h-dvh flex-col">
+        <main id="main" tabIndex={-1} className="w-full flex-1">
+          {children}
+        </main>
+      </div>
+    );
 
   return (
     <div className="flex min-h-dvh flex-col">
