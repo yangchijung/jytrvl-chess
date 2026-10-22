@@ -68,7 +68,7 @@ try {
     }
     await open(p, '/math');
     const links = await p.$$eval('[data-testid^=mi-start-]', (e) => e.map((x) => x.dataset.testid));
-    ok('MA01', 'island shows only playable games (apple and factory among them, nothing else)', links.join() === 'mi-start-apple,mi-start-train,mi-start-shop,mi-start-balance,mi-start-factory', links.join());
+    ok('MA01', 'island shows only playable games (apple and factory among them, nothing else)', links.join() === 'mi-start-apple,mi-start-train,mi-start-shop,mi-start-balance,mi-start-clock,mi-start-garden,mi-start-factory,mi-start-frog', links.join());
     await p.click('[data-testid=mi-start-factory]');
     await p.waitForSelector('[data-testid=mi-factory]');
     await sleep(500);

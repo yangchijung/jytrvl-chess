@@ -75,7 +75,7 @@ export const PAGES: Record<string, PageMeta> = {
   },
   '/math': {
     title: { zh: '數學遊樂島｜一到三年級動手數學遊戲｜JY Games', en: 'Math Island | Hands-on Maths Games for Grades 1–3 | JY Games' },
-    description: { zh: '免登入的兒童數學小遊戲：一年級蘋果籃（合起來數一數）、湊十小火車（先湊成 10）、零錢小商店（用錢幣付錢）、天平等一等（等號的意思），三年級分裝工廠（平分）。動手擺一擺再數一數，附國語朗讀，不計時、不扣分。', en: 'Free kids maths games with no sign-in: Apple Basket (putting together), Make-Ten Train, Coin Shop and Balance Scale for grades 1–2, and Packing Factory (grade 3, equal sharing). Move things, then count; Mandarin voice prompts, no timer, no penalties.' },
+    description: { zh: '免登入的兒童數學小遊戲：一年級蘋果籃（合起來數一數）、湊十小火車（先湊成 10）、零錢小商店（用錢幣付錢）、天平等一等（等號的意思）、時鐘修理站（撥時鐘），二年級乘法花圃，三年級分裝工廠（平分）、數線青蛙。動手擺一擺再數一數，附國語朗讀，不計時、不扣分。', en: 'Free kids maths games with no sign-in: Apple Basket (putting together), Make-Ten Train, Coin Shop, Balance Scale and Clock Repair for grades 1–2, Multiplication Garden for grade 2, and Packing Factory and Number-Line Frog for grade 3. Move things, then count; Mandarin voice prompts, no timer, no penalties.' },
     index: true,
   },
   '/math/g1/apple': {
@@ -96,6 +96,21 @@ export const PAGES: Record<string, PageMeta> = {
   '/math/g1/balance': {
     title: { zh: '天平等一等｜一、二年級等號的意思｜數學遊樂島｜JY Games', en: 'Balance Scale | Grades 1–2 What = Means | Math Island | JY Games' },
     description: { zh: '一、二年級：放積木讓天平兩邊一樣重，認識等號是「兩邊一樣多」，□ 不一定在右邊。5 題。', en: 'Grades 1–2: add blocks until the scale is level, and learn that = means both sides are the same; the box is not always on the right. 5 problems.' },
+    index: true,
+  },
+  '/math/g1/clock': {
+    title: { zh: '時鐘修理站｜一、二年級撥時鐘｜數學遊樂島｜JY Games', en: 'Clock Repair | Grades 1–2 Setting the Clock | Math Island | JY Games' },
+    description: { zh: '一、二年級：轉長針撥時鐘，短針會跟著走，走過 12 點上午變下午。整點、半點、幾時幾分，5 題。', en: 'Grades 1–2: turn the minute hand and the hour hand follows; past 12 the morning turns into afternoon. Whole and half hours, then hours and minutes. 5 problems.' },
+    index: true,
+  },
+  '/math/g2/garden': {
+    title: { zh: '乘法花圃｜二年級乘法的意思｜數學遊樂島｜JY Games', en: 'Multiplication Garden | Grade 2 What Multiplying Means | Math Island | JY Games' },
+    description: { zh: '二年級：拉出一塊花圃，每排一樣多，看懂「每排幾朵 × 幾排」，轉過來花一樣多。不用背九九乘法表。5 題。', en: 'Grade 2: pull out a flower bed with equal rows, see “in each row × rows”, and turn it round to find the same number. No times-table drills. 5 problems.' },
+    index: true,
+  },
+  '/math/g3/frog': {
+    title: { zh: '數線青蛙｜三年級數線｜數學遊樂島｜JY Games', en: 'Number-Line Frog | Grade 3 Number Lines | Math Island | JY Games' },
+    description: { zh: '三年級：青蛙在數線上跳，選出牠會停在哪裡。刻度 1、10、100，還有只標兩端的數線。5 題。', en: 'Grade 3: the frog jumps along the number line; pick where it lands. Marks of 1, 10 and 100, and a line labelled only at its ends. 5 problems.' },
     index: true,
   },
   '/math/g3/factory': {

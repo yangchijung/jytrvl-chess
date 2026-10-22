@@ -7,6 +7,9 @@ import { FACTORY_KEY, FACTORY_PROBLEMS, SOURCE, finishedF, readFactory } from '.
 import { TRAIN_KEY, TRAIN_PROBLEMS, PLATFORM, finishedT, readTrain } from '../../shared/math/train';
 import { SHOP_KEY, SHOP_PROBLEMS, PURSE, finishedS, readShop } from '../../shared/math/shop';
 import { BALANCE_KEY, BALANCE_PROBLEMS, BIN, finishedB, readBalance } from '../../shared/math/balance';
+import { CLOCK_KEY, CLOCK_PROBLEMS, finishedC, readClock } from '../../shared/math/clock';
+import { GARDEN_KEY, GARDEN_PROBLEMS, finishedG, readGarden } from '../../shared/math/garden';
+import { FROG_KEY, FROG_PROBLEMS, finishedF2, readFrog } from '../../shared/math/frog';
 import { peek } from './save';
 import { IslandArt } from './art';
 import './math.css';
@@ -26,6 +29,12 @@ const T = {
   shopWhat: { zh: '一、二年級．用 1、5、10、50 元硬幣付剛好的錢。5 題。', en: 'Grades 1–2 · pay the exact price with 1, 5, 10 and 50 dollar coins. 5 problems.' },
   balance: { zh: '天平等一等', en: 'Balance Scale' },
   balanceWhat: { zh: '一、二年級．放積木讓天平兩邊一樣重，看懂等號的意思。5 題。', en: 'Grades 1–2 · add blocks until both sides weigh the same, and see what = means. 5 problems.' },
+  clock: { zh: '時鐘修理站', en: 'Clock Repair' },
+  clockWhat: { zh: '一、二年級．轉長針撥時鐘，看短針怎麼跟著走，分清上午、下午。5 題。', en: 'Grades 1–2 · turn the minute hand, watch the hour hand follow, and tell morning from afternoon. 5 problems.' },
+  garden: { zh: '乘法花圃', en: 'Multiplication Garden' },
+  gardenWhat: { zh: '二年級．拉出每排一樣多的花圃，看懂乘法。5 題。', en: 'Grade 2 · pull out a bed of equal rows and see what multiplying means. 5 problems.' },
+  frog: { zh: '數線青蛙', en: 'Number-Line Frog' },
+  frogWhat: { zh: '三年級．青蛙在數線上跳，選出牠會停在哪裡。5 題。', en: 'Grade 3 · the frog jumps along the number line; pick where it lands. 5 problems.' },
   start: { zh: '開始玩', en: 'Start' },
   cont: { zh: '接著玩：第 {n} 題', en: 'Continue: problem {n}' },
   again: { zh: '再玩一次（5 題都完成了）', en: 'Play again (all 5 done)' },
@@ -52,6 +61,13 @@ export function MathIslandPage() {
     { id: 'shop', path: '/math/g1/shop', name: T.shop, what: T.shopWhat, label: lab(sh, SHOP_PROBLEMS.length, !!sh && finishedS(sh), (a) => a.every((x) => x === PURSE)) },
     { id: 'balance', path: '/math/g1/balance', name: T.balance, what: T.balanceWhat, label: lab(b, BALANCE_PROBLEMS.length, !!b && finishedB(b), (a) => a.every((x) => x === BIN)) },
   ];
+  const ck = peek({ key: CLOCK_KEY, read: readClock });
+  const gd = peek({ key: GARDEN_KEY, read: readGarden });
+  const fr = peek({ key: FROG_KEY, read: readFrog });
+  const lab2 = (v: { index: number } | null, total: number, done: boolean, untouched: boolean) => (!v ? tr(T.start) : done ? tr(T.again) : v.index === 0 && untouched ? tr(T.start) : tr(T.cont, { n: Math.min(v.index + 1, total) }));
+  more.push({ id: 'clock', path: '/math/g1/clock', name: T.clock, what: T.clockWhat, label: lab2(ck, CLOCK_PROBLEMS.length, !!ck && finishedC(ck), !!ck && ck.minutes === CLOCK_PROBLEMS[0].start) });
+  more.push({ id: 'garden', path: '/math/g2/garden', name: T.garden, what: T.gardenWhat, label: lab2(gd, GARDEN_PROBLEMS.length, !!gd && finishedG(gd), !!gd && gd.rows === 0 && gd.cols === 0) });
+  const late = [{ id: 'frog', path: '/math/g3/frog', name: T.frog, what: T.frogWhat, label: lab2(fr, FROG_PROBLEMS.length, !!fr && finishedF2(fr), !!fr && fr.pick === null) }];
   return (
     <div className="mi rounded-lg px-3 py-4 sm:px-6 sm:py-6" data-testid="mi-island">
       <div className="mx-auto flex max-w-3xl flex-col gap-4">
@@ -98,6 +114,19 @@ export function MathIslandPage() {
             </Link>
           </div>
         </section>
+        {late.map((m) => (
+          <section key={m.id} className="flex flex-col gap-3 rounded-lg border-2 border-[var(--mi-line)] bg-[var(--mi-surface)] p-4" aria-labelledby={`mi-${m.id}-h`}>
+            <h2 id={`mi-${m.id}-h`} className="text-2xl font-extrabold">
+              {tr(m.name)}
+            </h2>
+            <p className="text-lg">{tr(m.what)}</p>
+            <div>
+              <Link to={to(m.path)} className="mi-btn mi-btn-primary mi-big px-6 text-xl" data-testid={`mi-start-${m.id}`}>
+                {m.label}
+              </Link>
+            </div>
+          </section>
+        ))}
         <details className="rounded-lg border-2 border-[var(--mi-line)] p-4">
           <summary className="min-h-11 cursor-pointer text-lg font-bold">{tr(T.adults)}</summary>
           <ul className="mt-2 list-disc space-y-1 pl-6 text-base">
