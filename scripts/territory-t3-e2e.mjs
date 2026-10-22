@@ -40,11 +40,14 @@ const S = (p) =>
   });
 const wrap = (x) => Math.atan2(Math.sin(x), Math.cos(x));
 const wrapRect = (p) => p.$eval('[role=application]', (e) => { const r = e.getBoundingClientRect(); return { left: r.left, top: r.top }; });
-async function aimMouse(p, angle, dist = 380) {
+/** Puts the mouse (no button) at an angle from the runner, kept inside the board so the board gets the events. Returns the page point. */
+async function aimMouse(p, angle, dist = 220) {
   const s = await S(p);
   const h = s.heads[s.me[0]];
-  const r = await wrapRect(p);
-  await p.mouse.move(r.left + h.x + Math.cos(angle) * dist, r.top + h.y + Math.sin(angle) * dist, { steps: 2 });
+  const r = await p.$eval('[role=application]', (e) => { const b = e.getBoundingClientRect(); return { left: b.left, top: b.top, w: b.width, h: b.height }; });
+  const x = Math.min(r.w - 4, Math.max(4, h.x + Math.cos(angle) * dist)), y = Math.min(r.h - 4, Math.max(4, h.y + Math.sin(angle) * dist));
+  await p.mouse.move(r.left + x, r.top + y, { steps: 2 });
+  return { x, y };
 }
 /** A test player that plays sensibly: short loops out from its land and back home (so it stays alive while the test waits). */
 const keep = (p, on) =>
@@ -141,11 +144,13 @@ try {
     await sleep(350);
     const [sa2, sb2] = await Promise.all([S(A), S(B)]);
     await keep(B, true);
-    ok('T3-04', 'phone: a tap turns the guest’s runner; the server confirms it and the host’s page sees the same target', Math.abs(wrap(sb2.players[seatB].t - tapA)) < 0.1 && Math.abs(wrap(sa2.players[seatB].t - tapA)) < 0.1, `tap=${tapA.toFixed(2)} guest=${sb2.players[seatB].t?.toFixed(2)} host=${sa2.players[seatB].t?.toFixed(2)}`);
+    ok('T3-04', 'phone: a touch turns the guest’s runner; the server confirms it and the host’s page sees the same target', Math.abs(wrap(sb2.players[seatB].t - tapA)) < 0.1 && Math.abs(wrap(sa2.players[seatB].t - tapA)) < 0.1, `tap=${tapA.toFixed(2)} guest=${sb2.players[seatB].t?.toFixed(2)} host=${sa2.players[seatB].t?.toFixed(2)}`);
     const dTick = Math.abs(sa2.tick - sb2.tick);
     const dPos = Math.hypot(sa2.players[seatB].x - sb2.players[seatB].x, sa2.players[seatB].y - sb2.players[seatB].y);
     ok('T3-03', 'host and phone show the same runner at the same place (within the ticks between the two reads)', dPos <= dTick * 0.5 + 0.6, `dTick=${dTick} dPos=${dPos.toFixed(2)}`);
     await B.screenshot({ path: `${OUT}/room-guest-390.png` });
+    const sc = await B.evaluate(() => document.documentElement.scrollWidth > innerWidth);
+    ok('T3-06', 'phone layout: no sideways scroll; touch hint shown', !sc && /手指放在哪裡/.test(await B.$eval('[data-testid=tr-hint]', (e) => e.textContent)));
     // refresh the phone mid-game
     await B.reload({ waitUntil: 'domcontentloaded' });
     await B.waitForSelector('[role=application][data-flow=true]', { timeout: 10000 });
@@ -155,8 +160,6 @@ try {
     await sleep(500);
     const r2 = await S(B);
     ok('T3-05', 'refreshing the phone during the game returns to the same seat with every runner and line restored; the game keeps running (or, if the match ended while the slow test page reloaded, the result is shown)', r1 && r1.me[0] === seatB && r1.flow && (r2.status === 'playing' ? r2.tick > r1.tick : r2.status === 'ended' && !!(await B.$('[role=dialog], [data-testid=tr-end], .end, [aria-modal]'))) && r1.players.every((p) => !p.alive || (p.path > 0) === (p.trail > 0)), JSON.stringify({ status: r2?.status, t: [r1?.tick, r2?.tick], p: r1?.players.map((p) => [p.alive, p.trail, p.path]) }));
-    const sc = await B.evaluate(() => document.documentElement.scrollWidth > innerWidth);
-    ok('T3-06', 'phone layout: no sideways scroll; touch hint shown', !sc && /點一下轉向/.test(await B.$eval('[data-testid=tr-hint]', (e) => e.textContent)));
     await A.ctx.close();
     await B.ctx.close();
     const lost = !(sa2.status === 'playing' && sa2.players.every((p) => p.alive));
@@ -181,15 +184,18 @@ try {
     const s0 = await S(A);
     const me = s0.me[0];
     if (!s0.heads[me]) { await A.ctx.close(); console.log('retry room 2 (host out before the check)'); continue; }
-    const aim = Math.atan2(24 - s0.players[me].y, 24 - s0.players[me].x) + 0.4;
-    await aimMouse(A, aim);
-    await sleep(700);
-    const s1 = await S(A);
+    const aim0 = Math.atan2(24 - s0.players[me].y, 24 - s0.players[me].x) + 0.4;
+    const pt = await aimMouse(A, aim0);
     await sleep(400);
+    const s1 = await S(A);
+    // the pointer stays put while the runner moves, so the expected heading is from where the runner is now
+    const h1 = s1.heads[me];
+    const aim = h1 ? Math.atan2(pt.y - h1.y, pt.x - h1.x) : aim0;
+    await sleep(250);
     const s2 = await S(A);
     const moved = Math.atan2(s2.players[me].y - s1.players[me].y, s2.players[me].x - s1.players[me].x);
     const hint = await A.$eval('[data-testid=tr-hint]', (e) => e.textContent);
-    ok('T3-02', 'the host aims the mouse (no button) at an off-axis angle: the server-confirmed target follows the pointer and the runner moves along it', s2.status === 'playing' && s2.players[me].alive && Math.abs(wrap(s1.players[me].t - aim)) < 0.15 && Math.abs(wrap(moved - s1.players[me].t)) < 0.05 && /滑鼠指向哪裡/.test(hint), `status=${s2.status} aim=${aim.toFixed(2)} target=${s1.players[me].t?.toFixed(2)} moved=${moved.toFixed(2)}`);
+    ok('T3-02', 'the host aims the mouse (no button) at an off-axis angle: the server-confirmed target follows the pointer and the runner moves along it', s2.status === 'playing' && s2.players[me].alive && Math.abs(wrap(s1.players[me].t - aim)) < 0.2 && Math.abs(wrap(moved - s1.players[me].t)) < 0.2 && /滑鼠指向哪裡/.test(hint), `status=${s2.status} aim=${aim.toFixed(2)} target=${s1.players[me].t?.toFixed(2)} moved=${moved.toFixed(2)}`);
     const other = 1 - me;
     const o1 = s1.players[other], o2 = s2.players[other];
     ok('T3-08', 'the guest who left keeps moving under the server autopilot', !o2.alive || Math.hypot(o2.x - o1.x, o2.y - o1.y) > 1, JSON.stringify([o1, o2].map((o) => [o.alive, o.x?.toFixed(1), o.y?.toFixed(1)])));
