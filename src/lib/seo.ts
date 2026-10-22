@@ -9,7 +9,7 @@ export interface PageMeta {
 
 export const PAGES: Record<string, PageMeta> = {
   '/': {
-    title: { zh: 'JY Games｜西洋棋・象棋・暗棋・領地爭奪戰・貪食蛇・方塊消除・數獨・色彩塗鴉樂', en: 'JY Games | Chess, Xiangqi, Banqi, Territory Rush, Snake Arena, Block Puzzle Battle, Sudoku & Color Doodle' },
+    title: { zh: 'JY Games｜西洋棋・象棋・暗棋・領地爭奪戰・貪食蛇・方塊消除・數獨・色彩塗鴉樂・數學遊樂島・手繪雲霄飛車', en: 'JY Games | Chess, Xiangqi, Banqi, Territory Rush, Snake Arena, Block Puzzle Battle, Sudoku, Color Doodle, Math Island & Sketch Coaster' },
     description: {
       zh: '免費線上遊戲平台：棋藝策略（西洋棋、中國象棋、台灣暗棋）、即時競技（領地爭奪戰、貪食蛇競技場）與益智創作（方塊消除對戰、經典數獨、色彩塗鴉樂）。三級電腦 AI、線上對戰、互動教學。',
       en: 'Free online game platform: strategy (Chess, Xiangqi, Banqi), real-time action (Territory Rush, Snake Arena) and puzzles & creativity (Block Puzzle Battle, Classic Sudoku, Color Doodle). Three AI levels, online play and interactive lessons.',
