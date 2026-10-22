@@ -178,3 +178,16 @@ describe('batch A audio files (Azure, made by James 2026-10-22)', () => {
   });
 });
 
+describe('pre-reader prompts audio (Azure, made by James 2026-10-22)', () => {
+  it('menu, counting 1–10 and the number-card prompt all have their mp3 and the same text in the manifest', () => {
+    const dir = `public/math/audio/${VOICE.locale}/v${VOICE.version}`;
+    const manifest = JSON.parse(readFileSync(`${dir}/manifest.json`, 'utf8')) as { id: string; text: string }[];
+    const ids = Object.keys(CLIPS).filter((id) => /^(menu_|n_\d|apple_card$)/.test(id));
+    expect(ids.length).toBe(20);
+    for (const id of ids) {
+      expect(existsSync(`${dir}/${id}.mp3`), id).toBe(true);
+      expect(manifest.find((x) => x.id === id)?.text, id).toBe(CLIPS[id]);
+    }
+  });
+});
+
