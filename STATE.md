@@ -6,6 +6,7 @@
 Date: 2026-10-20
 Branch/Commit: main（2026-10-19 A3 第八款見最新 commit；存檔複驗原碼 7eae7f3；R5＋塗鴉首版 f80776c）
 Done (with evidence):
+  - 2026-10-22 工程：領地 T3 線上連續轉向（好友房、快速配對；伺服器權威、引擎版本化、重連、緊急開關 TERRITORY_FLOW），PR 預覽；協定 14／14、瀏覽器 11／11、回歸全過（docs/ACCEPTANCE.md §35）；兩台實機未測
   - 2026-10-21 工程：手繪雲霄飛車（James 交付規格，部署在 JY Games /coaster/，單一檔案）；首頁卡片＋選單；瀏覽器實測見 docs/ACCEPTANCE.md §33；iPad 實機幀率未測
   - 2026-10-21 上線：領地 T2＋手指跟隨、拿掉虛擬搖桿（#15 含 #11，main f51e82f，正式站實測）
 
