@@ -1,4 +1,5 @@
 // Math Island M0 placeholder art: original flat shapes drawn in code (no emoji, no gradients, no shadows).
+import type { ReactNode } from 'react';
 // Listed as unfinished assets in docs/ACCEPTANCE.md §25 until the reviewed illustrations replace them (MA09).
 
 /** One countable apple: a single clear silhouette so every apple is easy to tell apart and count. */
@@ -127,6 +128,119 @@ export function DayPartArt({ pm, size = 36 }: { pm: boolean; size?: number }) {
           ))}
         </>
       )}
+    </svg>
+  );
+}
+
+/** Island-map pictures for the eight games (original flat drawings, same palette in both themes like a printed map). */
+export type GameId = 'apple' | 'train' | 'shop' | 'balance' | 'clock' | 'garden' | 'factory' | 'frog';
+const INK = '#23303F';
+export function GameArt({ game, size = 140 }: { game: GameId; size?: number }) {
+  const s = { stroke: INK, strokeWidth: 3, strokeLinejoin: 'round' as const, strokeLinecap: 'round' as const };
+  const body: Record<GameId, ReactNode> = {
+    apple: (
+      <>
+        <rect x="52" y="56" width="16" height="36" fill="#7A5A2E" {...s} />
+        <circle cx="60" cy="40" r="32" fill="#3D7A3F" {...s} />
+        {[
+          [44, 30],
+          [70, 26],
+          [58, 48],
+          [78, 46],
+          [40, 50],
+        ].map(([x, y]) => (
+          <circle key={`${x}${y}`} cx={x} cy={y} r="6" fill="#C8402F" stroke={INK} strokeWidth="2" />
+        ))}
+        <path d="M84 72h28l-4 20H88z" fill="#E9C893" {...s} />
+      </>
+    ),
+    train: (
+      <>
+        <rect x="10" y="36" width="44" height="38" rx="6" fill="#3A7BD5" {...s} />
+        <rect x="58" y="36" width="44" height="38" rx="6" fill="#E9853B" {...s} />
+        {[18, 34, 66, 82].map((x) => (
+          <rect key={x} x={x} y="44" width="12" height="12" rx="2" fill="#FFF4E3" stroke={INK} strokeWidth="2" />
+        ))}
+        {[22, 44, 70, 92].map((x) => (
+          <circle key={x} cx={x} cy="80" r="7" fill={INK} />
+        ))}
+        <path d="M54 58h4" {...s} />
+        <path d="M4 90h112" {...s} />
+      </>
+    ),
+    shop: (
+      <>
+        <rect x="18" y="40" width="84" height="50" fill="#FFF4E3" {...s} />
+        <path d="M12 40l10-22h76l10 22z" fill="#C8402F" {...s} />
+        <path d="M34 18l-6 22M52 18l-2 22M68 18l2 22M86 18l6 22" stroke="#FFF4E3" strokeWidth="5" />
+        <rect x="30" y="56" width="26" height="34" fill="#3A7BD5" {...s} />
+        <circle cx="80" cy="66" r="10" fill="#E2B93B" {...s} />
+        <circle cx="80" cy="66" r="5" fill="none" stroke={INK} strokeWidth="2" />
+      </>
+    ),
+    balance: (
+      <>
+        <path d="M60 22v62M40 90h40" {...s} strokeWidth="5" />
+        <path d="M20 34h80" {...s} strokeWidth="5" />
+        <path d="M20 34l-12 26h24zM100 34l-12 26h24z" fill="none" {...s} />
+        <path d="M6 60h28q-2 12-14 12T6 60zM86 60h28q-2 12-14 12T86 60z" fill="#E9C893" {...s} />
+        <rect x="12" y="48" width="10" height="10" fill="#3D7A3F" stroke={INK} strokeWidth="2" />
+        <rect x="92" y="48" width="10" height="10" fill="#3D7A3F" stroke={INK} strokeWidth="2" />
+        <circle cx="60" cy="22" r="6" fill="#FFF4E3" {...s} />
+      </>
+    ),
+    clock: (
+      <>
+        <circle cx="60" cy="52" r="38" fill="#FFF4E3" {...s} strokeWidth="5" />
+        {Array.from({ length: 12 }, (_, k) => {
+          const a = (k * 30 * Math.PI) / 180;
+          return <path key={k} d={`M${60 + Math.sin(a) * 30} ${52 - Math.cos(a) * 30}L${60 + Math.sin(a) * 35} ${52 - Math.cos(a) * 35}`} stroke={INK} strokeWidth="3" />;
+        })}
+        <path d="M60 52V28M60 52l14 8" {...s} strokeWidth="5" />
+        <circle cx="60" cy="52" r="4" fill={INK} />
+      </>
+    ),
+    garden: (
+      <>
+        <rect x="12" y="30" width="96" height="62" rx="6" fill="#C9A46C" {...s} />
+        {[0, 1, 2].flatMap((r) =>
+          [0, 1, 2, 3].map((c) => (
+            <g key={`${r}${c}`}>
+              <circle cx={28 + c * 22} cy={44 + r * 18} r="7" fill="#E8889A" stroke={INK} strokeWidth="2" />
+              <circle cx={28 + c * 22} cy={44 + r * 18} r="2.5" fill="#E2B93B" />
+            </g>
+          )),
+        )}
+      </>
+    ),
+    factory: (
+      <>
+        <path d="M12 90V46l26 14V46l26 14V46l26 14V28h16v62z" fill="#E9C893" {...s} />
+        <rect x="24" y="72" width="16" height="18" fill="#3A7BD5" {...s} />
+        <rect x="56" y="70" width="34" height="12" fill="#F3E3C4" {...s} />
+        {[62, 72, 82].map((x) => (
+          <circle key={x} cx={x} cy="76" r="4" fill="#D9A35B" stroke={INK} strokeWidth="1.5" />
+        ))}
+      </>
+    ),
+    frog: (
+      <>
+        <path d="M6 86h108" {...s} />
+        {[18, 46, 74, 102].map((x) => (
+          <path key={x} d={`M${x} 80v12`} {...s} />
+        ))}
+        <path d="M30 72q30-50 60 0" fill="none" stroke="#3A7BD5" strokeWidth="4" strokeDasharray="6 6" />
+        <ellipse cx="60" cy="40" rx="22" ry="15" fill="#3D7A3F" {...s} />
+        <circle cx="49" cy="26" r="7" fill="#3D7A3F" {...s} />
+        <circle cx="71" cy="26" r="7" fill="#3D7A3F" {...s} />
+        <circle cx="49" cy="26" r="2.5" fill={INK} />
+        <circle cx="71" cy="26" r="2.5" fill={INK} />
+      </>
+    ),
+  };
+  return (
+    <svg viewBox="0 0 120 100" width={size} height={(size * 100) / 120} aria-hidden="true" focusable="false">
+      {body[game]}
     </svg>
   );
 }

@@ -961,5 +961,185 @@
     "rate": "-10%",
     "file": "frog_right_05.mp3",
     "version": 1
+  },
+  {
+    "id": "menu_hello",
+    "text": "想玩哪一個？點一下圖片。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "menu_hello.mp3",
+    "version": 1
+  },
+  {
+    "id": "menu_apple",
+    "text": "蘋果籃，把蘋果放進籃子！",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "menu_apple.mp3",
+    "version": 1
+  },
+  {
+    "id": "menu_train",
+    "text": "湊十小火車，請乘客上火車！",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "menu_train.mp3",
+    "version": 1
+  },
+  {
+    "id": "menu_shop",
+    "text": "零錢小商店，用硬幣付錢！",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "menu_shop.mp3",
+    "version": 1
+  },
+  {
+    "id": "menu_balance",
+    "text": "天平等一等，讓天平平衡！",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "menu_balance.mp3",
+    "version": 1
+  },
+  {
+    "id": "menu_clock",
+    "text": "時鐘修理站，把時鐘撥對！",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "menu_clock.mp3",
+    "version": 1
+  },
+  {
+    "id": "menu_garden",
+    "text": "乘法花圃，種一排一排的花！",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "menu_garden.mp3",
+    "version": 1
+  },
+  {
+    "id": "menu_factory",
+    "text": "分裝工廠，把餅乾平分到盒子裡！",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "menu_factory.mp3",
+    "version": 1
+  },
+  {
+    "id": "menu_frog",
+    "text": "數線青蛙，幫青蛙找到落點！",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "menu_frog.mp3",
+    "version": 1
+  },
+  {
+    "id": "n_1",
+    "text": "1",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "n_1.mp3",
+    "version": 1
+  },
+  {
+    "id": "n_2",
+    "text": "2",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "n_2.mp3",
+    "version": 1
+  },
+  {
+    "id": "n_3",
+    "text": "3",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "n_3.mp3",
+    "version": 1
+  },
+  {
+    "id": "n_4",
+    "text": "4",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "n_4.mp3",
+    "version": 1
+  },
+  {
+    "id": "n_5",
+    "text": "5",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "n_5.mp3",
+    "version": 1
+  },
+  {
+    "id": "n_6",
+    "text": "6",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "n_6.mp3",
+    "version": 1
+  },
+  {
+    "id": "n_7",
+    "text": "7",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "n_7.mp3",
+    "version": 1
+  },
+  {
+    "id": "n_8",
+    "text": "8",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "n_8.mp3",
+    "version": 1
+  },
+  {
+    "id": "n_9",
+    "text": "9",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "n_9.mp3",
+    "version": 1
+  },
+  {
+    "id": "n_10",
+    "text": "10",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "n_10.mp3",
+    "version": 1
+  },
+  {
+    "id": "apple_card",
+    "text": "一共幾顆？把數字卡放進籃子。",
+    "locale": "zh-TW",
+    "voice": "zh-TW-HsiaoChenNeural",
+    "rate": "-10%",
+    "file": "apple_card.mp3",
+    "version": 1
   }
 ]
