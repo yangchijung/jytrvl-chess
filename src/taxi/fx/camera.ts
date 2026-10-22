@@ -53,7 +53,15 @@ export class ChaseCam {
     const head = t.pos.clone().add(new THREE.Vector3(0, 1.6, 0));
     const full = goal.distanceTo(head);
     const free = occlude(head, goal);
-    if (free < full) goal.copy(head).addScaledVector(goal.clone().sub(head).normalize(), Math.max(1.5, free - 0.4));
+    if (free < full) {
+      // something behind the car: first try rising over the car (closer and higher, still showing the road ahead);
+      // only if that is blocked too, pull in along the ray
+      const high = t.pos.clone().addScaledVector(this.dir, -back * 0.55).add(new THREE.Vector3(0, height + 4, 0));
+      const freeHigh = occlude(head, high);
+      if (freeHigh >= high.distanceTo(head) - 0.01) goal.copy(high);
+      else if (freeHigh > free) goal.copy(head).addScaledVector(high.sub(head).normalize(), Math.max(1.5, freeHigh - 0.4));
+      else goal.copy(head).addScaledVector(goal.clone().sub(head).normalize(), Math.max(1.5, free - 0.4));
+    }
 
     if (this.first) {
       this.dir.copy(want);

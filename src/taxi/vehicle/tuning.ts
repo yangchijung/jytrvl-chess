@@ -53,6 +53,8 @@ export interface Tuning {
   bodyFriction: number;
   /** air drag so the car settles at top speed without a hard wall */
   drag: number;
+  /** contact force (N) from which a hit counts as a crash (breaks the tip combo) */
+  crashForce: number;
 }
 
 export const TUNING: Tuning = {
@@ -92,6 +94,7 @@ export const TUNING: Tuning = {
   bodyRestitution: 0.35,
   bodyFriction: 0.15,
   drag: 0.45,
+  crashForce: 300000,
 };
 
 /** ranges for the dev panel sliders */

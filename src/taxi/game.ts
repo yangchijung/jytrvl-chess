@@ -7,6 +7,9 @@ import { Car, HALF } from './vehicle/car';
 import { TUNING, type Tuning } from './vehicle/tuning';
 import { ChaseCam } from './fx/camera';
 import { GROUND, greybox, wedgePoints, type Shape } from './world/greybox';
+import { newRun, tick, type Mode, type RunEvent, type RunState } from './gameplay/rules';
+import { PLACES, STOPS } from './gameplay/places';
+import { RunView } from './gameplay/view';
 
 export const STEP = 1 / 60;
 const PALETTE = { sky: '#8FD0F5', asphalt: '#3A3F47', taxi: '#FFC72C', ink: '#23303F', tyre: '#1E2228', glass: '#5C7A99' };
@@ -18,6 +21,9 @@ export interface HudState {
   rush: boolean;
   fps: number;
   events: Car['ev'];
+  run: RunState | null;
+  /** where the guide arrow points, relative to the camera (deg, 0 = straight ahead, + = right), and how far (m) */
+  arrow: { deg: number; dist: number; to: 'dest' | 'pickup' } | null;
 }
 
 export interface Game {
@@ -31,9 +37,15 @@ export interface Game {
   /** test hook: run the simulation for `seconds` of game time right now (rendering one frame after) */
   ff(seconds: number, c?: Partial<Controls>): void;
   stats(): { drawCalls: number; triangles: number };
+  /** start an arcade run (50 s) or free practice; null ends it (free driving) */
+  startRun(mode: Mode | null, seed?: number): void;
+  run(): RunState | null;
+  setPaused(p: boolean): void;
 }
 
-export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) => void, opts: { lowPower?: boolean } = {}): Promise<Game> {
+export const SPAWN = { p: { x: 0, y: 1.0, z: -60 }, yaw: 0 };
+
+export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) => void, opts: { lowPower?: boolean; lang?: 'zh' | 'en'; onEvent?: (e: RunEvent) => void; onPause?: (paused: boolean) => void } = {}): Promise<Game> {
   await RAPIER.init();
   const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
   world.timestep = STEP;
@@ -59,7 +71,9 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
   const chase = new ChaseCam(canvas.clientWidth / Math.max(1, canvas.clientHeight));
 
   // ground: asphalt with a light grid so speed reads well
-  world.createCollider(RAPIER.ColliderDesc.cuboid(GROUND / 2, 0.5, GROUND / 2).setTranslation(0, -0.5, 0).setFriction(1));
+  const groundCol = world.createCollider(RAPIER.ColliderDesc.cuboid(GROUND / 2, 0.5, GROUND / 2).setTranslation(0, -0.5, 0).setFriction(1));
+  /** hits on these never count as a crash (the ground, knock-over props) */
+  const soft = new Set<number>([groundCol.handle]);
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(GROUND, GROUND), new THREE.MeshLambertMaterial({ color: PALETTE.asphalt }));
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
@@ -105,7 +119,7 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
     .filter((s): s is Extract<Shape, { kind: 'box' }> => s.kind === 'box' && !!s.dynamic)
     .map((s) => {
       const b = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(...s.p));
-      world.createCollider(RAPIER.ColliderDesc.cuboid(s.size[0] / 2, s.size[1] / 2, s.size[2] / 2).setDensity(40).setRestitution(0.3), b);
+      soft.add(world.createCollider(RAPIER.ColliderDesc.cuboid(s.size[0] / 2, s.size[1] / 2, s.size[2] / 2).setDensity(40).setRestitution(0.3), b).handle);
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(...s.size), new THREE.MeshLambertMaterial({ color: s.color }));
       mesh.castShadow = true;
       scene.add(mesh);
@@ -114,7 +128,11 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
 
   // ---------- the car ----------
   const tuning: Tuning = { ...TUNING };
-  const car = new Car(RAPIER, world, { x: 0, y: 1.2, z: -60 }, 0, tuning);
+  const car = new Car(RAPIER, world, SPAWN.p, SPAWN.yaw, tuning);
+  const view = new RunView(scene, opts.lang ?? 'zh');
+  const events = new RAPIER.EventQueue(true);
+  let run: RunState | null = null;
+  let landSeen = 0;
   const carGroup = new THREE.Group();
   const mat = (c: string) => new THREE.MeshLambertMaterial({ color: c, flatShading: true });
   const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(HALF.x * 2, HALF.y * 2, HALF.z * 2), mat(PALETTE.taxi));
@@ -172,8 +190,22 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
     prev.p.copy(cur.p);
     prev.q.copy(cur.q);
     car.update(c, STEP);
-    world.step();
+    world.step(events);
+    let crash = false;
+    events.drainContactForceEvents((e) => {
+      const a = e.collider1(),
+        b = e.collider2();
+      const other = a === car.collider.handle ? b : b === car.collider.handle ? a : -1;
+      if (other >= 0 && !soft.has(other)) crash = true;
+    });
     snap(cur);
+    if (run && run.phase === 'play') {
+      const landed = car.ev.landings !== landSeen;
+      landSeen = car.ev.landings;
+      const t = car.body.translation();
+      const ev = tick(run, STEP, { x: t.x, z: t.z, kmh: car.kmh(), drifting: car.drifting, airborne: car.airborne, landedAfter: landed ? car.ev.lastAir : 0, crash, nearMiss: false }, STOPS, PLACES);
+      for (const e of ev) opts.onEvent?.(e);
+    }
   };
   const draw = (alpha: number, dt: number) => {
     const p = prev.p.clone().lerp(cur.p, alpha);
@@ -209,8 +241,23 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
     );
     sun.position.set(p.x + 20, p.y + 40, p.z + 10);
     sun.target.position.copy(p);
+    view.update(run, p, performance.now() / 1000);
     renderer.render(scene, chase.cam);
-    onHud({ kmh: car.kmh(), drifting: car.drifting, airborne: car.airborne, rush: car.rushLeft > 0, fps, events: car.ev });
+    // the guide arrow: to the destination while carrying, otherwise to the nearest waiting passenger
+    let arrow: HudState['arrow'] = null;
+    if (run && run.phase === 'play') {
+      const tgt = run.rider ? run.rider.dest : [...run.waiting].sort((a, b) => Math.hypot(a.stop.x - p.x, a.stop.z - p.z) - Math.hypot(b.stop.x - p.x, b.stop.z - p.z))[0]?.stop;
+      if (tgt) {
+        const cf = new THREE.Vector3();
+        chase.cam.getWorldDirection(cf);
+        const camYaw = Math.atan2(cf.x, cf.z);
+        const toYaw = Math.atan2(tgt.x - p.x, tgt.z - p.z);
+        // + = to the right of where the camera looks (yaw grows towards +x, which is screen-left)
+        const d = -Math.atan2(Math.sin(toYaw - camYaw), Math.cos(toYaw - camYaw));
+        arrow = { deg: (d * 180) / Math.PI, dist: Math.hypot(tgt.x - p.x, tgt.z - p.z), to: run.rider ? 'dest' : 'pickup' };
+      }
+    }
+    onHud({ kmh: car.kmh(), drifting: car.drifting, airborne: car.airborne, rush: car.rushLeft > 0, fps, events: car.ev, run, arrow });
   };
   let lastControls: Controls = { throttle: 0, brake: 0, steer: 0, drift: false, rush: false, reset: false, pause: false, dev: false };
 
@@ -225,7 +272,10 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
       fpsT = now;
     }
     const c = input.read();
-    if (c.pause) paused = !paused;
+    if (c.pause && run?.phase !== 'over') {
+      paused = !paused;
+      opts.onPause?.(paused);
+    }
     if (paused) return;
     lastControls = c;
     acc += dt;
@@ -278,5 +328,22 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
       draw(1, Math.max(STEP, Math.min(1, seconds))); // a longer camera step so it catches up after a jump in time
     },
     stats: () => ({ drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles }),
+    startRun(mode, seed) {
+      view.clear();
+      car.reset(SPAWN.p, SPAWN.yaw);
+      snap(cur);
+      prev.p.copy(cur.p);
+      prev.q.copy(cur.q);
+      chase.snap();
+      landSeen = car.ev.landings;
+      run = mode ? newRun(mode, STOPS, PLACES, { x: SPAWN.p.x, z: SPAWN.p.z }, seed ?? (Date.now() & 0x7fffffff)) : null;
+      paused = false;
+      acc = 0;
+    },
+    run: () => run,
+    setPaused(p) {
+      paused = p;
+      last = performance.now();
+    },
   };
 }
