@@ -128,21 +128,26 @@ export function ClockPage() {
     }
     turn.current = { pid: e.pointerId, from: s.minutes, last: angleAt(e), acc: 0 };
   };
-  const onMove = (e: RPointerEvent<SVGSVGElement>) => {
-    const t = turn.current;
-    if (!t || t.pid !== e.pointerId) return;
+  /** add the angle turned since the last event (the shorter way round) */
+  const follow = (t: { last: number; acc: number }, e: { clientX: number; clientY: number }) => {
     const a = angleAt(e);
     let d = a - t.last;
     if (d > Math.PI) d -= 2 * Math.PI;
     if (d < -Math.PI) d += 2 * Math.PI;
     t.last = a;
     t.acc += d;
+  };
+  const onMove = (e: RPointerEvent<SVGSVGElement>) => {
+    const t = turn.current;
+    if (!t || t.pid !== e.pointerId) return;
+    follow(t, e);
     const next = turnTo(s, t.from, (t.acc / (2 * Math.PI)) * 60);
     setLive(next.minutes);
   };
   const onUp = (e: RPointerEvent<SVGSVGElement>) => {
     const t = turn.current;
     if (!t || t.pid !== e.pointerId) return;
+    follow(t, e); // the release point counts even when no move event came before it
     turn.current = null;
     const next = turnTo(s, t.from, (t.acc / (2 * Math.PI)) * 60);
     setLive(null);
