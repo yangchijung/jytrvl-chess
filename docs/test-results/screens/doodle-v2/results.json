@@ -1,7 +1,7 @@
 {
-  "base": "http://127.0.0.1:8788",
-  "at": "2026-10-21T03:42:26.668Z",
-  "passed": 39,
+  "base": "http://127.0.0.1:8797",
+  "at": "2026-10-23T05:17:40.155Z",
+  "passed": 43,
   "failed": 0,
   "results": [
     {
@@ -131,6 +131,30 @@
       "info": "uncoordinated,uncoordinated free=1 grid=1 conflict=0"
     },
     {
+      "id": "R2a",
+      "name": "no Web Locks: another tab writes over B’s saved stamp — B keeps the stamp aside, shows the alert with a download, no longer says saved, and shows the newest drawing",
+      "pass": true,
+      "info": "{\"stale\":true,\"savedB\":1,\"aside\":[1],\"banner\":true,\"status\":\"none\",\"free\":1}"
+    },
+    {
+      "id": "R2b",
+      "name": "no Web Locks, storage full for the copy aside: B’s only stored copy of its stamp stays, the alert says it could not be stored separately and offers the download, not called saved",
+      "pass": true,
+      "info": "{\"before\":[[\"jy.doodle.v2.tab-ldcj63f9\",1]],\"kept\":[[\"jy.doodle.v2.tab-ldcj63f9\",1]],\"unsaved\":\"1\",\"download\":true,\"status\":\"none\",\"aside\":0}"
+    },
+    {
+      "id": "R2b",
+      "name": "a later save (cell 4, in the shared drawing) and a reload do not overwrite or remove that copy",
+      "pass": true,
+      "info": "{\"laterSaved\":true,\"afterReload\":[[\"jy.doodle.v2.tab-ldcj63f9\",1]]}"
+    },
+    {
+      "id": "R2b",
+      "name": "once space is back, the next load copies the stamp aside (cell 3) and only then removes the tab copy",
+      "pass": true,
+      "info": "{\"tab\":false,\"aside\":[[3]],\"banner\":true}"
+    },
+    {
       "id": "CP08",
       "name": "a newer-version V2 document: notice + download, the original text kept in a backup before anything is written",
       "pass": true,
@@ -170,7 +194,7 @@
       "id": "CP04",
       "name": "360×780 zh light: no sideways scroll, paints ≥ 48 px, controls ≥ 44 px, paper stays white, the mixed pink shows in the pool",
       "pass": true,
-      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":137}"
+      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":133}"
     },
     {
       "id": "CP04",
@@ -182,25 +206,25 @@
       "id": "CP04",
       "name": "390×844 zh light: no sideways scroll, paints ≥ 48 px, controls ≥ 44 px, paper stays white, the mixed pink shows in the pool",
       "pass": true,
-      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":150}"
+      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":146}"
     },
     {
       "id": "CP04",
       "name": "390×844 /en dark: no sideways scroll, paints ≥ 48 px, controls ≥ 44 px, paper stays white, the mixed pink shows in the pool",
       "pass": true,
-      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":150}"
+      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":146}"
     },
     {
       "id": "CP04",
       "name": "768×1024 zh light: no sideways scroll, paints ≥ 48 px, controls ≥ 44 px, paper stays white, the mixed pink shows in the pool",
       "pass": true,
-      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":161}"
+      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":151}"
     },
     {
       "id": "CP04",
       "name": "768×1024 /en dark: no sideways scroll, paints ≥ 48 px, controls ≥ 44 px, paper stays white, the mixed pink shows in the pool",
       "pass": true,
-      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":161}"
+      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":156}"
     },
     {
       "id": "CP04",
@@ -218,7 +242,7 @@
       "id": "CP04",
       "name": "1280×900 zh light: no sideways scroll, paints ≥ 48 px, controls ≥ 44 px, paper stays white, the mixed pink shows in the pool",
       "pass": true,
-      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":151}"
+      "info": "{\"hscroll\":false,\"paintMin\":48,\"ctrlMin\":44,\"paperBg\":\"rgb(255, 255, 255)\",\"poolW\":146}"
     },
     {
       "id": "CP04",
