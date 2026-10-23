@@ -62,6 +62,9 @@ export interface BumperGame {
   cars: BumperCar[];
   bots: (BotController | null)[];
   scores: ScoreManager;
+  /** for profiling and tests */
+  engine: Engine;
+  camera: CameraController;
   dispose(): void;
 }
 
@@ -126,7 +129,7 @@ export async function startBumper(canvas: HTMLCanvasElement, opts: StartOpts): P
       m.dispose();
     }
     models = lineUp(pick).map(({ car, animal }) => {
-      const m = new CarModel(car, animal);
+      const m = new CarModel(car, animal, { headShadow: !q.software });
       scene.add(m.root);
       return m;
     });
@@ -280,7 +283,7 @@ export async function startBumper(canvas: HTMLCanvasElement, opts: StartOpts): P
     camera.mode = 'result';
     input.enabled = false;
     audio.fanfare();
-    void audio.setMusic('result');
+    void audio.setMusic('results');
     stats.phase = 'result';
     opts.onPhase?.('result');
   };
@@ -348,6 +351,7 @@ export async function startBumper(canvas: HTMLCanvasElement, opts: StartOpts): P
     const p0 = models[0]?.root.position ?? tmpP.set(0, 0, 0);
     const v0 = cars[0].body.linvel();
     tmpL.set(v0.x, 0, v0.z);
+    camera.heading = cur[0].yaw;
     camera.update(tmpP.set(p0.x, 0, p0.z), tmpL, dt);
     engine.render(camera.cam);
     // stats for the test hook
@@ -385,6 +389,8 @@ export async function startBumper(canvas: HTMLCanvasElement, opts: StartOpts): P
     cars,
     bots,
     scores,
+    engine,
+    camera,
     start() {
       resetCars();
       scores.start();

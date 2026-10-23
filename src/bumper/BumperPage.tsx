@@ -93,9 +93,16 @@ export function BumperPage() {
     window.addEventListener('resize', onResize);
     document.addEventListener('visibilitychange', onVis);
     // the HUD reads the game ~16 times a second (the 3D scene itself runs every frame)
+    let lastKey = '';
     const poll = window.setInterval(() => {
       const g = game.current;
-      if (g) setHud(g.hud());
+      if (!g) return;
+      const h = g.hud();
+      // re-render only when something on screen changes (the dash ring in 2 % steps)
+      const key = `${h.phase}|${Math.ceil(h.timeLeft * 5)}|${h.score}|${Math.round(h.cooldown * 50)}|${h.starPulse > 0.5}|${h.trophies}`;
+      if (key === lastKey) return;
+      lastKey = key;
+      setHud(h);
     }, 60);
     return () => {
       alive = false;

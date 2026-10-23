@@ -146,12 +146,13 @@ export class ArenaView {
   constructor(scene: THREE.Scene, opts: { textureSize: number }) {
     const ramp = toonRamp();
     // ground outside the arena (a soft mint lawn) and the pink apron under the rail
-    const lawn = new THREE.Mesh(new THREE.CircleGeometry(140, 48), new THREE.MeshToonMaterial({ color: '#BFEFD0', gradientMap: ramp }));
+    // big flat surfaces with nothing to shade: unlit (cheap on every pixel, same look as the lit toon step)
+    const lawn = new THREE.Mesh(new THREE.CircleGeometry(140, 48), new THREE.MeshBasicMaterial({ color: '#BFEFD0' }));
     lawn.rotation.x = -Math.PI / 2;
     lawn.position.y = -0.03;
     lawn.receiveShadow = false;
     scene.add(lawn);
-    const apron = new THREE.Mesh(new THREE.RingGeometry(ARENA.radius - 0.2, ARENA.radius + 4.5, 96, 1), new THREE.MeshToonMaterial({ color: '#FFD3E2', gradientMap: ramp }));
+    const apron = new THREE.Mesh(new THREE.RingGeometry(ARENA.radius - 0.2, ARENA.radius + 4.5, 96, 1), new THREE.MeshBasicMaterial({ color: '#FFD3E2' }));
     apron.rotation.x = -Math.PI / 2;
     apron.position.y = -0.01;
     scene.add(apron);
@@ -166,7 +167,7 @@ export class ArenaView {
     rail.rotation.x = Math.PI / 2;
     rail.position.y = 0.85;
     scene.add(rail);
-    const kerb = new THREE.Mesh(new THREE.CylinderGeometry(ARENA.radius + 1.6, ARENA.radius + 1.6, 0.35, 96, 1, true), new THREE.MeshToonMaterial({ color: '#FFFFFF', gradientMap: ramp, side: THREE.DoubleSide }));
+    const kerb = new THREE.Mesh(new THREE.CylinderGeometry(ARENA.radius + 1.6, ARENA.radius + 1.6, 0.35, 96, 1, true), new THREE.MeshBasicMaterial({ color: '#F4F7FB', side: THREE.DoubleSide }));
     kerb.position.y = 0.17;
     scene.add(kerb);
 

@@ -48,13 +48,23 @@ export class CameraController {
     this.trauma = Math.min(1, this.trauma + amount);
   }
 
+  /** the player's heading, so the result camera can swing round to the driver's face */
+  heading = 0;
+
   private offset(): THREE.Vector3 {
+    const far = this.portrait ? new THREE.Vector3(0, 26, -19) : new THREE.Vector3(0, 17, -15);
     if (this.mode === 'result') {
-      const k = this.push;
-      const far = this.portrait ? new THREE.Vector3(0, 26, -19) : new THREE.Vector3(0, 17, -15);
-      return far.lerp(new THREE.Vector3(0, 5.5, -8.5), k);
+      // swing from the usual view to a close view in front of the car (the shorter way round)
+      const front = new THREE.Vector3(Math.sin(this.heading), 0, Math.cos(this.heading)).multiplyScalar(this.portrait ? 11 : 8.5).setY(this.portrait ? 6.5 : 4.6);
+      const a0 = Math.atan2(far.x, far.z),
+        a1 = Math.atan2(front.x, front.z);
+      const da = Math.atan2(Math.sin(a1 - a0), Math.cos(a1 - a0));
+      const k = this.push * this.push * (3 - 2 * this.push);
+      const a = a0 + da * k;
+      const r = THREE.MathUtils.lerp(Math.hypot(far.x, far.z), Math.hypot(front.x, front.z), k);
+      return new THREE.Vector3(Math.sin(a) * r, THREE.MathUtils.lerp(far.y, front.y, k), Math.cos(a) * r);
     }
-    return this.portrait ? new THREE.Vector3(0, 26, -19) : new THREE.Vector3(0, 17, -15);
+    return far;
   }
 
   /** jump straight to the right place (start of a round) */
@@ -83,8 +93,13 @@ export class CameraController {
       // look a little ahead of where the car is going; keep the far rail in view near the edge
       const ahead = this.mode === 'follow' ? lead.clone().multiplyScalar(0.22).clampLength(0, 5) : new THREE.Vector3();
       lookAt = target.clone().add(ahead);
-      lookAt.x *= 0.82;
-      lookAt.z *= 0.82;
+      if (this.mode === 'follow') {
+        lookAt.x *= 0.82;
+        lookAt.z *= 0.82;
+      } else {
+        // aim below the car so it sits in the upper half, above the result card
+        lookAt.y -= (this.portrait ? 3.2 : 2.2) * this.push;
+      }
       want = lookAt.clone().add(this.offset());
       if (this.mode === 'result') stiff = 6;
     }

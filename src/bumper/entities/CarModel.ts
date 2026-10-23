@@ -211,7 +211,7 @@ export class CarModel {
   private glow = 0;
   private time = Math.random() * 10;
 
-  constructor(car: CarSpec, animal: AnimalSpec) {
+  constructor(car: CarSpec, animal: AnimalSpec, opts: { headShadow?: boolean } = {}) {
     const vc = (p: THREE.MeshToonMaterialParameters = {}) => toon({ vertexColors: true, ...p });
     const ringGeo = new THREE.TorusGeometry(1.28, 0.3, 10, 32);
     ringGeo.rotateX(Math.PI / 2);
@@ -223,7 +223,7 @@ export class CarModel {
     this.body.castShadow = true;
     this.head = new THREE.Group();
     const headMesh = new THREE.Mesh(headGeometry(animal), vc());
-    headMesh.castShadow = true;
+    headMesh.castShadow = opts.headShadow ?? true;
     this.head.add(headMesh);
     this.head.position.set(0, 1.12, -0.18);
     const ant = antennaGeometry(car);

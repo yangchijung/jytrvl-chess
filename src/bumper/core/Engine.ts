@@ -86,9 +86,12 @@ export class Engine {
     this.renderer.info.autoReset = false;
     this.scene.background = new THREE.Color('#A8E1FF');
     this.scene.fog = new THREE.Fog('#A8E1FF', 70, 170);
-    // spec 4.1: warm key light and a sky/ground hemisphere so shadows stay soft, never black
-    this.scene.add(new THREE.HemisphereLight('#80D8FF', '#FFE082', 0.9));
-    this.sun = new THREE.DirectionalLight('#FFF8E7', 1.8);
+    // spec 4.1: warm key light 1.8 and a sky/ground hemisphere 0.9 so shadows stay soft, never black. three r155+
+    // uses physical light units (a white surface under intensity 1 shows 1/π), so both keep the spec's ratio and
+    // are scaled to light the floor's top face at about full colour, as the spec's (legacy-unit) numbers intend.
+    const LIGHT = 1.25;
+    this.scene.add(new THREE.HemisphereLight('#80D8FF', '#FFE082', 0.9 * LIGHT));
+    this.sun = new THREE.DirectionalLight('#FFF8E7', 1.8 * LIGHT);
     this.sun.position.set(-14, 36, -10);
     this.sun.castShadow = true;
     this.sun.shadow.mapSize.set(quality.shadowSize, quality.shadowSize);
@@ -113,18 +116,19 @@ export class Engine {
     this.last = this.winStart = this.avgStart = performance.now();
     const frame = (now: number) => {
       this.raf = requestAnimationFrame(frame);
-      const dt = Math.min(0.1, (now - this.last) / 1000);
+      // a slow device still plays in real time (up to 30 steps per frame) rather than in slow motion
+      const dt = Math.min(0.5, (now - this.last) / 1000);
       this.last = now;
       this.count(now);
       if (!this.paused) {
         this.acc += dt * this.timeScale;
         let n = 0;
-        while (this.acc >= STEP && n < 5) {
+        while (this.acc >= STEP && n < 30) {
           step(STEP);
           this.acc -= STEP;
           n++;
         }
-        if (n === 5) this.acc = 0; // too slow to keep up: drop time rather than spiral
+        if (n === 30) this.acc = 0; // too slow to keep up: drop time rather than spiral
       }
       draw(this.acc / STEP, this.paused ? 0 : dt);
     };

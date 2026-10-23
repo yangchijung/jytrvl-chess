@@ -4,7 +4,7 @@
    Flat plates with solid outlines: no gradients, blur or drop shadows. Every control is at least 64 × 64 px. */
 .bump { position: fixed; inset: 0; overflow: hidden; background: #a8e1ff; color: #1e2a44; touch-action: none; -webkit-user-select: none; user-select: none; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; font-family: Inter, 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', system-ui, sans-serif; }
 .bump-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
-.bump button { font: inherit; cursor: pointer; }
+.bump button { font-family: inherit; cursor: pointer; }
 .bump :focus-visible { outline: 4px solid #1565c0; outline-offset: 3px; }
 .bump-num { font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1; color: #1e2a44; }
 
@@ -53,6 +53,8 @@
 
 /* ---------- result and pause ---------- */
 .bump-result, .bump-pause { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; padding: 16px; background: rgba(30, 42, 68, 0.35); animation: bump-fade 200ms ease-out; }
+/* the result keeps the scene clear: the camera frames the player's car in the upper half, the card sits below */
+.bump-result { justify-content: flex-end; gap: 20px; padding-bottom: calc(40px + env(safe-area-inset-bottom)); background: none; animation: none; }
 .bump-trophies { display: flex; align-items: flex-end; gap: 8px; }
 .bump-trophy { display: block; animation: bump-in 220ms ease-out backwards; animation-delay: calc(var(--i) * 160ms); }
 .bump-result-score { display: flex; align-items: center; gap: 8px; height: 72px; box-sizing: border-box; padding: 0 20px 0 12px; border-radius: 18px; border: 3px solid #1e2a44; background: #fffdf7; }

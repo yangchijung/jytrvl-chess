@@ -1,12 +1,19 @@
 // Crazy Bumper — every sound is synthesised with Web Audio (no audio files): the rubbery "boing" of two rings,
 // the dash whoosh, the post's "咚!", countdown beeps, a blip per star and a small fanfare at the end.
 // Sound starts only after the first tap or key (iOS rule); before that every call is silently ignored.
-// Music: James will add Suno tracks later. setMusic() is the hook: register a URL per track in MUSIC_TRACKS and
-// it loops that file; with no URL it does nothing.
+// Music: James is making Suno tracks (title / in-game / results). setMusic() is the hook: register each file in
+// MUSIC_TRACKS (they go to public/bumper/music/*.mp3) with its loop points and it loops that file; a track with
+// no entry plays nothing (no request is made, so a missing file can never log an error).
 
-export type MusicTrack = 'title' | 'play' | 'result';
-/** fill in when the music files exist, e.g. { title: '/bumper/music/title.mp3' } */
-export const MUSIC_TRACKS: Partial<Record<MusicTrack, string>> = {};
+export type MusicTrack = 'title' | 'play' | 'results';
+export interface MusicFile {
+  url: string;
+  /** seconds; the loop runs from loopStart to loopEnd (default: the whole file) */
+  loopStart?: number;
+  loopEnd?: number;
+}
+/** e.g. { title: { url: '/bumper/music/title.mp3', loopStart: 1.2, loopEnd: 49.8 } } */
+export const MUSIC_TRACKS: Partial<Record<MusicTrack, MusicFile>> = {};
 
 const MUTE_KEY = 'jy-bumper-muted';
 
@@ -271,13 +278,15 @@ export class AudioSynth {
       }
       this.track = null;
     }
-    const url = name ? MUSIC_TRACKS[name] : undefined;
-    if (!name || !url) return;
-    const buf = await this.load(url);
+    const file = name ? MUSIC_TRACKS[name] : undefined;
+    if (!name || !file) return;
+    const buf = await this.load(file.url);
     if (!buf || this.wanted !== name || !this.ctx) return;
     const src = this.ctx.createBufferSource();
     src.buffer = buf;
     src.loop = true;
+    if (file.loopStart !== undefined) src.loopStart = file.loopStart;
+    if (file.loopEnd !== undefined) src.loopEnd = file.loopEnd;
     src.connect(this.music);
     src.start();
     this.track = { name, src };
