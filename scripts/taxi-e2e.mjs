@@ -152,6 +152,26 @@ try {
   let r = await run();
   ok('X-02', 'arcade starts with 50 s on the clock, 0 money, five people waiting, the arrow (yellow) pointing to the nearest one', r.time > 49.5 && r.money === 0 && r.waiting.length === 5 && (await p.$eval('[data-testid=taxi-arrow]', (e) => e.dataset.to)) === 'pickup' && (await p.$eval('[data-testid=taxi-time]', (e) => e.dataset.value)) === '50', JSON.stringify({ time: r.time, waiting: r.waiting.length }));
   await shot('2-start');
+  // the minimap: visible during an arcade run, never takes touches, and clear of the pedals, the stick, the clock and
+  // the top buttons, on the iPad and on a phone held sideways (844 × 390)
+  const mapCheck = () =>
+    p.evaluate(() => {
+      const m = document.querySelector('[data-testid=taxi-minimap]');
+      if (!m) return { found: false };
+      const r = m.getBoundingClientRect();
+      const hits = (sel) => [...document.querySelectorAll(sel)].filter((e) => { const b = e.getBoundingClientRect(); return b.width && !(b.right <= r.left || b.left >= r.right || b.bottom <= r.top || b.top >= r.bottom); }).map((e) => e.className);
+      return { found: true, w: Math.round(r.width), top: Math.round(r.top), bottom: Math.round(r.bottom), pe: getComputedStyle(m).pointerEvents, hidden: m.getAttribute('aria-hidden'), drawn: m.querySelector('canvas')?.dataset.drawn === '1', overlaps: hits('.taxi-gas, .taxi-brake, .taxi-drift, .taxi-rush, .taxi-stick-base, .taxi-time, .taxi-home, .taxi-reset, .taxi-pause, .taxi-rider, .taxi-arrow') };
+    });
+  await new Promise((res) => setTimeout(res, 200));
+  const mapPad = await mapCheck();
+  await p.setViewport({ width: 844, height: 390, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+  await new Promise((res) => setTimeout(res, 300));
+  await shot('2b-phone-minimap');
+  const mapPhone = await mapCheck();
+  await p.setViewport({ width: 1180, height: 820, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+  await new Promise((res) => setTimeout(res, 200));
+  const mapOk = (m) => m.found && m.w >= 100 && m.pe === 'none' && m.hidden === 'true' && m.drawn && m.overlaps.length === 0;
+  ok('X-25', 'minimap: visible during an arcade run, no touches, clear of the pedals, stick and top controls (iPad and phone)', mapOk(mapPad) && mapOk(mapPhone), JSON.stringify({ pad: mapPad, phone: mapPhone }));
   // music: the tap on "arcade" unlocked sound; the arcade track is playing (decoded from the mp3)
   await p.waitForFunction(() => window.__taxiMusic?.current?.track === 'arcade', { timeout: 15000 }).catch(() => null);
   const mus = await p.evaluate(() => ({ unlocked: window.__taxiMusic.unlocked, track: window.__taxiMusic.current?.track, loop: window.__taxiMusic.current?.src.loop, loopEnd: window.__taxiMusic.current?.src.loopEnd, dur: window.__taxiMusic.current?.src.buffer.duration }));

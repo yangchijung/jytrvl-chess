@@ -15,6 +15,7 @@ import { Music, type Track } from './audio/music';
 import { Garage } from './ui/Garage';
 import { loadChoice, saveChoice, type GarageChoice } from './ui/garageChoice';
 import { Help } from './ui/Help';
+import { Minimap } from './ui/Minimap';
 import { Settings, useControlSettings } from './ui/Settings';
 import { useTouchGuard } from './ui/useTouchGuard';
 import './taxi.css';
@@ -74,6 +75,7 @@ export function TaxiPage() {
   const tr = (l: { zh: string; en: string }) => l[lang];
   const canvas = useRef<HTMLCanvasElement>(null);
   const game = useRef<Game | null>(null);
+  const getGame = useCallback(() => game.current, []);
   const [state, setState] = useState<'loading' | 'ready' | 'failed'>('loading');
   const [hud, setHud] = useState<HudState | null>(null);
   const [dev, setDev] = useState(false);
@@ -346,6 +348,7 @@ export function TaxiPage() {
         </div>
       )}
       {hud && screen === 'play' && <Hud hud={hud} labels={{ time: tr(T.time), money: tr(T.money), dist: tr(T.dist) }} />}
+      {hud?.run && screen === 'play' && <Minimap game={getGame} mode={hud.run.mode} />}
       <div className="taxi-pops" aria-live="polite" data-testid="taxi-pops">
         {pops.map((p) => (
           <div key={p.id} className={`taxi-pop taxi-pop-${p.kind}`} data-kind={p.kind} style={{ borderColor: p.color }}>
