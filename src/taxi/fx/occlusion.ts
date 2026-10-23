@@ -38,8 +38,8 @@ export const occSide = (near: number) => near > OCC_NEAR;
 export const occReach = (near: number) => (near > 0 ? 1.05 : 0.8);
 /** the most a fragment fades (1 = gone): a faint trace stays so the player knows something is there */
 export const OCC_MAX = 0.9;
-/** near the lens a little more of a board stays, so it reads as see-through rather than gone */
-export const OCC_MAX_NEAR = 0.8;
+/** near the lens a board goes completely: a dithered ghost of a big board in the corner of the screen reads as noise */
+export const OCC_MAX_NEAR = 1;
 
 const smooth = (a: number, b: number, x: number) => {
   const t = Math.min(1, Math.max(0, (x - a) / (b - a)));

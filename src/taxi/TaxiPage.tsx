@@ -372,7 +372,7 @@ export function TaxiPage() {
         </button>
       )}
       {state === 'ready' && screen === 'menu' && (
-        <div className="taxi-overlay" data-testid="taxi-menu">
+        <div className="taxi-overlay taxi-overlay-light" data-testid="taxi-menu">
           <svg viewBox="0 0 120 60" width="220" height="110" aria-hidden="true">
             <rect x="10" y="22" width="100" height="24" rx="6" fill="#FFC72C" stroke="#23303F" strokeWidth="3" />
             <path d="M30 22l10-12h40l10 12" fill="#5C7A99" stroke="#23303F" strokeWidth="3" strokeLinejoin="round" />
