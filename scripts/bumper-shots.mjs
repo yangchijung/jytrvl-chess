@@ -13,13 +13,13 @@ mkdirSync(OUT, { recursive: true });
 const args = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'];
 const browser = await chromium.launch({ args });
 
-async function open(size, query = '') {
+async function open(size, query = '', lang = '') {
   const ctx = await browser.newContext({ viewport: size, deviceScaleFactor: 1, hasTouch: true, isMobile: true });
   const p = await ctx.newPage();
   const errors = [];
   p.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
   p.on('pageerror', (e) => errors.push(e.message));
-  await p.goto(`${BASE}/bumper${query}`);
+  await p.goto(`${BASE}${lang}/bumper${query}`);
   await p.waitForFunction(() => document.querySelector('[data-testid=bumper]')?.dataset.state === 'ready', null, { timeout: 60000 });
   return { ctx, p, errors };
 }
@@ -78,6 +78,18 @@ for (const [name, size] of [
   await p.waitForTimeout(400);
   await p.screenshot({ path: `${OUT}/${name}-p2.png` });
   console.log(name, 'p2', JSON.stringify(await info(p)), 'errors', errors);
+  await ctx.close();
+}
+
+// English: "Play" on the title, "Again" on the result
+{
+  const { ctx, p, errors } = await open({ width: 1024, height: 768 }, '?round=4', '/en');
+  const title = await p.$eval('[data-testid=bumper-start]', (e) => e.textContent);
+  await p.screenshot({ path: `${OUT}/en-ipad-title.png` });
+  await p.click('[data-testid=bumper-start]');
+  await p.waitForSelector('[data-testid=bumper-again]', { timeout: 120000 });
+  const again = await p.$eval('[data-testid=bumper-again]', (e) => e.textContent);
+  console.log('en', JSON.stringify({ title, again, lang: await p.evaluate(() => document.documentElement.lang) }), 'errors', errors);
   await ctx.close();
 }
 

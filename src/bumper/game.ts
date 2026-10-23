@@ -348,7 +348,7 @@ export async function startBumper(canvas: HTMLCanvasElement, opts: StartOpts): P
     phase = 'result';
     resultT = 0;
     camera.mode = 'result';
-    camera.chooseResultView(cur[0], cur[0].yaw, arenaPhys.posts, ARENA.postRadius);
+    camera.chooseResultView(cur[0], cur[0].yaw, arenaPhys.posts, ARENA.postRadius, ARENA.radius);
     input.enabled = false;
     audio.fanfare();
     void audio.setMusic('results');

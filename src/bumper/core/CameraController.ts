@@ -51,14 +51,15 @@ export class CameraController {
   /** where the result camera looks from (car heading = in front of the driver's face) */
   heading = 0;
 
-  /** at the end of a round: the angle nearest the driver's face from which no post blocks the view */
-  chooseResultView(car: { x: number; z: number }, yaw: number, posts: readonly { x: number; z: number }[], postRadius: number) {
-    const dist = this.portrait ? 11 : 8.5;
-    for (const d of [0, 0.7, -0.7, 1.4, -1.4, 2.1, -2.1, Math.PI]) {
+  /** at the end of a round: the angle nearest the driver's face from which no post or rail blocks the view */
+  chooseResultView(car: { x: number; z: number }, yaw: number, posts: readonly { x: number; z: number }[], postRadius: number, arenaRadius: number) {
+    const dist = this.portrait ? 9.5 : 8.5;
+    for (const d of [0, 0.5, -0.5, 1, -1, 1.5, -1.5, 2, -2, 2.6, -2.6, Math.PI]) {
       const a = yaw + d;
       const cx = car.x + Math.sin(a) * dist,
         cz = car.z + Math.cos(a) * dist;
-      const blocked = posts.some((p) => {
+      // behind the rail the rail would hide the car
+      const blocked = Math.hypot(cx, cz) > arenaRadius - 2 || posts.some((p) => {
         // distance from the post centre to the segment camera→car (on the floor plane)
         const vx = car.x - cx,
           vz = car.z - cz;
@@ -81,7 +82,7 @@ export class CameraController {
     const far = (this.portrait ? new THREE.Vector3(0, 26, -19) : new THREE.Vector3(0, 17, -15)).multiplyScalar(1 + (this.zoomNow - 1) * 0.55);
     if (this.mode === 'result') {
       // swing from the usual view to a close view in front of the car (the shorter way round)
-      const front = new THREE.Vector3(Math.sin(this.heading), 0, Math.cos(this.heading)).multiplyScalar(this.portrait ? 11 : 8.5).setY(this.portrait ? 6.5 : 4.6);
+      const front = new THREE.Vector3(Math.sin(this.heading), 0, Math.cos(this.heading)).multiplyScalar(this.portrait ? 9.5 : 8.5).setY(this.portrait ? 6.5 : 4.6);
       const a0 = Math.atan2(far.x, far.z),
         a1 = Math.atan2(front.x, front.z);
       const da = Math.atan2(Math.sin(a1 - a0), Math.cos(a1 - a0));
@@ -121,11 +122,11 @@ export class CameraController {
       const ahead = this.mode === 'follow' ? lead.clone().multiplyScalar(0.22).clampLength(0, 5) : new THREE.Vector3();
       lookAt = target.clone().add(ahead);
       if (this.mode === 'follow') {
-        lookAt.x *= 0.82;
-        lookAt.z *= 0.82;
+        lookAt.x *= 0.9;
+        lookAt.z *= 0.9;
       } else {
         // aim below the car so it sits in the upper half, above the result card
-        lookAt.y -= (this.portrait ? 3.2 : 2.2) * this.push;
+        lookAt.y -= (this.portrait ? 3.2 : 0.7) * this.push;
       }
       want = lookAt.clone().add(this.offset());
       if (this.mode === 'result') stiff = 6;
