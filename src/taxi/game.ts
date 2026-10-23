@@ -9,6 +9,8 @@ import { TUNING, type Tuning } from './vehicle/tuning';
 import { ChaseCam } from './fx/camera';
 import { buildTaxi } from './fx/taxiModel';
 import { Effects } from './fx/effects';
+import type { EngineState, SfxEvent } from './audio/sfx';
+import { carById, driverById, tuningFor } from './vehicle/roster';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
@@ -53,12 +55,22 @@ export interface Game {
   startRun(mode: Mode | null, seed?: number): void;
   run(): RunState | null;
   setPaused(p: boolean): void;
+  /** choose the cab and the driver (the car's handling and look change) */
+  setCar(carId: string, driverId: string): void;
+  /** the menu: a slow aerial orbit of the city instead of the chase camera */
+  setMenu(on: boolean): void;
   level: Level;
   traffic: Traffic | null;
   people: People | null;
 }
 
-export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) => void, opts: { lowPower?: boolean; lang?: 'zh' | 'en'; track?: 'city' | 'test'; onEvent?: (e: RunEvent) => void; onPause?: (paused: boolean) => void } = {}): Promise<Game> {
+/** what the game needs from the sound system (it is created on the page, after the first tap) */
+export interface GameAudio {
+  engine(s: EngineState | null): void;
+  effect(e: SfxEvent, strength?: number): void;
+}
+
+export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) => void, opts: { lowPower?: boolean; lang?: 'zh' | 'en'; track?: 'city' | 'test'; onEvent?: (e: RunEvent) => void; onPause?: (paused: boolean) => void; audio?: GameAudio } = {}): Promise<Game> {
   await RAPIER.init();
   const level = opts.track === 'test' ? testLevel() : cityLevel();
   const SPAWN = level.spawn;
@@ -119,12 +131,15 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
   const events = new RAPIER.EventQueue(true);
   let run: RunState | null = null;
   let landSeen = 0;
-  const taxi = buildTaxi(tuning.wheelRadius);
-  const carGroup = taxi.group;
+  let taxi = buildTaxi(tuning.wheelRadius);
+  let carGroup = taxi.group;
   scene.add(carGroup);
-  const wheels = taxi.wheels;
+  let wheels = taxi.wheels;
   for (const w of wheels) scene.add(w);
   let landBump = 0;
+  let rushSeen = 0;
+  let menu = false;
+  let orbit = 0;
 
   // ---------- loop: fixed step + interpolation ----------
   const input = new Input();
@@ -176,10 +191,14 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
         if (e.t === 'hit') {
           crash = true;
           chase.bump(Math.min(0.4, e.speed / 40));
+          opts.audio?.effect('hit', e.speed / 15);
           // the car flies off; the taxi keeps most of its speed
           const v = car.body.linvel();
           car.body.setLinvel({ x: v.x * 0.8, y: v.y, z: v.z * 0.8 }, true);
-        } else nearMiss = true;
+        } else {
+          nearMiss = true;
+          opts.audio?.effect('near');
+        }
       }
     people?.update(STEP, tx);
     world.step(events);
@@ -260,6 +279,7 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
       chase.bump(Math.min(0.5, car.ev.lastLanding / 25));
       landBump = Math.min(1, car.ev.lastLanding / 8);
       if (car.ev.lastLanding > 3) fx.dust(p, car.ev.lastLanding);
+      if (car.ev.lastLanding > 2) opts.audio?.effect('land', car.ev.lastLanding / 8);
     }
     // tyre smoke and marks from the rear wheels: drifting, hard braking, wheelspin
     {
@@ -279,9 +299,15 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
       if (pendingHit) {
         const f = car.forward();
         fx.hit(p.clone().add(new THREE.Vector3(f.x * 2.1, 0.5, f.z * 2.1)), new THREE.Vector3(-f.x, 0, -f.z), pendingHit);
+        opts.audio?.effect('crash', pendingHit / 20);
         pendingHit = 0;
       }
       fx.update(dt, car.kmh());
+      if (car.ev.rush !== rushSeen) {
+        rushSeen = car.ev.rush;
+        opts.audio?.effect('rush');
+      }
+      opts.audio?.engine(menu ? null : { kmh: car.kmh(), throttle: lastControls.throttle, skid: car.drifting ? 1 : hardBrake ? 0.8 : spin ? 0.5 : 0, airborne: car.airborne });
     }
     landBump = Math.max(0, landBump - dt * 2.5);
     taxi.animate({ steer: lastControls.steer, throttle: lastControls.throttle, braking: lastControls.brake > 0.5 && car.speed() > 1, airborne: car.airborne, bump: landBump, dt });
@@ -294,6 +320,16 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
     sun.position.set(p.x + 20, p.y + 40, p.z + 10);
     sun.target.position.copy(p);
     view.update(run, p, performance.now() / 1000);
+    if (menu) {
+      // the menu's background: a slow aerial orbit over the Love River
+      orbit += dt * 0.045;
+      chase.cam.position.set(Math.cos(orbit) * 290, 150, Math.sin(orbit) * 290);
+      chase.cam.lookAt(0, 0, 0);
+      if (Math.abs(chase.cam.fov - 55) > 0.1) {
+        chase.cam.fov = 55;
+        chase.cam.updateProjectionMatrix();
+      }
+    }
     sky?.position.set(chase.cam.position.x, 0, chase.cam.position.z);
     renderer.info.reset();
     if (composer) composer.render(dt);
@@ -326,8 +362,10 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
       frames = 0;
       fpsT = now;
     }
-    const c = input.read();
-    if (c.pause && run?.phase !== 'over') {
+    const read = input.read();
+    // on the menu and in the garage the parked cab ignores the keys and the touch controls
+    const c: Controls = menu ? { ...read, throttle: 0, brake: 0, steer: 0, drift: false, rush: false, reset: false } : read;
+    if (c.pause && run?.phase !== 'over' && !menu) {
       paused = !paused;
       opts.onPause?.(paused);
     }
@@ -406,6 +444,38 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
     setPaused(p) {
       paused = p;
       last = performance.now();
+      if (p) opts.audio?.engine(null);
+    },
+    setCar(carId, driverId) {
+      const spec = carById(carId);
+      Object.assign(tuning, tuningFor(spec));
+      car.applyTuning();
+      scene.remove(carGroup);
+      for (const w of wheels) scene.remove(w);
+      // free the old cab's GPU buffers (geometry, materials, the sign textures)
+      const seen = new Set<unknown>();
+      for (const o of [carGroup, ...wheels])
+        o.traverse((m) => {
+          const mesh = m as THREE.Mesh;
+          if (!mesh.isMesh) return;
+          if (!seen.has(mesh.geometry)) seen.add(mesh.geometry), mesh.geometry.dispose();
+          for (const mt of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+            if (seen.has(mt)) continue;
+            seen.add(mt);
+            (mt as THREE.MeshBasicMaterial).map?.dispose();
+            mt.dispose();
+          }
+        });
+      taxi = buildTaxi(tuning.wheelRadius, spec.look, driverById(driverId).look);
+      carGroup = taxi.group;
+      wheels = taxi.wheels;
+      scene.add(carGroup);
+      for (const w of wheels) scene.add(w);
+    },
+    setMenu(on) {
+      menu = on;
+      if (!on) chase.snap();
+      else opts.audio?.engine(null);
     },
   };
 }

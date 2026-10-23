@@ -5,6 +5,7 @@
 // merged mesh with vertex colours for the paint and trim, one for the glass, one for the lights.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { CARS, DRIVERS, type CarLook, type DriverLook } from '../vehicle/roster';
 
 const C = { paint: '#FFC72C', trim: '#262A30', grille: '#1B1E23', chrome: '#C9CED6', glass: '#2C4258', head: '#FFF4D6', tail: '#E53935', plate: '#F5F5F5', skin: '#F1C9A5', shirt: '#F5F5F5', hair: '#2B2B2B', vest: '#1E5AA8' };
 
@@ -90,18 +91,18 @@ export interface TaxiModel {
   animate(o: { steer: number; throttle: number; braking: boolean; airborne: boolean; bump: number; dt: number }): void;
 }
 
-export function buildTaxi(wheelRadius: number): TaxiModel {
+export function buildTaxi(wheelRadius: number, look: CarLook = CARS[0].look, who: DriverLook = DRIVERS[0].look): TaxiModel {
   const group = new THREE.Group();
   const W = 1.8;
   const R = wheelRadius;
   // ---------- paint and trim (one merged mesh) ----------
   const lower = sideExtrude(
     [
-      [-2.02, -0.24],
-      [-2.08, 0.04],
-      [-2.03, 0.27],
-      [-1.9, 0.35],
-      [-1.25, 0.38],
+      [look.rearEnd, -0.24],
+      [look.rearEnd - 0.06, 0.04],
+      [look.rearEnd - 0.01, 0.27],
+      [look.rearEnd + 0.12, 0.35],
+      [Math.min(look.glass[0], look.rearEnd + 0.2), 0.38],
       [1.0, 0.37],
       [1.78, 0.3],
       [2.05, 0.17],
@@ -117,13 +118,17 @@ export function buildTaxi(wheelRadius: number): TaxiModel {
   );
   const parts = [lower];
   // glass house frame: roof, A / B / C pillars (yellow), black rubber sills
-  const roofY = 0.88;
-  parts.push(box(1.62, 0.06, 1.22, 0, roofY + 0.02, -0.28, C.paint));
+  const roofY = look.roofY;
+  const [gRb, gRt, gFt, gFb] = look.glass;
+  const roofLen = gFt - gRt + 0.12,
+    roofZ = (gFt + gRt) / 2;
+  parts.push(box(1.62, 0.06, roofLen, 0, roofY + 0.02, roofZ, C.paint));
   for (const s of [-1, 1]) {
     const x = s * 0.79;
-    parts.push(pillar(x, 1.0, 0.37, 0.32, roofY, C.paint)); // A
-    parts.push(pillar(x, -1.27, 0.37, -0.88, roofY, C.paint)); // C
-    parts.push(box(0.07, 0.5, 0.09, x, 0.62, -0.22, C.paint)); // B
+    parts.push(pillar(x, gFb + 0.01, 0.37, gFt + 0.01, roofY, C.paint)); // A
+    parts.push(pillar(x, gRb - 0.03, 0.37, gRt - 0.02, roofY, C.paint)); // C
+    parts.push(box(0.07, roofY - 0.38, 0.09, x, (roofY + 0.37) / 2, -0.22, C.paint)); // B
+    if (look.stripe) parts.push(box(0.02, 0.1, -look.rearEnd + 1.9, s * 0.91, -0.06, (1.9 + look.rearEnd) / 2, look.stripe));
     parts.push(box(0.05, 0.04, 2.2, x, 0.38, -0.12, C.trim)); // window sill seal
     // door seams, a side skirt and the mirror
     parts.push(box(0.012, 0.52, 0.012, s * 0.905, 0.08, 0.28, C.trim));
@@ -137,18 +142,22 @@ export function buildTaxi(wheelRadius: number): TaxiModel {
   }
   // bumpers, grille, plates
   parts.push(box(1.84, 0.2, 0.12, 0, -0.16, 2.06, C.trim));
-  parts.push(box(1.84, 0.2, 0.12, 0, -0.16, -2.05, C.trim));
+  parts.push(box(1.84, 0.2, 0.12, 0, -0.16, look.rearEnd - 0.03, C.trim));
   parts.push(box(0.86, 0.14, 0.04, 0, 0.06, 2.07, C.grille));
   parts.push(box(0.44, 0.13, 0.02, 0, -0.16, 2.125, C.plate));
-  parts.push(box(0.44, 0.13, 0.02, 0, 0.0, -2.105, C.plate));
-  parts.push(box(1.5, 0.012, 0.012, 0, 0.3, -1.6, C.trim)); // trunk lid seam
+  parts.push(box(0.44, 0.13, 0.02, 0, 0.0, look.rearEnd - 0.085, C.plate));
+  if (look.rearEnd < -1.95) parts.push(box(1.5, 0.012, 0.012, 0, 0.3, look.rearEnd + 0.42, C.trim)); // trunk lid seam
+  if (look.spoiler) {
+    parts.push(box(1.7, 0.05, 0.3, 0, 0.62, look.rearEnd + 0.2, C.trim));
+    for (const s of [-1, 1]) parts.push(box(0.06, 0.24, 0.1, s * 0.6, 0.48, look.rearEnd + 0.22, C.trim));
+  }
   // the cabin inside, seen through the glass: dark floor, seats
   parts.push(box(1.58, 0.02, 2.2, 0, 0.385, -0.13, '#3A3F47'));
   parts.push(box(0.5, 0.42, 0.12, 0.38, 0.6, -0.48, '#4A4F57'));
   parts.push(box(0.5, 0.42, 0.12, -0.38, 0.6, -0.48, '#4A4F57'));
-  parts.push(box(1.4, 0.4, 0.14, 0, 0.58, -1.08, '#4A4F57'));
+  parts.push(box(1.4, 0.4, 0.14, 0, 0.58, Math.max(-1.08, gRb + 0.25), '#4A4F57'));
   // roof sign base
-  parts.push(box(0.5, 0.05, 0.2, 0, roofY + 0.07, -0.28, C.trim));
+  parts.push(box(0.5, 0.05, 0.2, 0, roofY + 0.07, roofZ, C.trim));
   const paint = new THREE.Mesh(mergeGeometries(parts), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }));
   paint.castShadow = true;
   paint.receiveShadow = true;
@@ -156,10 +165,10 @@ export function buildTaxi(wheelRadius: number): TaxiModel {
   // ---------- glass: a tinted house you can just see the driver through ----------
   const glass = sideExtrude(
     [
-      [-1.24, 0.37],
-      [-0.86, roofY - 0.01],
-      [0.31, roofY - 0.01],
-      [0.99, 0.37],
+      [gRb, 0.37],
+      [gRt, roofY - 0.01],
+      [gFt, roofY - 0.01],
+      [gFb, 0.37],
     ],
     1.56,
     C.glass,
@@ -176,7 +185,7 @@ export function buildTaxi(wheelRadius: number): TaxiModel {
     const h = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.12, 0.05), headMat);
     h.position.set(s * 0.6, 0.13, 2.065);
     const t = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.12, 0.05), tailMat);
-    t.position.set(s * 0.62, 0.2, -2.06);
+    t.position.set(s * 0.62, 0.2, look.rearEnd - 0.04);
     lights.add(h, t);
   }
   // roof sign with TAXI on front and back
@@ -184,24 +193,38 @@ export function buildTaxi(wheelRadius: number): TaxiModel {
   const plain = new THREE.MeshLambertMaterial({ color: '#FFFFFF' });
   const signMat = new THREE.MeshLambertMaterial({ map: tex });
   const sign = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.22, 0.24), [plain, plain, plain, plain, signMat, signMat]);
-  sign.position.set(0, roofY + 0.2, -0.28);
+  sign.position.set(0, roofY + 0.2, roofZ);
   sign.castShadow = true;
 
   // ---------- the driver (left seat), swaying with the car ----------
   const driver = new THREE.Group();
   driver.position.set(0.38, 0.1, -0.2);
+  // a low roof (the coupé) seats the driver a little lower
+  const seat = Math.min(0, roofY - 0.88);
   const dparts = [
-    box(0.44, 0.46, 0.28, 0, 0.36, 0, C.shirt),
-    box(0.46, 0.2, 0.3, 0, 0.18, 0, C.vest),
-    box(0.11, 0.11, 0.42, -0.2, 0.42, 0.24, C.shirt, -0.5),
-    box(0.11, 0.11, 0.42, 0.2, 0.42, 0.24, C.shirt, -0.5),
+    box(0.44, 0.46, 0.28, 0, 0.36 + seat, 0, who.shirt),
+    box(0.46, 0.2, 0.3, 0, 0.18 + seat, 0, who.vest),
+    box(0.11, 0.11, 0.42, -0.2, 0.42 + seat, 0.24, who.shirt, -0.5),
+    box(0.11, 0.11, 0.42, 0.2, 0.42 + seat, 0.24, who.shirt, -0.5),
   ];
+  const hy = 0.72 + seat;
   const head = new THREE.SphereGeometry(0.14, 10, 8);
-  head.translate(0, 0.72, 0.02);
-  dparts.push(colored(head, C.skin));
-  const hair = new THREE.SphereGeometry(0.145, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2.2);
-  hair.translate(0, 0.74, -0.005);
-  dparts.push(colored(hair, C.hair));
+  head.translate(0, hy, 0.02);
+  dparts.push(colored(head, who.skin));
+  if (who.hairStyle === 'perm') {
+    for (const [x, y, z] of [[0, 0.07, -0.02], [-0.1, 0.03, -0.03], [0.1, 0.03, -0.03], [0, 0.02, -0.1]]) dparts.push(colored(new THREE.SphereGeometry(0.09, 8, 6).translate(x, hy + y, z), who.hair));
+  } else if (who.hairStyle === 'spiky') {
+    for (let k = 0; k < 6; k++) dparts.push(colored(new THREE.ConeGeometry(0.05, 0.14, 5).rotateX(-0.4 + (k % 2) * 0.3).rotateZ(((k % 3) - 1) * 0.5).translate(((k % 3) - 1) * 0.06, hy + 0.14, -0.02 - Math.floor(k / 3) * 0.06), who.hair));
+  } else {
+    dparts.push(colored(new THREE.SphereGeometry(0.145, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2.2).translate(0, hy + 0.02, -0.005), who.hair));
+    if (who.hairStyle === 'ponytail') dparts.push(colored(new THREE.SphereGeometry(0.06, 8, 6).scale(1, 1.6, 1).translate(0, hy - 0.02, -0.17), who.hair));
+  }
+  if (who.cap) {
+    dparts.push(colored(new THREE.SphereGeometry(0.15, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2.4).translate(0, hy + 0.04, 0), who.cap));
+    dparts.push(box(0.2, 0.02, 0.12, 0, hy + 0.06, 0.15, who.cap));
+  }
+  if (who.glasses) dparts.push(box(0.24, 0.05, 0.02, 0, hy + 0.02, 0.14, '#111111'));
+  if (who.mustache) dparts.push(box(0.1, 0.025, 0.02, 0, hy - 0.05, 0.14, '#9E9E9E'));
   const wheelRing = new THREE.TorusGeometry(0.17, 0.025, 6, 16);
   wheelRing.rotateX(-0.9);
   wheelRing.translate(0, 0.42, 0.5);
@@ -255,8 +278,8 @@ export function buildTaxi(wheelRadius: number): TaxiModel {
   const animate: TaxiModel['animate'] = ({ steer, throttle, braking, airborne, bump, dt }) => {
     const k = 1 - Math.exp(-dt * 8);
     // corners push the driver outwards (a right turn leans them left = +x), the gas presses them back
-    lean += (steer * 0.22 - lean) * k;
-    sink += ((airborne ? -0.1 : throttle * 0.12 - (braking ? 0.1 : 0)) - sink) * k;
+    lean += (steer * 0.22 * who.sway - lean) * k;
+    sink += ((airborne ? -0.1 : throttle * 0.12 - (braking ? 0.1 : 0)) * who.sway - sink) * k;
     driver.rotation.z = lean;
     driver.rotation.x = -sink;
     driver.position.y = 0.1 + Math.sin(performance.now() / 45) * 0.025 * bump;

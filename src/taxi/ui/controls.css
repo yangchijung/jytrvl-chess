@@ -1,0 +1,69 @@
+/* Rush Taxi stage 5 — pause-menu settings (auto gas, tilt, calibrate), the controls help panel. Same ink / paper /
+   taxi-yellow as the rest of the game; switches and buttons at least 64 px tall for children's fingers. */
+.tc-pausemenu { overflow-y: auto; justify-content: safe center; padding: 16px; box-sizing: border-box; touch-action: pan-y; }
+.tc-pausemenu [hidden] { display: none !important; }
+
+.tc-settings { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; align-items: center; max-width: 100%; }
+.tc-btn,
+.tc-switch { display: flex; align-items: center; gap: 10px; min-height: 64px; min-width: 64px; padding: 8px 18px; box-sizing: border-box; border-radius: 18px; border: 4px solid #23303f; background: #fffaf2; color: #23303f; font: inherit; font-size: 1.25rem; font-weight: 800; cursor: pointer; touch-action: manipulation; }
+.tc-btn:active { background: #ffc72c; }
+.tc-btn:focus-visible,
+.tc-switch:focus-visible,
+.tc-close:focus-visible { outline: 3px solid #1565c0; outline-offset: 3px; }
+.tc-switch-label { white-space: nowrap; }
+/* the switch: a track with a thumb; on = taxi yellow, thumb to the right and a check-like dark fill (not colour alone) */
+.tc-track { position: relative; width: 60px; height: 34px; border-radius: 17px; border: 3px solid #23303f; background: #d5dbe1; box-sizing: border-box; flex: none; transition: background-color 160ms ease-out; }
+.tc-thumb { position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fffaf2; border: 3px solid #23303f; box-sizing: border-box; transition: transform 160ms ease-out, background-color 160ms ease-out; }
+.tc-switch[aria-checked='true'] .tc-track { background: #ffc72c; }
+.tc-switch[aria-checked='true'] .tc-thumb { transform: translateX(26px); background: #23303f; }
+.tc-status { min-width: 0; color: #fffaf2; background: #23303f; border-radius: 10px; padding: 6px 12px; font-size: 1.1rem; font-weight: 800; }
+.tc-status:empty { display: none; }
+
+/* help panel */
+.tc-help { position: relative; width: min(920px, 100%); max-height: 100%; overflow-y: auto; box-sizing: border-box; padding: 16px 20px 20px; border-radius: 22px; border: 5px solid #23303f; background: #fffaf2; color: #23303f; touch-action: pan-y; }
+.tc-help-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.tc-help-top h2 { margin: 0; font-size: 1.6rem; font-weight: 900; }
+.tc-close { width: 64px; height: 64px; flex: none; display: flex; align-items: center; justify-content: center; border-radius: 16px; border: 4px solid #23303f; background: #fffaf2; color: #23303f; cursor: pointer; touch-action: manipulation; }
+.tc-close:active { background: #ffc72c; }
+.tc-help-body { display: flex; gap: 24px; align-items: flex-start; justify-content: center; flex-wrap: wrap; }
+.tc-head { display: inline-flex; align-items: center; gap: 6px; font-size: 1.1rem; font-weight: 900; }
+.tc-table { border-collapse: collapse; }
+.tc-table th,
+.tc-table td { padding: 4px 8px; text-align: left; vertical-align: middle; }
+.tc-table thead th { padding-bottom: 8px; }
+.tc-table tbody tr + tr > * { border-top: 2px solid #e2e6ea; }
+.tc-action { display: inline-flex; align-items: center; gap: 8px; font-size: 1.15rem; font-weight: 800; white-space: nowrap; }
+.tc-keys { display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.tc-key { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; height: 36px; padding: 0 6px; box-sizing: border-box; border-radius: 7px; border: 2px solid #23303f; border-bottom-width: 5px; background: #ffffff; color: #23303f; font: 800 1rem/1 ui-monospace, Menlo, monospace; }
+.tc-key-wide { min-width: 64px; }
+.tc-pad { display: inline-flex; align-items: center; justify-content: center; height: 36px; box-sizing: border-box; color: #fffaf2; background: #23303f; font-weight: 900; font-size: 1rem; }
+.tc-pad-face { width: 36px; border-radius: 50%; }
+.tc-pad-trigger { min-width: 48px; padding: 0 8px; border-radius: 10px 10px 6px 6px; }
+.tc-pad-stick { width: 36px; border-radius: 50%; background: #fffaf2; color: #23303f; border: 4px solid #23303f; }
+.tc-pad-start { width: 44px; border-radius: 10px; }
+.tc-touch { margin: 0; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.tc-touchmap { width: 320px; max-width: 100%; height: auto; display: block; }
+.tc-touch-notes { margin: 0; display: flex; gap: 16px; font-weight: 800; }
+.tc-touch-notes > span { display: inline-flex; align-items: center; gap: 4px; }
+
+/* phones held sideways (844 × 390): smaller pause buttons so everything fits without scrolling */
+@media (max-height: 520px) {
+  .tc-pausemenu { gap: 10px; padding: 8px 16px; }
+  .tc-pausemenu .taxi-modes { gap: 12px; }
+  .tc-pausemenu .taxi-mode { width: 120px; height: 96px; border-radius: 20px; gap: 4px; font-size: 1.2rem; }
+  .tc-pausemenu .taxi-mode svg { width: 40px; height: 40px; }
+  .tc-pausemenu .taxi-volume input { width: 140px; }
+  .tc-btn, .tc-switch { padding: 6px 14px; font-size: 1.1rem; }
+  .tc-help { padding: 8px 14px 10px; }
+  /* no room for a title row: the title stays for screen readers, the close button sits in the top-right corner */
+  .tc-help-top { position: absolute; top: 8px; right: 8px; margin: 0; }
+  .tc-help-top h2 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .tc-help-body { justify-content: flex-start; }
+  .tc-help-body { flex-wrap: nowrap; gap: 16px; }
+  .tc-table th, .tc-table td { padding: 2px 6px; }
+  .tc-key, .tc-pad { height: 32px; }
+  .tc-key { min-width: 32px; }
+  .tc-pad-face, .tc-pad-stick { width: 32px; }
+  .tc-touchmap { width: 280px; }
+}
+@media (prefers-reduced-motion: reduce) { .tc-track, .tc-thumb { transition: none; } }

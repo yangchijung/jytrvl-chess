@@ -2,7 +2,7 @@
 // passengers, follow the arrow, drop them off before their timer runs out, tips for stunts, results with a rank.
 // Full screen, no site header. The 3D engine (Three.js + Rapier) loads only on this page.
 // HUD is icons and big numbers; the dev panel (~) lists every tuning number with a slider.
-import { useEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useI18n } from '../i18n';
 import type { Game, HudState } from './game';
@@ -12,7 +12,13 @@ import { TUNING_RANGE, type Tuning } from './vehicle/tuning';
 import { ClockIcon, CoinIcon, Hud, RiderIcon } from './ui/Hud';
 import { BAND_COLOR } from './gameplay/view';
 import { Music, type Track } from './audio/music';
+import { Garage } from './ui/Garage';
+import { loadChoice, saveChoice, type GarageChoice } from './ui/garageChoice';
+import { Help } from './ui/Help';
+import { Settings, useControlSettings } from './ui/Settings';
+import { useTouchGuard } from './ui/useTouchGuard';
 import './taxi.css';
+import './ui/controls.css';
 
 const T = {
   home: { zh: '回到 JY Games', en: 'Back to JY Games' },
@@ -39,8 +45,28 @@ const T = {
   combo: { zh: '最長連擊', en: 'Best combo' },
   rank: { zh: '評級', en: 'Rank' },
   slow: { zh: 'Slow', en: 'Slow' },
+  // stage 5: the garage
+  cabs: { zh: '選車', en: 'Pick a cab' },
+  drivers: { zh: '選司機', en: 'Pick a driver' },
+  accel: { zh: '加速', en: 'Acceleration' },
+  handling: { zh: '操控', en: 'Handling' },
+  topSpeed: { zh: '極速', en: 'Top speed' },
+  go: { zh: '出發', en: 'Go' },
+  back: { zh: '回去', en: 'Back' },
 };
 const RATING: Record<Rating, { text: string; color: string }> = { speedy: { text: 'Speedy!', color: '#43A047' }, normal: { text: 'Normal', color: '#FDD835' }, slow: { text: 'Slow', color: '#E53935' } };
+/** what the game asked the sound system for since the last read (only with ?audiolog, for the recordings) */
+class AudioLog {
+  private list: unknown[] = [];
+  push(x: unknown) {
+    if (this.list.length < 5000) this.list.push(x);
+  }
+  take() {
+    const l = this.list;
+    this.list = [];
+    return l;
+  }
+}
 type Pop = { id: number; kind: 'pickup' | 'drop' | 'tip' | 'timeout' | 'crash'; title: string; sub?: string; color?: string };
 
 export function TaxiPage() {
@@ -51,7 +77,8 @@ export function TaxiPage() {
   const [state, setState] = useState<'loading' | 'ready' | 'failed'>('loading');
   const [hud, setHud] = useState<HudState | null>(null);
   const [dev, setDev] = useState(false);
-  const [screen, setScreen] = useState<'menu' | 'play' | 'over'>('menu');
+  const [screen, setScreen] = useState<'menu' | 'garage' | 'play' | 'over'>('menu');
+  const [choice, setChoice] = useState<GarageChoice>(() => loadChoice());
   const [paused, setPaused] = useState(false);
   const [pops, setPops] = useState<Pop[]>([]);
   const [music] = useState(() => new Music());
@@ -63,6 +90,7 @@ export function TaxiPage() {
     setPops((list) => [...list.filter((x) => x.kind !== p.kind || p.kind === 'tip'), { ...p, id }].slice(-4));
     setTimeout(() => setPops((list) => list.filter((x) => x.id !== id)), ms);
   };
+  const audioGate = useRef<{ screen: typeof screen; paused: boolean }>({ screen, paused });
   const onEvent = useRef<(e: RunEvent) => void>(() => undefined);
   onEvent.current = (e: RunEvent) => {
     if (e.t === 'pickup') pop({ kind: 'pickup', title: e.p.dest.name[lang], sub: `${e.p.limit}`, color: BAND_COLOR[e.p.band] }, 2200);
@@ -70,6 +98,12 @@ export function TaxiPage() {
     else if (e.t === 'tip') pop({ kind: 'tip', title: `+${e.amount}`, sub: `×${e.combo}` }, 900);
     else if (e.t === 'timeout') pop({ kind: 'timeout', title: '…', color: '#E53935' }, 1400);
     else if (e.t === 'over') setScreen('over');
+    // sounds for the run's moments (the engine, crashes, landings and rushes come from the game itself)
+    if (e.t === 'pickup') {
+      music.effect('pickup');
+      music.effect('coin', 1, 0.22);
+    } else if (e.t === 'drop' || e.t === 'timeout' || e.t === 'over') music.effect(e.t);
+    else if (e.t === 'tip') music.effect('coin');
   };
   const [, force] = useState(0);
   const touchUi = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
@@ -78,6 +112,9 @@ export function TaxiPage() {
     let alive = true;
     let g: Game | null = null;
     let lastHud = 0;
+    // ?audiolog: the recordings read back what the game asked the sound system to do (capped, harmless otherwise)
+    const audioLog = new URLSearchParams(location.search).has('audiolog') ? new AudioLog() : null;
+    if (audioLog) (window as unknown as { __taxiAudioLog: AudioLog }).__taxiAudioLog = audioLog;
     (async () => {
       try {
         const { startGame } = await import('./game');
@@ -88,7 +125,28 @@ export function TaxiPage() {
             lastHud = now;
             setHud(h);
           }
-        }, { lowPower: touchUi, lang, track: new URLSearchParams(location.search).get('track') === 'test' ? 'test' : 'city', onEvent: (e) => onEvent.current(e), onPause: (p) => setPaused(p) });
+        }, {
+          lowPower: touchUi,
+          lang,
+          track: new URLSearchParams(location.search).get('track') === 'test' ? 'test' : 'city',
+          onEvent: (e) => onEvent.current(e),
+          onPause: (p) => {
+            setPaused(p);
+            if (p) music.engine(null);
+          },
+          // the engine only runs while a run is being played: silent in the menus, the pause screen and the results
+          audio: {
+            engine: (s) => {
+              const live = audioGate.current.screen === 'play' && !audioGate.current.paused ? s : null;
+              audioLog?.push({ engine: live && { kmh: live.kmh, throttle: live.throttle, skid: live.skid, airborne: live.airborne } });
+              music.engine(live);
+            },
+            effect: (e, k) => {
+              audioLog?.push({ effect: e, k: k ?? 1 });
+              music.effect(e, k);
+            },
+          },
+        });
         if (!alive) return g.dispose();
         game.current = g;
         (window as unknown as { __taxi: Game; __taxiMusic: Music }).__taxi = g;
@@ -129,6 +187,7 @@ export function TaxiPage() {
     if (stick.current) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     stick.current = { id: e.pointerId, x0: e.clientX };
+    if (game.current) game.current.input.touch.stick = true; // the stick overrides tilt while touched
   };
   const onStickMove = (e: RPointerEvent<HTMLDivElement>) => {
     const s = stick.current;
@@ -140,7 +199,7 @@ export function TaxiPage() {
   const onStickUp = (e: RPointerEvent<HTMLDivElement>) => {
     if (stick.current?.id !== e.pointerId) return;
     stick.current = null;
-    if (game.current) game.current.input.touch.steer = 0;
+    if (game.current) Object.assign(game.current.input.touch, { steer: 0, stick: false });
     setKnob(0);
   };
   const hold = (key: 'gas' | 'brake' | 'drift') => ({
@@ -160,6 +219,28 @@ export function TaxiPage() {
     setPaused(false);
     setScreen('play');
   };
+  // ---------- garage: mode → cab and driver (pre-selected from last time) → 出發 ----------
+  const toGarage = (mode: Mode) => {
+    lastMode.current = mode;
+    setScreen('garage');
+  };
+  const pick = (car: string, driver: string) => {
+    const c = { car, driver };
+    setChoice(c);
+    saveChoice(c);
+    game.current?.setCar(car, driver);
+  };
+  const go = () => {
+    game.current?.setCar(choice.car, choice.driver);
+    start(lastMode.current);
+  };
+  // the chosen cab from the start; menu and garage show the slow aerial orbit, a run uses the chase camera
+  useEffect(() => {
+    if (state === 'ready') game.current?.setCar(choice.car, choice.driver);
+  }, [state]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (state === 'ready') game.current?.setMenu(screen === 'menu' || screen === 'garage');
+  }, [state, screen]);
   const toMenu = () => {
     game.current?.startRun(null);
     setPaused(false);
@@ -171,14 +252,40 @@ export function TaxiPage() {
   };
   const result = screen === 'over' ? (game.current?.run() ?? null) : null;
 
+  // ---------- controls: auto gas, tilt, help; no page scroll or zoom on the game screen ----------
+  const root = useRef<HTMLDivElement>(null);
+  useTouchGuard(root);
+  const controls = useControlSettings(game, state === 'ready', state === 'ready' && screen === 'play' && !paused, touchUi);
+  const [help, setHelp] = useState(false);
+  useEffect(() => {
+    if (!paused) setHelp(false);
+  }, [paused]);
+  const closeHelp = useCallback(() => {
+    setHelp(false);
+    requestAnimationFrame(() => (document.querySelector('[data-testid=taxi-help-open]') as HTMLElement | null)?.focus());
+  }, []);
+
   // ---------- music: one track per screen; faster in the last 10 s; quieter while paused ----------
-  const track: Track = screen === 'menu' ? 'menu' : screen === 'over' ? 'results' : lastMode.current === 'practice' ? 'practice' : 'arcade';
+  const track: Track = screen === 'menu' || screen === 'garage' ? 'menu' : screen === 'over' ? 'results' : lastMode.current === 'practice' ? 'practice' : 'arcade';
   useEffect(() => {
     void music.play(track);
   }, [music, track]);
   useEffect(() => music.duck(paused), [music, paused]);
   const hurry = screen === 'play' && hud?.run?.mode === 'arcade' && hud.run.time <= 10;
   useEffect(() => music.setRate(hurry ? 1.08 : 1), [music, hurry]);
+  // the countdown beeps of an arcade run: one per whole second from 10 to 1, higher for 3, 2, 1; never while paused
+  audioGate.current = { screen, paused };
+  const secLeft = screen === 'play' && hud?.run?.mode === 'arcade' && hud.run.phase === 'play' ? Math.ceil(hud.run.time) : null;
+  const lastBeep = useRef(99);
+  useEffect(() => {
+    if (secLeft === null || secLeft > 10) {
+      lastBeep.current = 99;
+      return;
+    }
+    if (paused || secLeft < 1 || secLeft >= lastBeep.current) return;
+    lastBeep.current = secLeft;
+    music.effect(secLeft <= 3 ? 'tickLast' : 'tick');
+  }, [music, secLeft, paused]);
   const volume = (kind: 'music' | 'sfx', v: number) => {
     music.setVolume(kind, v);
     setVol({ ...music.volumes });
@@ -193,7 +300,7 @@ export function TaxiPage() {
   };
 
   return (
-    <div className="taxi" data-testid="taxi" data-state={state}>
+    <div ref={root} className="taxi" data-testid="taxi" data-state={state} data-auto-gas={controls.settings.autoGas} data-tilt={controls.tiltStatus}>
       <canvas ref={canvas} className="taxi-canvas" data-testid="taxi-canvas" />
       <Link to={to('/')} className="taxi-btn taxi-home" aria-label={tr(T.home)} data-testid="taxi-home">
         <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
@@ -211,7 +318,7 @@ export function TaxiPage() {
           {tr(T.failed)}
         </div>
       )}
-      {hud && (
+      {hud && screen !== 'menu' && screen !== 'garage' && (
         <div className="taxi-hud" aria-live="off" data-testid="taxi-hud" data-kmh={Math.round(hud.kmh)} data-drift={hud.drifting} data-air={hud.airborne} data-rush={hud.rush}>
           <div className="taxi-speed">
             <span className="taxi-speed-n">{Math.round(hud.kmh)}</span>
@@ -271,11 +378,11 @@ export function TaxiPage() {
             <circle cx="88" cy="48" r="8" fill="#23303F" />
           </svg>
           <div className="taxi-modes">
-            <button type="button" className="taxi-mode" onClick={() => start('arcade')} data-testid="taxi-start-arcade">
+            <button type="button" className="taxi-mode" onClick={() => toGarage('arcade')} data-testid="taxi-start-arcade">
               <ClockIcon size={56} />
               <span>{tr(T.arcade)}</span>
             </button>
-            <button type="button" className="taxi-mode" onClick={() => start('practice')} data-testid="taxi-start-practice">
+            <button type="button" className="taxi-mode" onClick={() => toGarage('practice')} data-testid="taxi-start-practice">
               <svg viewBox="0 0 24 24" width="56" height="56" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
                 <path d="M6 9c-3 0-4 2-4 3s1 3 4 3c4 0 8-6 12-6 3 0 4 2 4 3s-1 3-4 3c-4 0-8-6-12-6z" />
               </svg>
@@ -284,9 +391,22 @@ export function TaxiPage() {
           </div>
         </div>
       )}
+      {state === 'ready' && screen === 'garage' && (
+        <Garage
+          lang={lang}
+          mode={lastMode.current}
+          car={choice.car}
+          driver={choice.driver}
+          labels={{ cabs: tr(T.cabs), drivers: tr(T.drivers), accel: tr(T.accel), handling: tr(T.handling), top: tr(T.topSpeed), go: tr(T.go), back: tr(T.back) }}
+          onPick={pick}
+          onGo={go}
+          onBack={() => setScreen('menu')}
+        />
+      )}
       {paused && screen === 'play' && (
-        <div className="taxi-overlay" data-testid="taxi-paused">
-          <div className="taxi-modes">
+        <div className="taxi-overlay tc-pausemenu taxi-scroll" data-testid="taxi-paused">
+          {help && <Help lang={lang} onClose={closeHelp} tilt={controls.tiltStatus === 'on'} autoGas={controls.settings.autoGas} />}
+          <div className="taxi-modes" hidden={help}>
             <button type="button" className="taxi-mode" onClick={() => togglePause(false)} data-testid="taxi-resume" aria-label={tr(T.resume)}>
               <svg viewBox="0 0 24 24" width="56" height="56" aria-hidden="true" fill="currentColor">
                 <path d="M7 4l13 8-13 8z" />
@@ -307,7 +427,7 @@ export function TaxiPage() {
               <span>{tr(T.menu)}</span>
             </button>
           </div>
-          <div className="taxi-volumes">
+          <div className="taxi-volumes" hidden={help}>
             {(['music', 'sfx'] as const).map((k) => (
               <label key={k} className="taxi-volume">
                 <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -318,6 +438,7 @@ export function TaxiPage() {
               </label>
             ))}
           </div>
+          {!help && <Settings lang={lang} c={controls} onHelp={() => setHelp(true)} />}
         </div>
       )}
       {screen === 'over' && result && (

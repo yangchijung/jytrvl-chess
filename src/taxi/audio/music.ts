@@ -1,8 +1,9 @@
 // Rush Taxi — background music (four instrumental tracks James made with Suno). Web Audio, not <audio>: a buffer
 // source loops between two sample positions with no gap, tracks cross-fade, and the last 10 s of an arcade run
 // speed the music up a little. iOS only allows sound after a touch, so nothing plays until the first tap or key.
-// Music and sound-effect volumes are separate (sound effects come with the next stage) and are remembered per
-// browser.
+// Music and sound-effect volumes are separate and are remembered per browser.
+
+import { Sfx, type EngineState, type SfxEvent } from './sfx';
 
 export type Track = 'menu' | 'arcade' | 'practice' | 'results';
 
@@ -37,6 +38,8 @@ export class Music {
   private rate = 1;
   private ducked = false;
   volumes = loadVolumes();
+  /** sound effects share the context and have their own volume */
+  sfx: Sfx | null = null;
 
   /** call from a user gesture (tap, click, key): creates or resumes the audio context and starts the wanted track */
   unlock() {
@@ -45,11 +48,12 @@ export class Music {
       if (!AC) return;
       this.ctx = new AC();
       this.master = this.ctx.createGain();
-      this.master.connect(this.ctx.destination);
+      this.master.connect(Sfx.limiter(this.ctx)).connect(this.ctx.destination);
       this.musicBus = this.ctx.createGain();
       this.sfxBus = this.ctx.createGain();
       this.musicBus.connect(this.master);
       this.sfxBus.connect(this.master);
+      this.sfx = new Sfx(this.ctx, this.sfxBus);
       this.applyVolumes();
     }
     if (this.ctx.state === 'suspended') void this.ctx.resume();
@@ -106,6 +110,17 @@ export class Music {
     void this.load(t === 'menu' ? 'arcade' : t === 'arcade' ? 'results' : 'menu');
   }
 
+  /** the car's sounds for this frame (engine, tyres); nothing before the first tap */
+  engine(s: EngineState | null) {
+    if (!this.sfx || !this.unlocked) return;
+    if (s) this.sfx.frame(s);
+    else this.sfx.silence();
+  }
+  /** a one-shot sound, now or `delay` seconds from now */
+  effect(e: SfxEvent, strength = 1, delay = 0) {
+    if (this.sfx && this.ctx && this.unlocked) this.sfx.play(e, this.ctx.currentTime + delay, strength);
+  }
+
   stop() {
     this.wanted = null;
     if (!this.ctx || !this.current) return;
@@ -150,6 +165,7 @@ export class Music {
   }
   dispose() {
     this.stop();
+    this.sfx?.stop();
     void this.ctx?.close();
     this.ctx = null;
   }

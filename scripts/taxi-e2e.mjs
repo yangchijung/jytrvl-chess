@@ -129,6 +129,23 @@ try {
 
   // ---------------- arcade ----------------
   await p.click('[data-testid=taxi-start-arcade]'); // a real tap: it also unlocks the sound
+  // the garage: four cabs, four drivers, the last choice pre-selected; picking a cab changes the handling live
+  await p.waitForSelector('[data-testid=taxi-garage]');
+  await shot('1b-garage');
+  const garage = await p.evaluate(() => ({
+    cabs: document.querySelectorAll('[data-testid^=taxi-car-]').length,
+    drivers: document.querySelectorAll('[data-testid^=taxi-driver-]').length,
+    pressed: [...document.querySelectorAll('[data-testid=taxi-garage] [aria-pressed=true]')].map((e) => e.dataset.testid),
+    orbit: window.__taxi.car && document.querySelector('[data-testid=taxi-go]') !== null,
+  }));
+  ok('X-18', 'garage: 4 cabs and 4 drivers, one of each selected, a big 出發 button', garage.cabs === 4 && garage.drivers === 4 && garage.pressed.length === 2 && garage.orbit, JSON.stringify(garage));
+  await p.click('[data-testid=taxi-car-rocket]');
+  const rocket = await p.evaluate(() => ({ top: window.__taxi.tuning.topSpeedKmh, pressed: document.querySelector('[data-testid=taxi-car-rocket]').getAttribute('aria-pressed'), saved: localStorage.getItem('jy.taxi.garage') }));
+  await p.click('[data-testid=taxi-car-classic]');
+  await p.click('[data-testid=taxi-driver-ayi]');
+  const classic = await p.evaluate(() => ({ top: window.__taxi.tuning.topSpeedKmh, saved: localStorage.getItem('jy.taxi.garage') }));
+  ok('X-19', 'picking the rocket cab sets its top speed (165 km/h) and is remembered; back to the classic cab restores it', rocket.top === 165 && rocket.pressed === 'true' && /rocket/.test(rocket.saved) && classic.top < 165 && /classic/.test(classic.saved) && /ayi/.test(classic.saved), JSON.stringify({ rocket, classic }));
+  await p.click('[data-testid=taxi-go]');
   await p.evaluate(() => window.__taxi.setPaused(true));
   await ff(1 / 30);
   await settle();
@@ -142,10 +159,17 @@ try {
   // drive to the first (nearest) passenger
   const sp = await p.evaluate(() => window.__taxi.level.spawn.p);
   const nearest = r.waiting.reduce((a, b) => (Math.hypot(a.x - sp.x, a.z - sp.z) < Math.hypot(b.x - sp.x, b.z - sp.z) ? a : b));
+  // pop-ups live ~2 s of real time, but a hand-stepped run is far slower than real time: log every pop as it appears
+  await p.evaluate(() => {
+    window.__popLog = [];
+    const box = document.querySelector('[data-testid=taxi-pops]');
+    new MutationObserver(() => box.querySelectorAll('.taxi-pop').forEach((e) => window.__popLog.push(e.innerText))).observe(box, { childList: true, subtree: true });
+  });
   const picked = await driveTo(nearest, { max: 30, until: async () => !!(await run()).rider });
   await settle();
   r = await run();
-  const pop = await p.$eval('[data-testid=taxi-pops]', (e) => e.innerText).catch(() => '');
+  await new Promise((res) => setTimeout(res, 300));
+  const pop = await p.evaluate(() => window.__popLog.join(' | '));
   ok('X-03', 'a simple driver reaches the first passenger and stops in the circle: picked up within 30 s; the destination name and seconds pop up', picked && r.first !== null && r.first < 30 && pop.includes(r.rider.dest.name.zh), `picked at ${r.first?.toFixed(1)} s, pop "${pop.replace(/\n/g, ' ')}"`);
   await shot('3-pickup');
   ok('X-04', 'carrying: the arrow turns green to the destination, the passenger timer bar shows', (await p.$eval('[data-testid=taxi-arrow]', (e) => e.dataset.to)) === 'dest' && !!(await p.$('[data-testid=taxi-rider]')));
@@ -160,6 +184,10 @@ try {
   r = await run();
   ok('X-05', 'a drift with a passenger aboard: tip combo and money go up', r.combo >= 1 && r.money > money0, JSON.stringify({ combo: r.combo, money: r.money }));
   await shot('4-combo');
+  // sound effects: the tap created them on the same audio context; the engine is audible while driving
+  await ff(0.5, { throttle: 1 });
+  await new Promise((res) => setTimeout(res, 400));
+  const engineDriving = await p.evaluate(() => ({ sfx: !!window.__taxiMusic.sfx, level: window.__taxiMusic.sfx?.engineLevel ?? -1, running: window.__taxiMusic.unlocked }));
   // running into a car breaks the combo (and knocks the car flying)
   await p.evaluate(() => {
     // a car on a long straight stretch, so 30 m ahead of it is still its lane
@@ -203,6 +231,59 @@ try {
   await new Promise((res) => setTimeout(res, 300));
   ok('X-08', 'Esc pauses: resume / restart / menu, plus separate music and sound-effect volume', !!(await p.$('[data-testid=taxi-paused]')) && !!(await p.$('[data-testid=taxi-volume-music]')) && !!(await p.$('[data-testid=taxi-volume-sfx]')));
   await shot('6-pause');
+  await new Promise((res) => setTimeout(res, 800));
+  const enginePaused = await p.evaluate(() => window.__taxiMusic.sfx?.engineLevel ?? -1);
+  ok('X-24', 'sound effects: after the tap they exist, the engine sounds while driving and fades to silence on pause', engineDriving.sfx && engineDriving.running && engineDriving.level > 0.015 && enginePaused >= 0 && enginePaused < 0.003, JSON.stringify({ ...engineDriving, paused: enginePaused }));
+  // stage 5: help panel (pictures of the three control schemes) and the control settings
+  await p.click('[data-testid=taxi-help-open]');
+  await new Promise((res) => setTimeout(res, 150));
+  const help = await p.$eval('[data-testid=taxi-help]', (e) => ({ rows: e.querySelectorAll('tbody tr').length, keys: e.querySelectorAll('kbd').length, map: !!e.querySelector('.tc-touchmap'), visible: e.getBoundingClientRect().height > 100 })).catch(() => null);
+  await shot('6b-help');
+  await p.keyboard.press('Escape'); // closes the panel, not the pause menu
+  await new Promise((res) => setTimeout(res, 150));
+  ok('X-21', 'pause → 操作說明: keyboard keys, gamepad buttons and a touch map; Esc closes it back to the pause menu', help && help.visible && help.rows === 7 && help.keys >= 10 && help.map && !(await p.$('[data-testid=taxi-help]')) && !!(await p.$('[data-testid=taxi-paused]')), JSON.stringify(help));
+  const sw = await p.$eval('[data-testid=taxi-auto-gas]', (e) => ({ role: e.getAttribute('role'), on: e.getAttribute('aria-checked'), h: e.getBoundingClientRect().height }));
+  await p.click('[data-testid=taxi-auto-gas]');
+  const swOn = await p.$eval('[data-testid=taxi-auto-gas]', (e) => e.getAttribute('aria-checked'));
+  const saved = await p.evaluate(() => JSON.parse(localStorage.getItem('jy.taxi.settings') ?? '{}').autoGas);
+  const pausedGas = await p.evaluate(() => window.__taxi.input.autoGas);
+  const tiltSw = await p.$('[data-testid=taxi-tilt]');
+  let tiltInfo = 'tilt hidden (no DeviceOrientationEvent / not touch)';
+  let tiltOk = true;
+  if (tiltSw) {
+    await p.click('[data-testid=taxi-tilt]');
+    await new Promise((res) => setTimeout(res, 150));
+    let on = await p.$eval('[data-testid=taxi-tilt]', (e) => e.getAttribute('aria-checked'));
+    // headless Chrome refuses the motion-sensor permission: the switch must stay off and say so; then grant it
+    const denied = on === 'false' ? await p.$eval('[data-testid=taxi-tilt-status]', (e) => e.textContent) : '';
+    if (on === 'false') {
+      await p.evaluate(() => (DeviceOrientationEvent.requestPermission = async () => 'granted'));
+      await p.click('[data-testid=taxi-tilt]');
+      await new Promise((res) => setTimeout(res, 150));
+      on = (await p.$eval('[data-testid=taxi-tilt]', (e) => e.getAttribute('aria-checked'))) + (denied ? ` after "${denied}"` : '');
+    }
+    await p.evaluate(() => window.dispatchEvent(Object.assign(new Event('deviceorientation'), { beta: 6, gamma: 40, alpha: 0 })));
+    const cal = await p.$('[data-testid=taxi-tilt-calibrate]');
+    if (cal) await p.click('[data-testid=taxi-tilt-calibrate]');
+    const centre = await p.evaluate(() => JSON.parse(localStorage.getItem('jy.taxi.settings') ?? '{}').tiltCentre);
+    tiltOk = on.startsWith('true') && !!cal && centre?.beta === 6;
+    tiltInfo = JSON.stringify({ on, cal: !!cal, centre });
+  }
+  ok('X-22', 'settings: auto gas is a real switch (role=switch, ≥64 px), saved per browser, not driving the car while paused; tilt toggle + 校正 when supported', sw.role === 'switch' && sw.on === 'false' && sw.h >= 64 && swOn === 'true' && saved === true && pausedGas === false && tiltOk, JSON.stringify({ sw, swOn, saved, pausedGas }) + ' ' + tiltInfo);
+  await shot('6c-settings');
+  await p.$eval('[data-testid=taxi-resume]', (b) => b.click());
+  // auto gas: real frames with no input → the car speeds up by itself
+  await p.evaluate(() => window.__taxi.place({ x: -300, y: 1, z: -95.5 }, Math.PI / 2));
+  const k0 = await p.evaluate(() => window.__taxi.car.kmh());
+  const read = await p.evaluate(() => ({ auto: window.__taxi.input.autoGas, tilt: window.__taxi.input.tilt }));
+  await new Promise((res) => setTimeout(res, 1500));
+  const k1 = await p.evaluate(() => window.__taxi.car.kmh());
+  ok('X-23', 'auto gas on: with no key or touch the car drives forward during play', read.auto && k1 > k0 + 3, JSON.stringify({ k0, k1, ...read }));
+  // switch it back off for the rest of the run
+  await p.keyboard.press('Escape');
+  await p.waitForSelector('[data-testid=taxi-auto-gas]', { timeout: 5000 });
+  await p.click('[data-testid=taxi-auto-gas]');
+  if (await p.$('[data-testid=taxi-tilt][aria-checked=true]')) await p.click('[data-testid=taxi-tilt]');
   await p.$eval('[data-testid=taxi-resume]', (b) => b.click());
   await p.evaluate(() => window.__taxi.setPaused(true));
   // run the clock out
@@ -225,6 +306,10 @@ try {
   await new Promise((res) => setTimeout(res, 200));
   await p.$eval('[data-testid=taxi-to-menu]', (b) => b.click());
   await p.$eval('[data-testid=taxi-start-practice]', (b) => b.click());
+  // a returning child: the garage remembers the classic cab and auntie, so it is one more tap to drive
+  const again = await p.$$eval('[data-testid=taxi-garage] [aria-pressed=true]', (e) => e.map((x) => x.dataset.testid));
+  ok('X-20', 'garage pre-selects the last choice', again.includes('taxi-car-classic') && again.includes('taxi-driver-ayi'), JSON.stringify(again));
+  await p.$eval('[data-testid=taxi-go]', (b) => b.click());
   await p.evaluate(() => window.__taxi.setPaused(true));
   await ff(60);
   await settle();
