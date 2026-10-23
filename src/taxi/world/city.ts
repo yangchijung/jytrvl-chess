@@ -282,6 +282,10 @@ export function cityLevel(): Level {
       if (rz2 + b.d / 2 > 12) faces.push({ nx: 0, nz: 1, cx: b.x, cz: b.z + b.d / 2, len: b.w });
       if (rz2 - b.d / 2 < -12) faces.push({ nx: 0, nz: -1, cx: b.x, cz: b.z - b.d / 2, len: b.w });
       faces.forEach((f, fi) => {
+        // a party wall between two houses of a row is not a street face
+        const ox = f.cx + f.nx * 0.3,
+          oz = f.cz + f.nz * 0.3;
+        if (blds.some((o) => o !== bl && Math.abs(ox - o.base.x) < o.base.w / 2 && Math.abs(oz - o.base.z) < o.base.d / 2)) return;
         // the balcony face keeps its front clear
         if (bl.balcony && bl.balcony.nx === f.nx && bl.balcony.nz === f.nz) return;
         const tx = -f.nz,

@@ -117,7 +117,8 @@ export function alleyBlock(c: BlockCtx, alongX: boolean): Bld[] {
     const lots: [number, number][] = [];
     for (let u = -len / 2, i = 0; len / 2 - u > 0.01; i++) {
       let w = 4.2 + r(s, i, 20) * 2.4;
-      if (len / 2 - u - w < 3.8) w = len / 2 - u;
+      const rest = len / 2 - u;
+      if (rest - w < 3.8) w = rest > 7.6 ? rest / 2 : rest;
       lots.push([u, w]);
       u += w;
     }
