@@ -362,8 +362,10 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
       frames = 0;
       fpsT = now;
     }
-    const c = input.read();
-    if (c.pause && run?.phase !== 'over') {
+    const read = input.read();
+    // on the menu and in the garage the parked cab ignores the keys and the touch controls
+    const c: Controls = menu ? { ...read, throttle: 0, brake: 0, steer: 0, drift: false, rush: false, reset: false } : read;
+    if (c.pause && run?.phase !== 'over' && !menu) {
       paused = !paused;
       opts.onPause?.(paused);
     }
@@ -450,6 +452,20 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
       car.applyTuning();
       scene.remove(carGroup);
       for (const w of wheels) scene.remove(w);
+      // free the old cab's GPU buffers (geometry, materials, the sign textures)
+      const seen = new Set<unknown>();
+      for (const o of [carGroup, ...wheels])
+        o.traverse((m) => {
+          const mesh = m as THREE.Mesh;
+          if (!mesh.isMesh) return;
+          if (!seen.has(mesh.geometry)) seen.add(mesh.geometry), mesh.geometry.dispose();
+          for (const mt of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+            if (seen.has(mt)) continue;
+            seen.add(mt);
+            (mt as THREE.MeshBasicMaterial).map?.dispose();
+            mt.dispose();
+          }
+        });
       taxi = buildTaxi(tuning.wheelRadius, spec.look, driverById(driverId).look);
       carGroup = taxi.group;
       wheels = taxi.wheels;

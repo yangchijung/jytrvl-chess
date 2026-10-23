@@ -159,10 +159,17 @@ try {
   // drive to the first (nearest) passenger
   const sp = await p.evaluate(() => window.__taxi.level.spawn.p);
   const nearest = r.waiting.reduce((a, b) => (Math.hypot(a.x - sp.x, a.z - sp.z) < Math.hypot(b.x - sp.x, b.z - sp.z) ? a : b));
+  // pop-ups live ~2 s of real time, but a hand-stepped run is far slower than real time: log every pop as it appears
+  await p.evaluate(() => {
+    window.__popLog = [];
+    const box = document.querySelector('[data-testid=taxi-pops]');
+    new MutationObserver(() => box.querySelectorAll('.taxi-pop').forEach((e) => window.__popLog.push(e.innerText))).observe(box, { childList: true, subtree: true });
+  });
   const picked = await driveTo(nearest, { max: 30, until: async () => !!(await run()).rider });
   await settle();
   r = await run();
-  const pop = await p.$eval('[data-testid=taxi-pops]', (e) => e.innerText).catch(() => '');
+  await new Promise((res) => setTimeout(res, 300));
+  const pop = await p.evaluate(() => window.__popLog.join(' | '));
   ok('X-03', 'a simple driver reaches the first passenger and stops in the circle: picked up within 30 s; the destination name and seconds pop up', picked && r.first !== null && r.first < 30 && pop.includes(r.rider.dest.name.zh), `picked at ${r.first?.toFixed(1)} s, pop "${pop.replace(/\n/g, ' ')}"`);
   await shot('3-pickup');
   ok('X-04', 'carrying: the arrow turns green to the destination, the passenger timer bar shows', (await p.$eval('[data-testid=taxi-arrow]', (e) => e.dataset.to)) === 'dest' && !!(await p.$('[data-testid=taxi-rider]')));
