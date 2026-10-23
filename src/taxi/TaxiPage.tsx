@@ -12,6 +12,8 @@ import { TUNING_RANGE, type Tuning } from './vehicle/tuning';
 import { ClockIcon, CoinIcon, Hud, RiderIcon } from './ui/Hud';
 import { BAND_COLOR } from './gameplay/view';
 import { Music, type Track } from './audio/music';
+import { Garage } from './ui/Garage';
+import { loadChoice, saveChoice, type GarageChoice } from './ui/garageChoice';
 import './taxi.css';
 
 const T = {
@@ -39,6 +41,14 @@ const T = {
   combo: { zh: '最長連擊', en: 'Best combo' },
   rank: { zh: '評級', en: 'Rank' },
   slow: { zh: 'Slow', en: 'Slow' },
+  // stage 5: the garage
+  cabs: { zh: '選車', en: 'Pick a cab' },
+  drivers: { zh: '選司機', en: 'Pick a driver' },
+  accel: { zh: '加速', en: 'Acceleration' },
+  handling: { zh: '操控', en: 'Handling' },
+  topSpeed: { zh: '極速', en: 'Top speed' },
+  go: { zh: '出發', en: 'Go' },
+  back: { zh: '回去', en: 'Back' },
 };
 const RATING: Record<Rating, { text: string; color: string }> = { speedy: { text: 'Speedy!', color: '#43A047' }, normal: { text: 'Normal', color: '#FDD835' }, slow: { text: 'Slow', color: '#E53935' } };
 type Pop = { id: number; kind: 'pickup' | 'drop' | 'tip' | 'timeout' | 'crash'; title: string; sub?: string; color?: string };
@@ -51,7 +61,8 @@ export function TaxiPage() {
   const [state, setState] = useState<'loading' | 'ready' | 'failed'>('loading');
   const [hud, setHud] = useState<HudState | null>(null);
   const [dev, setDev] = useState(false);
-  const [screen, setScreen] = useState<'menu' | 'play' | 'over'>('menu');
+  const [screen, setScreen] = useState<'menu' | 'garage' | 'play' | 'over'>('menu');
+  const [choice, setChoice] = useState<GarageChoice>(() => loadChoice());
   const [paused, setPaused] = useState(false);
   const [pops, setPops] = useState<Pop[]>([]);
   const [music] = useState(() => new Music());
@@ -160,6 +171,28 @@ export function TaxiPage() {
     setPaused(false);
     setScreen('play');
   };
+  // ---------- garage: mode → cab and driver (pre-selected from last time) → 出發 ----------
+  const toGarage = (mode: Mode) => {
+    lastMode.current = mode;
+    setScreen('garage');
+  };
+  const pick = (car: string, driver: string) => {
+    const c = { car, driver };
+    setChoice(c);
+    saveChoice(c);
+    game.current?.setCar(car, driver);
+  };
+  const go = () => {
+    game.current?.setCar(choice.car, choice.driver);
+    start(lastMode.current);
+  };
+  // the chosen cab from the start; menu and garage show the slow aerial orbit, a run uses the chase camera
+  useEffect(() => {
+    if (state === 'ready') game.current?.setCar(choice.car, choice.driver);
+  }, [state]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (state === 'ready') game.current?.setMenu(screen === 'menu' || screen === 'garage');
+  }, [state, screen]);
   const toMenu = () => {
     game.current?.startRun(null);
     setPaused(false);
@@ -172,7 +205,7 @@ export function TaxiPage() {
   const result = screen === 'over' ? (game.current?.run() ?? null) : null;
 
   // ---------- music: one track per screen; faster in the last 10 s; quieter while paused ----------
-  const track: Track = screen === 'menu' ? 'menu' : screen === 'over' ? 'results' : lastMode.current === 'practice' ? 'practice' : 'arcade';
+  const track: Track = screen === 'menu' || screen === 'garage' ? 'menu' : screen === 'over' ? 'results' : lastMode.current === 'practice' ? 'practice' : 'arcade';
   useEffect(() => {
     void music.play(track);
   }, [music, track]);
@@ -211,7 +244,7 @@ export function TaxiPage() {
           {tr(T.failed)}
         </div>
       )}
-      {hud && (
+      {hud && screen !== 'menu' && screen !== 'garage' && (
         <div className="taxi-hud" aria-live="off" data-testid="taxi-hud" data-kmh={Math.round(hud.kmh)} data-drift={hud.drifting} data-air={hud.airborne} data-rush={hud.rush}>
           <div className="taxi-speed">
             <span className="taxi-speed-n">{Math.round(hud.kmh)}</span>
@@ -271,11 +304,11 @@ export function TaxiPage() {
             <circle cx="88" cy="48" r="8" fill="#23303F" />
           </svg>
           <div className="taxi-modes">
-            <button type="button" className="taxi-mode" onClick={() => start('arcade')} data-testid="taxi-start-arcade">
+            <button type="button" className="taxi-mode" onClick={() => toGarage('arcade')} data-testid="taxi-start-arcade">
               <ClockIcon size={56} />
               <span>{tr(T.arcade)}</span>
             </button>
-            <button type="button" className="taxi-mode" onClick={() => start('practice')} data-testid="taxi-start-practice">
+            <button type="button" className="taxi-mode" onClick={() => toGarage('practice')} data-testid="taxi-start-practice">
               <svg viewBox="0 0 24 24" width="56" height="56" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
                 <path d="M6 9c-3 0-4 2-4 3s1 3 4 3c4 0 8-6 12-6 3 0 4 2 4 3s-1 3-4 3c-4 0-8-6-12-6z" />
               </svg>
@@ -283,6 +316,18 @@ export function TaxiPage() {
             </button>
           </div>
         </div>
+      )}
+      {state === 'ready' && screen === 'garage' && (
+        <Garage
+          lang={lang}
+          mode={lastMode.current}
+          car={choice.car}
+          driver={choice.driver}
+          labels={{ cabs: tr(T.cabs), drivers: tr(T.drivers), accel: tr(T.accel), handling: tr(T.handling), top: tr(T.topSpeed), go: tr(T.go), back: tr(T.back) }}
+          onPick={pick}
+          onGo={go}
+          onBack={() => setScreen('menu')}
+        />
       )}
       {paused && screen === 'play' && (
         <div className="taxi-overlay" data-testid="taxi-paused">

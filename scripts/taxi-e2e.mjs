@@ -129,6 +129,23 @@ try {
 
   // ---------------- arcade ----------------
   await p.click('[data-testid=taxi-start-arcade]'); // a real tap: it also unlocks the sound
+  // the garage: four cabs, four drivers, the last choice pre-selected; picking a cab changes the handling live
+  await p.waitForSelector('[data-testid=taxi-garage]');
+  await shot('1b-garage');
+  const garage = await p.evaluate(() => ({
+    cabs: document.querySelectorAll('[data-testid^=taxi-car-]').length,
+    drivers: document.querySelectorAll('[data-testid^=taxi-driver-]').length,
+    pressed: [...document.querySelectorAll('[data-testid=taxi-garage] [aria-pressed=true]')].map((e) => e.dataset.testid),
+    orbit: window.__taxi.car && document.querySelector('[data-testid=taxi-go]') !== null,
+  }));
+  ok('X-18', 'garage: 4 cabs and 4 drivers, one of each selected, a big 出發 button', garage.cabs === 4 && garage.drivers === 4 && garage.pressed.length === 2 && garage.orbit, JSON.stringify(garage));
+  await p.click('[data-testid=taxi-car-rocket]');
+  const rocket = await p.evaluate(() => ({ top: window.__taxi.tuning.topSpeedKmh, pressed: document.querySelector('[data-testid=taxi-car-rocket]').getAttribute('aria-pressed'), saved: localStorage.getItem('jy.taxi.garage') }));
+  await p.click('[data-testid=taxi-car-classic]');
+  await p.click('[data-testid=taxi-driver-ayi]');
+  const classic = await p.evaluate(() => ({ top: window.__taxi.tuning.topSpeedKmh, saved: localStorage.getItem('jy.taxi.garage') }));
+  ok('X-19', 'picking the rocket cab sets its top speed (165 km/h) and is remembered; back to the classic cab restores it', rocket.top === 165 && rocket.pressed === 'true' && /rocket/.test(rocket.saved) && classic.top < 165 && /classic/.test(classic.saved) && /ayi/.test(classic.saved), JSON.stringify({ rocket, classic }));
+  await p.click('[data-testid=taxi-go]');
   await p.evaluate(() => window.__taxi.setPaused(true));
   await ff(1 / 30);
   await settle();
@@ -225,6 +242,10 @@ try {
   await new Promise((res) => setTimeout(res, 200));
   await p.$eval('[data-testid=taxi-to-menu]', (b) => b.click());
   await p.$eval('[data-testid=taxi-start-practice]', (b) => b.click());
+  // a returning child: the garage remembers the classic cab and auntie, so it is one more tap to drive
+  const again = await p.$$eval('[data-testid=taxi-garage] [aria-pressed=true]', (e) => e.map((x) => x.dataset.testid));
+  ok('X-20', 'garage pre-selects the last choice', again.includes('taxi-car-classic') && again.includes('taxi-driver-ayi'), JSON.stringify(again));
+  await p.$eval('[data-testid=taxi-go]', (b) => b.click());
   await p.evaluate(() => window.__taxi.setPaused(true));
   await ff(60);
   await settle();
