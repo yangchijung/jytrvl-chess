@@ -334,4 +334,119 @@ describe('Product review R1/R2 (PR #13)', () => {
     expect(JSON.parse(st.m.get(V2_KEY)!).anc).toHaveLength(2);
     expect([...st.m.keys()].filter((k) => k.includes('.conflict-'))).toHaveLength(0);
   });
+
+  // Product review R2b (PR #13 comment 6315891330): a failed copy aside must never delete the only stored copy.
+  type Fail = 'quota' | 'error' | 'readback';
+  /** storage where writes to `.conflict-*` fail in the given way; everything else (removeItem included) works */
+  function failingAside(st: ReturnType<typeof mem>, how: Fail) {
+    const set = st.setItem;
+    const get = st.getItem;
+    const on = { fail: true };
+    st.setItem = (k: string, v: string) => {
+      if (on.fail && k.startsWith(`${V2_KEY}.conflict-`)) {
+        if (how === 'quota') throw Object.assign(new Error('full'), { name: 'QuotaExceededError' });
+        if (how === 'error') throw new Error('write failed');
+      }
+      set(k, v);
+    };
+    st.getItem = (k: string) => (on.fail && how === 'readback' && k.startsWith(`${V2_KEY}.conflict-`) ? '{"changed' : get(k));
+    return on;
+  }
+  /** A writes last over B's stamp (the R2a interleave): B's stamp is then only in B's own tab copy */
+  function interleaved(st: ReturnType<typeof mem>, color = 'blue') {
+    const a = new DoodleStore(st);
+    const b = new DoodleStore(st);
+    a.start();
+    b.start();
+    const write = st.setItem;
+    let interleave = true;
+    st.setItem = (key: string, value: string) => {
+      if (interleave && key === V2_KEY) {
+        interleave = false;
+        b.commit({ ...b.v, grid: { ops: [{ t: 'cell', i: 2, value: { color, shape: 'circle' } }], n: 1 } });
+      }
+      write(key, value);
+    };
+    a.commit({ ...a.v, free: pushFree(empty(), { t: 'stroke', color: 'pink', size: 'm', pts: [[0.1, 0.1], [0.2, 0.2]] })! });
+    st.setItem = write;
+    const tabKey = [...st.m.keys()].find((x) => x.startsWith(`${V2_KEY}.tab-`) && st.m.get(x)!.includes(color))!;
+    expect(tabKey).toBeTruthy();
+    return { a, b, tabKey };
+  }
+  /** every stored place a drawing can be found again: the shared document, copies aside and tab copies */
+  const findable = (st: ReturnType<typeof mem>, color: string) =>
+    [...st.m.entries()].some(([k, v]) => {
+      if (k === V2_KEY || k.startsWith(`${V2_KEY}.conflict-`)) return v.includes(`"${color}"`) && readV2(() => v).kind === 'ok';
+      if (k.startsWith(`${V2_KEY}.tab-`)) return JSON.parse(v).doc.includes(`"${color}"`);
+      return false;
+    });
+
+  for (const how of ['quota', 'error', 'readback'] as const) {
+    it(`R2b (${how}): verify keeps B's only copy when the copy aside fails, later saves do not overwrite it, and the next load moves it aside`, () => {
+      noLocks();
+      const st = mem();
+      const { b, tabKey } = interleaved(st);
+      const only = st.m.get(tabKey)!;
+      const on = failingAside(st, how);
+      b.verify();
+      expect(st.m.get(tabKey)).toBe(only); // the only stored copy is still there, unchanged
+      expect(b.status).not.toBe('ok');
+      expect(b.conflictUnsaved).toBe(true);
+      expect(b.conflict && JSON.parse(b.conflict).grid.ops[0].value.color).toBe('blue'); // offered as a download
+      // B keeps drawing on A's version: saved under a new key of its own, the old copy stays untouched
+      expect(b.commit({ ...b.v, grid: { ops: [{ t: 'cell', i: 5, value: { color: 'green', shape: 'square' } }], n: 1 } })).toBe(true);
+      expect(b.commit({ ...b.v, grid: { ops: [...b.v.grid.ops, { t: 'cell', i: 6, value: { color: 'green', shape: 'square' } }], n: 2 } })).toBe(true);
+      expect(st.m.get(tabKey)).toBe(only);
+      expect(findable(st, 'blue')).toBe(true);
+      // the page is reopened later while storage still fails: still kept
+      st.m.set(tabKey, JSON.stringify({ ...JSON.parse(only), at: Date.now() - 60_000 }));
+      const c = new DoodleStore(st);
+      c.start();
+      expect(st.m.has(tabKey)).toBe(true);
+      expect(c.conflictUnsaved).toBe(true);
+      expect(c.conflict && JSON.parse(c.conflict).grid.ops[0].value.color).toBe('blue');
+      // space is freed: the next load copies it aside (read back verified) and only then removes the tab copy
+      on.fail = false;
+      const d = new DoodleStore(st);
+      d.start();
+      expect(st.m.has(tabKey)).toBe(false);
+      expect(d.conflictUnsaved).toBe(false);
+      const aside = [...st.m.entries()].filter(([k]) => k.startsWith(`${V2_KEY}.conflict-`)).map(([, v]) => JSON.parse(v));
+      expect(aside.some((x) => x.grid.ops[0]?.value.color === 'blue')).toBe(true);
+    });
+
+    it(`R2b (${how}): a closed tab's only copy is not deleted when the copy aside fails on load`, () => {
+      noLocks();
+      const st = mem();
+      const { tabKey } = interleaved(st, 'yellow');
+      st.m.set(tabKey, JSON.stringify({ ...JSON.parse(st.m.get(tabKey)!), at: Date.now() - 60_000 }));
+      const only = st.m.get(tabKey)!;
+      failingAside(st, how);
+      const c = new DoodleStore(st);
+      c.start();
+      expect(st.m.get(tabKey)).toBe(only);
+      expect(c.conflictUnsaved).toBe(true);
+      expect(c.conflict && JSON.parse(c.conflict).grid.ops[0].value.color).toBe('yellow');
+      // that tab keeps drawing: the closed tab's copy is still there afterwards
+      c.commit({ ...c.v, free: pushFree(c.v.free, { t: 'stroke', color: 'gray', size: 's', pts: [[0.5, 0.5]] })! });
+      expect(st.m.get(tabKey)).toBe(only);
+      expect(findable(st, 'yellow')).toBe(true);
+    });
+  }
+
+  it('R2b: a refused change whose copy aside fails is reported as not stored (not as saved)', () => {
+    noLocks();
+    const st = mem();
+    const a = new DoodleStore(st);
+    const b = new DoodleStore(st);
+    a.start();
+    b.start();
+    a.commit({ ...a.v, free: pushFree(a.v.free, { t: 'stroke', color: 'pink', size: 'm', pts: [[0.1, 0.1], [0.2, 0.2]] })! });
+    failingAside(st, 'quota');
+    expect(b.commit({ ...b.v, grid: { ops: [{ t: 'cell', i: 0, value: { color: 'blue', shape: 'circle' } }], n: 1 } })).toBe(false);
+    expect(b.status).not.toBe('ok');
+    expect(b.conflictUnsaved).toBe(true);
+    expect(b.conflict && JSON.parse(b.conflict).grid.n).toBe(1);
+    expect(JSON.parse(st.m.get(V2_KEY)!).free.n).toBe(1); // A's stroke untouched
+  });
 });
