@@ -203,6 +203,56 @@ try {
   await new Promise((res) => setTimeout(res, 300));
   ok('X-08', 'Esc pauses: resume / restart / menu, plus separate music and sound-effect volume', !!(await p.$('[data-testid=taxi-paused]')) && !!(await p.$('[data-testid=taxi-volume-music]')) && !!(await p.$('[data-testid=taxi-volume-sfx]')));
   await shot('6-pause');
+  // stage 5: help panel (pictures of the three control schemes) and the control settings
+  await p.click('[data-testid=taxi-help-open]');
+  await new Promise((res) => setTimeout(res, 150));
+  const help = await p.$eval('[data-testid=taxi-help]', (e) => ({ rows: e.querySelectorAll('tbody tr').length, keys: e.querySelectorAll('kbd').length, map: !!e.querySelector('.tc-touchmap'), visible: e.getBoundingClientRect().height > 100 })).catch(() => null);
+  await shot('6b-help');
+  await p.keyboard.press('Escape'); // closes the panel, not the pause menu
+  await new Promise((res) => setTimeout(res, 150));
+  ok('X-18', 'pause → 操作說明: keyboard keys, gamepad buttons and a touch map; Esc closes it back to the pause menu', help && help.visible && help.rows === 7 && help.keys >= 10 && help.map && !(await p.$('[data-testid=taxi-help]')) && !!(await p.$('[data-testid=taxi-paused]')), JSON.stringify(help));
+  const sw = await p.$eval('[data-testid=taxi-auto-gas]', (e) => ({ role: e.getAttribute('role'), on: e.getAttribute('aria-checked'), h: e.getBoundingClientRect().height }));
+  await p.click('[data-testid=taxi-auto-gas]');
+  const swOn = await p.$eval('[data-testid=taxi-auto-gas]', (e) => e.getAttribute('aria-checked'));
+  const saved = await p.evaluate(() => JSON.parse(localStorage.getItem('jy.taxi.settings') ?? '{}').autoGas);
+  const pausedGas = await p.evaluate(() => window.__taxi.input.autoGas);
+  const tiltSw = await p.$('[data-testid=taxi-tilt]');
+  let tiltInfo = 'tilt hidden (no DeviceOrientationEvent / not touch)';
+  let tiltOk = true;
+  if (tiltSw) {
+    await p.click('[data-testid=taxi-tilt]');
+    await new Promise((res) => setTimeout(res, 150));
+    let on = await p.$eval('[data-testid=taxi-tilt]', (e) => e.getAttribute('aria-checked'));
+    // headless Chrome refuses the motion-sensor permission: the switch must stay off and say so; then grant it
+    const denied = on === 'false' ? await p.$eval('[data-testid=taxi-tilt-status]', (e) => e.textContent) : '';
+    if (on === 'false') {
+      await p.evaluate(() => (DeviceOrientationEvent.requestPermission = async () => 'granted'));
+      await p.click('[data-testid=taxi-tilt]');
+      await new Promise((res) => setTimeout(res, 150));
+      on = (await p.$eval('[data-testid=taxi-tilt]', (e) => e.getAttribute('aria-checked'))) + (denied ? ` after "${denied}"` : '');
+    }
+    await p.evaluate(() => window.dispatchEvent(Object.assign(new Event('deviceorientation'), { beta: 6, gamma: 40, alpha: 0 })));
+    const cal = await p.$('[data-testid=taxi-tilt-calibrate]');
+    if (cal) await p.click('[data-testid=taxi-tilt-calibrate]');
+    const centre = await p.evaluate(() => JSON.parse(localStorage.getItem('jy.taxi.settings') ?? '{}').tiltCentre);
+    tiltOk = on.startsWith('true') && !!cal && centre?.beta === 6;
+    tiltInfo = JSON.stringify({ on, cal: !!cal, centre });
+  }
+  ok('X-19', 'settings: auto gas is a real switch (role=switch, ≥64 px), saved per browser, not driving the car while paused; tilt toggle + 校正 when supported', sw.role === 'switch' && sw.on === 'false' && sw.h >= 64 && swOn === 'true' && saved === true && pausedGas === false && tiltOk, JSON.stringify({ sw, swOn, saved, pausedGas }) + ' ' + tiltInfo);
+  await shot('6c-settings');
+  await p.$eval('[data-testid=taxi-resume]', (b) => b.click());
+  // auto gas: real frames with no input → the car speeds up by itself
+  await p.evaluate(() => window.__taxi.place({ x: -300, y: 1, z: -95.5 }, Math.PI / 2));
+  const k0 = await p.evaluate(() => window.__taxi.car.kmh());
+  const read = await p.evaluate(() => ({ auto: window.__taxi.input.autoGas, tilt: window.__taxi.input.tilt }));
+  await new Promise((res) => setTimeout(res, 1500));
+  const k1 = await p.evaluate(() => window.__taxi.car.kmh());
+  ok('X-20', 'auto gas on: with no key or touch the car drives forward during play', read.auto && k1 > k0 + 3, JSON.stringify({ k0, k1, ...read }));
+  // switch it back off for the rest of the run
+  await p.keyboard.press('Escape');
+  await p.waitForSelector('[data-testid=taxi-auto-gas]', { timeout: 5000 });
+  await p.click('[data-testid=taxi-auto-gas]');
+  if (await p.$('[data-testid=taxi-tilt][aria-checked=true]')) await p.click('[data-testid=taxi-tilt]');
   await p.$eval('[data-testid=taxi-resume]', (b) => b.click());
   await p.evaluate(() => window.__taxi.setPaused(true));
   // run the clock out

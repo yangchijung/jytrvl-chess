@@ -2,7 +2,7 @@
 // passengers, follow the arrow, drop them off before their timer runs out, tips for stunts, results with a rank.
 // Full screen, no site header. The 3D engine (Three.js + Rapier) loads only on this page.
 // HUD is icons and big numbers; the dev panel (~) lists every tuning number with a slider.
-import { useEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useI18n } from '../i18n';
 import type { Game, HudState } from './game';
@@ -12,7 +12,11 @@ import { TUNING_RANGE, type Tuning } from './vehicle/tuning';
 import { ClockIcon, CoinIcon, Hud, RiderIcon } from './ui/Hud';
 import { BAND_COLOR } from './gameplay/view';
 import { Music, type Track } from './audio/music';
+import { Help } from './ui/Help';
+import { Settings, useControlSettings } from './ui/Settings';
+import { useTouchGuard } from './ui/useTouchGuard';
 import './taxi.css';
+import './ui/controls.css';
 
 const T = {
   home: { zh: '回到 JY Games', en: 'Back to JY Games' },
@@ -129,6 +133,7 @@ export function TaxiPage() {
     if (stick.current) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     stick.current = { id: e.pointerId, x0: e.clientX };
+    if (game.current) game.current.input.touch.stick = true; // the stick overrides tilt while touched
   };
   const onStickMove = (e: RPointerEvent<HTMLDivElement>) => {
     const s = stick.current;
@@ -140,7 +145,7 @@ export function TaxiPage() {
   const onStickUp = (e: RPointerEvent<HTMLDivElement>) => {
     if (stick.current?.id !== e.pointerId) return;
     stick.current = null;
-    if (game.current) game.current.input.touch.steer = 0;
+    if (game.current) Object.assign(game.current.input.touch, { steer: 0, stick: false });
     setKnob(0);
   };
   const hold = (key: 'gas' | 'brake' | 'drift') => ({
@@ -171,6 +176,19 @@ export function TaxiPage() {
   };
   const result = screen === 'over' ? (game.current?.run() ?? null) : null;
 
+  // ---------- controls: auto gas, tilt, help; no page scroll or zoom on the game screen ----------
+  const root = useRef<HTMLDivElement>(null);
+  useTouchGuard(root);
+  const controls = useControlSettings(game, state === 'ready', state === 'ready' && screen === 'play' && !paused, touchUi);
+  const [help, setHelp] = useState(false);
+  useEffect(() => {
+    if (!paused) setHelp(false);
+  }, [paused]);
+  const closeHelp = useCallback(() => {
+    setHelp(false);
+    requestAnimationFrame(() => (document.querySelector('[data-testid=taxi-help-open]') as HTMLElement | null)?.focus());
+  }, []);
+
   // ---------- music: one track per screen; faster in the last 10 s; quieter while paused ----------
   const track: Track = screen === 'menu' ? 'menu' : screen === 'over' ? 'results' : lastMode.current === 'practice' ? 'practice' : 'arcade';
   useEffect(() => {
@@ -193,7 +211,7 @@ export function TaxiPage() {
   };
 
   return (
-    <div className="taxi" data-testid="taxi" data-state={state}>
+    <div ref={root} className="taxi" data-testid="taxi" data-state={state} data-auto-gas={controls.settings.autoGas} data-tilt={controls.tiltStatus}>
       <canvas ref={canvas} className="taxi-canvas" data-testid="taxi-canvas" />
       <Link to={to('/')} className="taxi-btn taxi-home" aria-label={tr(T.home)} data-testid="taxi-home">
         <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
@@ -285,8 +303,9 @@ export function TaxiPage() {
         </div>
       )}
       {paused && screen === 'play' && (
-        <div className="taxi-overlay" data-testid="taxi-paused">
-          <div className="taxi-modes">
+        <div className="taxi-overlay tc-pausemenu taxi-scroll" data-testid="taxi-paused">
+          {help && <Help lang={lang} onClose={closeHelp} tilt={controls.tiltStatus === 'on'} autoGas={controls.settings.autoGas} />}
+          <div className="taxi-modes" hidden={help}>
             <button type="button" className="taxi-mode" onClick={() => togglePause(false)} data-testid="taxi-resume" aria-label={tr(T.resume)}>
               <svg viewBox="0 0 24 24" width="56" height="56" aria-hidden="true" fill="currentColor">
                 <path d="M7 4l13 8-13 8z" />
@@ -307,7 +326,7 @@ export function TaxiPage() {
               <span>{tr(T.menu)}</span>
             </button>
           </div>
-          <div className="taxi-volumes">
+          <div className="taxi-volumes" hidden={help}>
             {(['music', 'sfx'] as const).map((k) => (
               <label key={k} className="taxi-volume">
                 <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -318,6 +337,7 @@ export function TaxiPage() {
               </label>
             ))}
           </div>
+          {!help && <Settings lang={lang} c={controls} onHelp={() => setHelp(true)} />}
         </div>
       )}
       {screen === 'over' && result && (
