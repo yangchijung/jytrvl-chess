@@ -59,6 +59,8 @@ export interface Game {
   setCar(carId: string, driverId: string): void;
   /** the menu: a slow aerial orbit of the city instead of the chase camera */
   setMenu(on: boolean): void;
+  /** read-only, for the minimap: where the car is, which way it points (yaw) and which way the camera looks (view) */
+  pose(): { x: number; z: number; yaw: number; view: number };
   level: Level;
   traffic: Traffic | null;
   people: People | null;
@@ -173,6 +175,7 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
     return hit ? hit.timeOfImpact : len;
   };
 
+  const poseDir = new THREE.Vector3();
   const taxiNow = (): TaxiNow => {
     const t = car.body.translation(),
       v = car.body.linvel(),
@@ -438,6 +441,12 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
       acc = 0;
     },
     run: () => run,
+    pose() {
+      const t = car.body.translation(),
+        f = car.forward();
+      chase.cam.getWorldDirection(poseDir);
+      return { x: t.x, z: t.z, yaw: Math.atan2(f.x, f.z), view: Math.atan2(poseDir.x, poseDir.z) };
+    },
     level,
     traffic,
     people,
