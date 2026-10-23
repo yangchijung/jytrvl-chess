@@ -177,6 +177,10 @@ try {
   r = await run();
   ok('X-05', 'a drift with a passenger aboard: tip combo and money go up', r.combo >= 1 && r.money > money0, JSON.stringify({ combo: r.combo, money: r.money }));
   await shot('4-combo');
+  // sound effects: the tap created them on the same audio context; the engine is audible while driving
+  await ff(0.5, { throttle: 1 });
+  await new Promise((res) => setTimeout(res, 400));
+  const engineDriving = await p.evaluate(() => ({ sfx: !!window.__taxiMusic.sfx, level: window.__taxiMusic.sfx?.engineLevel ?? -1, running: window.__taxiMusic.unlocked }));
   // running into a car breaks the combo (and knocks the car flying)
   await p.evaluate(() => {
     // a car on a long straight stretch, so 30 m ahead of it is still its lane
@@ -220,6 +224,9 @@ try {
   await new Promise((res) => setTimeout(res, 300));
   ok('X-08', 'Esc pauses: resume / restart / menu, plus separate music and sound-effect volume', !!(await p.$('[data-testid=taxi-paused]')) && !!(await p.$('[data-testid=taxi-volume-music]')) && !!(await p.$('[data-testid=taxi-volume-sfx]')));
   await shot('6-pause');
+  await new Promise((res) => setTimeout(res, 800));
+  const enginePaused = await p.evaluate(() => window.__taxiMusic.sfx?.engineLevel ?? -1);
+  ok('X-24', 'sound effects: after the tap they exist, the engine sounds while driving and fades to silence on pause', engineDriving.sfx && engineDriving.running && engineDriving.level > 0.015 && enginePaused >= 0 && enginePaused < 0.003, JSON.stringify({ ...engineDriving, paused: enginePaused }));
   // stage 5: help panel (pictures of the three control schemes) and the control settings
   await p.click('[data-testid=taxi-help-open]');
   await new Promise((res) => setTimeout(res, 150));
@@ -227,7 +234,7 @@ try {
   await shot('6b-help');
   await p.keyboard.press('Escape'); // closes the panel, not the pause menu
   await new Promise((res) => setTimeout(res, 150));
-  ok('X-18', 'pause → 操作說明: keyboard keys, gamepad buttons and a touch map; Esc closes it back to the pause menu', help && help.visible && help.rows === 7 && help.keys >= 10 && help.map && !(await p.$('[data-testid=taxi-help]')) && !!(await p.$('[data-testid=taxi-paused]')), JSON.stringify(help));
+  ok('X-21', 'pause → 操作說明: keyboard keys, gamepad buttons and a touch map; Esc closes it back to the pause menu', help && help.visible && help.rows === 7 && help.keys >= 10 && help.map && !(await p.$('[data-testid=taxi-help]')) && !!(await p.$('[data-testid=taxi-paused]')), JSON.stringify(help));
   const sw = await p.$eval('[data-testid=taxi-auto-gas]', (e) => ({ role: e.getAttribute('role'), on: e.getAttribute('aria-checked'), h: e.getBoundingClientRect().height }));
   await p.click('[data-testid=taxi-auto-gas]');
   const swOn = await p.$eval('[data-testid=taxi-auto-gas]', (e) => e.getAttribute('aria-checked'));
@@ -255,7 +262,7 @@ try {
     tiltOk = on.startsWith('true') && !!cal && centre?.beta === 6;
     tiltInfo = JSON.stringify({ on, cal: !!cal, centre });
   }
-  ok('X-19', 'settings: auto gas is a real switch (role=switch, ≥64 px), saved per browser, not driving the car while paused; tilt toggle + 校正 when supported', sw.role === 'switch' && sw.on === 'false' && sw.h >= 64 && swOn === 'true' && saved === true && pausedGas === false && tiltOk, JSON.stringify({ sw, swOn, saved, pausedGas }) + ' ' + tiltInfo);
+  ok('X-22', 'settings: auto gas is a real switch (role=switch, ≥64 px), saved per browser, not driving the car while paused; tilt toggle + 校正 when supported', sw.role === 'switch' && sw.on === 'false' && sw.h >= 64 && swOn === 'true' && saved === true && pausedGas === false && tiltOk, JSON.stringify({ sw, swOn, saved, pausedGas }) + ' ' + tiltInfo);
   await shot('6c-settings');
   await p.$eval('[data-testid=taxi-resume]', (b) => b.click());
   // auto gas: real frames with no input → the car speeds up by itself
@@ -264,7 +271,7 @@ try {
   const read = await p.evaluate(() => ({ auto: window.__taxi.input.autoGas, tilt: window.__taxi.input.tilt }));
   await new Promise((res) => setTimeout(res, 1500));
   const k1 = await p.evaluate(() => window.__taxi.car.kmh());
-  ok('X-20', 'auto gas on: with no key or touch the car drives forward during play', read.auto && k1 > k0 + 3, JSON.stringify({ k0, k1, ...read }));
+  ok('X-23', 'auto gas on: with no key or touch the car drives forward during play', read.auto && k1 > k0 + 3, JSON.stringify({ k0, k1, ...read }));
   // switch it back off for the rest of the run
   await p.keyboard.press('Escape');
   await p.waitForSelector('[data-testid=taxi-auto-gas]', { timeout: 5000 });

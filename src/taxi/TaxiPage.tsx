@@ -55,6 +55,18 @@ const T = {
   back: { zh: '回去', en: 'Back' },
 };
 const RATING: Record<Rating, { text: string; color: string }> = { speedy: { text: 'Speedy!', color: '#43A047' }, normal: { text: 'Normal', color: '#FDD835' }, slow: { text: 'Slow', color: '#E53935' } };
+/** what the game asked the sound system for since the last read (only with ?audiolog, for the recordings) */
+class AudioLog {
+  private list: unknown[] = [];
+  push(x: unknown) {
+    if (this.list.length < 5000) this.list.push(x);
+  }
+  take() {
+    const l = this.list;
+    this.list = [];
+    return l;
+  }
+}
 type Pop = { id: number; kind: 'pickup' | 'drop' | 'tip' | 'timeout' | 'crash'; title: string; sub?: string; color?: string };
 
 export function TaxiPage() {
@@ -78,6 +90,7 @@ export function TaxiPage() {
     setPops((list) => [...list.filter((x) => x.kind !== p.kind || p.kind === 'tip'), { ...p, id }].slice(-4));
     setTimeout(() => setPops((list) => list.filter((x) => x.id !== id)), ms);
   };
+  const audioGate = useRef<{ screen: typeof screen; paused: boolean }>({ screen, paused });
   const onEvent = useRef<(e: RunEvent) => void>(() => undefined);
   onEvent.current = (e: RunEvent) => {
     if (e.t === 'pickup') pop({ kind: 'pickup', title: e.p.dest.name[lang], sub: `${e.p.limit}`, color: BAND_COLOR[e.p.band] }, 2200);
@@ -85,6 +98,12 @@ export function TaxiPage() {
     else if (e.t === 'tip') pop({ kind: 'tip', title: `+${e.amount}`, sub: `×${e.combo}` }, 900);
     else if (e.t === 'timeout') pop({ kind: 'timeout', title: '…', color: '#E53935' }, 1400);
     else if (e.t === 'over') setScreen('over');
+    // sounds for the run's moments (the engine, crashes, landings and rushes come from the game itself)
+    if (e.t === 'pickup') {
+      music.effect('pickup');
+      music.effect('coin', 1, 0.22);
+    } else if (e.t === 'drop' || e.t === 'timeout' || e.t === 'over') music.effect(e.t);
+    else if (e.t === 'tip') music.effect('coin');
   };
   const [, force] = useState(0);
   const touchUi = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
@@ -93,6 +112,9 @@ export function TaxiPage() {
     let alive = true;
     let g: Game | null = null;
     let lastHud = 0;
+    // ?audiolog: the recordings read back what the game asked the sound system to do (capped, harmless otherwise)
+    const audioLog = new URLSearchParams(location.search).has('audiolog') ? new AudioLog() : null;
+    if (audioLog) (window as unknown as { __taxiAudioLog: AudioLog }).__taxiAudioLog = audioLog;
     (async () => {
       try {
         const { startGame } = await import('./game');
@@ -103,7 +125,28 @@ export function TaxiPage() {
             lastHud = now;
             setHud(h);
           }
-        }, { lowPower: touchUi, lang, track: new URLSearchParams(location.search).get('track') === 'test' ? 'test' : 'city', onEvent: (e) => onEvent.current(e), onPause: (p) => setPaused(p) });
+        }, {
+          lowPower: touchUi,
+          lang,
+          track: new URLSearchParams(location.search).get('track') === 'test' ? 'test' : 'city',
+          onEvent: (e) => onEvent.current(e),
+          onPause: (p) => {
+            setPaused(p);
+            if (p) music.engine(null);
+          },
+          // the engine only runs while a run is being played: silent in the menus, the pause screen and the results
+          audio: {
+            engine: (s) => {
+              const live = audioGate.current.screen === 'play' && !audioGate.current.paused ? s : null;
+              audioLog?.push({ engine: live && { kmh: live.kmh, throttle: live.throttle, skid: live.skid, airborne: live.airborne } });
+              music.engine(live);
+            },
+            effect: (e, k) => {
+              audioLog?.push({ effect: e, k: k ?? 1 });
+              music.effect(e, k);
+            },
+          },
+        });
         if (!alive) return g.dispose();
         game.current = g;
         (window as unknown as { __taxi: Game; __taxiMusic: Music }).__taxi = g;
@@ -230,6 +273,19 @@ export function TaxiPage() {
   useEffect(() => music.duck(paused), [music, paused]);
   const hurry = screen === 'play' && hud?.run?.mode === 'arcade' && hud.run.time <= 10;
   useEffect(() => music.setRate(hurry ? 1.08 : 1), [music, hurry]);
+  // the countdown beeps of an arcade run: one per whole second from 10 to 1, higher for 3, 2, 1; never while paused
+  audioGate.current = { screen, paused };
+  const secLeft = screen === 'play' && hud?.run?.mode === 'arcade' && hud.run.phase === 'play' ? Math.ceil(hud.run.time) : null;
+  const lastBeep = useRef(99);
+  useEffect(() => {
+    if (secLeft === null || secLeft > 10) {
+      lastBeep.current = 99;
+      return;
+    }
+    if (paused || secLeft < 1 || secLeft >= lastBeep.current) return;
+    lastBeep.current = secLeft;
+    music.effect(secLeft <= 3 ? 'tickLast' : 'tick');
+  }, [music, secLeft, paused]);
   const volume = (kind: 'music' | 'sfx', v: number) => {
     music.setVolume(kind, v);
     setVol({ ...music.volumes });
