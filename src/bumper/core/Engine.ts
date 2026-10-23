@@ -4,7 +4,7 @@
 //
 // Quality: phones/tablets and software WebGL (SwiftShader, llvmpipe: headless test browsers, old PCs without a
 // GPU driver) get a lower render resolution and a smaller shadow map. If a device still runs slow, the resolution
-// steps down further (never below half); devices that keep up are never touched.
+// steps down further (never below half; software WebGL down to 0.35); devices that keep up are never touched.
 import * as THREE from 'three';
 import RAPIER from '@dimforge/rapier3d-compat';
 
@@ -37,7 +37,7 @@ function probeSoftware(): boolean {
 export function pickQuality(lowPower: boolean): Quality {
   const software = probeSoftware();
   const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
-  if (software) return { software, lowPower, pixelRatio: 0.6, shadowSize: 512, floorTexture: 512, particles: 200 };
+  if (software) return { software, lowPower, pixelRatio: 0.5, shadowSize: 512, floorTexture: 512, particles: 200 };
   if (lowPower) return { software, lowPower, pixelRatio: Math.min(dpr, 2), shadowSize: 1024, floorTexture: 1024, particles: 260 };
   return { software, lowPower, pixelRatio: Math.min(dpr, 2), shadowSize: 2048, floorTexture: 2048, particles: 320 };
 }
@@ -81,11 +81,13 @@ export class Engine {
     this.renderer.setPixelRatio(this.ratio);
     this.renderer.shadowMap.enabled = true;
     // three r185 folded PCFSoftShadowMap into PCFShadowMap (soft by default; the old constant only warns)
-    this.renderer.shadowMap.type = THREE.PCFShadowMap;
+    // software WebGL (no GPU) takes the single-tap shadow filter: one shadow lookup per pixel instead of a kernel
+    this.renderer.shadowMap.type = quality.software ? THREE.BasicShadowMap : THREE.PCFShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.info.autoReset = false;
-    this.scene.background = new THREE.Color('#A8E1FF');
-    this.scene.fog = new THREE.Fog('#A8E1FF', 70, 170);
+    // a mint lawn all round (the camera looks down on the arena, so the background reads as the ground)
+    this.scene.background = new THREE.Color('#BFEFD0');
+    this.scene.fog = new THREE.Fog('#BFEFD0', 80, 180);
     // spec 4.1: warm key light 1.8 and a sky/ground hemisphere 0.9 so shadows stay soft, never black. three r155+
     // uses physical light units (a white surface under intensity 1 shows 1/π), so both keep the spec's ratio and
     // are scaled to light the floor's top face at about full colour, as the spec's (legacy-unit) numbers intend.
@@ -157,16 +159,17 @@ export class Engine {
     this.avgStart = performance.now();
   }
 
-  /** steps the resolution down while frames stay slow; never below half */
+  /** steps the resolution down while frames stay slow (see the header for the floor) */
   private adapt(fps: number, secs: number) {
     if (fps >= 50 || document.hidden) {
       this.slowFor = 0;
       return;
     }
     this.slowFor += secs;
-    if (this.slowFor >= 1.5 && this.ratio > 0.5) {
+    const floor = this.quality.software ? 0.35 : 0.5;
+    if (this.slowFor >= 1.5 && this.ratio > floor) {
       this.slowFor = 0;
-      this.ratio = Math.max(0.5, Math.round((this.ratio - 0.1) * 100) / 100);
+      this.ratio = Math.max(floor, Math.round((this.ratio - 0.1) * 100) / 100);
       this.renderer.setPixelRatio(this.ratio);
       this.resize();
     }
@@ -183,7 +186,13 @@ export class Engine {
     return w / Math.max(1, h);
   }
 
+  private shadowFrame = 0;
   render(cam: THREE.Camera) {
+    // software WebGL: the shadow map is redrawn every other frame (the cars move ~0.5 m between two)
+    if (this.quality.software) {
+      this.renderer.shadowMap.autoUpdate = false;
+      this.renderer.shadowMap.needsUpdate = this.shadowFrame++ % 2 === 0;
+    }
     this.renderer.info.reset();
     this.renderer.render(this.scene, cam);
   }

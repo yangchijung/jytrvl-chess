@@ -4,14 +4,15 @@
 // Five draw calls per car (ring, body, head, antenna, shadow-free); everything else is merged.
 import * as THREE from 'three';
 import type { AnimalSpec, CarSpec } from './roster';
-import { Parts, glossy, toon } from '../vfx/materials';
+import { Parts, glossy, seg, toon } from '../vfx/materials';
 
 const SEG = 20;
-const sphere = (r: number, w = SEG, h = 12) => new THREE.SphereGeometry(r, w, h);
-const cyl = (rt: number, rb: number, h: number, s = SEG) => new THREE.CylinderGeometry(rt, rb, h, s);
+const sphere = (r: number, w = SEG, h = 12) => new THREE.SphereGeometry(r, seg(w, 6), seg(h, 4));
+const cyl = (rt: number, rb: number, h: number, s = SEG) => new THREE.CylinderGeometry(rt, rb, h, seg(s, 6));
 const box = (x: number, y: number, z: number) => new THREE.BoxGeometry(x, y, z);
-const capsule = (r: number, len: number) => new THREE.CapsuleGeometry(r, len, 4, 10);
-const cone = (r: number, h: number) => new THREE.ConeGeometry(r, h, 16);
+const capsule = (r: number, len: number) => new THREE.CapsuleGeometry(r, len, seg(4, 2), seg(10, 6));
+const cone = (r: number, h: number) => new THREE.ConeGeometry(r, h, seg(16, 6));
+const torus = (r: number, t: number, rs: number, ts: number, arc?: number) => new THREE.TorusGeometry(r, t, seg(rs, 4), seg(ts, 6), arc);
 
 const DARK = '#2B2F3A';
 /** the model's origin is the ring centre, this high above the floor (BumperCar CAR.rideY) */
@@ -59,7 +60,7 @@ function bodyGeometry(car: CarSpec, animal: AnimalSpec): THREE.BufferGeometry {
   p.pair(sphere(0.13, 12, 8), '#FFF8C4', { p: [0.48, 0.48, 1.08] });
   p.add(capsule(0.28, 0.9), t, { p: [0, 0.78, -0.62], r: [0, 0, Math.PI / 2] });
   // steering wheel
-  p.add(new THREE.TorusGeometry(0.22, 0.05, 6, 16), DARK, { p: [0, 0.92, 0.32], r: [-0.9, 0, 0] });
+  p.add(torus(0.22, 0.05, 6, 16), DARK, { p: [0, 0.92, 0.32], r: [-0.9, 0, 0] });
   p.add(cyl(0.04, 0.04, 0.4, 6), DARK, { p: [0, 0.78, 0.42], r: [-0.9, 0, 0] });
   // fins and wings
   switch (car.fins) {
@@ -135,7 +136,7 @@ function headGeometry(a: AnimalSpec): THREE.BufferGeometry {
     eyes(0.52, 0.42);
     p.add(sphere(0.07, 10, 6), a.nose, { p: [0, 0.38, 0.56], s: [1.3, 0.9, 0.8] });
   } else {
-    p.add(new THREE.TorusGeometry(0.16, 0.025, 6, 16, Math.PI), a.nose, { p: [0, 0.3, 0.52], r: [0, 0, Math.PI] });
+    p.add(torus(0.16, 0.025, 6, 16, Math.PI), a.nose, { p: [0, 0.3, 0.52], r: [0, 0, Math.PI] });
   }
   if (a.id === 'cat') {
     p.pair(box(0.2, 0.015, 0.015), DARK, { p: [0.28, 0.32, 0.5], r: [0, 0, 0.15] });
@@ -149,7 +150,7 @@ function antennaGeometry(car: CarSpec): { geo: THREE.BufferGeometry; tip: number
   const p = new Parts();
   const h = car.antenna === 'tall' ? 2.1 : 1.6;
   p.add(cyl(0.035, 0.05, h, 8), '#E9EDF2', { p: [0, h / 2, 0] }, [0.25, 0.5]);
-  if (car.antenna === 'curly') p.add(new THREE.TorusGeometry(0.12, 0.03, 6, 14), '#E9EDF2', { p: [0, h * 0.55, 0], r: [Math.PI / 2, 0, 0] }, [0.25, 0.5]);
+  if (car.antenna === 'curly') p.add(torus(0.12, 0.03, 6, 14), '#E9EDF2', { p: [0, h * 0.55, 0], r: [Math.PI / 2, 0, 0] }, [0.25, 0.5]);
   p.add(sphere(0.17, 14, 10), car.ring, { p: [0, h + 0.1, 0] }, [0.75, 0.5]);
   p.add(cyl(0.12, 0.12, 0.08, 10), DARK, { p: [0, 0.04, 0] }, [0.25, 0.5]);
   return { geo: p.build(), tip: h + 0.1 };
@@ -189,8 +190,8 @@ function shieldGeometry(): THREE.BufferGeometry {
       z = Math.cos(a) * 2.15;
     p.add(sphere(0.34, 14, 10), '#F2304B', { p: [x, 0.55, z] });
     p.add(sphere(0.1, 8, 6), '#FFFFFF', { p: [x - 0.1, 0.7, z + 0.12] });
-    p.add(new THREE.TorusGeometry(0.16, 0.05, 6, 12), '#E9EDF2', { p: [x, 0.18, z], r: [Math.PI / 2, 0, 0] });
-    p.add(new THREE.TorusGeometry(0.16, 0.05, 6, 12), '#E9EDF2', { p: [x, 0.3, z], r: [Math.PI / 2, 0, 0] });
+    p.add(torus(0.16, 0.05, 6, 12), '#E9EDF2', { p: [x, 0.18, z], r: [Math.PI / 2, 0, 0] });
+    p.add(torus(0.16, 0.05, 6, 12), '#E9EDF2', { p: [x, 0.3, z], r: [Math.PI / 2, 0, 0] });
   }
   return p.build();
 }
@@ -198,7 +199,7 @@ function shieldGeometry(): THREE.BufferGeometry {
 /** magnet: a red-and-blue U with silver tips */
 function magnetGeometry(): THREE.BufferGeometry {
   const p = new Parts();
-  const arc = (color: string, rz: number) => p.add(new THREE.TorusGeometry(0.42, 0.15, 8, 12, Math.PI / 2), color, { r: [0, 0, rz] });
+  const arc = (color: string, rz: number) => p.add(torus(0.42, 0.15, 8, 12, Math.PI / 2), color, { r: [0, 0, rz] });
   arc('#E53935', Math.PI);
   arc('#1E63D6', (3 * Math.PI) / 2);
   p.add(cyl(0.15, 0.15, 0.32, 10), '#E53935', { p: [-0.42, 0.16, 0] });
@@ -271,7 +272,7 @@ export class CarModel {
 
   constructor(car: CarSpec, animal: AnimalSpec, opts: { headShadow?: boolean } = {}) {
     const vc = (p: THREE.MeshToonMaterialParameters = {}) => toon({ vertexColors: true, ...p });
-    const ringGeo = new THREE.TorusGeometry(1.28, 0.3, 10, 32);
+    const ringGeo = torus(1.28, 0.3, 10, 32);
     ringGeo.rotateX(Math.PI / 2);
     ringGeo.scale(1, 1.05, 1);
     this.ring = new THREE.Mesh(ringGeo, toon({ color: car.ring }));

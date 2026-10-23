@@ -2,7 +2,7 @@
    Colours: ink #1E2A44 (outlines, numbers), cream #FFFDF7 (plates), green #13893A (the one big action),
    lemon #FFD600 (stars, lightning), alert red #C62828 (last 10 seconds, paired with a bigger number).
    Flat plates with solid outlines: no gradients, blur or drop shadows. Every control is at least 64 × 64 px. */
-.bump { position: fixed; inset: 0; overflow: hidden; background: #a8e1ff; color: #1e2a44; touch-action: none; -webkit-user-select: none; user-select: none; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; font-family: Inter, 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', system-ui, sans-serif; }
+.bump { position: fixed; inset: 0; overflow: hidden; background: #bfefd0; color: #1e2a44; touch-action: none; -webkit-user-select: none; user-select: none; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; font-family: Inter, 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', system-ui, sans-serif; }
 .bump-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 .bump button { font-family: inherit; cursor: pointer; }
 .bump :focus-visible { outline: 4px solid #1565c0; outline-offset: 3px; }

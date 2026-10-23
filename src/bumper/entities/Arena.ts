@@ -69,7 +69,7 @@ export function buildArenaPhysics(R: Rapier, world: RAPIER_NS.World): ArenaPhysi
 }
 
 /** the floor: cream and light-blue wedges with two rings and a star in the middle (Canvas 2D, no image files) */
-function floorTexture(size: number): THREE.CanvasTexture {
+function floorTexture(size: number, anisotropy: number): THREE.CanvasTexture {
   const cv = document.createElement('canvas');
   cv.width = cv.height = size;
   const g = cv.getContext('2d')!;
@@ -110,7 +110,7 @@ function floorTexture(size: number): THREE.CanvasTexture {
   g.stroke();
   const t = new THREE.CanvasTexture(cv);
   t.colorSpace = THREE.SRGBColorSpace;
-  t.anisotropy = 4;
+  t.anisotropy = anisotropy;
   return t;
 }
 
@@ -143,21 +143,15 @@ export class ArenaView {
   readonly posts: { mesh: THREE.Mesh; mat: THREE.MeshStandardMaterial; pulse: number }[] = [];
   private t = 0;
 
-  constructor(scene: THREE.Scene, opts: { textureSize: number }) {
+  constructor(scene: THREE.Scene, opts: { textureSize: number; anisotropy?: number }) {
     const ramp = toonRamp();
-    // ground outside the arena (a soft mint lawn) and the pink apron under the rail
-    // big flat surfaces with nothing to shade: unlit (cheap on every pixel, same look as the lit toon step)
-    const lawn = new THREE.Mesh(new THREE.CircleGeometry(140, 48), new THREE.MeshBasicMaterial({ color: '#BFEFD0' }));
-    lawn.rotation.x = -Math.PI / 2;
-    lawn.position.y = -0.03;
-    lawn.receiveShadow = false;
-    scene.add(lawn);
+    // the ground outside the arena is the scene background (a soft mint lawn, Engine); the pink apron sits under the rail
     const apron = new THREE.Mesh(new THREE.RingGeometry(ARENA.radius - 0.2, ARENA.radius + 4.5, 96, 1), new THREE.MeshBasicMaterial({ color: '#FFD3E2' }));
     apron.rotation.x = -Math.PI / 2;
     apron.position.y = -0.01;
     scene.add(apron);
 
-    const floor = new THREE.Mesh(new THREE.CircleGeometry(ARENA.radius, 96), new THREE.MeshToonMaterial({ map: floorTexture(opts.textureSize), gradientMap: ramp }));
+    const floor = new THREE.Mesh(new THREE.CircleGeometry(ARENA.radius, 96), new THREE.MeshToonMaterial({ map: floorTexture(opts.textureSize, opts.anisotropy ?? 4), gradientMap: ramp }));
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
     scene.add(floor);

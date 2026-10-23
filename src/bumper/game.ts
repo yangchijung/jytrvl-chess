@@ -17,6 +17,7 @@ import { ParticleSystem } from './vfx/ParticleSystem';
 import { POWER_UPS, PowerUpManager, PowerUpView, type PowerUpKind } from './entities/PowerUpManager';
 import { StarDropManager, StarView } from './entities/StarDropManager';
 import { ComboPop } from './vfx/ComboPop';
+import { DETAIL } from './vfx/materials';
 
 export interface GameStats {
   phase: Phase;
@@ -108,8 +109,9 @@ export async function startBumper(canvas: HTMLCanvasElement, opts: StartOpts): P
   const audio = opts.audio;
   const stats = opts.stats;
 
+  DETAIL.k = q.software ? 0.55 : 1;
   const arenaPhys = buildArenaPhysics(R, world);
-  const arena = new ArenaView(scene, { textureSize: q.floorTexture });
+  const arena = new ArenaView(scene, { textureSize: q.floorTexture, anisotropy: q.software ? 1 : 4 });
   const fx = new ParticleSystem(scene, q.particles);
   const camera = new CameraController(engine.resize());
   camera.motion = motion < 1 ? 0 : 1;
@@ -118,6 +120,7 @@ export async function startBumper(canvas: HTMLCanvasElement, opts: StartOpts): P
   const powerUps = new PowerUpManager(4, rng);
   const starDrops = new StarDropManager(rng);
   const starView = new StarView(scene);
+  starView.mesh.castShadow = !q.software;
   const boxView = new PowerUpView(scene);
   const combo = new ComboPop(scene);
   const input = new InputManager();

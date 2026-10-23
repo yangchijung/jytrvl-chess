@@ -2,6 +2,11 @@
 // arena and rails; glossy plastic (roughness 0.25, metalness 0.1) for bumper posts and, in P2, boxes and crown.
 // Parts of one object are merged into one vertex-coloured mesh so a whole car costs a handful of draw calls.
 import * as THREE from 'three';
+import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+
+/** mesh detail: 1 normally; software WebGL (no GPU) builds rounder parts with fewer segments */
+export const DETAIL = { k: 1 };
+export const seg = (n: number, min = 4) => Math.max(min, Math.round(n * DETAIL.k));
 
 let ramp: THREE.DataTexture | null = null;
 /** the three light steps of the toon look: shadow, mid, lit */
@@ -69,7 +74,10 @@ export class Parts {
     g.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
     g.setAttribute('color', new THREE.BufferAttribute(col, 3));
     g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
-    g.computeBoundingSphere();
-    return g;
+    // shared corners become one vertex (the GPU shades each vertex once instead of once per triangle)
+    const indexed = mergeVertices(g, 1e-5);
+    g.dispose();
+    indexed.computeBoundingSphere();
+    return indexed;
   }
 }
