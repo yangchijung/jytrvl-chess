@@ -123,7 +123,9 @@ export function buildingMaterial() {
           vec3 paint = diffuseColor.rgb;
           float sty = floor(vLook + 0.0005);
           float vr = vLook - sty;
-          if (vr < 0.001) vr = hsh(vOrg.xz * 0.173 + 5.3);
+          if (vr < 0.001) vr = hsh(floor(vOrg.xz * 2.0 + 0.5) * 0.173 + 5.3);
+          // quantise: interpolated varyings wobble in the last bits, and the hash would turn that into pixel noise
+          vr = floor(vr * 997.0 + 0.5) / 997.0;
           int look = int(sty);
           float r1 = hsh(vec2(vr * 97.3, 1.7)), r2 = hsh(vec2(vr * 61.1, 4.3)), r3 = hsh(vec2(vr * 43.7, 8.9));
           float r4 = hsh(vec2(vr * 29.9, 2.1)), r5 = hsh(vec2(vr * 83.3, 6.7)), r6 = hsh(vec2(vr * 17.9, 9.5));
@@ -158,7 +160,7 @@ export function buildingMaterial() {
             if (hs < 0.08) wall *= 1.12; else if (hs > 0.93) wall = mix(wall, vec3(0.72, 0.74, 0.75), 0.6);
             float col = floor(u / rw);
             float len = 0.6 + 3.5 * hsh(vec2(col, vr * 3.0 + 1.0));
-            float rust = step(0.7, hsh(vec2(col, vr * 7.0))) * (1.0 - smoothstep(0.0, len, top)) * (0.3 + 0.4 * r8);
+            float rust = step(0.62, hsh(vec2(col, vr * 7.0))) * (1.0 - smoothstep(0.0, len, top)) * (0.4 + 0.4 * r8);
             wall = mix(wall, vec3(0.45, 0.27, 0.17), rust);
             if (y < 0.6) wall = vec3(0.55, 0.55, 0.53); // concrete plinth
             // roller doors, fitted to the facade
