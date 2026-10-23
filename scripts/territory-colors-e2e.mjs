@@ -92,8 +92,8 @@ try {
 
     // ---------------------------------------------------------------- solo game uses it; rivals differ
     await p.$eval('[data-testid=tr-start]', (b) => b.click());
-    await p.waitForFunction(() => window.__tr?.game && window.__tr.screenHeads && Object.keys(window.__tr.screenHeads).length, { timeout: 10000 });
-    await sleep(300);
+    await p.waitForFunction(() => window.__tr?.status === 'countdown' && window.__tr.screenHeads && Object.keys(window.__tr.screenHeads).length, { timeout: 10000 });
+    await sleep(200);
     const s = await samples(p);
     ok('G1', 'solo: my runner is violet and every computer rival has another, unique colour', s.colors[s.me] === 7 && s.colors.filter((c) => c === 7).length === 1 && new Set(s.colors).size === s.colors.length, JSON.stringify(s.colors));
     ok('G2', 'solo: the head and my land are drawn in the violet base / light tint on the board', near(s.head, COLORS[7][0]) && near(s.land, COLORS[7][1]), JSON.stringify(s));
@@ -117,9 +117,11 @@ try {
     await p.screenshot({ path: `${OUT}/picker-${scheme}-${w}.png` });
     const nh = await noHScroll(p);
     await p.$eval('[data-testid=tr-start]', (b) => b.click());
-    await p.waitForFunction(() => window.__tr?.status === 'playing', { timeout: 10000 });
-    await sleep(300);
+    // sample in the countdown, while the runner still sits in the middle of its start land
+    await p.waitForFunction(() => window.__tr?.status === 'countdown' && window.__tr.screenHeads && Object.keys(window.__tr.screenHeads).length, { timeout: 10000 });
+    await sleep(200);
     const s = await samples(p);
+    await p.waitForFunction(() => window.__tr?.status === 'playing', { timeout: 10000 });
     ok(`G3-${scheme}-${w}`, `${scheme} ${w}px: sunflower head and ${scheme === 'dark' ? 'dark-board' : 'light'} land tint drawn; rivals differ; no sideways scroll`, s.colors[s.me] === 2 && new Set(s.colors).size === s.colors.length && near(s.head, COLORS[2][0]) && near(s.land, COLORS[2][scheme === 'dark' ? 2 : 1]) && nh, JSON.stringify(s));
     await sleep(2500);
     await p.screenshot({ path: `${OUT}/game-${scheme}-${w}.png` });
