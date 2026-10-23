@@ -9,10 +9,10 @@ export interface PageMeta {
 
 export const PAGES: Record<string, PageMeta> = {
   '/': {
-    title: { zh: 'JY Games｜西洋棋・象棋・暗棋・領地爭奪戰・貪食蛇・方塊消除・數獨・色彩塗鴉樂・數學遊樂島・手繪雲霄飛車', en: 'JY Games | Chess, Xiangqi, Banqi, Territory Rush, Snake Arena, Block Puzzle Battle, Sudoku, Color Doodle, Math Island & Sketch Coaster' },
+    title: { zh: 'JY Games｜西洋棋・象棋・暗棋・領地爭奪戰・貪食蛇・瘋狂碰碰車・方塊消除・數獨・色彩塗鴉樂・數學遊樂島・手繪雲霄飛車', en: 'JY Games | Chess, Xiangqi, Banqi, Territory Rush, Snake Arena, Crazy Bumper, Block Puzzle Battle, Sudoku, Color Doodle, Math Island & Sketch Coaster' },
     description: {
-      zh: '免費線上遊戲平台：棋藝策略（西洋棋、中國象棋、台灣暗棋）、即時競技（領地爭奪戰、貪食蛇競技場）與益智創作（方塊消除對戰、經典數獨、色彩塗鴉樂）。三級電腦 AI、線上對戰、互動教學。',
-      en: 'Free online game platform: strategy (Chess, Xiangqi, Banqi), real-time action (Territory Rush, Snake Arena) and puzzles & creativity (Block Puzzle Battle, Classic Sudoku, Color Doodle). Three AI levels, online play and interactive lessons.',
+      zh: '免費線上遊戲平台：棋藝策略（西洋棋、中國象棋、台灣暗棋）、即時競技（領地爭奪戰、貪食蛇競技場、瘋狂碰碰車）與益智創作（方塊消除對戰、經典數獨、色彩塗鴉樂）。三級電腦 AI、線上對戰、互動教學。',
+      en: 'Free online game platform: strategy (Chess, Xiangqi, Banqi), real-time action (Territory Rush, Snake Arena, Crazy Bumper) and puzzles & creativity (Block Puzzle Battle, Classic Sudoku, Color Doodle). Three AI levels, online play and interactive lessons.',
     },
     index: true,
   },
@@ -130,7 +130,7 @@ export const PAGES: Record<string, PageMeta> = {
   },
   '/doodle': {
     title: { zh: '色彩塗鴉樂｜線上畫畫與混色｜JY Games', en: 'Color Doodle | Draw and Mix Colours Online | JY Games' },
-    description: { zh: '打開就能畫：用紅黃藍混出橙綠紫，六個短任務、格子蓋印章，作品只存在自己的瀏覽器並可存成圖片。適合 5–12 歲。', en: 'Start drawing right away: mix red, yellow and blue into orange, green and purple, six short tasks, a stamp grid, and pictures that stay in your browser and save as PNG. For ages 5–12.' },
+    description: { zh: '打開就能畫：在調色盤上用紅黃藍白黑混出 24 種顏色，畫紙、玩圖畫、格子蓋印章，作品只存在自己的瀏覽器並可存成圖片。適合 5–12 歲。', en: 'Start drawing right away: mix 24 colours from red, yellow, blue, white and black on a palette, with paper, picture play and a stamp grid; pictures stay in your browser and save as PNG. For ages 5–12.' },
     index: true,
   },
   '/learn/doodle': {
@@ -157,6 +157,11 @@ export const PAGES: Record<string, PageMeta> = {
     title: { zh: '餐廳當老闆（一日原型）｜JY Games', en: 'Little Restaurant Owner (one-day prototype) | JY Games' },
     description: { zh: '選菜單、合併採買共用食材、分批備餐，打烊後看懂帳本。試玩原型。', en: 'Pick a menu, buy shared ingredients together, cook in batches and read the books. Playtest prototype.' },
     index: false,
+  },
+  '/bumper': {
+    title: { zh: '瘋狂碰碰車｜JY Games', en: 'Crazy Bumper | JY Games' },
+    description: { zh: '3D 碰碰車：選一隻動物和一台車，60 秒在嘉年華場地裡互撞、搶道具、撿星星。', en: 'A 3D bumper-car game: pick an animal and a car, bump around a carnival arena for 60 seconds, grab power-ups and collect stars.' },
+    index: true,
   },
   '/learn/sudoku': {
     title: { zh: '數獨規則教學｜JY Games', en: 'How to Play Sudoku | JY Games' },

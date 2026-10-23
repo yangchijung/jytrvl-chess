@@ -53,6 +53,8 @@ export interface Tuning {
   bodyFriction: number;
   /** air drag so the car settles at top speed without a hard wall */
   drag: number;
+  /** contact force (N) from which a hit counts as a crash (breaks the tip combo) */
+  crashForce: number;
 }
 
 export const TUNING: Tuning = {
@@ -62,8 +64,8 @@ export const TUNING: Tuning = {
   topSpeedKmh: 140,
   reverseForce: 5000,
   topReverseKmh: 35,
-  brakeForce: 40,
-  coastBrake: 4,
+  brakeForce: 450,
+  coastBrake: 80,
   steerLow: 0.6,
   steerHigh: 0.16,
   steerRate: 3.2,
@@ -92,6 +94,7 @@ export const TUNING: Tuning = {
   bodyRestitution: 0.35,
   bodyFriction: 0.15,
   drag: 0.45,
+  crashForce: 300000,
 };
 
 /** ranges for the dev panel sliders */
@@ -100,7 +103,8 @@ export const TUNING_RANGE: Partial<Record<keyof Tuning, [number, number, number]
   comHeight: [-0.8, 0.2, 0.05],
   engineForce: [2000, 20000, 250],
   topSpeedKmh: [60, 220, 5],
-  brakeForce: [5, 120, 5],
+  brakeForce: [100, 1200, 25],
+  coastBrake: [0, 200, 5],
   steerLow: [0.2, 0.9, 0.02],
   steerHigh: [0.05, 0.5, 0.01],
   steerRate: [0.5, 8, 0.1],

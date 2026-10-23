@@ -2,7 +2,7 @@ import type { TerritoryClient } from './client';
 import { useI18n, type StringKey } from '../i18n';
 import { useSettings } from '../lib/settings';
 import { Button } from '../components/ui';
-import { PALETTE } from './render';
+import { TERRITORY_COLORS, trColor } from '../../shared/territory/colors';
 import { useClient } from './TerritoryCanvas';
 
 export function EndOverlay({ client, onAgain, onBack, againLabel }: { client: TerritoryClient; onAgain?: () => void; onBack: () => void; againLabel?: string }) {
@@ -29,7 +29,7 @@ export function EndOverlay({ client, onAgain, onBack, againLabel }: { client: Te
               className="absolute top-0 block h-3 w-2 rounded-sm"
               style={{
                 left: `${(i * 37) % 100}%`,
-                background: PALETTE[i % 8].base,
+                background: TERRITORY_COLORS[i % TERRITORY_COLORS.length].base,
                 animation: `jy-fall ${2.2 + (i % 5) * 0.4}s linear ${(i % 7) * 0.25}s infinite`,
               }}
             />
@@ -57,7 +57,7 @@ export function EndOverlay({ client, onAgain, onBack, againLabel }: { client: Te
             return (
               <li key={pi} className={`flex items-center gap-2 ${client.me.includes(pi) ? 'font-bold' : ''}`}>
                 <span className="w-5 tabular-nums">{i + 1}.</span>
-                <span className="h-3 w-3 rounded-sm" style={{ background: PALETTE[p.color % 8].base }} />
+                <span className="h-3 w-3 rounded-sm" style={{ background: trColor(p.color).base }} />
                 <span className="flex-1 truncate">{p.name}</span>
                 <span className="tabular-nums text-[var(--muted)]">{((p.bestLand / total) * 100).toFixed(1)}%</span>
               </li>

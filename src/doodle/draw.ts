@@ -1,6 +1,6 @@
 // Color Doodle — canvas rendering shared by the live paper and PNG export. Coordinates are normalised (0..1).
 import { colorOf, type Cell, type ColorId, type FreeOp, type Shape, type Size } from '../../shared/doodle/model';
-import { FISH_ART, type Region } from '../../shared/doodle/scene';
+import { LINE as INK, VIEWBOX, type Template } from '../../shared/doodle/templates';
 
 export const LINE: Record<Size, number> = { s: 0.006, m: 0.014, l: 0.03 }; // fraction of paper width
 export const STAMP: Record<Size, number> = { s: 0.035, m: 0.06, l: 0.095 };
@@ -108,30 +108,25 @@ export function exportPng(kind: 'free' | 'grid', ops: FreeOp[], cells: (Cell | n
   return new Promise((res) => c.toBlob((b) => res(b), 'image/png'));
 }
 
-/** PNG of the picture-play fish: the child's region colours on white, outlines, no interface or motion frames. */
-export function exportScenePng(colors: Record<Region, ColorId | null>): Promise<Blob | null> {
+/** PNG of any picture template: white background, the child's colours, the line art, no interface (1600×1200). */
+export async function exportTemplatePng(tpl: Template, colors: Record<string, ColorId | null>): Promise<Blob | null> {
+  const k = 4;
+  const { width: w, height: h } = VIEWBOX;
+  const paths = tpl.regions.map((r) => `<path d="${r.d}" fill="${colors[r.id] ? colorOf(colors[r.id]!).hex : '#FFFFFF'}"/>`).join('');
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w * k}" height="${h * k}" viewBox="0 0 ${w} ${h}"><rect width="${w}" height="${h}" fill="#FFFFFF"/><g stroke="${INK}" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">${paths}<g fill="none">${tpl.details}</g></g></svg>`;
+  const img = new Image();
+  img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  try {
+    await img.decode();
+  } catch {
+    return null;
+  }
   const c = document.createElement('canvas');
-  const k = 4; // 400×300 art → 1600×1200
-  c.width = FISH_ART.viewBox.w * k;
-  c.height = FISH_ART.viewBox.h * k;
+  c.width = w * k;
+  c.height = h * k;
   const ctx = c.getContext('2d')!;
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, c.width, c.height);
-  ctx.scale(k, k);
-  ctx.lineJoin = 'round';
-  ctx.lineCap = 'round';
-  ctx.strokeStyle = '#1f2328';
-  ctx.lineWidth = 4;
-  for (const r of ['tail', 'fin', 'body'] as Region[]) {
-    const p = new Path2D(FISH_ART[r]);
-    ctx.fillStyle = colors[r] ? colorOf(colors[r]!).hex : '#ffffff';
-    ctx.fill(p);
-    ctx.stroke(p);
-  }
-  ctx.fillStyle = '#1f2328';
-  ctx.beginPath();
-  ctx.arc(FISH_ART.eye.cx, FISH_ART.eye.cy, FISH_ART.eye.r, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke(new Path2D(FISH_ART.mouth));
+  ctx.drawImage(img, 0, 0, c.width, c.height);
   return new Promise((res) => c.toBlob((b) => res(b), 'image/png'));
 }

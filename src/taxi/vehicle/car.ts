@@ -40,6 +40,8 @@ export interface CarEvents {
   flips: number;
   /** strength of the last landing (m/s down), for the camera shake */
   lastLanding: number;
+  /** how long the last flight lasted (s) */
+  lastAir: number;
 }
 
 export class Car {
@@ -62,7 +64,7 @@ export class Car {
   private airFor = 0;
   private now = 0;
   private spawn: { p: V3; yaw: number };
-  ev: CarEvents = { rush: 0, driftTime: 0, airTime: 0, longestAir: 0, landings: 0, flips: 0, lastLanding: 0 };
+  ev: CarEvents = { rush: 0, driftTime: 0, airTime: 0, longestAir: 0, landings: 0, flips: 0, lastLanding: 0, lastAir: 0 };
 
   constructor(
     private R: R,
@@ -91,7 +93,9 @@ export class Car {
     return this.R.ColliderDesc.cuboid(HALF.x, HALF.y, HALF.z)
       .setMassProperties(m, { x: 0, y: comHeight, z: 0 }, inertia, { x: 0, y: 0, z: 0, w: 1 })
       .setFriction(this.t.bodyFriction)
-      .setRestitution(this.t.bodyRestitution);
+      .setRestitution(this.t.bodyRestitution)
+      .setActiveEvents(this.R.ActiveEvents.CONTACT_FORCE_EVENTS)
+      .setContactForceEventThreshold(this.t.crashForce);
   }
 
   /** push the tuning numbers into Rapier (called after the dev panel changes something) */
@@ -279,6 +283,7 @@ export class Car {
       if (wasAir && this.airFor > 0.25) {
         this.ev.landings++;
         this.ev.lastLanding = Math.abs(this.body.linvel().y);
+        this.ev.lastAir = this.airFor;
       }
       this.airFor = 0;
     }

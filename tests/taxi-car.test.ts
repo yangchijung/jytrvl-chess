@@ -19,7 +19,8 @@ function setup(withCity = false, spawn = { x: 0, y: 1.2, z: -60 }, yaw = 0) {
   world.createCollider(RAPIER.ColliderDesc.cuboid(withCity ? 200 : 2000, 0.5, withCity ? 200 : 2000).setTranslation(0, -0.5, 0).setFriction(1)); // open ground is big enough for the top-speed run
   if (withCity)
     for (const s of greybox()) {
-      const rot = { x: 0, y: Math.sin((s.yaw ?? 0) / 2), z: 0, w: Math.cos((s.yaw ?? 0) / 2) };
+      const yaw = s.kind === 'box' || s.kind === 'wedge' ? (s.yaw ?? 0) : 0;
+      const rot = { x: 0, y: Math.sin(yaw / 2), z: 0, w: Math.cos(yaw / 2) };
       if (s.kind === 'box' && !s.dynamic) world.createCollider(RAPIER.ColliderDesc.cuboid(s.size[0] / 2, s.size[1] / 2, s.size[2] / 2).setTranslation(...s.p).setRotation(rot).setRestitution(0.2).setFriction(0.4));
       if (s.kind === 'wedge') world.createCollider(RAPIER.ColliderDesc.convexHull(new Float32Array(wedgePoints(s.size).flat()))!.setTranslation(...s.p).setRotation(rot).setFriction(1));
     }
@@ -119,13 +120,41 @@ describe('Rush Taxi car feel (stage 1)', () => {
   it('walls: driving into a wall slows and bounces the car, it never goes through or gets stuck', () => {
     // the long rub wall is at x = 45; start west of it facing +x
     const { car, run } = setup(true, { x: 20, y: 1.2, z: 0 }, Math.PI / 2);
-    run(2.5, { throttle: 1 });
+    run(3.8, { throttle: 1 }); // long enough to reach the wall (25 m away)
     expect(car.body.translation().x).toBeLessThan(45);
-    run(1, { brake: 1 });
-    const x0 = car.body.translation().x;
-    run(1.5, { throttle: 1, steer: 1 }); // turn away and drive off again
+    expect(car.body.translation().x).toBeGreaterThan(41); // it did reach the wall
+    run(1.5, { brake: 1 });
+    expect(car.body.translation().x).toBeLessThan(42); // holding the brake backs it off the wall
+    const z0 = car.body.translation().z;
+    run(1.5, { throttle: 1, steer: 1 }); // turn and drive off
     expect(car.kmh()).toBeGreaterThan(10);
-    expect(car.body.translation().x).toBeLessThan(x0); // moving away from the wall
+    expect(car.body.translation().x).toBeLessThan(45); // never through the wall
+    expect(Math.abs(car.body.translation().z - z0)).toBeGreaterThan(1.5); // turning away, not stuck
     expect(car.up().y).toBeGreaterThan(0.8);
+  });
+  it('brakes hard: from about 100 km/h to a stop within 2 s and 30 m; letting go of both pedals rolls to a stop', () => {
+    const { car, run } = setup();
+    run(3.2, { throttle: 1 });
+    expect(car.kmh()).toBeGreaterThan(90);
+    const z0 = car.body.translation().z;
+    let t = 0;
+    while (car.kmh() > 2 && t < 5) {
+      run(DT, { brake: 1 });
+      t += DT;
+    }
+    expect(t).toBeLessThan(2);
+    expect(car.body.translation().z - z0).toBeLessThan(30);
+    // keep holding the brake: it backs up slowly (reverse), never faster than the reverse limit
+    run(3, { brake: 1 });
+    expect(car.forward().z * car.body.linvel().z).toBeLessThan(0);
+    expect(car.kmh()).toBeLessThan(TUNING.topReverseKmh + 3);
+    // coasting from speed stops by itself
+    run(3, { throttle: 1 });
+    t = 0;
+    while (car.kmh() > 1 && t < 15) {
+      run(DT);
+      t += DT;
+    }
+    expect(t).toBeLessThan(10);
   });
 });

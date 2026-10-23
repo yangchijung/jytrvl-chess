@@ -1,6 +1,8 @@
 // Rush Taxi — third-person chase camera: a damped spring behind the car, wider field of view with speed
 // (60° → 75°), looks a little towards the nose's turn while drifting so the exit of the corner is visible, pulls
-// back in the air, a short shake on hard landings, and never through a wall (a ray from the car pulls it in).
+// back in the air, a short shake on hard landings, and never through a wall (a ray from the car pulls it in, held
+// for a moment so it does not flick in and out at a corner, and the smoothed position is clamped to the free length
+// too). Thin things without colliders (name boards, landmark parts) are not dodged here: fx/occlusion.ts fades them.
 import * as THREE from 'three';
 
 export interface CamTarget {
@@ -20,6 +22,8 @@ export class ChaseCam {
   private shake = 0;
   private first = true;
   private dir = new THREE.Vector3(0, 0, 1);
+  /** seconds left to keep the raised "over the car" view after the last time the normal spot was blocked */
+  private hold = 0;
 
   constructor(aspect: number) {
     this.cam = new THREE.PerspectiveCamera(60, aspect, 0.3, 900);
@@ -45,7 +49,7 @@ export class ChaseCam {
     if (t.drifting) want.applyAxisAngle(new THREE.Vector3(0, 1, 0), -t.steer * 0.35); // look into the corner
     this.dir.lerp(want, 1 - Math.exp(-dt * (t.drifting ? 3 : 5))).normalize();
 
-    const back = 7.5 + Math.min(3, t.kmh / 45) + (t.airborne ? 2.5 : 0);
+    const back = 7.5 + Math.min(2, t.kmh / 70) + (t.airborne ? 2.5 : 0);
     const height = 3.2 + (t.airborne ? 1.2 : 0);
     const goal = t.pos.clone().addScaledVector(this.dir, -back).add(new THREE.Vector3(0, height, 0));
     const lookAt = t.pos.clone().addScaledVector(this.dir, 4).add(new THREE.Vector3(0, 1.2, 0));
@@ -53,7 +57,16 @@ export class ChaseCam {
     const head = t.pos.clone().add(new THREE.Vector3(0, 1.6, 0));
     const full = goal.distanceTo(head);
     const free = occlude(head, goal);
-    if (free < full) goal.copy(head).addScaledVector(goal.clone().sub(head).normalize(), Math.max(1.5, free - 0.4));
+    this.hold = free < full ? 0.6 : Math.max(0, this.hold - dt);
+    if (this.hold > 0) {
+      // something behind the car: first try rising over the car (closer and higher, still showing the road ahead);
+      // only if that is blocked too, pull in along the ray
+      const high = t.pos.clone().addScaledVector(this.dir, -back * 0.55).add(new THREE.Vector3(0, height + 4, 0));
+      const freeHigh = occlude(head, high);
+      if (freeHigh >= high.distanceTo(head) - 0.01) goal.copy(high);
+      else if (freeHigh > free) goal.copy(head).addScaledVector(high.sub(head).normalize(), Math.max(1.5, freeHigh - 0.4));
+      else if (free < full) goal.copy(head).addScaledVector(goal.clone().sub(head).normalize(), Math.max(1.5, free - 0.4));
+    }
 
     if (this.first) {
       this.dir.copy(want);
@@ -62,8 +75,15 @@ export class ChaseCam {
       this.look.copy(lookAt);
       this.first = false;
     }
-    const k = 1 - Math.exp(-dt * 8);
+    // stiffer at speed so the taxi does not shrink into the distance on a long straight
+    const k = 1 - Math.exp(-dt * (8 + t.kmh / 20));
     this.pos.lerp(goal, k);
+    // the smoothed position can lag into a wall the goal already avoids (a sharp turn by a corner): clamp it
+    const span = this.pos.distanceTo(head);
+    if (span > 1.5) {
+      const room = occlude(head, this.pos);
+      if (room < span - 0.01) this.pos.copy(head).addScaledVector(this.pos.clone().sub(head).normalize(), Math.max(1.5, room - 0.3));
+    }
     this.look.lerp(lookAt, 1 - Math.exp(-dt * 12));
     this.cam.position.copy(this.pos);
     if (this.shake > 0.001) {

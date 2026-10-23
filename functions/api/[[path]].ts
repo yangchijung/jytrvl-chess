@@ -5,6 +5,7 @@ import { ensureSchema, logError } from '../../server/schema';
 import { START_RATING } from '../../server/elo';
 import { GAME_IDS, type GameId } from '../../shared/types';
 import { verifySnake, verifyBlocks, SNAKE_SOLO_MODES, BLOCKS_SOLO_MODES } from '../../shared/solo';
+import { parseColor } from '../../shared/territory/colors';
 
 interface Env {
   DB: D1Database;
@@ -73,6 +74,12 @@ async function ratingsOf(db: D1Database, userId: string) {
   for (const g of [...GAME_IDS, 'blocks']) out[g] = { rating: START_RATING, games: 0, wins: 0, losses: 0, draws: 0 };
   for (const r of rows.results) out[r.game] = { ...r, rating: Math.round(r.rating) };
   return out;
+}
+
+/** Territory Rush: the colour a page asks for (`?color=<palette index>`), passed on only when valid. */
+function territoryColor(url: URL): Record<string, string> {
+  const c = parseColor(url.searchParams.get('color'));
+  return c === null ? {} : { 'x-jy-color': String(c) };
 }
 
 /** Forward a WebSocket upgrade to a Durable Object, attaching the verified identity. */
@@ -383,7 +390,7 @@ export const onRequest = async (ctx: Ctx): Promise<Response> => {
         const info = (await (await stub.fetch('https://do/info')).json()) as { exists: boolean };
         if (!info.exists) return err('room_not_found', 404);
         const name = me.kind === 'user' ? me.nickname : cleanGuestName(url.searchParams.get('name'), me.nickname);
-        return forwardWs(req, stub, me, { 'x-jy-name': name }, '/ws');
+        return forwardWs(req, stub, me, { 'x-jy-name': name, ...territoryColor(url) }, '/ws');
       }
     }
     if (route === 'GET /territory/match/ws') {
@@ -392,7 +399,7 @@ export const onRequest = async (ctx: Ctx): Promise<Response> => {
       const flow = url.searchParams.get('engine') === 'flow';
       const stub = env.TLOBBY.get(env.TLOBBY.idFromName(flow ? 'public-flow' : 'public'));
       const name = me.kind === 'user' ? me.nickname : cleanGuestName(url.searchParams.get('name'), me.nickname);
-      return forwardWs(req, stub, me, { 'x-jy-name': name }, '/ws', flow ? '?engine=flow' : '');
+      return forwardWs(req, stub, me, { 'x-jy-name': name, ...territoryColor(url) }, '/ws', flow ? '?engine=flow' : '');
     }
     if (route === 'GET /territory/leaderboard') {
       const sort = ({ score: 'best_score', wins: 'wins', kills: 'kills', pct: 'best_pct' } as Record<string, string>)[url.searchParams.get('sort') ?? 'score'] ?? 'best_score';

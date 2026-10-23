@@ -4,9 +4,11 @@ import { botThink, newBotMemory, type BotLevel, type BotMemory } from '../../sha
 import { FlowGame, STEP_MS } from '../../shared/territory/flow';
 import { flowBotThink, newFlowBotMemory, type FlowBotMemory } from '../../shared/territory/flow-ai';
 import { TerritoryClient } from './client';
+import { assignColors } from '../../shared/territory/colors';
 
 export interface LocalTerritoryOptions {
-  humans: { name: string }[];
+  /** color: requested palette index (TERRITORY_COLORS); bots take the remaining colours, never a duplicate */
+  humans: { name: string; color?: number }[];
   bots: number;
   level: BotLevel;
   durationMin: number;
@@ -56,11 +58,12 @@ export class LocalTerritory extends TerritoryClient {
     this.tickMs = o.flow ? STEP_MS : TICK_MS;
     const cfg = { width: size, height: size, durationTicks: Math.round((o.durationMin * 60000) / this.tickMs), seed };
     const g = o.flow ? new FlowGame(cfg) : new TerritoryGame(cfg);
-    o.humans.forEach((h, k) => g.addPlayer(`h${k}`, h.name, false));
+    const colors = assignColors([...o.humans.map((h) => h.color), ...Array.from({ length: o.bots }, () => null)]);
+    o.humans.forEach((h, k) => g.addPlayer(`h${k}`, h.name, false, colors[k]));
     const r = rng(seed ^ 0xabcdef);
     this.bots = [];
     for (let k = 0; k < o.bots; k++) {
-      const p = g.addPlayer(`b${k}`, botName(k), true);
+      const p = g.addPlayer(`b${k}`, botName(k), true, colors[o.humans.length + k]);
       this.bots.push({ idx: p.idx, mem: newBotMemory(), fmem: newFlowBotMemory(), rand: rng(Math.floor(r() * 2 ** 31)), level: o.level });
     }
     g.start();
