@@ -44,7 +44,7 @@ describe('chase camera occlusion fade', () => {
     expect(occlusionFade(board, cam, car, 0)).toBe(0);
     expect(occlusionFade(board, cam, car, OCC_NEAR)).toBe(0);
     expect(occlusionFade(board, cam, car, OCC_NEAR_BOARD)).toBeGreaterThan(0.5);
-    expect(occlusionFade(cam.clone().add(v(0, 3, 14.5)), cam, car, OCC_NEAR_BOARD)).toBe(0); // readable from afar
+    expect(occlusionFade(cam.clone().add(v(0, 3, 16.5)), cam, car, OCC_NEAR_BOARD)).toBe(0); // readable from afar
   });
   it('wraps an existing onBeforeCompile and keeps a distinct program key', () => {
     const calls: string[] = [];

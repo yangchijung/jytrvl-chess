@@ -20,10 +20,10 @@ export const OCC_R_CAR = 2.3;
 /**
  * Spheres around the lens: anything this close is faded. Landmark parts use the small one (their walls are big, a
  * hole should only open right at the lens); name boards the large one: a 9 m board hanging over the pavement fills a
- * corner of the screen from 8 m away, and by then the driver has read it.
+ * corner of the screen from 10 m away, and by then the driver has read it (fully faded inside 8 m).
  */
 export const OCC_NEAR = 4.5;
-export const OCC_NEAR_BOARD = 14;
+export const OCC_NEAR_BOARD = 16;
 /**
  * How far along the camera→car line the cone reaches (1 = the car's centre). Boards and landmark parts reach a
  * little past the car; building walls stop short of it, so a wall the taxi drives along never gets a hole beside it.
