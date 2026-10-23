@@ -15,6 +15,7 @@ Done (with evidence):
 
   - 2026-10-21 工程：數學遊樂島正式入口 PR（M0-R，疊在 #12）——首頁「動手學數學」卡片、選單、可索引與 sitemap；首頁 15／15、蘋果籃 51／51、分裝工廠 36／36（docs/ACCEPTANCE.md §32）。合併順序 #10 → #12 → M0-R；實機與孩子試玩未測
   - 2026-10-23 工程：色彩塗鴉樂 V2 R2b（另存失敗不刪唯一分頁副本，PR #13／#14 同步；已合併最新 main），docs/ACCEPTANCE.md §29.3
+  - 2026-10-21 工程：色彩塗鴉樂 V2 C2（分支 claude/doodle-v2-c2，疊在 C1 PR 上）——六張底圖 32 區域、換底圖縮圖、部位按鈕、分圖保存與 undo、每張 PNG；單元 29×32 組合、瀏覽器 37／37（docs/ACCEPTANCE.md §30）；實機／孩子試玩未做
   - 2026-10-21 工程：色彩塗鴉樂 V2 C1（分支 claude/doodle-v2-c1，PR 待合併）——29 色／24 配方、成色可再混、畫紙＋手持調色盤（兩格＋混色池＋再加白＋全部 29 色配方）、混色小挑戰、V2 存檔 jy.doodle.v2（V1 只讀匯入一次、Web Locks 單一寫入者）；單元 283、瀏覽器 32／32、原存檔診斷 17＋24 通過（docs/ACCEPTANCE.md §29）；C2 五張底圖、實機與孩子試玩未做
   - 2026-10-20 產品：塗鴉 V2 規格＋Figma 四頁＋24 配方／29 色＋六張可編輯 SVG 交付，見 docs/product/DOODLE_WORKBENCH_V2.md、docs/design/doodle-workbench-v2。已核對來源 8 色／4 配方與基本色限制，完成資料可達性／舊色與加白方向、設計稿目視檢查；未寫遊戲／部署／實機驗收
   - 2026-10-20 工程：數學遊樂島 M0-A 蘋果籃（分支 claude/math-m0a，PR 待 James 合併；/math、/math/g1/apple noindex）——5 題固定題、未搬完不判答（MR01）、拖曳／先點再點／鍵盤同一動作規則、48 CSS px 吸附（47/48 進、49 不進）、單指、取消／旋轉回原位、單一寫入者多分頁（Web Locks）、壞檔備份、寫入失敗提示、預錄音檔接線（音檔未產生）。單元 12、瀏覽器 50／50（docs/ACCEPTANCE.md §26）；未做 iPad 實機／Safari／VoiceOver／FPS／孩子試玩

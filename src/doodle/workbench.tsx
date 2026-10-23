@@ -38,9 +38,10 @@ import {
   type Shape,
   type Size,
 } from '../../shared/doodle/model';
-import { FISH_ART, FISH_REGIONS, pushScene, regionColors, taskMet, type Region } from '../../shared/doodle/scene';
+import { FISH_ART, pushScene, regionColors, taskMet, type Region } from '../../shared/doodle/scene';
+import { LINE, REGIONS_OF, TEMPLATES, VIEWBOX, templateOf, type Template } from '../../shared/doodle/templates';
 import { addMixed, addQuest, useRecent, withWork, workOf, type SavedV2 } from '../../shared/doodle/v2';
-import { exportPng, exportScenePng } from './draw';
+import { exportPng, exportTemplatePng } from './draw';
 import { DoodleStore } from './v2store';
 import { ICONS, Icon, MarkIcon, Paper, StampGrid, Wheel, X, downloadText, markColour, reduced } from './parts';
 import { BoardShape, Dab, ToolIcon } from './art';
@@ -95,6 +96,12 @@ const W: Record<string, L> = {
   downloadThis: { zh: '下載剛才這一筆', en: 'Download that change' },
   imported: { zh: '之前的畫已經搬進新的畫板，原本的存檔也留著。', en: 'Your earlier drawings moved into the new workbench; the old save is kept too.' },
   sceneHint: { zh: '點身體、尾巴或魚鰭，就能上色', en: 'Tap the body, tail or fin to colour it' },
+  sceneAny: { zh: '點圖上的一塊，就能上色', en: 'Tap a part of the picture to colour it' },
+  choose: { zh: '換底圖', en: 'Choose a picture' },
+  chooseTitle: { zh: '選一張底圖', en: 'Choose a picture' },
+  chooseNote: { zh: '每張都會各自保留，換回來還在。', en: 'Each picture keeps its own colours. Come back any time.' },
+  coloured: { zh: '已上色 {n}／{t}', en: '{n} of {t} coloured' },
+  regionsOf: { zh: '{name}的部位', en: 'Parts of {name}' },
   gridHint: { zh: '選顏色，點格子蓋章', en: 'Pick a colour, then tap a square to stamp' },
   backToPaper: { zh: '回到畫紙', en: 'Back to the paper' },
   usingNow: { zh: '正在用：{c}', en: 'Painting with: {c}' },
@@ -136,8 +143,13 @@ export function DoodlePage() {
   const lessonIdx = run ? LESSONS.findIndex((l) => l.id === run.lessonId) : null;
   const lesson = lessonIdx !== null && lessonIdx >= 0 ? LESSONS[lessonIdx] : null;
   const step = lesson && run ? lessonStep(lesson, run, w.level) : null;
-  const work = workOf(w, 'fish');
-  const colors = regionColors(work.fills);
+  const sid = w.sceneId;
+  const tpl = templateOf(sid);
+  const regions = REGIONS_OF[sid];
+  const work = workOf(w, sid);
+  const colors = regionColors(work.fills, regions);
+  const regionName = (r: Region) => tpl.regions.find((x) => x.id === r)?.name[lang] ?? r;
+  const isFish = sid === 'fish';
 
   const [tool, setTool] = useState<'brush' | 'eraser' | 'stamp'>('brush');
   const [color, setColor] = useState<ColorId>(() => w.recent[0] ?? 'red');
@@ -155,6 +167,7 @@ export function DoodlePage() {
   const [why, setWhy] = useState(false);
   const [choiceMsg, setChoiceMsg] = useState<string | null>(null);
   const [fx, setFx] = useState(0);
+  const [picker, setPicker] = useState(false);
   const paperRef = useRef<HTMLCanvasElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -169,7 +182,7 @@ export function DoodlePage() {
   // ---------------------------------------------------------------- history per paper
   const history: History<unknown> = view === 'scene' ? work.fills : view === 'free' ? w.free : w.grid;
   const onHistory = (f: 'undo' | 'redo' | 'clear') => {
-    if (view === 'scene') return update((s) => withWork(s, 'fish', { ...work, fills: f === 'undo' ? undo(work.fills) : f === 'redo' ? redo(work.fills) : pushScene(work.fills, { t: 'clear' }) }));
+    if (view === 'scene') return update((s) => withWork(s, sid, { ...work, fills: f === 'undo' ? undo(work.fills) : f === 'redo' ? redo(work.fills) : pushScene(work.fills, { t: 'clear' }, regions) }));
     update((s) => (view === 'free' ? { ...s, free: f === 'undo' ? undo(s.free) : f === 'redo' ? redo(s.free) : clearFree(s.free) } : { ...s, grid: f === 'undo' ? undo(s.grid) : f === 'redo' ? redo(s.grid) : pushGrid(s.grid, { t: 'clear' }) }));
   };
   useEffect(() => {
@@ -213,11 +226,11 @@ export function DoodlePage() {
   };
   const fillRegion = (region: Region) => {
     const value = tool === 'eraser' ? null : color;
-    const fills = pushScene(work.fills, { t: 'fill', region, color: value });
-    const met = taskMet({ mixedOrange: work.mixedOrange, fills });
-    update((s) => marked(withWork(s, 'fish', { ...work, fills, done: work.done || met }), value));
+    const fills = pushScene(work.fills, { t: 'fill', region, color: value }, regions);
+    const met = isFish && taskMet({ mixedOrange: work.mixedOrange, fills });
+    update((s) => marked(withWork(s, sid, { ...work, fills, done: work.done || met }), value));
     setMoveMsg(false);
-    const msg = `${X[region][lang]}${lang === 'zh' ? '：' : ': '}${value ? name(value) : X.noColour[lang]}`;
+    const msg = `${regionName(region)}${lang === 'zh' ? '：' : ': '}${value ? name(value) : X.noColour[lang]}`;
     setSay(met && !work.done ? `${msg} ${X.fishDone[lang]}` : msg);
   };
   const moveFish = () => {
@@ -291,7 +304,7 @@ export function DoodlePage() {
         if (r.id === 'tint_red') n = addQuest(n, 'pink');
         if (r.id === 'tint_pink') n = addQuest(n, 'pale_pink');
         if (n.active && lesson?.recipe === r.id && view !== 'scene') n = { ...n, active: { ...n.active, mixed: [...n.active.mixed, r.id] } };
-        if (view === 'scene' && r.id === 'mix_orange') n = withWork(n, 'fish', { ...workOf(n, 'fish'), mixedOrange: true, done: workOf(n, 'fish').done || taskMet({ mixedOrange: true, fills: workOf(n, 'fish').fills }) });
+        if (view === 'scene' && isFish && r.id === 'mix_orange') n = withWork(n, 'fish', { ...workOf(n, 'fish'), mixedOrange: true, done: workOf(n, 'fish').done || taskMet({ mixedOrange: true, fills: workOf(n, 'fish').fills }) });
         return n;
       });
       setSay(c('mixAnnouncement', { a: name(a), b: name(b), result: name(r.output) }));
@@ -307,7 +320,7 @@ export function DoodlePage() {
     requestAnimationFrame(() => {
       const el = stageRef.current;
       if (el) el.scrollIntoView({ block: el.getBoundingClientRect().height <= window.innerHeight - 80 ? 'center' : 'start', behavior: reduced() ? 'instant' : 'smooth' });
-      if (view === 'scene') regionRef.current?.querySelector<HTMLButtonElement>('[data-testid=region-body]')?.focus({ preventScroll: true });
+      if (view === 'scene') regionRef.current?.querySelector<HTMLButtonElement>('button')?.focus({ preventScroll: true });
       else if (view === 'free') paperRef.current?.focus({ preventScroll: true });
       else gridRef.current?.querySelector<HTMLButtonElement>('button[tabindex="0"]')?.focus({ preventScroll: true });
     });
@@ -332,13 +345,13 @@ export function DoodlePage() {
   const canWhite = !!resultColor && out?.o.kind === 'recipe' && !!mixOutcomeOk(resultColor, 'white');
 
   const doExport = async () => {
-    const blob = view === 'scene' ? await exportScenePng(colors) : await exportPng(view === 'grid' ? 'grid' : 'free', visibleFree(w.free), gridCells(w.grid));
+    const blob = view === 'scene' ? await exportTemplatePng(tpl, colors) : await exportPng(view === 'grid' ? 'grid' : 'free', visibleFree(w.free), gridCells(w.grid));
     if (!blob) return;
     const d = new Date();
     const pad = (n: number) => String(n).padStart(2, '0');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `color-doodle-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.png`;
+    a.download = `color-doodle-${view === 'scene' ? `${sid}-` : ''}${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.png`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -357,7 +370,7 @@ export function DoodlePage() {
   });
 
   // ---------------------------------------------------------------- hints
-  const fishHint = taskMet(work) ? X.fishDone[lang] : work.mixedOrange ? X.tapBody[lang] : Object.values(colors).some(Boolean) ? X.tryAnother[lang] : tr(W.sceneHint);
+  const fishHint = !isFish ? (Object.values(colors).some(Boolean) ? X.tryAnother[lang] : tr(W.sceneAny)) : taskMet(work) ? X.fishDone[lang] : work.mixedOrange ? X.tapBody[lang] : Object.values(colors).some(Boolean) ? X.tryAnother[lang] : tr(W.sceneHint);
   const hint =
     view === 'scene'
       ? moveMsg
@@ -452,6 +465,9 @@ export function DoodlePage() {
             <button type="button" aria-pressed={view === 'scene'} className={tab(view === 'scene')} onClick={() => openView('scene')} data-testid="surface-fish">
               {X.picture[lang]}
             </button>
+            <button type="button" aria-haspopup="dialog" className={tab(false)} onClick={() => setPicker(true)} data-testid="choose-picture">
+              {tr(W.choose)}
+            </button>
             <button type="button" aria-pressed={view === 'grid'} className={tab(view === 'grid')} onClick={() => openView('grid')} data-testid="surface-grid">
               {c('grid')}
             </button>
@@ -459,7 +475,7 @@ export function DoodlePage() {
           <div ref={stageRef} className={`space-y-3 ${viewer ? 'pointer-events-none opacity-80' : ''}`} aria-disabled={viewer || undefined}>
             <div className="dw-paper">
               {view === 'scene' ? (
-                <FishPaper colors={colors} tailRef={tailRef} onFill={fillRegion} lang={lang} />
+                <ScenePaper tpl={tpl} colors={colors} tailRef={tailRef} onFill={fillRegion} lang={lang} />
               ) : view === 'free' ? (
                 <Paper canvasRef={paperRef} ops={visibleFree(w.free)} tool={tool} color={color} size={size} shape={shape} onCommit={commitFree} label={X.paper[lang]} />
               ) : (
@@ -474,14 +490,14 @@ export function DoodlePage() {
               <Tool icon="eraser" label={c('eraser')} pressed={tool === 'eraser'} onClick={() => setTool('eraser')} testid="tool-eraser" />
               <Tool icon="undo" label={c('undo')} onClick={() => onHistory('undo')} disabled={!canUndo(history)} testid="tool-undo" />
               <Tool icon="save" label={tr(W.savePic)} onClick={doExport} testid="tool-export" />
-              {view === 'scene' && <Tool icon="move" label={X.move[lang]} onClick={moveFish} disabled={!Object.values(colors).some(Boolean)} testid="fish-move" />}
+              {view === 'scene' && isFish && <Tool icon="move" label={X.move[lang]} onClick={moveFish} disabled={!Object.values(colors).some(Boolean)} testid="fish-move" />}
             </div>
             {view === 'scene' && (
-              <div ref={regionRef} className="flex flex-wrap gap-2" role="group" aria-label={X.regions[lang]}>
-                {FISH_REGIONS.map((r) => (
-                  <button key={r} type="button" onClick={() => fillRegion(r)} aria-label={`${X[r][lang]}${lang === 'zh' ? '：' : ': '}${colors[r] ? name(colors[r]!) : X.noColour[lang]}`} className="dw-chip" data-testid={`region-${r}`}>
+              <div ref={regionRef} className="flex flex-wrap gap-2" role="group" aria-label={tr(W.regionsOf, { name: tpl.name[lang] })}>
+                {tpl.accessibleOrder.map((r) => (
+                  <button key={r} type="button" onClick={() => fillRegion(r)} aria-label={`${regionName(r)}${lang === 'zh' ? '，目前' : ', now '}${colors[r] ? name(colors[r]!) : X.noColour[lang]}`} className="dw-chip" data-testid={`region-${r}`} data-color={colors[r] ?? ''}>
                     <span className="dw-chip-dot" style={{ background: colors[r] ? colorOf(colors[r]!).hex : '#ffffff' }} aria-hidden="true" />
-                    {X[r][lang]}
+                    {regionName(r)}
                   </button>
                 ))}
               </div>
@@ -674,7 +690,7 @@ export function DoodlePage() {
             <p className="text-sm text-[var(--muted)]">{tr(W.questNote)}</p>
           </div>
 
-          {view === 'scene' && (
+          {view === 'scene' && isFish && (
             <div className="space-y-1" data-testid="fish-task" data-done={work.done ? 'true' : 'false'}>
               <h3 className="text-base font-bold">{X.fishName[lang]}</h3>
               <p className="text-base">
@@ -715,6 +731,41 @@ export function DoodlePage() {
       <p className="sr-only" role="status" aria-live="polite" data-testid="announce">
         {say}
       </p>
+
+      <Modal open={picker} onClose={() => setPicker(false)} title={tr(W.chooseTitle)} wide>
+        <p className="mb-3 text-sm text-[var(--muted)]">{tr(W.chooseNote)}</p>
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3" data-testid="picker">
+          {TEMPLATES.map((t) => {
+            const cs = regionColors(workOf(w, t.id).fills, REGIONS_OF[t.id]);
+            const n = Object.values(cs).filter(Boolean).length;
+            return (
+              <li key={t.id}>
+                <button
+                  type="button"
+                  className={`dw-thumb ${sid === t.id && view === 'scene' ? 'dw-thumb-on' : ''}`}
+                  aria-pressed={sid === t.id && view === 'scene'}
+                  onClick={() => {
+                    update((s) => ({ ...s, sceneId: t.id, view: 'scene' }));
+                    setPicker(false);
+                    setMoveMsg(false);
+                    if (tool === 'stamp') setTool('brush');
+                    // after the dialog returns focus, move it to the first part of the new picture (keyboard / screen readers)
+                    setTimeout(() => {
+                      stageRef.current?.scrollIntoView({ block: 'nearest', behavior: reduced() ? 'instant' : 'smooth' });
+                      regionRef.current?.querySelector<HTMLButtonElement>('button')?.focus({ preventScroll: true });
+                    }, 60);
+                  }}
+                  data-testid={`pick-${t.id}`}
+                >
+                  <TemplateArt tpl={t} colors={cs} />
+                  <span className="font-bold">{t.name[lang]}</span>
+                  <span className="text-xs text-[var(--muted)]">{tr(W.coloured, { n, t: t.regions.length })}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </Modal>
 
       <Modal open={confirmClear} onClose={() => setConfirmClear(false)} title={c('clearTitle')}>
         <p className="mb-4">{view === 'free' && freeFull(w.free) ? X.fullClear[lang] : c('clearBody')}</p>
@@ -813,22 +864,35 @@ function Board({ slots, out, fx, hint, name, tr, mixing, onWell, onPool, onStart
   );
 }
 
-function FishPaper({ colors, tailRef, onFill, lang }: { colors: Record<Region, ColorId | null>; tailRef: RefObject<SVGGElement | null>; onFill: (r: Region) => void; lang: 'zh' | 'en' }) {
-  const A = FISH_ART;
+/** Static drawing of a template with the child's colours (used for the paper and the picture picker). */
+function TemplateArt({ tpl, colors, onFill, tailRef, label }: { tpl: Template; colors: Record<Region, ColorId | null>; onFill?: (r: Region) => void; tailRef?: RefObject<SVGGElement | null>; label?: string }) {
   const fill = (r: Region) => (colors[r] ? colorOf(colors[r]!).hex : '#ffffff');
-  const nm = (r: Region) => (colors[r] ? colorOf(colors[r]!).name[lang] : X.noColour[lang]);
-  const region = (r: Region, d: string) => <path d={d} fill={fill(r)} stroke="#1f2328" strokeWidth="4" strokeLinejoin="round" className="cursor-pointer" onClick={() => onFill(r)} data-testid={`fish-${r}`} data-color={colors[r] ?? ''} />;
+  const path = (r: { id: string; d: string }) => (
+    <path key={r.id} d={r.d} fill={fill(r.id)} className={onFill ? 'cursor-pointer' : undefined} onClick={onFill ? () => onFill(r.id) : undefined} data-testid={onFill ? `scene-${tpl.id}-${r.id}` : undefined} data-color={colors[r.id] ?? ''} />
+  );
   return (
-    <div data-testid="fish">
-      <svg viewBox={`0 0 ${A.viewBox.w} ${A.viewBox.h}`} className="block aspect-[4/3] w-full bg-white" role="img" aria-label={format(X.fishLabel[lang], { body: nm('body'), tail: nm('tail'), fin: nm('fin') })}>
-        <g ref={tailRef} style={{ transformOrigin: `${A.tailPivot.x}px ${A.tailPivot.y}px`, transformBox: 'view-box' }}>
-          {region('tail', A.tail)}
-        </g>
-        {region('fin', A.fin)}
-        {region('body', A.body)}
-        <circle cx={A.eye.cx} cy={A.eye.cy} r={A.eye.r} fill="#1f2328" pointerEvents="none" />
-        <path d={A.mouth} fill="none" stroke="#1f2328" strokeWidth="4" strokeLinecap="round" pointerEvents="none" />
-      </svg>
+    <svg viewBox={`0 0 ${VIEWBOX.width} ${VIEWBOX.height}`} className="block aspect-[4/3] w-full bg-white" role={label ? 'img' : undefined} aria-label={label} aria-hidden={label ? undefined : true}>
+      <g stroke={LINE} strokeWidth="5" strokeLinejoin="round" strokeLinecap="round">
+        {tpl.regions.map((r) =>
+          tpl.id === 'fish' && r.id === 'tail' && tailRef ? (
+            <g key={r.id} ref={tailRef} style={{ transformOrigin: `${FISH_ART.tailPivot.x}px ${FISH_ART.tailPivot.y}px`, transformBox: 'view-box' }}>
+              {path(r)}
+            </g>
+          ) : (
+            path(r)
+          ),
+        )}
+        <g fill="none" pointerEvents="none" dangerouslySetInnerHTML={{ __html: tpl.details }} />
+      </g>
+    </svg>
+  );
+}
+
+function ScenePaper({ tpl, colors, tailRef, onFill, lang }: { tpl: Template; colors: Record<Region, ColorId | null>; tailRef: RefObject<SVGGElement | null>; onFill: (r: Region) => void; lang: 'zh' | 'en' }) {
+  const label = `${tpl.name[lang]}${lang === 'zh' ? '：' : ': '}${tpl.accessibleOrder.map((r) => `${tpl.regions.find((x) => x.id === r)?.name[lang]}${lang === 'zh' ? '' : ' '}${colors[r] ? colorOf(colors[r]!).name[lang] : X.noColour[lang]}`).join(lang === 'zh' ? '、' : ', ')}`;
+  return (
+    <div data-testid="fish" data-scene={tpl.id}>
+      <TemplateArt tpl={tpl} colors={colors} onFill={onFill} tailRef={tailRef} label={label} />
     </div>
   );
 }

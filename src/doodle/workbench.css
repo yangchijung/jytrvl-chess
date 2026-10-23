@@ -64,6 +64,13 @@
   }
   .dw-mini { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid #8a8f98; display: inline-block; }
 
+  .dw-thumb {
+    display: flex; flex-direction: column; align-items: stretch; gap: 4px; width: 100%; padding: 6px; border-radius: 10px;
+    border: 2px solid var(--ui-control-border); background: var(--surface); text-align: center; min-height: 44px;
+  }
+  .dw-thumb:hover { background: var(--surface-2); }
+  .dw-thumb svg { border: 1.5px solid var(--dw-paper-edge); border-radius: 4px; }
+  .dw-thumb-on { border-color: var(--ui-accent-text); outline: 3px solid var(--ui-accent-text); outline-offset: 1px; }
   .dw-check { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--ui-control-border); display: inline-flex; align-items: center; justify-content: center; flex: none; }
   .dw-check-on { background: var(--ui-primary-bg); border-color: var(--ui-primary-bg); color: var(--ui-primary-fg); }
 }

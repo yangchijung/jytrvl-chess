@@ -14,6 +14,7 @@ const ok = (id, name, pass, info = '') => {
   console.log(`${pass ? 'PASS' : 'FAIL'} [${id}] ${name} ${String(info).slice(0, 300)}`);
 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const COLHEX = { pink: 'e992a0', mint: 'd2e4c2', lavender: 'b5a0cd', peach: 'f1b48a', dark_blue: '213c68', tan: 'c6a17c', yellow_orange: 'edab32' };
 const browser = await puppeteer.launch({
   executablePath: await chromium.executablePath(),
   args: [...chromium.args.filter((a) => !['--single-process', '--no-zygote', '--disable-site-isolation-trials', '--disable-web-security'].includes(a) && !a.startsWith('--disable-features='))],
@@ -74,6 +75,40 @@ const mix = async (p, a, b) => {
   return D(p);
 };
 const pool = (p) => p.$eval('[data-testid=pool]', (e) => e.dataset.color);
+/**
+ * Exports the current picture and reads the PNG colour at a point inside every region (a point where that region
+ * is the topmost element on screen, found with elementFromPoint), so the check follows the real drawing order.
+ */
+const scenePng = (p) =>
+  p.evaluate(async () => {
+    const svg = document.querySelector('[data-testid=fish] svg');
+    const sr = svg.getBoundingClientRect();
+    const k = 300 / sr.height;
+    const pts = {};
+    for (const el of svg.querySelectorAll('[data-testid^=scene-]')) {
+      const id = el.dataset.testid.split('-').slice(2).join('-');
+      const b = el.getBoundingClientRect();
+      for (let i = 0; i < 400 && !pts[id]; i++) {
+        const x = b.left + ((i * 37) % 97) / 97 * b.width, y = b.top + ((i * 53) % 89) / 89 * b.height;
+        let ok = true;
+        for (const [dx, dy] of [[0, 0], [5, 0], [-5, 0], [0, 5], [0, -5]]) if (document.elementFromPoint(x + dx, y + dy) !== el) ok = false;
+        if (ok) pts[id] = [(x - sr.left) * k, (y - sr.top) * k];
+      }
+    }
+    const orig = URL.createObjectURL;
+    let blob = null;
+    URL.createObjectURL = (b) => ((blob = b), orig.call(URL, b));
+    document.querySelector('[data-testid=tool-export]').click();
+    for (let t = 0; t < 30 && !blob; t++) await new Promise((r) => setTimeout(r, 100));
+    URL.createObjectURL = orig;
+    if (!blob) return null;
+    const img = await createImageBitmap(blob);
+    const c = new OffscreenCanvas(img.width, img.height);
+    const g = c.getContext('2d');
+    g.drawImage(img, 0, 0);
+    const px = (x, y) => Array.from(g.getImageData(Math.round(x * 4), Math.round(y * 4), 1, 1).data.slice(0, 3)).map((v) => v.toString(16).padStart(2, '0')).join('');
+    return { w: img.width, h: img.height, bg: px(2, 2), px: Object.fromEntries(Object.entries(pts).map(([id, [x, y]]) => [id, px(x, y)])), found: Object.keys(pts).length };
+  });
 
 try {
   // ---------------------------------------------------------------- W01 opens straight on the workbench
@@ -169,32 +204,90 @@ try {
     await tap(p, '[data-testid=swatch-dark_blue]');
     await tap(p, '[data-testid=region-fin]');
     await tap(p, '[data-testid=tool-undo]');
-    const afterUndo = await p.$eval('[data-testid=fish-fin]', (e) => e.dataset.color);
+    const afterUndo = await p.$eval('[data-testid=scene-fish-fin]', (e) => e.dataset.color);
     await tap(p, '[data-testid=tool-redo]');
-    const fills = await p.$$eval('[data-testid^=fish-]', (e) => Object.fromEntries(e.filter((x) => x.dataset.color !== undefined).map((x) => [x.dataset.testid.slice(5), x.dataset.color])));
-    const png = await p.evaluate(async () => {
-      const orig = URL.createObjectURL;
-      let blob = null;
-      URL.createObjectURL = (b) => ((blob = b), orig.call(URL, b));
-      document.querySelector('[data-testid=tool-export]').click();
-      await new Promise((r) => setTimeout(r, 800));
-      URL.createObjectURL = orig;
-      if (!blob) return null;
-      const img = await createImageBitmap(blob);
-      const c = new OffscreenCanvas(img.width, img.height);
-      const g = c.getContext('2d');
-      g.drawImage(img, 0, 0);
-      const px = (x, y) => Array.from(g.getImageData(x, y, 1, 1).data.slice(0, 3)).map((v) => v.toString(16).padStart(2, '0')).join('');
-      return { w: img.width, h: img.height, body: px(170 * 4, 150 * 4), fin: px(190 * 4, 60 * 4), bg: px(10, 10) };
-    });
+    const fills = await p.$$eval('[data-testid^=scene-fish-]', (e) => Object.fromEntries(e.map((x) => [x.dataset.testid.slice(11), x.dataset.color])));
+    const png = await scenePng(p);
     ok('CP06', 'new colours work on the stamp grid (gray) and the fish (peach body, dark blue fin); undo/redo per region', cell === 'gray-circle' && fills.body === 'peach' && fills.fin === 'dark_blue' && afterUndo === '', `${cell} ${JSON.stringify(fills)} undo=${afterUndo}`);
-    ok('CP09', 'fish PNG 1600×1200 on white with the new colours in place (peach #F1B48A body, dark blue #213C68 fin)', png && png.w === 1600 && png.body === 'f1b48a' && png.fin === '213c68' && png.bg === 'ffffff', JSON.stringify(png));
+    ok('CP09', 'fish PNG 1600×1200 on white with the new colours in place (peach #F1B48A body, dark blue #213C68 fin)', png && png.w === 1600 && png.px.body === 'f1b48a' && png.px.fin === '213c68' && png.bg === 'ffffff', JSON.stringify(png));
     await p.reload({ waitUntil: 'networkidle0' });
     await sleep(200);
     const d = await D(p);
     await go(p, '/en');
     const en = await D(p);
-    ok('CP05', 'reload and English keep the open view, the fish colours, the grid stamp and the recent colours', d.view === 'scene' && en.view === 'scene' && (await p.$eval('[data-testid=fish-body]', (e) => e.dataset.color)) === 'peach' && en.s.recent[0] === 'dark_blue' && en.s.grid.n === 1, `${d.view} ${en.s.recent}`);
+    ok('CP05', 'reload and English keep the open view, the fish colours, the grid stamp and the recent colours', d.view === 'scene' && en.view === 'scene' && (await p.$eval('[data-testid=scene-fish-body]', (e) => e.dataset.color)) === 'peach' && en.s.recent[0] === 'dark_blue' && en.s.grid.n === 1, `${d.view} ${en.s.recent}`);
+    await p.ctx.close();
+  }
+
+  // ---------------------------------------------------------------- C2 six pictures, 32 regions, kept apart
+  {
+    const p = await page(1280, 900);
+    await go(p);
+    await tap(p, '[data-testid=choose-picture]');
+    const picks = await p.$$eval('[data-testid^=pick-]', (e) => e.map((x) => x.dataset.testid.slice(5)));
+    await p.screenshot({ path: `${OUT}/c2-picker-1280.png` });
+    ok('CP05', '換底圖 opens the six pictures as thumbnails (each with its name and how many parts are coloured)', picks.join() === 'fish,garden,butterfly,dinosaur,rocket,house', picks.join());
+    await tap(p, '[data-testid=all-colours]').catch(() => {});
+    const palette = ['pink', 'mint', 'lavender', 'peach', 'dark_blue', 'tan', 'yellow_orange'];
+    const report = [];
+    let regionsDone = 0;
+    for (const sid of picks) {
+      if (!(await p.$('[data-testid=picker]'))) await tap(p, '[data-testid=choose-picture]');
+      await tap(p, `[data-testid=pick-${sid}]`);
+      await sleep(150);
+      if (!(await p.$('[data-testid=all-list]'))) await tap(p, '[data-testid=all-colours]');
+      const chips = await p.$$eval('[data-testid^=region-]', (e) => e.map((x) => x.dataset.testid.slice(7)));
+      const want = {};
+      for (const [k, r] of chips.entries()) {
+        const col = palette[k % palette.length];
+        await tap(p, `[data-testid=swatch-${col}]`);
+        // alternate the two ways in: tap the drawing itself, or the region button
+        if (k % 2 === 0) {
+          const el = await p.$(`[data-testid=scene-${sid}-${r}]`);
+          const ok2 = await p.evaluate((e) => {
+            const b = e.getBoundingClientRect();
+            for (let i = 0; i < 400; i++) {
+              const x = b.left + ((i * 37) % 97) / 97 * b.width, y = b.top + ((i * 53) % 89) / 89 * b.height;
+              if (document.elementFromPoint(x, y) === e) return [x, y];
+            }
+            return null;
+          }, el);
+          if (ok2) await p.mouse.click(ok2[0], ok2[1]);
+          else await tap(p, `[data-testid=region-${r}]`);
+        } else await tap(p, `[data-testid=region-${r}]`);
+        want[r] = col;
+        regionsDone++;
+      }
+      const got = await p.$$eval(`[data-testid^=scene-${sid}-]`, (e) => Object.fromEntries(e.map((x) => [x.dataset.testid.split('-').slice(2).join('-'), x.dataset.color])));
+      const png = await scenePng(p);
+      const hex = await p.evaluate((ws) => Object.fromEntries(Object.entries(ws).map(([r, c]) => [r, getComputedStyle(document.documentElement) && c])), want);
+      void hex;
+      report.push({ sid, n: chips.length, same: JSON.stringify(got) === JSON.stringify(Object.fromEntries(Object.keys(got).map((r) => [r, want[r]]))), png: png && png.found === chips.length && png.bg === 'ffffff' ? Object.entries(png.px).every(([r, v]) => v === COLHEX[want[r]]) : false });
+      await p.screenshot({ path: `${OUT}/c2-${sid}-1280.png` });
+    }
+    ok('CP05', 'all six pictures: every one of the 32 parts filled (drawing taps and part buttons), each picture shows its own colours', regionsDone === 32 && report.every((r) => r.same), JSON.stringify(report.map((r) => [r.sid, r.n, r.same])));
+    ok('CP09', 'six PNGs (1600×1200, white background): the colour inside every part matches the screen', report.every((r) => r.png), JSON.stringify(report.map((r) => [r.sid, r.png])));
+    // undo / redo / erase on one picture do not touch another
+    await tap(p, '[data-testid=choose-picture]');
+    await tap(p, '[data-testid=pick-garden]');
+    await tap(p, '[data-testid=tool-eraser]');
+    await tap(p, '[data-testid=region-pot]');
+    const erased = await p.$eval('[data-testid=scene-garden-pot]', (e) => e.dataset.color);
+    await tap(p, '[data-testid=tool-undo]');
+    const back = await p.$eval('[data-testid=scene-garden-pot]', (e) => e.dataset.color);
+    await tap(p, '[data-testid=tool-brush]');
+    await tap(p, '[data-testid=choose-picture]');
+    await tap(p, '[data-testid=pick-house]');
+    const houseStill = await p.$$eval('[data-testid^=scene-house-]', (e) => e.filter((x) => x.dataset.color).length);
+    ok('CP05', 'eraser empties a part, undo brings it back; another picture keeps all its colours', erased === '' && back !== '' && houseStill === 7, `${erased}|${back}|${houseStill}`);
+    await p.reload({ waitUntil: 'networkidle0' });
+    await sleep(200);
+    const afterReload = await p.$eval('[data-testid=fish]', (e) => e.dataset.scene);
+    await go(p, '/en');
+    await tap(p, '[data-testid=choose-picture]');
+    const counts = await p.$$eval('[data-testid^=pick-]', (e) => e.map((x) => x.textContent));
+    const v2 = await V2(p);
+    ok('CP05', 'reload and English keep the open picture (house) and all six works with their own undo histories', afterReload === 'house' && Object.keys(v2.scenes).length === 6 && Object.values(v2.scenes).every((w) => w.fills.n >= 3) && counts.every((t) => /(\d+) of \1/.test(t)), `${afterReload} ${counts.join(' | ')}`);
     await p.ctx.close();
   }
 
