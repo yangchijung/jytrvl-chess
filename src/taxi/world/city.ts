@@ -19,7 +19,7 @@ interface LandmarkJson {
 }
 type District = keyof typeof CITY.districts;
 
-const C = { lot: '#D9DCE1', park: '#7CB342', stunt: '#BDBDBD', harborLot: '#CFD8DC', rail: '#ECEFF1', ramp: '#C9A86A', wall: '#B5BCC6', mark: '#F5F5F5', post: '#5D6B78', seawall: '#90A4AE' };
+const C = { lot: '#D6CCBC', park: '#72B544', stunt: '#C9BCA4', harborLot: '#C4C2B8', rail: '#F1EEE6', ramp: '#D2A55E', wall: '#CFC4B2', mark: '#F7F5EE', post: '#5D6B78', seawall: '#93A5A3' };
 export const DOORS: Record<string, [number, number]> = { n: [0, 1], s: [0, -1], e: [1, 0], w: [-1, 0] };
 
 /** small deterministic hash → [0, 1) */

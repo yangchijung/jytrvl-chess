@@ -313,33 +313,39 @@ export function drawDecor(scene: THREE.Scene, level: Level) {
 
 /** water that moves: soft bands drifting across the surface (river and sea) */
 export function waterMaterial(color: string) {
-  const mat = new THREE.MeshLambertMaterial({ color });
+  // Phong for a sun glint; the ripple tilts the normal a little so the glint breaks into sparkles
+  const mat = new THREE.MeshPhongMaterial({ color, specular: '#CFE6F2', shininess: 70 });
   const uTime = { value: 0 };
   mat.onBeforeCompile = (sh) => {
     sh.uniforms.uTime = uTime;
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWp;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvWp = (modelMatrix * vec4(position, 1.0)).xyz;');
-    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vWp; uniform float uTime;').replace(
-      '#include <color_fragment>',
-      `#include <color_fragment>
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vWp; uniform float uTime;')
+      .replace(
+        '#include <color_fragment>',
+        `#include <color_fragment>
       float w = sin(vWp.x * 0.35 + uTime * 1.2) * sin(vWp.z * 0.5 - uTime * 0.8) + sin((vWp.x + vWp.z) * 0.9 + uTime * 2.0) * 0.4;
-      diffuseColor.rgb *= 0.94 + 0.08 * w;
-      diffuseColor.rgb += vec3(0.25) * smoothstep(1.15, 1.35, w);`,
-    );
+      diffuseColor.rgb *= 0.95 + 0.08 * w;
+      diffuseColor.rgb += vec3(0.22, 0.26, 0.28) * smoothstep(1.15, 1.35, w);`,
+      )
+      .replace(
+        '#include <normal_fragment_maps>',
+        `#include <normal_fragment_maps>
+      vec2 rip = vec2(cos(vWp.x * 0.9 + uTime * 1.7) + 0.6 * cos((vWp.x + vWp.z) * 1.7 + uTime * 2.3), cos(vWp.z * 1.1 - uTime * 1.3) + 0.6 * cos((vWp.x - vWp.z) * 1.5 - uTime * 1.9));
+      normal = normalize(normal + (viewMatrix * vec4(rip.x * 0.09, 0.0, rip.y * 0.09, 0.0)).xyz);`,
+      );
   };
   return { mat, uTime };
 }
 
-/** the sky: a dome from a pale horizon to a deeper blue overhead, and some low-poly clouds */
-export function drawSky(scene: THREE.Scene, horizon: string, zenith: string) {
-  const g = new THREE.SphereGeometry(850, 24, 12);
+/** the sky: a dome from the pale horizon haze (the fog colour), through a warm low glow, to deep blue overhead,
+ * and some low-poly clouds */
+export function drawSky(scene: THREE.Scene, horizon: string, zenith: string, glow = horizon) {
+  const g = new THREE.SphereGeometry(850, 32, 16);
   const pos = g.getAttribute('position');
-  const ch = new THREE.Color(horizon),
-    cz = new THREE.Color(zenith),
-    c = new THREE.Color();
   const col = new Float32Array(pos.count * 3);
   for (let i = 0; i < pos.count; i++) {
-    const y = Math.max(0, pos.getY(i) / 850);
-    c.copy(ch).lerp(cz, Math.pow(y, 0.6));
+    const c = skyColour(pos.getY(i) / 850, horizon, glow, zenith);
     col.set([c.r, c.g, c.b], i * 3);
   }
   g.setAttribute('color', new THREE.BufferAttribute(col, 3));
@@ -349,7 +355,7 @@ export function drawSky(scene: THREE.Scene, horizon: string, zenith: string) {
   const sky = new THREE.Group();
   sky.add(dome);
   scene.add(sky);
-  const clouds = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), new THREE.MeshLambertMaterial({ color: '#FFFFFF', fog: false, flatShading: true, emissive: '#8A9AA8' }), 36);
+  const clouds = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), new THREE.MeshLambertMaterial({ color: '#FFFFFF', fog: false, flatShading: true, emissive: '#B4C3D2' }), 36);
   for (let i = 0; i < 36; i++) {
     const a = (i / 36) * Math.PI * 2 + Math.sin(i * 7.1) * 0.2;
     const r = 560 + ((i * 53) % 160);
@@ -359,4 +365,12 @@ export function drawSky(scene: THREE.Scene, horizon: string, zenith: string) {
   }
   sky.add(clouds);
   return sky;
+}
+
+/** the sky dome's colour at height `y` (−1 … 1 on the dome): the horizon colour at and below 0 (it matches the fog,
+ * so the ground melts into it), a warm glow just above, then blue that deepens towards the top */
+export function skyColour(y: number, horizon: string, glow: string, zenith: string) {
+  const t = Math.max(0, y);
+  const c = new THREE.Color(horizon).lerp(new THREE.Color(glow), Math.min(1, t / 0.05));
+  return c.lerp(new THREE.Color(zenith), Math.pow(Math.min(1, Math.max(0, (t - 0.04) / 0.96)), 0.55));
 }

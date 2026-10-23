@@ -25,8 +25,11 @@ import { TAXI_GROUPS, Traffic, type TaxiNow } from './world/traffic';
 import { People } from './world/people';
 
 export const STEP = 1 / 60;
-const SKY = { horizon: '#CBE7F6', zenith: '#5FAEE6' };
-const PALETTE = { sky: '#8FD0F5', asphalt: '#3A3F47', taxi: '#FFC72C', ink: '#23303F', tyre: '#1E2228', glass: '#5C7A99' };
+// a clear subtropical afternoon: the haze at the horizon is warm and pale, the sky overhead a deep clean blue
+const SKY = { horizon: '#E8E6DA', glow: '#F7E3BC', zenith: '#2F86DA' };
+/** the sun's angle (from the car): high in the south-west, so shadows fall short and to the north-east */
+const SUN_DIR = new THREE.Vector3(-0.52, 0.78, 0.34).normalize();
+const PALETTE = { sky: '#9BD3F2', asphalt: '#3A3F47', taxi: '#FFC72C', ink: '#23303F', tyre: '#1E2228', glass: '#5C7A99' };
 
 export interface HudState {
   kmh: number;
@@ -82,19 +85,28 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, opts.lowPower ? 1.5 : 2));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
+  // Khronos neutral tone mapping keeps base colours (taxi yellow, kerb red, park green) true while rolling off
+  // the brightest sunlit faces instead of clipping them to white
+  renderer.toneMapping = THREE.NeutralToneMapping;
+  renderer.toneMappingExposure = 1.0;
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(PALETTE.sky);
-  scene.fog = level.id === 'city' ? new THREE.Fog(SKY.horizon, 200, 600) : new THREE.Fog(PALETTE.sky, 160, 420);
-  const sky = level.id === 'city' ? drawSky(scene, SKY.horizon, SKY.zenith) : null;
-  scene.add(new THREE.HemisphereLight('#EAF6FF', '#6B6F5A', 1.6));
-  const sun = new THREE.DirectionalLight('#FFF4DC', 2.2);
+  // light haze only: it starts past the next few blocks and ends just inside the camera's far plane (900 m), so
+  // the skyline stays readable from the menu and the edge of the world still melts into the horizon
+  scene.fog = level.id === 'city' ? new THREE.Fog(SKY.horizon, 260, 860) : new THREE.Fog(PALETTE.sky, 160, 420);
+  const sky = level.id === 'city' ? drawSky(scene, SKY.horizon, SKY.zenith, SKY.glow) : null;
+  // a blue sky fill and a warm ground bounce, kept lower than the sun so shaded sides read darker than lit ones
+  scene.add(new THREE.HemisphereLight('#CFE8FF', '#8C7B5E', 1.15));
+  const sun = new THREE.DirectionalLight('#FFEACB', 2.9);
   sun.castShadow = true;
   sun.shadow.mapSize.set(1024, 1024);
   const sc = sun.shadow.camera as THREE.OrthographicCamera;
   sc.left = sc.bottom = -18;
   sc.right = sc.top = 18;
   sc.near = 1;
-  sc.far = 80;
+  sc.far = 90;
+  sun.shadow.bias = -0.0006;
+  sun.shadow.normalBias = 0.03;
   scene.add(sun, sun.target);
   const chase = new ChaseCam(canvas.clientWidth / Math.max(1, canvas.clientHeight));
   scene.add(chase.cam); // the speed streaks ride on the camera
@@ -317,8 +329,10 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
       dt,
       occlude,
     );
-    sun.position.set(p.x + 20, p.y + 40, p.z + 10);
-    sun.target.position.copy(p);
+    // the shadow box (36 m square) is centred a little ahead of the car, where the chase camera looks
+    const ahead = new THREE.Vector3(0, 0, 6).applyQuaternion(q);
+    sun.target.position.set(p.x + ahead.x, p.y, p.z + ahead.z);
+    sun.position.copy(sun.target.position).addScaledVector(SUN_DIR, 45);
     view.update(run, p, performance.now() / 1000);
     if (menu) {
       // the menu's background: a slow aerial orbit over the Love River
