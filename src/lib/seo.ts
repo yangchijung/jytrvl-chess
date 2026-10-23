@@ -159,9 +159,9 @@ export const PAGES: Record<string, PageMeta> = {
     index: false,
   },
   '/bumper': {
-    title: { zh: '瘋狂碰碰車（試玩原型）｜JY Games', en: 'Crazy Bumper (prototype) | JY Games' },
-    description: { zh: '3D 碰碰車：選一隻動物和一台車，60 秒在嘉年華場地裡互撞。兒童試玩原型。', en: 'A 3D bumper-car game: pick an animal and a car and bump around a carnival arena for 60 seconds. Kids playtest prototype.' },
-    index: false,
+    title: { zh: '瘋狂碰碰車｜JY Games', en: 'Crazy Bumper | JY Games' },
+    description: { zh: '3D 碰碰車：選一隻動物和一台車，60 秒在嘉年華場地裡互撞、搶道具、撿星星。', en: 'A 3D bumper-car game: pick an animal and a car, bump around a carnival arena for 60 seconds, grab power-ups and collect stars.' },
+    index: true,
   },
   '/learn/sudoku': {
     title: { zh: '數獨規則教學｜JY Games', en: 'How to Play Sudoku | JY Games' },

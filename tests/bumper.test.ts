@@ -308,7 +308,8 @@ describe('Crazy Bumper P2 star rules (spec 7.1)', () => {
     // victim 1 wears the crown: 3 + 2 stars fly out, but it loses only 2
     expect(ev2).toContainEqual(expect.objectContaining({ t: 'knock', victim: 1, drop: RULES.heavyDrop + RULES.crownBonus, loss: RULES.maxLoss }));
     expect(s.scores[1]).toBe(3);
-    expect(s.scores[0]).toBe(2);
+    // two hits on two different cars within 3 s: +1 each, plus the x2 combo bonus
+    expect(s.scores[0]).toBe(2 + 1);
   });
 
   it('a slow touch or a bump from behind earns nothing', () => {
@@ -334,6 +335,8 @@ describe('Crazy Bumper P2 star rules (spec 7.1)', () => {
     s.tick(0.5);
     hitAt(3); // x3
     expect(got).toEqual([2, 3]);
+    // the combo pays: 4 bumps = 4 stars, plus 1 (x2) and 2 (x3)
+    expect(s.scores[0]).toBe(4 + 1 + 2);
     // outside the window: starts over
     s.tick(RULES.comboWindow + 0.1);
     hitAt(1);

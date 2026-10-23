@@ -2,7 +2,7 @@
 // and the star rules, kept free of rendering so they are unit-tested:
 //  1. an active bump on another car above the speed threshold: +1 star for the bumper (flies to the scoreboard)
 //  2. a dash or giant bump knocks 3 big stars out of the victim onto the floor (anyone can collect them)
-//  3. combo: bumping different cars within 3 s shows ⭐x2! / ⭐x3! (a reward to see and hear, no extra points)
+//  3. combo: bumping different cars within 3 s shows ⭐x2! / ⭐x3! and pays extra: x2 +1 star, x3 +2 stars (James 2026-10-23)
 //  4. the car with the most stars wears the crown; bumping the crowned car knocks out 2 extra stars
 //  5. a victim loses at most 2 stars per hit and never goes below 0
 //  A shielded car is never knocked out; the shield takes the hit (3 hits or 6 s).
@@ -20,7 +20,7 @@ export type RoundEvent =
   | { t: 'knock'; victim: number; attacker: number; drop: number; loss: number; heavy: boolean; x: number; z: number }
   /** the attacker's bump hit a shield: no score; the shield bounces the attacker off */
   | { t: 'shield'; victim: number; attacker: number; x: number; z: number }
-  | { t: 'combo'; car: number; n: number }
+  | { t: 'combo'; car: number; n: number; bonus: number; total: number }
   | { t: 'crown'; car: number };
 
 export const RULES = {
@@ -150,7 +150,12 @@ export class ScoreManager {
     ev.push({ t: 'star', car: attacker, total: this.scores[attacker], x: imp.x, z: imp.z });
     if (attacker === this.player) {
       const c = this.combo(victim);
-      if (c) ev.push(c);
+      if (c && c.t === 'combo') {
+        // the combo pays: one extra star at x2, two at x3
+        this.scores[attacker] += c.bonus;
+        c.total = this.scores[attacker];
+        ev.push(c);
+      }
     }
     const heavy = !!(ctx.dashing[attacker] || ctx.giant[attacker]);
     const crowned = victim === this.crown;
@@ -174,7 +179,7 @@ export class ScoreManager {
     if (n > this.comboShown) {
       this.comboShown = n;
       if (n >= 3) this.comboHits = [];
-      return { t: 'combo', car: this.player, n };
+      return { t: 'combo', car: this.player, n, bonus: n - 1, total: 0 };
     }
     return null;
   }

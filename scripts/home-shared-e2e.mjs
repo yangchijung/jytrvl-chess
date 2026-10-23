@@ -85,7 +85,7 @@ for (const lang of ['zh', 'en']) {
       decor: main.querySelectorAll('.rounded-full.border-\\[18px\\], [class*=hero]').length,
     };
   }, NAMES[lang]);
-  ok(`HU01-${lang}`, `home ${lang}: 10 games, 4 categories, each name once, H1 = tagline, no emoji / generic /play / prototypes`, m.cards === 10 && m.h2 === 4 && m.counts.every((c) => c === 1) && m.tagline && !m.emoji && m.play === 0 && m.proto === 0 && m.decor === 0, JSON.stringify(m));
+  ok(`HU01-${lang}`, `home ${lang}: 11 games, 4 categories, each name once, H1 = tagline, no emoji / generic /play / prototypes`, m.cards === 11 && m.h2 === 4 && m.counts.every((c) => c === 1) && m.tagline && !m.emoji && m.play === 0 && m.proto === 0 && m.decor === 0, JSON.stringify(m));
   await p.ctx.close();
 }
 
