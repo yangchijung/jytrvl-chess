@@ -130,7 +130,7 @@ export const PAGES: Record<string, PageMeta> = {
   },
   '/doodle': {
     title: { zh: '色彩塗鴉樂｜線上畫畫與混色｜JY Games', en: 'Color Doodle | Draw and Mix Colours Online | JY Games' },
-    description: { zh: '打開就能畫：用紅黃藍混出橙綠紫，六個短任務、格子蓋印章，作品只存在自己的瀏覽器並可存成圖片。適合 5–12 歲。', en: 'Start drawing right away: mix red, yellow and blue into orange, green and purple, six short tasks, a stamp grid, and pictures that stay in your browser and save as PNG. For ages 5–12.' },
+    description: { zh: '打開就能畫：在調色盤上用紅黃藍白黑混出 24 種顏色，畫紙、玩圖畫、格子蓋印章，作品只存在自己的瀏覽器並可存成圖片。適合 5–12 歲。', en: 'Start drawing right away: mix 24 colours from red, yellow, blue, white and black on a palette, with paper, picture play and a stamp grid; pictures stay in your browser and save as PNG. For ages 5–12.' },
     index: true,
   },
   '/learn/doodle': {
