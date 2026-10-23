@@ -169,7 +169,32 @@ export class BumperCar {
     this.body.applyImpulse({ x: dx * m, y: 0, z: dz * m }, true);
   }
 
+  /** P2 giant mode: a bigger ring and a heavier car (scale 1 and 150 kg restore the normal car) */
+  setSize(scale: number, mass: number) {
+    if (Math.abs(scale - this.scale) > 1e-3) {
+      this.scale = scale;
+      this.collider.setRadius(CAR.ringRadius * scale);
+      this.collider.setHalfHeight(CAR.ringHalfHeight * scale);
+    }
+    if (mass !== this.mass) {
+      this.mass = mass;
+      const r = CAR.ringRadius * this.scale;
+      const I = 0.5 * mass * r * r;
+      this.body.setAdditionalMassProperties(mass, { x: 0, y: CAR.comY, z: 0 }, { x: I, y: I, z: I }, { x: 0, y: 0, z: 0, w: 1 }, true);
+    }
+  }
+
+  /** P2 shield: a bouncier ring */
+  setRestitution(r: number) {
+    if (Math.abs(this.collider.restitution() - r) < 1e-6) return;
+    this.collider.setRestitution(r);
+    // the shield's 1.6 wins over the other car's ring (Max); the normal ring averages
+    this.collider.setRestitutionCombineRule(r > CAR.ringRestitution ? this.R.CoefficientCombineRule.Max : this.R.CoefficientCombineRule.Average);
+  }
+
   reset(p: { x: number; z: number }, yaw: number) {
+    this.setSize(1, CAR.mass);
+    this.setRestitution(CAR.ringRestitution);
     this.body.setTranslation({ x: p.x, y: CAR.rideY, z: p.z }, true);
     this.body.setRotation({ x: 0, y: Math.sin(yaw / 2), z: 0, w: Math.cos(yaw / 2) }, true);
     this.body.setLinvel({ x: 0, y: 0, z: 0 }, true);

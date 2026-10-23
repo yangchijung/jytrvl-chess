@@ -4,7 +4,9 @@ import RAPIER from '@dimforge/rapier3d-compat';
 import { BumperCar, CAR, NO_INPUT, type DriveInput } from '../src/bumper/entities/BumperCar';
 import { ARENA, buildArenaPhysics } from '../src/bumper/entities/Arena';
 import { BOT, BotController } from '../src/bumper/ai/BotController';
-import { RULES, ScoreManager } from '../src/bumper/rules/ScoreManager';
+import { RULES, ScoreManager, type Impact } from '../src/bumper/rules/ScoreManager';
+import { BOXES, POWER_UPS, PowerUpManager } from '../src/bumper/entities/PowerUpManager';
+import { STAR_DROP, StarDropManager } from '../src/bumper/entities/StarDropManager';
 import { lineUp, loadPick, CARS, ANIMALS } from '../src/bumper/entities/roster';
 import { stickThrust } from '../src/bumper/core/InputManager';
 
@@ -244,13 +246,20 @@ describe('Crazy Bumper round rules', () => {
     s.start();
     const hit = { a: { kind: 'car' as const, i: 0 }, b: { kind: 'car' as const, i: 2 }, speed: 12, pushA: 10, pushB: 2, x: 0, z: 0 };
     expect(s.isNew(hit)).toBe(true);
-    expect(s.collision(hit)).toEqual([{ t: 'star', car: 0, total: 1, x: 0, z: 0 }]);
+    expect(s.collision(hit)).toEqual([
+      { t: 'star', car: 0, total: 1, x: 0, z: 0 },
+      { t: 'crown', car: 0 },
+    ]);
     expect(s.isNew(hit)).toBe(false); // same contact
     const bumped = { ...hit, pushA: 1, pushB: 11 };
     s.tick(1);
     expect(s.isNew(bumped)).toBe(true);
-    expect(s.collision(bumped)).toEqual([]); // got bumped: counts, no star
-    expect(s.collision({ ...hit, a: { kind: 'car', i: 1 } })).toEqual([]); // AI vs AI: not the player's
+    // got bumped: counts for the player, the AI earns the star; bumping the crowned player knocks 2 stars out
+    const ev = s.collision(bumped);
+    expect(ev[0]).toEqual({ t: 'star', car: 2, total: 1, x: 0, z: 0 });
+    expect(ev).toContainEqual(expect.objectContaining({ t: 'knock', victim: 0, drop: RULES.crownBonus, loss: 1 }));
+    expect(s.scores).toEqual([0, 0, 1, 0]);
+    s.collision({ ...hit, a: { kind: 'car', i: 1 } }); // AI vs AI: does not count as the player's collision
     expect(s.totalCollisions).toBe(2);
     expect(s.trophies(0)).toBe(1);
     expect(s.trophies(RULES.trophy2)).toBe(2);
@@ -280,3 +289,208 @@ describe('Crazy Bumper choices', () => {
     expect(stickThrust(0.4)).toBeGreaterThan(0.3);
   });
 });
+
+// ---------------------------------------------------------------- P2
+const car = (i: number) => ({ kind: 'car' as const, i });
+const bump = (attacker: number, victim: number, speed = 10): Impact => ({ a: car(attacker), b: car(victim), speed, pushA: speed, pushB: 0, x: 1, z: 2 });
+const ctx = (o: Partial<{ dashing: boolean[]; giant: boolean[]; shielded: boolean[] }> = {}) => ({ dashing: [false, false, false, false], giant: [false, false, false, false], shielded: [false, false, false, false], ...o });
+
+describe('Crazy Bumper P2 star rules (spec 7.1)', () => {
+  it('a dash hit knocks 3 big stars out; the victim loses at most 2 and never goes below 0', () => {
+    const s = new ScoreManager();
+    s.start();
+    s.scores = [0, 5, 0, 0];
+    s.crown = 1;
+    const ev = s.collision(bump(0, 2), ctx({ dashing: [true, false, false, false] }));
+    expect(ev).toContainEqual(expect.objectContaining({ t: 'knock', victim: 2, drop: RULES.heavyDrop, loss: 0, heavy: true }));
+    expect(s.scores[2]).toBe(0); // had 0: stays 0
+    const ev2 = s.collision(bump(0, 1), ctx({ giant: [true, false, false, false] }));
+    // victim 1 wears the crown: 3 + 2 stars fly out, but it loses only 2
+    expect(ev2).toContainEqual(expect.objectContaining({ t: 'knock', victim: 1, drop: RULES.heavyDrop + RULES.crownBonus, loss: RULES.maxLoss }));
+    expect(s.scores[1]).toBe(3);
+    expect(s.scores[0]).toBe(2);
+  });
+
+  it('a slow touch or a bump from behind earns nothing', () => {
+    const s = new ScoreManager();
+    s.start();
+    expect(s.collision(bump(0, 1, RULES.starSpeed - 1), ctx())).toEqual([]);
+    expect(s.scores).toEqual([0, 0, 0, 0]);
+  });
+
+  it('combo: different cars within 3 s show x2 then x3; the same car twice does not', () => {
+    const s = new ScoreManager();
+    s.start();
+    const combos = () => [] as number[];
+    const got = combos();
+    const hitAt = (victim: number) => {
+      for (const e of s.collision(bump(0, victim), ctx())) if (e.t === 'combo') got.push(e.n);
+    };
+    hitAt(1);
+    s.tick(1);
+    hitAt(1); // same car
+    s.tick(1);
+    hitAt(2); // x2
+    s.tick(0.5);
+    hitAt(3); // x3
+    expect(got).toEqual([2, 3]);
+    // outside the window: starts over
+    s.tick(RULES.comboWindow + 0.1);
+    hitAt(1);
+    s.tick(RULES.comboWindow + 0.1);
+    hitAt(2);
+    expect(got).toEqual([2, 3]);
+  });
+
+  it('the crown goes to the car with the most stars and stays on a tie', () => {
+    const s = new ScoreManager();
+    s.start();
+    expect(s.crown).toBe(-1);
+    s.collision(bump(1, 2), ctx());
+    expect(s.crown).toBe(1);
+    s.tick(1);
+    s.collision(bump(3, 2), ctx()); // 3 ties with 1: 1 keeps it
+    expect(s.crown).toBe(1);
+    s.onStarEvent({ car: 3, delta: 1, x: 0, z: 0 });
+    expect(s.crown).toBe(3);
+  });
+
+  it('a shielded victim loses nothing; the attacker earns nothing', () => {
+    const s = new ScoreManager();
+    s.start();
+    s.scores = [0, 4, 0, 0];
+    const ev = s.collision(bump(0, 1), ctx({ dashing: [true, false, false, false], shielded: [false, true, false, false] }));
+    expect(ev).toEqual([{ t: 'shield', victim: 1, attacker: 0, x: 1, z: 2 }]);
+    expect(s.scores).toEqual([0, 4, 0, 0]);
+  });
+
+  it('trophies: 1 for everyone, 2 and 3 for more stars', () => {
+    const s = new ScoreManager();
+    expect(s.trophies(0)).toBe(1);
+    expect(s.trophies(RULES.trophy2)).toBe(2);
+    expect(s.trophies(RULES.trophy3)).toBe(3);
+  });
+});
+
+describe('Crazy Bumper P2 floor stars and magnet', () => {
+  it('stars land, blink out after 8 s, and stay inside the arena', () => {
+    const m = new StarDropManager(mulberry(1));
+    m.drop(3, 22, 0);
+    expect(m.count).toBe(3);
+    for (let k = 0; k < 60; k++) m.update(DT, []);
+    for (const st of m.stars) {
+      expect(Math.hypot(st.x, st.z)).toBeLessThan(ARENA.radius);
+      expect(st.y).toBeGreaterThanOrEqual(0.6);
+    }
+    for (let k = 0; k < Math.ceil(STAR_DROP.floorLife / DT); k++) m.update(DT, []);
+    expect(m.count).toBe(0);
+  });
+
+  it('any car driving over a star collects it (after it has landed)', () => {
+    const m = new StarDropManager(mulberry(2));
+    m.drop(1, 0, 0);
+    expect(m.update(DT, [{ x: 0, z: 0, magnet: false }])).toEqual([]); // still flying out
+    let got: { car: number }[] = [];
+    for (let k = 0; k < 120 && !got.length; k++) {
+      const st = m.stars[0];
+      got = m.update(DT, [{ x: 30, z: 30, magnet: false }, { x: st?.x ?? 0, z: st?.z ?? 0, magnet: false }]);
+    }
+    expect(got).toEqual([expect.objectContaining({ car: 1, delta: 1 })]);
+  });
+
+  it('a magnet pulls stars within 15 m, not beyond', () => {
+    const m = new StarDropManager(mulberry(3));
+    m.drop(1, 0, 0);
+    m.drop(1, 0, 0);
+    for (let k = 0; k < 90; k++) m.update(DT, []); // let them settle
+    const [a, b] = m.stars;
+    // magnet car at x = -4: a is 14 m away (in range), b 15.5 m away (out of range)
+    a.x = 10;
+    a.z = 0;
+    b.x = -19.5;
+    b.z = 0;
+    a.vx = a.vz = b.vx = b.vz = 0;
+    const cars = [{ x: -4, z: 0, magnet: true }];
+    let picked = 0;
+    for (let k = 0; k < 120; k++) picked += m.update(DT, cars).length;
+    expect(picked).toBe(1); // a came in; b (15.5 m) stayed
+    expect(m.stars).toHaveLength(1);
+    expect(m.stars[0].x).toBeCloseTo(-19.5, 0);
+    expect(POWER_UPS.magnet.radius).toBe(STAR_DROP.magnetRadius);
+  });
+});
+
+describe('Crazy Bumper P2 power-ups (spec 6)', () => {
+  it('boxes every 6 s (the first after 3 s), at most 2 on the floor', () => {
+    const p = new PowerUpManager(4, mulberry(4));
+    const far = [{ x: 100, z: 100 }];
+    const spawned: number[] = [];
+    let t = 0;
+    for (let k = 0; k < Math.round(20 / DT); k++) {
+      t += DT;
+      for (const e of p.update(DT, far)) if (e.t === 'spawn') spawned.push(Math.round(t));
+    }
+    expect(spawned).toEqual([BOXES.first, BOXES.first + BOXES.every]);
+    expect(p.boxes.length).toBe(BOXES.maxOnFloor);
+  });
+
+  it('touching a box gives one power-up; a new one replaces the old; durations 7 / 6 / 8 s', () => {
+    expect([POWER_UPS.giant.duration, POWER_UPS.shield.duration, POWER_UPS.magnet.duration]).toEqual([7, 6, 8]);
+    const p = new PowerUpManager(4, mulberry(5));
+    for (let k = 0; k < Math.round(3.5 / DT); k++) p.update(DT, [{ x: 100, z: 100 }]);
+    const b = p.boxes[0];
+    const ev = p.update(DT, [{ x: b.x, z: b.z }]);
+    expect(ev[0]).toEqual(expect.objectContaining({ t: 'pickup', car: 0 }));
+    expect(p.activeFor(0)).not.toBeNull();
+    p.give(0, 'magnet');
+    expect(p.activeFor(0)).toBe('magnet');
+    let left = 0;
+    for (; p.activeFor(0) && left < 20; left += DT) p.update(DT, [{ x: 100, z: 100 }]);
+    expect(left).toBeCloseTo(POWER_UPS.magnet.duration, 1);
+  });
+
+  it('giant grows to 1.6× within 0.3 s and shrinks back at the end', () => {
+    const p = new PowerUpManager(1);
+    p.give(0, 'giant');
+    expect(p.scaleOf(0)).toBeCloseTo(1, 2);
+    for (let k = 0; k < Math.round(0.3 / DT); k++) p.update(DT, [{ x: 0, z: 0 }]);
+    expect(p.scaleOf(0)).toBeCloseTo(POWER_UPS.giant.scale, 1);
+    for (let k = 0; k < Math.round(6.85 / DT); k++) p.update(DT, [{ x: 0, z: 0 }]);
+    expect(p.scaleOf(0)).toBeLessThan(1.3);
+  });
+
+  it('shield: used up after 3 hits', () => {
+    const p = new PowerUpManager(1);
+    p.give(0, 'shield');
+    expect(p.shieldHit(0)).toBe(false);
+    expect(p.shieldHit(0)).toBe(false);
+    expect(p.shieldHit(0)).toBe(true);
+    expect(p.activeFor(0)).toBeNull();
+  });
+
+  it('giant car: 350 kg and a 1.6× ring in the physics; reset restores the normal car', () => {
+    const { world } = setup();
+    const c = new BumperCar(RAPIER, world, { x: 0, z: 0 }, 0);
+    c.setSize(POWER_UPS.giant.scale, POWER_UPS.giant.mass);
+    world.step();
+    expect(c.body.mass()).toBeCloseTo(350, 2);
+    expect(c.collider.radius()).toBeCloseTo(CAR.ringRadius * 1.6, 3);
+    c.setRestitution(POWER_UPS.shield.restitution);
+    expect(c.collider.restitution()).toBeCloseTo(1.6, 5);
+    c.reset({ x: 0, z: 0 }, 0);
+    world.step();
+    expect(c.body.mass()).toBeCloseTo(150, 2);
+    expect(c.collider.restitution()).toBeCloseTo(CAR.ringRestitution, 5);
+  });
+});
+
+function mulberry(seed: number) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}

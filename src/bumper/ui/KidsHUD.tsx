@@ -6,7 +6,7 @@ import { useEffect, useRef, type CSSProperties, type KeyboardEvent as RKeyboardE
 import type { InputManager } from '../core/InputManager';
 import type { HudState } from '../game';
 import { ANIMALS, CARS, type AnimalId, type CarId } from '../entities/roster';
-import { AnimalFace, CarIcon, CarSwatch, CheckBadge, ClockIcon, LightningIcon, PauseIcon, PlayIcon, ReplayIcon, SoundIcon, StarIcon } from './icons';
+import { AnimalFace, CarIcon, CarSwatch, CheckBadge, ClockIcon, CrownIcon, LightningIcon, PauseIcon, PlayIcon, ReplayIcon, SoundIcon, StarIcon } from './icons';
 
 type Lang = 'zh' | 'en';
 export const LABELS = {
@@ -22,6 +22,7 @@ export const LABELS = {
   dash: { zh: '衝刺', en: 'Dash' },
   stick: { zh: '方向搖桿', en: 'Steering stick' },
   stars: { zh: '星星', en: 'Stars' },
+  leader: { zh: '第一名', en: 'Leader' },
   time: { zh: '剩下秒數', en: 'Seconds left' },
   animals: { zh: '選駕駛', en: 'Choose a driver' },
   cars: { zh: '選車子', en: 'Choose a car' },
@@ -79,9 +80,10 @@ export function PlayHud({ hud, lang }: { hud: HudState; lang: Lang }) {
   const frac = Math.max(0, Math.min(1, hud.timeLeft / hud.roundLength));
   return (
     <>
-      <div className="bump-score" data-pop={hud.starPulse > 0.5} aria-label={`${LABELS.stars[lang]} ${hud.score}`} role="status" data-testid="bumper-score">
+      <div className="bump-score" data-pop={hud.starPulse > 0.5} aria-label={`${LABELS.stars[lang]} ${hud.score}${hud.crown ? `, ${LABELS.leader[lang]}` : ''}`} role="status" data-testid="bumper-score">
         <StarIcon size={44} />
         <span className="bump-num">{hud.score}</span>
+        {hud.crown && <CrownIcon size={34} className="bump-crown" />}
       </div>
       <div className="bump-clock" data-hurry={hurry} role="timer" aria-label={`${LABELS.time[lang]} ${left}`} data-testid="bumper-clock" data-value={left}>
         <div className="bump-clock-row">
@@ -183,6 +185,19 @@ export function DashButton({ input, cooldown, lang }: { input: InputManager; coo
       </svg>
       <LightningIcon size={50} />
     </button>
+  );
+}
+
+/** +1: a star flies from the bump on screen into the score plate */
+export function FlyingStars({ list }: { list: { id: number; x: number; y: number }[] }) {
+  return (
+    <>
+      {list.map((f) => (
+        <span key={f.id} className="bump-fly" aria-hidden="true" style={{ left: f.x - 22, top: f.y - 22, '--dx': `${44 - f.x}px`, '--dy': `${48 - f.y}px` } as CSSProperties}>
+          <StarIcon size={44} />
+        </span>
+      ))}
+    </>
   );
 }
 

@@ -1,10 +1,10 @@
-// Crazy Bumper — a simple AI driver (P1): wander about, chase someone (the player a bit more often than the
-// others) and bump them, sometimes with a dash, and turn back to the middle when pressed against the rail or
-// stuck. P2 adds "chase the leader" and "grab boxes / stars" as more states with the same output.
+// Crazy Bumper — a simple AI driver: wander about, chase someone (the crowned leader most, the player a bit more
+// than the others) and bump them, sometimes with a dash; grab gift boxes and floor stars when they are near; and
+// turn back to the middle when pressed against the rail or stuck.
 import { ARENA } from '../entities/Arena';
 import type { DriveInput } from '../entities/BumperCar';
 
-export type BotState = 'wander' | 'chase' | 'escape';
+export type BotState = 'wander' | 'chase' | 'escape' | 'grab';
 
 export interface CarView {
   id: number;
@@ -16,7 +16,17 @@ export interface CarView {
 export interface SelfView extends CarView {
   yaw: number;
   cooldown: number;
+  /** giant: more eager to chase */
+  giant?: boolean;
 }
+
+/** things worth driving to (P2): gift boxes, floor stars, and who wears the crown */
+export interface WorldView {
+  boxes: readonly { x: number; z: number }[];
+  stars: readonly { x: number; z: number }[];
+  leader: number;
+}
+const EMPTY: WorldView = { boxes: [], stars: [], leader: -1 };
 
 export function mulberry32(seed: number) {
   let a = seed >>> 0;
@@ -36,7 +46,12 @@ export const BOT = {
   stuckSpeed: 2.5,
   stuckTime: 0.6,
   escapeTime: 0.9,
-  thrust: { wander: 0.7, chase: 0.9, escape: 1 },
+  thrust: { wander: 0.7, chase: 0.9, escape: 1, grab: 0.95 },
+  /** go for a box or a star within this distance */
+  grabRange: 16,
+  grabTime: 3,
+  leaderWeight: 2.5,
+  playerWeight: 1.5,
   /** dash when facing the target this well and this close */
   dashAlign: 0.96,
   dashRange: 11,
@@ -71,10 +86,24 @@ export class BotController {
     this.timer = 1.2 + this.rnd() * 1.8;
   }
 
-  private pickChase(self: SelfView, others: CarView[]) {
+  /** the nearest box or star in range, if any */
+  private nearestThing(self: SelfView, world: WorldView): { x: number; z: number } | null {
+    let best: { x: number; z: number } | null = null;
+    let bd: number = BOT.grabRange;
+    for (const t of [...world.boxes, ...world.stars]) {
+      const d = Math.hypot(t.x - self.x, t.z - self.z);
+      if (d < bd) {
+        bd = d;
+        best = t;
+      }
+    }
+    return best;
+  }
+
+  private pickChase(self: SelfView, others: CarView[], world: WorldView = EMPTY) {
     if (!others.length) return this.pickWander();
-    // weights: the player ×2, nearer cars a little more
-    const w = others.map((o) => (o.id === this.prefer ? 2 : 1) / (1 + Math.hypot(o.x - self.x, o.z - self.z) / 25));
+    // weights: the crowned leader most, then the player, nearer cars a little more
+    const w = others.map((o) => (o.id === world.leader ? BOT.leaderWeight : o.id === this.prefer ? BOT.playerWeight : 1) / (1 + Math.hypot(o.x - self.x, o.z - self.z) / 25));
     let r = this.rnd() * w.reduce((a, b) => a + b, 0);
     let pick = others[0];
     for (let i = 0; i < others.length; i++) {
@@ -86,7 +115,7 @@ export class BotController {
     }
     this.targetId = pick.id;
     this.state = 'chase';
-    this.timer = 2.2 + this.rnd() * 2.3;
+    this.timer = (2.2 + this.rnd() * 2.3) * (self.giant ? 1.5 : 1);
   }
 
   private escape(self: SelfView) {
@@ -99,7 +128,7 @@ export class BotController {
   }
 
   /** one decision per fixed step */
-  decide(self: SelfView, others: CarView[], dt: number): DriveInput {
+  decide(self: SelfView, others: CarView[], dt: number, world: WorldView = EMPTY): DriveInput {
     this.timer -= dt;
     const speed = Math.hypot(self.vx, self.vz);
     const r = Math.hypot(self.x, self.z);
@@ -112,11 +141,22 @@ export class BotController {
       if ((r > BOT.wallRadius && outward > 0.25) || this.stuck > BOT.stuckTime) this.escape(self);
     }
     if (this.timer <= 0) {
-      if (this.state === 'chase' || this.state === 'escape') this.pickWander();
-      else this.pickChase(self, others);
+      if (this.state === 'chase' || this.state === 'escape' || this.state === 'grab') this.pickWander();
+      else if (!self.giant && this.rnd() < 0.55 && this.nearestThing(self, world)) {
+        this.state = 'grab';
+        this.timer = BOT.grabTime;
+      } else this.pickChase(self, others, world);
     }
     let gx = this.goal.x,
       gz = this.goal.z;
+    if (this.state === 'grab') {
+      const t = this.nearestThing(self, world);
+      if (!t) this.pickWander();
+      else {
+        gx = t.x;
+        gz = t.z;
+      }
+    }
     if (this.state === 'chase') {
       const t = others.find((o) => o.id === this.targetId);
       if (!t) this.pickWander();

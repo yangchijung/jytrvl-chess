@@ -4,7 +4,7 @@
 // Five draw calls per car (ring, body, head, antenna, shadow-free); everything else is merged.
 import * as THREE from 'three';
 import type { AnimalSpec, CarSpec } from './roster';
-import { Parts, toon } from '../vfx/materials';
+import { Parts, glossy, toon } from '../vfx/materials';
 
 const SEG = 20;
 const sphere = (r: number, w = SEG, h = 12) => new THREE.SphereGeometry(r, w, h);
@@ -14,6 +14,8 @@ const capsule = (r: number, len: number) => new THREE.CapsuleGeometry(r, len, 4,
 const cone = (r: number, h: number) => new THREE.ConeGeometry(r, h, 16);
 
 const DARK = '#2B2F3A';
+/** the model's origin is the ring centre, this high above the floor (BumperCar CAR.rideY) */
+const CAR_RIDE = 0.42;
 const WHITE = '#FFFFFF';
 
 /** the tub, hood, seat, fins and torso (one mesh) */
@@ -178,6 +180,56 @@ class Spring {
   }
 }
 
+/** shield: four red spring balls on little coils, circling the car */
+function shieldGeometry(): THREE.BufferGeometry {
+  const p = new Parts();
+  for (let i = 0; i < 4; i++) {
+    const a = (i * Math.PI) / 2;
+    const x = Math.sin(a) * 2.15,
+      z = Math.cos(a) * 2.15;
+    p.add(sphere(0.34, 14, 10), '#F2304B', { p: [x, 0.55, z] });
+    p.add(sphere(0.1, 8, 6), '#FFFFFF', { p: [x - 0.1, 0.7, z + 0.12] });
+    p.add(new THREE.TorusGeometry(0.16, 0.05, 6, 12), '#E9EDF2', { p: [x, 0.18, z], r: [Math.PI / 2, 0, 0] });
+    p.add(new THREE.TorusGeometry(0.16, 0.05, 6, 12), '#E9EDF2', { p: [x, 0.3, z], r: [Math.PI / 2, 0, 0] });
+  }
+  return p.build();
+}
+
+/** magnet: a red-and-blue U with silver tips */
+function magnetGeometry(): THREE.BufferGeometry {
+  const p = new Parts();
+  const arc = (color: string, rz: number) => p.add(new THREE.TorusGeometry(0.42, 0.15, 8, 12, Math.PI / 2), color, { r: [0, 0, rz] });
+  arc('#E53935', Math.PI);
+  arc('#1E63D6', (3 * Math.PI) / 2);
+  p.add(cyl(0.15, 0.15, 0.32, 10), '#E53935', { p: [-0.42, 0.16, 0] });
+  p.add(cyl(0.15, 0.15, 0.32, 10), '#1E63D6', { p: [0.42, 0.16, 0] });
+  p.pair(cyl(0.155, 0.155, 0.16, 10), '#E9EDF2', { p: [0.42, 0.4, 0] });
+  return p.build();
+}
+
+/** the leader's crown */
+function crownGeometry(): THREE.BufferGeometry {
+  const p = new Parts();
+  p.add(cyl(0.48, 0.42, 0.32, 20), '#FFC400', {});
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2;
+    p.add(cone(0.13, 0.36), '#FFC400', { p: [Math.sin(a) * 0.42, 0.32, Math.cos(a) * 0.42] });
+    p.add(sphere(0.07, 8, 6), '#FFF59D', { p: [Math.sin(a) * 0.42, 0.52, Math.cos(a) * 0.42] });
+  }
+  p.add(sphere(0.09, 10, 8), '#FF4081', { p: [0, 0.02, 0.46] });
+  p.add(sphere(0.07, 10, 8), '#00B8D4', { p: [0.32, 0.02, 0.34] });
+  p.add(sphere(0.07, 10, 8), '#00B8D4', { p: [-0.32, 0.02, 0.34] });
+  return p.build();
+}
+
+export interface CarEffects {
+  /** giant: 0..1 gold glow */
+  giant: boolean;
+  shield: boolean;
+  magnet: boolean;
+  crown: boolean;
+}
+
 export interface CarAnim {
   /** acceleration in the car's frame: forward (+) and to the left (+) */
   accFwd: number;
@@ -210,6 +262,12 @@ export class CarModel {
   private squashA = 0;
   private glow = 0;
   private time = Math.random() * 10;
+  private shield: THREE.Mesh | null = null;
+  private magnet: THREE.Mesh | null = null;
+  private ripple: THREE.Mesh | null = null;
+  private crown: THREE.Mesh | null = null;
+  private glowMats: THREE.MeshToonMaterial[] = [];
+  private glowOn = false;
 
   constructor(car: CarSpec, animal: AnimalSpec, opts: { headShadow?: boolean } = {}) {
     const vc = (p: THREE.MeshToonMaterialParameters = {}) => toon({ vertexColors: true, ...p });
@@ -234,6 +292,42 @@ export class CarModel {
     this.tipLocal = new THREE.Vector3(0, 0.5 + ant.tip, -1.05);
     this.tilt.add(this.squashPivot, this.body, this.head, this.antenna);
     this.root.add(this.tilt);
+    this.glowMats = [this.ring.material as THREE.MeshToonMaterial, this.body.material as THREE.MeshToonMaterial, headMesh.material as THREE.MeshToonMaterial];
+  }
+
+  /** power-up and crown looks (built the first time they are needed) */
+  effects(e: CarEffects) {
+    if (e.shield && !this.shield) {
+      this.shield = new THREE.Mesh(shieldGeometry(), toon({ vertexColors: true }));
+      this.root.add(this.shield);
+    }
+    if (this.shield) this.shield.visible = e.shield;
+    if (e.magnet && !this.magnet) {
+      this.magnet = new THREE.Mesh(magnetGeometry(), toon({ vertexColors: true }));
+      this.antenna.add(this.magnet);
+      this.magnet.position.y = this.tipLocal.y - 0.5 + 0.45;
+      this.ripple = new THREE.Mesh(new THREE.RingGeometry(1.7, 2.0, 40), new THREE.MeshBasicMaterial({ color: '#2F80ED', transparent: true, opacity: 0.6, depthWrite: false }));
+      this.ripple.rotation.x = -Math.PI / 2;
+      this.ripple.position.y = -CAR_RIDE + 0.06;
+      this.root.add(this.ripple);
+    }
+    if (this.magnet) this.magnet.visible = e.magnet;
+    if (this.ripple) this.ripple.visible = e.magnet;
+    if (e.crown && !this.crown) {
+      this.crown = new THREE.Mesh(crownGeometry(), glossy('#FFFFFF', { vertexColors: true, emissive: '#FFB300', emissiveIntensity: 0.25 }));
+      this.crown.castShadow = true;
+      this.head.add(this.crown);
+      this.crown.position.set(0, 1.05, 0);
+      this.crown.rotation.x = -0.12;
+    }
+    if (this.crown) this.crown.visible = e.crown;
+    if (e.giant !== this.glowOn) {
+      this.glowOn = e.giant;
+      for (const m of this.glowMats) {
+        m.emissive.set(e.giant ? '#FFB300' : '#000000');
+        m.emissiveIntensity = e.giant ? 0.35 : 0;
+      }
+    }
   }
 
   /** an impact from world direction (dx, dz) relative to the car centre, strength in u/s */
@@ -287,6 +381,15 @@ export class CarModel {
     this.glow = Math.max(0, this.glow - dt * 1.6);
     const ready = s.cooldown <= 0 ? 0.25 * (0.5 + 0.5 * Math.sin(this.time * 4)) : 0;
     this.antennaMat.emissiveIntensity = 0.55 + ready + (s.dashing ? 2.2 : 0) + this.glow * 2.5;
+    if (this.shield?.visible) this.shield.rotation.y += dt * 6;
+    if (this.ripple?.visible) {
+      const k = (this.time * 0.9) % 1;
+      this.ripple.scale.setScalar(1 + k * 3);
+      (this.ripple.material as THREE.MeshBasicMaterial).opacity = 0.6 * (1 - k);
+    }
+    if (this.magnet?.visible) this.magnet.rotation.y = Math.sin(this.time * 3) * 0.4;
+    if (this.crown?.visible) this.crown.rotation.y += dt * 1.5;
+    if (this.glowOn) for (const m of this.glowMats) m.emissiveIntensity = 0.3 + 0.15 * Math.sin(this.time * 8);
   }
 
   dispose() {

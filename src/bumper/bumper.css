@@ -51,6 +51,11 @@
 .bump-dash[data-ready='false'] svg:last-child { opacity: 0.5; }
 .bump-dash:active { transform: scale(0.94); }
 
+/* +1 star flying into the score plate (220 ms), the crown when the player leads */
+.bump-fly { position: absolute; pointer-events: none; animation: bump-fly 220ms ease-in forwards; }
+@keyframes bump-fly { to { transform: translate(var(--dx), var(--dy)) scale(0.7); opacity: 0.6; } }
+.bump-crown { position: absolute; top: -14px; left: -8px; transform: rotate(-18deg); }
+
 /* ---------- result and pause ---------- */
 .bump-result, .bump-pause { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; padding: 16px; background: rgba(30, 42, 68, 0.35); animation: bump-fade 200ms ease-out; }
 /* the result keeps the scene clear: the camera frames the player's car in the upper half, the card sits below */
@@ -96,6 +101,6 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .bump-icon-btn, .bump-pick, .bump-big, .bump-score, .bump-dash, .bump-bar > span { transition: none; }
-  .bump-clock[data-hurry='true'] .bump-num, .bump-trophy, .bump-result, .bump-pause { animation: none; }
+  .bump-clock[data-hurry='true'] .bump-num, .bump-trophy, .bump-result, .bump-pause, .bump-fly { animation: none; }
   .bump-loading { animation-duration: 3s; }
 }

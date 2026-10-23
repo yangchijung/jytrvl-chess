@@ -1,6 +1,7 @@
-// Crazy Bumper (/bumper) — P1 entry: builds the arena and four bumper cars (the child's pick + three AI cars),
-// runs physics on the fixed step, turns contacts into impacts (sparks, squash, shake, boing, posts that go "咚!"),
-// keeps the round clock, and publishes window.__GAME_STATS__ for the Playwright check (spec section 8).
+// Crazy Bumper (/bumper) — entry: builds the arena and four bumper cars (the child's pick + three AI cars), runs
+// physics on the fixed step, turns contacts into impacts (sparks, squash, shake, boing, posts that go "咚!"), runs
+// gift boxes, power-ups and floor stars, keeps the round clock and the star rules, and publishes
+// window.__GAME_STATS__ for the Playwright check (spec section 8).
 import * as THREE from 'three';
 import { Engine, STEP } from './core/Engine';
 import { InputManager, type ScreenInput } from './core/InputManager';
@@ -10,11 +11,12 @@ import { BumperCar, CAR, NO_INPUT, wrapAngle, type DriveInput } from './entities
 import { CarModel } from './entities/CarModel';
 import { ARENA, ArenaView, buildArenaPhysics } from './entities/Arena';
 import { lineUp, type AnimalId, type CarId } from './entities/roster';
-import { BotController, type CarView } from './ai/BotController';
-import { RULES, ScoreManager, type Body, type Impact, type Phase, type RoundEvent } from './rules/ScoreManager';
+import { BotController, mulberry32, type CarView, type WorldView } from './ai/BotController';
+import { RULES, ScoreManager, type Body, type HitContext, type Impact, type Phase, type RoundEvent } from './rules/ScoreManager';
 import { ParticleSystem } from './vfx/ParticleSystem';
-import { PowerUpManager } from './entities/PowerUpManager';
-import { StarDropManager } from './entities/StarDropManager';
+import { POWER_UPS, PowerUpManager, PowerUpView, type PowerUpKind } from './entities/PowerUpManager';
+import { StarDropManager, StarView } from './entities/StarDropManager';
+import { ComboPop } from './vfx/ComboPop';
 
 export interface GameStats {
   phase: Phase;
@@ -39,6 +41,11 @@ export interface HudState {
   trophies: 1 | 2 | 3;
   /** a star just landed (for the score pop) */
   starPulse: number;
+  /** the player wears the crown */
+  crown: boolean;
+  /** the player's power-up and how much of it is left (0..1) */
+  power: PowerUpKind | null;
+  powerLeft: number;
 }
 
 export interface Pick {
@@ -62,6 +69,8 @@ export interface BumperGame {
   cars: BumperCar[];
   bots: (BotController | null)[];
   scores: ScoreManager;
+  powerUps: PowerUpManager;
+  starDrops: StarDropManager;
   /** for profiling and tests */
   engine: Engine;
   camera: CameraController;
@@ -77,7 +86,8 @@ export interface StartOpts {
   audio: AudioSynth;
   stats: GameStats;
   onPhase?: (p: Phase) => void;
-  onStar?: (total: number) => void;
+  /** the player got a star: where it came from on the screen (CSS px) */
+  onStar?: (total: number, from: { x: number; y: number } | null) => void;
 }
 
 /** start spots: the player nearest the camera, everyone facing the middle */
@@ -103,8 +113,12 @@ export async function startBumper(canvas: HTMLCanvasElement, opts: StartOpts): P
   const camera = new CameraController(engine.resize());
   camera.motion = motion < 1 ? 0 : 1;
   const scores = new ScoreManager(opts.roundSeconds);
-  const powerUps = new PowerUpManager(4);
-  const starDrops = new StarDropManager();
+  const rng = mulberry32(20261023);
+  const powerUps = new PowerUpManager(4, rng);
+  const starDrops = new StarDropManager(rng);
+  const starView = new StarView(scene);
+  const boxView = new PowerUpView(scene);
+  const combo = new ComboPop(scene);
   const input = new InputManager();
 
   // ---------- cars ----------
@@ -162,6 +176,7 @@ export async function startBumper(canvas: HTMLCanvasElement, opts: StartOpts): P
       return [{ id: j, x: t.x, z: t.z, vx: v.x, vz: v.z }];
     });
 
+  const worldView = (): WorldView => ({ boxes: powerUps.boxes, stars: starDrops.stars, leader: scores.crown });
   const driveFor = (i: number): DriveInput => {
     if (phase === 'result') return NO_INPUT;
     if (i === 0 && phase === 'playing') {
@@ -173,17 +188,53 @@ export async function startBumper(canvas: HTMLCanvasElement, opts: StartOpts): P
     const t = c.body.translation(),
       v = c.body.linvel();
     const bot = i === 0 ? titleBot : bots[i];
-    return bot.decide({ id: i, x: t.x, z: t.z, vx: v.x, vz: v.z, yaw: c.yaw(), cooldown: c.cooldown }, views(i), STEP);
+    return bot.decide({ id: i, x: t.x, z: t.z, vx: v.x, vz: v.z, yaw: c.yaw(), cooldown: c.cooldown, giant: powerUps.has(i, 'giant') }, views(i), STEP, worldView());
   };
 
+  const screenOf = (x: number, y: number, z: number) => {
+    const v = tmpS.set(x, y, z).project(camera.cam);
+    if (v.z > 1) return null;
+    return { x: ((v.x + 1) / 2) * canvas.clientWidth, y: ((1 - v.y) / 2) * canvas.clientHeight };
+  };
   const onRound = (ev: RoundEvent[]) => {
     for (const e of ev) {
       if (e.t === 'second' && e.left > 0 && e.left <= RULES.beepFrom) audio.beep(false);
       else if (e.t === 'star') {
-        starPulse = 1;
-        audio.blip(e.total % 7);
-        fx.burst({ x: e.x, y: 1.6, z: e.z }, { count: 10, speed: 6, up: 6, life: 0.6, size: 0.3, colors: ['#FFD600', '#FFF59D', '#FFFFFF'] });
-        opts.onStar?.(e.total);
+        if (e.car === 0) {
+          starPulse = 1;
+          audio.blip(e.total % 7);
+          opts.onStar?.(e.total, screenOf(e.x, 1.6, e.z));
+        }
+        fx.burst({ x: e.x, y: 1.6, z: e.z }, { count: e.car === 0 ? 10 : 5, speed: 6, up: 6, life: 0.6, size: 0.3, colors: ['#FFD600', '#FFF59D', '#FFFFFF'] });
+      } else if (e.t === 'knock') {
+        const v = cars[e.victim],
+          a = cars[e.attacker];
+        const pv = v.pos(),
+          pa = a.pos();
+        starDrops.drop(e.drop, pv.x, pv.z);
+        // knock the victim away from the bumper; a giant hits 2.2× as hard
+        const d = Math.hypot(pv.x - pa.x, pv.z - pa.z) || 1;
+        const k = (e.heavy ? 6 : 2.5) * (powerUps.has(e.attacker, 'giant') ? POWER_UPS.giant.knockback : 1);
+        v.kick(((pv.x - pa.x) / d) * k, ((pv.z - pa.z) / d) * k);
+        v.hit(14);
+        fx.burst({ x: pv.x, y: 1.8, z: pv.z }, { count: 14, speed: 7, up: 7, life: 0.7, size: 0.32, colors: ['#FFC400', '#FFF59D', '#FFFFFF'] });
+        if (e.victim === 0 || e.attacker === 0) camera.shake(0.45);
+      } else if (e.t === 'shield') {
+        // the shield takes the hit: the shielded car keeps its speed, the attacker flies off
+        const s = cars[e.victim],
+          a = cars[e.attacker];
+        s.body.setLinvel({ x: s.before.x, y: 0, z: s.before.z }, true);
+        const ps = s.pos(),
+          pa = a.pos();
+        const d = Math.hypot(pa.x - ps.x, pa.z - ps.z) || 1;
+        a.kick(((pa.x - ps.x) / d) * POWER_UPS.shield.kick, ((pa.z - ps.z) / d) * POWER_UPS.shield.kick);
+        a.hit(20);
+        powerUps.shieldHit(e.victim);
+        audio.spring();
+        fx.sparks({ x: e.x, y: 0.8, z: e.z }, 18);
+      } else if (e.t === 'combo') {
+        combo.show(e.n);
+        audio.cheer(e.n);
       } else if (e.t === 'end') {
         audio.beep(true);
         enterResult();
@@ -236,7 +287,8 @@ export async function startBumper(canvas: HTMLCanvasElement, opts: StartOpts): P
     if (speed < 1) return; // grazing
     const imp: Impact = { a: A, b: B, speed, pushA, pushB, x: cx, z: cz };
     if (!scores.isNew(imp)) return;
-    onRound(scores.collision(imp));
+    const hit: HitContext = { dashing: cars.map((c) => c.dashing > 0), giant: cars.map((_, i) => powerUps.has(i, 'giant')), shielded: cars.map((_, i) => powerUps.has(i, 'shield')) };
+    onRound(scores.collision(imp, hit));
     // effects
     const playerIn = A.i === 0 || (B.kind === 'car' && B.i === 0);
     ca.hit(speed);
@@ -260,14 +312,25 @@ export async function startBumper(canvas: HTMLCanvasElement, opts: StartOpts): P
   const step = (dt: number) => {
     for (let i = 0; i < cars.length; i++) {
       const c = cars[i];
+      // power-ups change the body: giant size and mass, shield bounce
+      const giant = powerUps.has(i, 'giant');
+      c.setSize(powerUps.scaleOf(i), giant ? POWER_UPS.giant.mass : CAR.mass);
+      c.setRestitution(powerUps.has(i, 'shield') ? POWER_UPS.shield.restitution : CAR.ringRestitution);
       if (c.update(driveFor(i), dt)) {
         dashFx.push(i);
         scores.dash(i);
         if (i === 0 || phase === 'title') audio.whoosh();
       }
     }
-    powerUps.update(dt, cars.map((c) => c.pos()));
-    for (const e of starDrops.update(dt, cars.map((c) => ({ ...c.pos(), magnet: false })))) scores.onStarEvent(e);
+    if (phase !== 'result') {
+      for (const e of powerUps.update(dt, cars.map((c) => c.pos()), arenaPhys.posts)) {
+        if (e.t === 'pickup') {
+          if (e.car === 0 || phase === 'title') audio.powerUp();
+          fx.burst({ x: e.x, y: 1.4, z: e.z }, { count: 16, speed: 6, up: 6, life: 0.6, size: 0.28, colors: ['#FF4081', '#00E5FF', '#76FF03', '#FFD600'] });
+        }
+      }
+      for (const e of starDrops.update(dt, cars.map((c, i) => ({ ...c.pos(), magnet: powerUps.has(i, 'magnet') })))) onRound(scores.onStarEvent(e));
+    }
     cars.forEach((c, i) => Object.assign(prev[i], cur[i]));
     world.step(engine.events);
     engine.events.drainCollisionEvents((h1, h2, started) => {
@@ -290,6 +353,8 @@ export async function startBumper(canvas: HTMLCanvasElement, opts: StartOpts): P
 
   const tmpP = new THREE.Vector3();
   const tmpL = new THREE.Vector3();
+  const tmpS = new THREE.Vector3();
+  let clock = 0;
   const tip = new THREE.Vector3();
   let lastTrail = 0;
   const draw = (alpha: number, dt: number) => {
@@ -315,6 +380,8 @@ export async function startBumper(canvas: HTMLCanvasElement, opts: StartOpts): P
       const yaw = a.yaw + wrapAngle(b.yaw - a.yaw) * alpha;
       m.root.position.set(x, CAR.rideY, z);
       m.root.rotation.y = yaw;
+      m.root.scale.setScalar(c.scale);
+      m.effects({ giant: powerUps.has(i, 'giant'), shield: powerUps.has(i, 'shield'), magnet: powerUps.has(i, 'magnet'), crown: phase !== 'title' && scores.crown === i });
       // acceleration in the car's frame, smoothed (fixed steps make the raw value jumpy)
       const v = c.body.linvel();
       const ac = accel[i];
@@ -346,7 +413,14 @@ export async function startBumper(canvas: HTMLCanvasElement, opts: StartOpts): P
       fx.burst(tip, { count: 10, speed: 4, up: 3, life: 0.35, size: 0.16, colors: ['#FFFFFF', '#FFF59D', '#FFD600'] });
     }
     arena.update(simDt);
+    clock += simDt;
+    starView.update(starDrops.stars, clock);
+    boxView.update(powerUps.boxes, clock);
+    combo.update(dt, models[0]?.root.position ?? tmpP, cars[0].scale);
     fx.update(phase === 'result' ? dt : simDt);
+    // the motor hum and the hurry-up music in the last 10 s
+    audio.engine(phase === 'playing' && !engine.paused, Math.min(1, cars[0].speed() / CAR.topSpeed), powerUps.has(0, 'giant'));
+    audio.setRate(phase === 'playing' && scores.timeLeft <= RULES.hurry ? 1.08 : 1);
     starPulse = Math.max(0, starPulse - dt * 3);
     const p0 = models[0]?.root.position ?? tmpP.set(0, 0, 0);
     const v0 = cars[0].body.linvel();
@@ -370,6 +444,7 @@ export async function startBumper(canvas: HTMLCanvasElement, opts: StartOpts): P
   };
 
   const resetCars = () => {
+    combo.update(9, tmpP, 1);
     cars.forEach((c, i) => {
       const s = spawnOf(i);
       c.reset(s.p, s.yaw);
@@ -389,6 +464,8 @@ export async function startBumper(canvas: HTMLCanvasElement, opts: StartOpts): P
     cars,
     bots,
     scores,
+    powerUps,
+    starDrops,
     engine,
     camera,
     start() {
@@ -407,6 +484,7 @@ export async function startBumper(canvas: HTMLCanvasElement, opts: StartOpts): P
     },
     toTitle() {
       phase = 'title';
+      resetCars();
       scores.toTitle();
       engine.timeScale = 1;
       engine.paused = false;
@@ -422,6 +500,7 @@ export async function startBumper(canvas: HTMLCanvasElement, opts: StartOpts): P
     },
     setPaused(p) {
       engine.paused = p;
+      if (p) audio.engine(false);
     },
     resize() {
       camera.setAspect(engine.resize());
@@ -434,6 +513,12 @@ export async function startBumper(canvas: HTMLCanvasElement, opts: StartOpts): P
       cooldown: cars[0].cooldown / CAR.dashCooldown,
       trophies: scores.trophies(),
       starPulse,
+      crown: scores.crown === 0,
+      power: powerUps.activeFor(0),
+      powerLeft: (() => {
+        const a = powerUps.active[0];
+        return a ? Math.max(0, a.left / POWER_UPS[a.kind].duration) : 0;
+      })(),
     }),
     ff(seconds, inp) {
       forced = { x: 0, y: 0, thrust: 0, dash: false, ...inp };

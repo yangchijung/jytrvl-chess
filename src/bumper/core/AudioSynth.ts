@@ -1,19 +1,23 @@
 // Crazy Bumper — every sound is synthesised with Web Audio (no audio files): the rubbery "boing" of two rings,
 // the dash whoosh, the post's "咚!", countdown beeps, a blip per star and a small fanfare at the end.
 // Sound starts only after the first tap or key (iOS rule); before that every call is silently ignored.
-// Music: James is making Suno tracks (title / in-game / results). setMusic() is the hook: register each file in
-// MUSIC_TRACKS (they go to public/bumper/music/*.mp3) with its loop points and it loops that file; a track with
-// no entry plays nothing (no request is made, so a missing file can never log an error).
+// Music: three Suno tracks by James (public/bumper/music/*.mp3, see docs/product/CRAZY_BUMPER_MUSIC.md). Each is
+// fetched and decoded only once sound is unlocked (never on first paint), plays from 0, then loops between bar-line
+// loop points with no gap (AudioBufferSourceNode loopStart/loopEnd); results plays once. Tracks cross-fade (0.6 s)
+// and the last 10 s of a round speed the music up to 1.08×.
 
 export type MusicTrack = 'title' | 'play' | 'results';
 export interface MusicFile {
   url: string;
-  /** seconds; the loop runs from loopStart to loopEnd (default: the whole file) */
-  loopStart?: number;
-  loopEnd?: number;
+  /** seconds; after the first pass the music loops between these (null: play once) */
+  loop: [number, number] | null;
 }
-/** e.g. { title: { url: '/bumper/music/title.mp3', loopStart: 1.2, loopEnd: 49.8 } } */
-export const MUSIC_TRACKS: Partial<Record<MusicTrack, MusicFile>> = {};
+export const MUSIC_TRACKS: Record<MusicTrack, MusicFile> = {
+  title: { url: '/bumper/music/title.mp3', loop: [19.9459, 76.2438] },
+  play: { url: '/bumper/music/play.mp3', loop: [19.2725, 67.1743] },
+  results: { url: '/bumper/music/results.mp3', loop: null },
+};
+const FADE = 0.6;
 
 const MUTE_KEY = 'jy-bumper-muted';
 
@@ -24,7 +28,8 @@ export class AudioSynth {
   private music: GainNode | null = null;
   private noise: AudioBuffer | null = null;
   private last: Record<string, number> = {};
-  private track: { name: MusicTrack; src: AudioBufferSourceNode } | null = null;
+  private track: { name: MusicTrack; src: AudioBufferSourceNode; gain: GainNode } | null = null;
+  private rate = 1;
   private wanted: MusicTrack | null = null;
   private buffers = new Map<string, Promise<AudioBuffer | null>>();
   muted = false;
@@ -251,6 +256,113 @@ export class AudioSynth {
     o.stop(t + 0.12);
   }
 
+  /** picking up a gift box: a quick rising sweep */
+  powerUp() {
+    const c = this.ready('power', 0.15);
+    if (!c) return;
+    const t = c.currentTime;
+    const o = c.createOscillator();
+    o.type = 'triangle';
+    o.frequency.setValueAtTime(330, t);
+    o.frequency.exponentialRampToValueAtTime(1320, t + 0.35);
+    const lfo = c.createOscillator();
+    lfo.frequency.value = 30;
+    const lg = c.createGain();
+    lg.gain.value = 60;
+    lfo.connect(lg).connect(o.frequency);
+    const g = this.env(c, 0.25, 0.01, 0.42);
+    o.connect(g);
+    o.start(t);
+    lfo.start(t);
+    o.stop(t + 0.5);
+    lfo.stop(t + 0.5);
+  }
+
+  /** combo ⭐x2! / ⭐x3!: a rising cheer of quick notes, higher for x3 */
+  cheer(n: number) {
+    const c = this.ready('cheer', 0.3);
+    if (!c) return;
+    const t = c.currentTime;
+    const base = n >= 3 ? 784 : 659;
+    [1, 1.25, 1.5, 2].forEach((k, i) => {
+      const o = c.createOscillator();
+      o.type = 'square';
+      o.frequency.value = base * k;
+      const f = c.createBiquadFilter();
+      f.type = 'lowpass';
+      f.frequency.value = 3000;
+      const at = t + i * 0.07;
+      const g = this.env(c, 0.1, 0.005, i === 3 ? 0.35 : 0.08, at);
+      o.connect(f).connect(g);
+      o.start(at);
+      o.stop(at + 0.45);
+    });
+  }
+
+  /** a shield bounces someone off: a springy "doing" */
+  spring() {
+    const c = this.ready('spring', 0.1);
+    if (!c) return;
+    const t = c.currentTime;
+    const o = c.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(600, t);
+    o.frequency.exponentialRampToValueAtTime(1500, t + 0.08);
+    o.frequency.exponentialRampToValueAtTime(400, t + 0.3);
+    const lfo = c.createOscillator();
+    lfo.frequency.value = 35;
+    const lg = c.createGain();
+    lg.gain.value = 120;
+    lfo.connect(lg).connect(o.frequency);
+    const g = this.env(c, 0.3, 0.005, 0.3);
+    o.connect(g);
+    o.start(t);
+    lfo.start(t);
+    o.stop(t + 0.35);
+    lfo.stop(t + 0.35);
+  }
+
+  // ---------- the player's motor: a soft hum that rises with speed, deeper in giant mode ----------
+  private motor: { o1: OscillatorNode; o2: OscillatorNode; f: BiquadFilterNode; g: GainNode } | null = null;
+  engine(on: boolean, speed01 = 0, giant = false) {
+    const c = this.ctx;
+    if (!c || c.state !== 'running' || !this.sfx) return;
+    if (!on) {
+      if (this.motor) {
+        const m = this.motor;
+        this.motor = null;
+        m.g.gain.setTargetAtTime(0, c.currentTime, 0.05);
+        m.o1.stop(c.currentTime + 0.3);
+        m.o2.stop(c.currentTime + 0.3);
+      }
+      return;
+    }
+    if (!this.motor) {
+      const o1 = c.createOscillator(),
+        o2 = c.createOscillator();
+      o1.type = 'sawtooth';
+      o2.type = 'square';
+      const f = c.createBiquadFilter();
+      f.type = 'lowpass';
+      f.frequency.value = 500;
+      const g = c.createGain();
+      g.gain.value = 0;
+      o1.connect(f);
+      o2.connect(f);
+      f.connect(g).connect(this.sfx);
+      o1.start();
+      o2.start();
+      this.motor = { o1, o2, f, g };
+    }
+    const m = this.motor;
+    const t = c.currentTime;
+    const base = (giant ? 34 : 58) + speed01 * (giant ? 40 : 70);
+    m.o1.frequency.setTargetAtTime(base, t, 0.08);
+    m.o2.frequency.setTargetAtTime(base * 0.5, t, 0.08);
+    m.f.frequency.setTargetAtTime(300 + speed01 * 900, t, 0.08);
+    m.g.gain.setTargetAtTime(0.025 + speed01 * 0.045, t, 0.1);
+  }
+
   // ---------- music hook ----------
   private load(url: string): Promise<AudioBuffer | null> {
     let p = this.buffers.get(url);
@@ -265,34 +377,59 @@ export class AudioSynth {
     return p;
   }
 
-  /** switch the looping background track; does nothing until a URL is registered for it */
+  /** switch the background track (cross-fade); before the first tap this only remembers what to play */
   async setMusic(name: MusicTrack | null) {
     this.wanted = name;
-    if (!this.ctx || !this.music) return;
+    const c = this.ctx;
+    if (!c || !this.music) return;
     if (this.track?.name === name) return;
     if (this.track) {
+      const old = this.track;
+      this.track = null;
+      const now = c.currentTime;
+      old.gain.gain.cancelScheduledValues(now);
+      old.gain.gain.setValueAtTime(old.gain.gain.value, now);
+      old.gain.gain.linearRampToValueAtTime(0, now + FADE);
       try {
-        this.track.src.stop();
+        old.src.stop(now + FADE + 0.05);
       } catch {
         /* already stopped */
       }
-      this.track = null;
     }
-    const file = name ? MUSIC_TRACKS[name] : undefined;
-    if (!name || !file) return;
+    if (!name) return;
+    const file = MUSIC_TRACKS[name];
     const buf = await this.load(file.url);
-    if (!buf || this.wanted !== name || !this.ctx) return;
+    if (!buf || this.wanted !== name || !this.ctx || this.track) return;
+    const now = this.ctx.currentTime;
     const src = this.ctx.createBufferSource();
     src.buffer = buf;
-    src.loop = true;
-    if (file.loopStart !== undefined) src.loopStart = file.loopStart;
-    if (file.loopEnd !== undefined) src.loopEnd = file.loopEnd;
-    src.connect(this.music);
-    src.start();
-    this.track = { name, src };
+    if (file.loop) {
+      src.loop = true;
+      src.loopStart = file.loop[0];
+      src.loopEnd = Math.min(file.loop[1], buf.duration);
+    }
+    src.playbackRate.value = this.rate;
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(1, now + FADE);
+    src.connect(gain).connect(this.music);
+    src.start(now);
+    this.track = { name, src, gain };
+  }
+
+  /** 1.08 in the last 10 s of a round, 1 otherwise */
+  setRate(r: number) {
+    if (r === this.rate) return;
+    this.rate = r;
+    if (this.ctx && this.track) this.track.src.playbackRate.setTargetAtTime(r, this.ctx.currentTime, 0.15);
+  }
+
+  get musicTrack(): MusicTrack | null {
+    return this.track?.name ?? null;
   }
 
   dispose() {
+    this.engine(false);
     void this.setMusic(null);
     void this.ctx?.close();
     this.ctx = null;

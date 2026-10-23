@@ -8,7 +8,7 @@ import type { BumperGame, GameStats, HudState } from './game';
 import type { Phase } from './rules/ScoreManager';
 import { AudioSynth } from './core/AudioSynth';
 import { loadPick, savePick, type AnimalId, type CarId } from './entities/roster';
-import { DashButton, IconButton, Joystick, LABELS, PauseIcon, PauseScreen, PlayHud, ResultScreen, SoundIcon, TitleScreen } from './ui/KidsHUD';
+import { DashButton, FlyingStars, IconButton, Joystick, LABELS, PauseIcon, PauseScreen, PlayHud, ResultScreen, SoundIcon, TitleScreen } from './ui/KidsHUD';
 import { HomeIcon } from './ui/icons';
 import './bumper.css';
 
@@ -60,6 +60,8 @@ export function BumperPage() {
   const [pick, setPickState] = useState<{ animal: AnimalId; car: CarId }>(() => loadPick());
   const [muted, setMuted] = useState(audio.muted);
   const pendingStart = useRef(false);
+  const [fly, setFly] = useState<{ id: number; x: number; y: number }[]>([]);
+  const flyId = useRef(0);
 
   useEffect(() => {
     let alive = true;
@@ -70,7 +72,14 @@ export function BumperPage() {
       try {
         const { startBumper } = await import('./game');
         if (!alive || !canvas.current) return;
-        const g = await startBumper(canvas.current, { pick, roundSeconds: roundFromUrl(), lowPower, motion: reduced ? 0.3 : 1, audio, stats, onPhase: (p) => setPhase(p) });
+        const g = await startBumper(canvas.current, { pick, roundSeconds: roundFromUrl(), lowPower, motion: reduced ? 0.3 : 1, audio, stats, onPhase: (p) => setPhase(p),
+          onStar: (_total, from) => {
+            if (!from || reduced) return;
+            const id = ++flyId.current;
+            setFly((l) => [...l.slice(-5), { id, ...from }]);
+            window.setTimeout(() => setFly((l) => l.filter((f) => f.id !== id)), 260);
+          },
+        });
         if (!alive) return g.dispose();
         game.current = g;
         window.__bumper = g;
@@ -182,6 +191,7 @@ export function BumperPage() {
       {phase === 'playing' && hud && hud.phase === 'playing' && (
         <>
           <PlayHud hud={hud} lang={lang} />
+          <FlyingStars list={fly} />
           {!paused && (
             <IconButton label={LABELS.pause[lang]} onClick={() => pause(true)} className="bump-tr" testid="bumper-pause">
               <PauseIcon />
