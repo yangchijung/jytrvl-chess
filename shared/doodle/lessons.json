@@ -76,6 +76,174 @@
         "en": "Light blue"
       },
       "mark": "square-outline"
+    },
+    {
+      "id": "black",
+      "hex": "#252525",
+      "name": {
+        "zh": "黑色",
+        "en": "Black"
+      }
+    },
+    {
+      "id": "red_orange",
+      "hex": "#DF5930",
+      "name": {
+        "zh": "朱橙色",
+        "en": "Red orange"
+      }
+    },
+    {
+      "id": "yellow_orange",
+      "hex": "#EDAB32",
+      "name": {
+        "zh": "金橙色",
+        "en": "Yellow orange"
+      }
+    },
+    {
+      "id": "yellow_green",
+      "hex": "#A5AE3D",
+      "name": {
+        "zh": "黃綠色",
+        "en": "Yellow green"
+      }
+    },
+    {
+      "id": "blue_green",
+      "hex": "#338C87",
+      "name": {
+        "zh": "藍綠色",
+        "en": "Blue green"
+      }
+    },
+    {
+      "id": "blue_purple",
+      "hex": "#5C5EAD",
+      "name": {
+        "zh": "藍紫色",
+        "en": "Blue violet"
+      }
+    },
+    {
+      "id": "red_purple",
+      "hex": "#AD4A78",
+      "name": {
+        "zh": "紅紫色",
+        "en": "Red violet"
+      }
+    },
+    {
+      "id": "pink",
+      "hex": "#E992A0",
+      "name": {
+        "zh": "粉紅色",
+        "en": "Pink"
+      }
+    },
+    {
+      "id": "light_yellow",
+      "hex": "#F8DF8E",
+      "name": {
+        "zh": "淺黃色",
+        "en": "Light yellow"
+      }
+    },
+    {
+      "id": "peach",
+      "hex": "#F1B48A",
+      "name": {
+        "zh": "蜜桃色",
+        "en": "Peach"
+      }
+    },
+    {
+      "id": "light_green",
+      "hex": "#A8C58F",
+      "name": {
+        "zh": "淺綠色",
+        "en": "Light green"
+      }
+    },
+    {
+      "id": "lavender",
+      "hex": "#B5A0CD",
+      "name": {
+        "zh": "薰衣草紫",
+        "en": "Lavender"
+      }
+    },
+    {
+      "id": "pale_pink",
+      "hex": "#F4C6CF",
+      "name": {
+        "zh": "淡粉紅",
+        "en": "Pale pink"
+      }
+    },
+    {
+      "id": "cream",
+      "hex": "#FBECC2",
+      "name": {
+        "zh": "奶油黃",
+        "en": "Cream"
+      }
+    },
+    {
+      "id": "pale_blue",
+      "hex": "#C5DDF2",
+      "name": {
+        "zh": "淡天藍",
+        "en": "Pale sky blue"
+      }
+    },
+    {
+      "id": "mint",
+      "hex": "#D2E4C2",
+      "name": {
+        "zh": "薄荷綠",
+        "en": "Pale mint"
+      }
+    },
+    {
+      "id": "lilac",
+      "hex": "#D8CAE6",
+      "name": {
+        "zh": "淡丁香紫",
+        "en": "Pale lilac"
+      }
+    },
+    {
+      "id": "brown",
+      "hex": "#916346",
+      "name": {
+        "zh": "棕色",
+        "en": "Brown"
+      }
+    },
+    {
+      "id": "tan",
+      "hex": "#C6A17C",
+      "name": {
+        "zh": "淺棕色",
+        "en": "Tan"
+      }
+    },
+    {
+      "id": "gray",
+      "hex": "#808080",
+      "name": {
+        "zh": "灰色",
+        "en": "Gray"
+      }
+    },
+    {
+      "id": "dark_blue",
+      "hex": "#213C68",
+      "name": {
+        "zh": "深藍色",
+        "en": "Dark blue"
+      }
     }
   ],
   "recipes": [
@@ -119,6 +287,110 @@
       "commutative": true
     },
     {
+      "id": "mix_red_orange",
+      "inputs": [
+        "red",
+        "orange"
+      ],
+      "ratio": [
+        1,
+        1
+      ],
+      "output": "red_orange",
+      "commutative": true
+    },
+    {
+      "id": "mix_yellow_orange",
+      "inputs": [
+        "yellow",
+        "orange"
+      ],
+      "ratio": [
+        1,
+        1
+      ],
+      "output": "yellow_orange",
+      "commutative": true
+    },
+    {
+      "id": "mix_yellow_green",
+      "inputs": [
+        "yellow",
+        "green"
+      ],
+      "ratio": [
+        1,
+        1
+      ],
+      "output": "yellow_green",
+      "commutative": true
+    },
+    {
+      "id": "mix_blue_green",
+      "inputs": [
+        "blue",
+        "green"
+      ],
+      "ratio": [
+        1,
+        1
+      ],
+      "output": "blue_green",
+      "commutative": true
+    },
+    {
+      "id": "mix_blue_purple",
+      "inputs": [
+        "blue",
+        "purple"
+      ],
+      "ratio": [
+        1,
+        1
+      ],
+      "output": "blue_purple",
+      "commutative": true
+    },
+    {
+      "id": "mix_red_purple",
+      "inputs": [
+        "red",
+        "purple"
+      ],
+      "ratio": [
+        1,
+        1
+      ],
+      "output": "red_purple",
+      "commutative": true
+    },
+    {
+      "id": "tint_red",
+      "inputs": [
+        "red",
+        "white"
+      ],
+      "ratio": [
+        1,
+        1
+      ],
+      "output": "pink",
+      "commutative": true
+    },
+    {
+      "id": "tint_yellow",
+      "inputs": [
+        "yellow",
+        "white"
+      ],
+      "ratio": [
+        1,
+        1
+      ],
+      "output": "light_yellow",
+      "commutative": true
+    },
+    {
       "id": "tint_blue",
       "inputs": [
         "blue",
@@ -129,6 +401,162 @@
         1
       ],
       "output": "light_blue",
+      "commutative": true
+    },
+    {
+      "id": "tint_orange",
+      "inputs": [
+        "orange",
+        "white"
+      ],
+      "ratio": [
+        1,
+        1
+      ],
+      "output": "peach",
+      "commutative": true
+    },
+    {
+      "id": "tint_green",
+      "inputs": [
+        "green",
+        "white"
+      ],
+      "ratio": [
+        1,
+        1
+      ],
+      "output": "light_green",
+      "commutative": true
+    },
+    {
+      "id": "tint_purple",
+      "inputs": [
+        "purple",
+        "white"
+      ],
+      "ratio": [
+        1,
+        1
+      ],
+      "output": "lavender",
+      "commutative": true
+    },
+    {
+      "id": "tint_pink",
+      "inputs": [
+        "pink",
+        "white"
+      ],
+      "ratio": [
+        1,
+        1
+      ],
+      "output": "pale_pink",
+      "commutative": true
+    },
+    {
+      "id": "tint_light_yellow",
+      "inputs": [
+        "light_yellow",
+        "white"
+      ],
+      "ratio": [
+        1,
+        1
+      ],
+      "output": "cream",
+      "commutative": true
+    },
+    {
+      "id": "tint_light_blue",
+      "inputs": [
+        "light_blue",
+        "white"
+      ],
+      "ratio": [
+        1,
+        1
+      ],
+      "output": "pale_blue",
+      "commutative": true
+    },
+    {
+      "id": "tint_light_green",
+      "inputs": [
+        "light_green",
+        "white"
+      ],
+      "ratio": [
+        1,
+        1
+      ],
+      "output": "mint",
+      "commutative": true
+    },
+    {
+      "id": "tint_lavender",
+      "inputs": [
+        "lavender",
+        "white"
+      ],
+      "ratio": [
+        1,
+        1
+      ],
+      "output": "lilac",
+      "commutative": true
+    },
+    {
+      "id": "mix_brown",
+      "inputs": [
+        "orange",
+        "blue"
+      ],
+      "ratio": [
+        1,
+        1
+      ],
+      "output": "brown",
+      "commutative": true
+    },
+    {
+      "id": "tint_brown",
+      "inputs": [
+        "brown",
+        "white"
+      ],
+      "ratio": [
+        1,
+        1
+      ],
+      "output": "tan",
+      "commutative": true
+    },
+    {
+      "id": "mix_gray",
+      "inputs": [
+        "black",
+        "white"
+      ],
+      "ratio": [
+        1,
+        1
+      ],
+      "output": "gray",
+      "commutative": true
+    },
+    {
+      "id": "shade_blue",
+      "inputs": [
+        "blue",
+        "black"
+      ],
+      "ratio": [
+        1,
+        1
+      ],
+      "output": "dark_blue",
       "commutative": true
     }
   ],
@@ -475,6 +903,41 @@
     "empty": {
       "zh": "空白",
       "en": "Empty"
+    },
+    "v2_mix": {
+      "zh": "混一混",
+      "en": "Mix"
+    },
+    "v2_paint": {
+      "zh": "用這色畫",
+      "en": "Paint with this"
+    },
+    "v2_moreWhite": {
+      "zh": "再加白",
+      "en": "Add white"
+    },
+    "v2_pickTwo": {
+      "zh": "點兩色，混看看",
+      "en": "Pick two colours to mix"
+    },
+    "v2_all": {
+      "zh": "全部 29 色",
+      "en": "All 29 colours"
+    },
+    "v2_newTemplate": {
+      "zh": "換底圖",
+      "en": "Choose a picture"
+    },
+    "v2_noDiscard": {
+      "zh": "換張畫，這張會保留",
+      "en": "Choose another picture. This one stays saved."
     }
-  }
+  },
+  "baseColors": [
+    "red",
+    "yellow",
+    "blue",
+    "white",
+    "black"
+  ]
 }

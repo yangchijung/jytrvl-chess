@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import type { Dir } from '../../shared/territory/engine';
 import type { TerritoryClient } from './client';
-import { draw, drawMinimap, readTheme, PALETTE, headPos, type Camera, type Theme } from './render';
+import { draw, drawMinimap, readTheme, headPos, type Camera, type Theme } from './render';
+import { trColor } from '../../shared/territory/colors';
 import { useI18n, type StringKey } from '../i18n';
 import { useSettings } from '../lib/settings';
 import { playSound } from '../lib/sound';
@@ -312,7 +313,7 @@ export function TerritoryCanvas({ client, overlay }: { client: TerritoryClient; 
         {mePlayers.map((p) => (
           <div key={p.idx} className="rounded-lg bg-black/70 px-3 py-1.5 text-white">
             <div className="flex items-center gap-2 text-sm font-semibold">
-              <span className="h-3 w-3 rounded-sm" style={{ background: PALETTE[p.color % 8].base }} />
+              <span className="h-3 w-3 rounded-sm" style={{ background: trColor(p.color).base }} />
               {p.name}
               {!p.alive && <span className="text-xs text-red-300">✕</span>}
             </div>
@@ -336,7 +337,7 @@ export function TerritoryCanvas({ client, overlay }: { client: TerritoryClient; 
           {ranking.slice(0, 5).map((p, i) => (
             <li key={p.idx} className={`flex items-center gap-1.5 ${client.me.includes(p.idx) ? 'font-bold' : ''}`}>
               <span className="w-4 tabular-nums opacity-70">{i + 1}</span>
-              <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: PALETTE[p.color % 8].base }} />
+              <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: trColor(p.color).base }} />
               <span className="flex-1 truncate">{p.name}</span>
               <span className="tabular-nums">{((p.land / total) * 100).toFixed(1)}%</span>
             </li>
@@ -346,7 +347,7 @@ export function TerritoryCanvas({ client, overlay }: { client: TerritoryClient; 
           <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/15">
             <div className="flex h-full">
               {ranking.map((p) => (
-                <div key={p.idx} style={{ width: `${(p.land / total) * 100}%`, background: PALETTE[p.color % 8].base }} />
+                <div key={p.idx} style={{ width: `${(p.land / total) * 100}%`, background: trColor(p.color).base }} />
               ))}
             </div>
           </div>

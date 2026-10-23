@@ -19,7 +19,8 @@ function setup(withCity = false, spawn = { x: 0, y: 1.2, z: -60 }, yaw = 0) {
   world.createCollider(RAPIER.ColliderDesc.cuboid(withCity ? 200 : 2000, 0.5, withCity ? 200 : 2000).setTranslation(0, -0.5, 0).setFriction(1)); // open ground is big enough for the top-speed run
   if (withCity)
     for (const s of greybox()) {
-      const rot = { x: 0, y: Math.sin((s.yaw ?? 0) / 2), z: 0, w: Math.cos((s.yaw ?? 0) / 2) };
+      const yaw = s.kind === 'box' || s.kind === 'wedge' ? (s.yaw ?? 0) : 0;
+      const rot = { x: 0, y: Math.sin(yaw / 2), z: 0, w: Math.cos(yaw / 2) };
       if (s.kind === 'box' && !s.dynamic) world.createCollider(RAPIER.ColliderDesc.cuboid(s.size[0] / 2, s.size[1] / 2, s.size[2] / 2).setTranslation(...s.p).setRotation(rot).setRestitution(0.2).setFriction(0.4));
       if (s.kind === 'wedge') world.createCollider(RAPIER.ColliderDesc.convexHull(new Float32Array(wedgePoints(s.size).flat()))!.setTranslation(...s.p).setRotation(rot).setFriction(1));
     }

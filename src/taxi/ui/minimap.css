@@ -1,0 +1,6 @@
+/* Rush Taxi minimap: top left under the clock (in practice there is no clock, so it moves up). Flat ink border on
+   paper, no shadow. Sized by the screen height so it stays above the steering stick on a phone held sideways
+   (844 × 390: 104 px, ends at 256 px; the stick starts at 270 px) and reads well on an iPad (1180 × 820: 148 px). */
+.taxi-minimap { position: absolute; left: 12px; top: 152px; width: clamp(104px, 18vh, 156px); aspect-ratio: 1; border-radius: 50%; border: 3px solid #23303f; background: #fffaf2; overflow: hidden; pointer-events: none; box-sizing: border-box; }
+.taxi-minimap[data-mode='practice'] { top: 80px; }
+.taxi-minimap canvas { display: block; width: 100%; height: 100%; }

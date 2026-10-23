@@ -7,7 +7,9 @@ import { Button } from '../components/ui';
 import { botThink, newBotMemory } from '../../shared/territory/ai';
 import { rng, type Dir } from '../../shared/territory/engine';
 import { FlowGame, STEP_MS } from '../../shared/territory/flow';
-import { PALETTE, readTheme, type Theme } from './render';
+import { readTheme, type Theme } from './render';
+import { assignColors, trColor } from '../../shared/territory/colors';
+import { loadColorPrefs } from './ColorPicker';
 
 type L = { zh: string; en: string };
 const T = {
@@ -63,9 +65,10 @@ export function setHidden(R: Pick<Run, 'status' | 'startAt' | 'acc' | 'last' | '
 function newRun(now: number): Run {
   const seed = Math.floor(Math.random() * 2 ** 31);
   const g = new FlowGame({ width: 56, height: 56, durationTicks: DURATION_MS / STEP_MS, seed });
-  g.addPlayer('me', 'You', false);
+  const colors = assignColors([loadColorPrefs().p1, ...BOTS.map(() => null)]);
+  g.addPlayer('me', 'You', false, colors[0]);
   const r = rng(seed ^ 0x51ed);
-  const bots = BOTS.map((name) => ({ idx: g.addPlayer(`b-${name}`, name, true).idx, mem: newBotMemory(), rand: rng(Math.floor(r() * 2 ** 31)) }));
+  const bots = BOTS.map((name, k) => ({ idx: g.addPlayer(`b-${name}`, name, true, colors[k + 1]).idx, mem: newBotMemory(), rand: rng(Math.floor(r() * 2 ** 31)) }));
   g.start();
   return { g, bots, status: 'countdown', startAt: now + COUNTDOWN_MS, acc: 0, last: now, prev: g.flow.map((f) => [f.fx, f.fy]), hiddenAt: typeof document !== 'undefined' && document.hidden ? now : null };
 }
@@ -162,7 +165,7 @@ export function TerritoryFlowPage() {
         for (let x = x0; x <= x1; x++) {
           const o = g.owner[g.idx(x, y)];
           if (o < 0) continue;
-          ctx.fillStyle = PALETTE[g.players[o].color % 8].land;
+          ctx.fillStyle = th.dark ? trColor(g.players[o].color).landDk : trColor(g.players[o].color).land;
           ctx.fillRect(sx(x), sy(y), cell + 0.5, cell + 0.5);
         }
       ctx.strokeStyle = th.edge;
@@ -174,7 +177,7 @@ export function TerritoryFlowPage() {
         const f = g.flow[p.idx];
         if (!f.path.length) continue;
         const [px, py] = pos(p.idx);
-        ctx.strokeStyle = PALETTE[p.color % 8].base;
+        ctx.strokeStyle = trColor(p.color).base;
         ctx.globalAlpha = 0.75;
         ctx.lineWidth = cell * 0.45;
         ctx.lineCap = 'round';
@@ -191,7 +194,7 @@ export function TerritoryFlowPage() {
         if (!p.alive) continue;
         const [px, py] = pos(p.idx);
         const a = g.flow[p.idx].heading;
-        const c = PALETTE[p.color % 8];
+        const c = trColor(p.color);
         ctx.fillStyle = c.base;
         ctx.strokeStyle = c.dark;
         ctx.lineWidth = 2;

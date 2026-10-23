@@ -8,6 +8,8 @@ import { useI18n, type StringKey } from '../i18n';
 import { Button, Notice } from '../components/ui';
 import type { TerritoryGame } from '../../shared/territory/engine';
 import { FlowGame, turnCounter } from '../../shared/territory/flow';
+import { TERRITORY_COLORS, autoColor } from '../../shared/territory/colors';
+import { loadColorPrefs } from './ColorPicker';
 
 /** Tutorial safety net for continuous steering: about to leave the map → aim back towards the centre. */
 function flowGuard(g: FlowGame) {
@@ -53,7 +55,7 @@ function guardRails(g: TerritoryGame, ownTrail: boolean) {
 
 function makeClient(step: StepId, name: string): LocalTerritory {
   const c = new LocalTerritory({
-    humans: [{ name }],
+    humans: [{ name, color: loadColorPrefs().p1 }],
     bots: step === 4 ? 1 : 0,
     level: 'easy',
     durationMin: 0,
@@ -160,11 +162,15 @@ export function TerritoryLearn() {
 
 /** One small picture per lesson: what to do, drawn in the game's own colours (original, no text inside). */
 function StepPicture({ step }: { step: StepId }) {
-  const me = '#1f9d6b',
-    meLand = '#8fd4b5',
-    rival = '#e4572e',
+  // your chosen colour (same as in the lesson board); the rival takes the colour a computer rival would get
+  const mine = loadColorPrefs().p1;
+  const you = TERRITORY_COLORS[mine],
+    rv = TERRITORY_COLORS[autoColor([mine])];
+  const me = you.base,
+    meLand = you.land,
+    rival = rv.base,
     ink = 'var(--text)';
-  const runner = (x: number, y: number, c = me) => <rect x={x - 7} y={y - 7} width="14" height="14" rx="5" fill={c} stroke="#fff" strokeWidth="2" />;
+  const runner = (x: number, y: number, c = me) => <rect x={x - 7} y={y - 7} width="14" height="14" rx="5" fill={c} stroke={c === me ? you.dark : rv.dark} strokeWidth="2" />;
   return (
     <svg viewBox="0 0 240 120" className="block w-full max-w-sm rounded-md border border-[var(--border)] bg-[var(--surface)]" aria-hidden="true" data-testid={`tr-learn-pic-${step}`}>
       {step === 1 && (
@@ -202,7 +208,7 @@ function StepPicture({ step }: { step: StepId }) {
         <>
           <rect x="20" y="20" width="200" height="80" fill="none" stroke={ink} strokeWidth="2" />
           <rect x="20" y="20" width="130" height="80" fill={meLand} />
-          <rect x="150" y="20" width="70" height="40" fill="#f4ad97" />
+          <rect x="150" y="20" width="70" height="40" fill={rv.land} />
           <path d="M150 20 V100" stroke={ink} strokeWidth="2" strokeDasharray="4 4" />
         </>
       )}

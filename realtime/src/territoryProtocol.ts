@@ -18,6 +18,7 @@ export interface TSeatPublic {
   level?: BotLevel;
   connected: boolean;
   isUser: boolean;
+  /** palette index into TERRITORY_COLORS (shared/territory/colors.ts); unique within the room */
   color: number;
 }
 
@@ -29,6 +30,9 @@ export type TClientMsg =
   | { t: 'bot'; op: 'add'; level: BotLevel }
   | { t: 'bot'; op: 'remove'; seat: number }
   | { t: 'again' }
+  /** lobby only: change my colour. The server keeps it when free, otherwise gives the nearest free colour.
+   *  (A first colour can also be asked for when joining: `?color=<index>` on the WebSocket URL.) */
+  | { t: 'color'; c: number }
   | { t: 'ping' };
 
 export interface TLobbyMsg {

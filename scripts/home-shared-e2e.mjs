@@ -35,10 +35,10 @@ async function page(w = 1280, h = 900, opts = {}) {
   p.ctx = ctx;
   return p;
 }
-const GAMES = ['chess', 'xiangqi', 'banqi', 'territory', 'snake', 'blocks', 'sudoku', 'doodle', 'coaster', 'math'];
+const GAMES = ['chess', 'xiangqi', 'banqi', 'territory', 'snake', 'bumper', 'blocks', 'sudoku', 'doodle', 'coaster', 'math'];
 const NAMES = {
-  zh: ['西洋棋', '中國象棋', '台灣暗棋', '領地爭奪戰', '貪食蛇競技場', '方塊消除對戰', '數獨', '色彩塗鴉樂', '手繪雲霄飛車', '數學遊樂島'],
-  en: ['Chess', 'Xiangqi', 'Banqi', 'Territory Rush', 'Snake Arena', 'Block Puzzle Battle', 'Sudoku', 'Color Doodle', 'Sketch Coaster', 'Math Island'],
+  zh: ['西洋棋', '中國象棋', '台灣暗棋', '領地爭奪戰', '貪食蛇競技場', '瘋狂碰碰車', '方塊消除對戰', '數獨', '色彩塗鴉樂', '手繪雲霄飛車', '數學遊樂島'],
+  en: ['Chess', 'Xiangqi', 'Banqi', 'Territory Rush', 'Snake Arena', 'Crazy Bumper', 'Block Puzzle Battle', 'Sudoku', 'Color Doodle', 'Sketch Coaster', 'Math Island'],
 };
 const pre = (lang) => (lang === 'en' ? '/en' : '');
 
@@ -85,7 +85,7 @@ for (const lang of ['zh', 'en']) {
       decor: main.querySelectorAll('.rounded-full.border-\\[18px\\], [class*=hero]').length,
     };
   }, NAMES[lang]);
-  ok(`HU01-${lang}`, `home ${lang}: 10 games, 4 categories, each name once, H1 = tagline, no emoji / generic /play / prototypes`, m.cards === 10 && m.h2 === 4 && m.counts.every((c) => c === 1) && m.tagline && !m.emoji && m.play === 0 && m.proto === 0 && m.decor === 0, JSON.stringify(m));
+  ok(`HU01-${lang}`, `home ${lang}: 11 games, 4 categories, each name once, H1 = tagline, no emoji / generic /play / prototypes`, m.cards === 11 && m.h2 === 4 && m.counts.every((c) => c === 1) && m.tagline && !m.emoji && m.play === 0 && m.proto === 0 && m.decor === 0, JSON.stringify(m));
   await p.ctx.close();
 }
 

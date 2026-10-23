@@ -11,6 +11,9 @@ export interface Spot {
   id: string;
   x: number;
   z: number;
+  /** where the person stands (the kerb beside the stop); defaults to the stop itself */
+  cx?: number;
+  cz?: number;
 }
 export interface Place extends Spot {
   name: { zh: string; en: string };

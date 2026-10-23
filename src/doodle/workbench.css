@@ -1,0 +1,96 @@
+/* Color Doodle V2 workbench. Paper, palette and paints are real objects drawn with outlines and flat colour;
+   interface chrome uses the site's paper / ink / forest-green tokens (DESIGN.md). Motion: 160–200 ms, once. */
+.dw {
+  --dw-board: #e9d6b4;
+  --dw-board-line: #6b4f2e;
+  --dw-well: #f5e9d3;
+  --dw-paper-edge: #2b2f2a;
+}
+
+.dw-grid { display: grid; gap: 1.5rem; }
+@media (min-width: 1024px) {
+  .dw-grid { grid-template-columns: minmax(0, 2fr) minmax(19rem, 1fr); align-items: start; }
+}
+
+/* the desk the paper lies on, and the paper itself: white in every theme */
+.dw-desk { background: var(--surface-2); border-radius: 12px; padding: 0.75rem; }
+@media (min-width: 640px) { .dw-desk { padding: 1rem; } }
+.dw-paper { background: #fff; border: 2px solid var(--dw-paper-edge); border-radius: 6px; padding: 0.5rem; color: #1f2328; }
+.dw-paper canvas, .dw-paper svg[role='img'] { border: 0 !important; border-radius: 2px !important; }
+.dw-paper [data-testid='stamp-grid'] { max-width: min(30rem, calc((100dvh - 20rem))); }
+/* the paper fits with its tools on a landscape tablet (1024×768) */
+.dw-paper > div, .dw-paper [data-testid='fish'] { max-width: max(18rem, calc((100dvh - 20rem) * 4 / 3)) !important; margin-inline: auto; }
+
+@layer components {
+  .dw-tab {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 44px; min-width: 44px; padding: 0 0.85rem; border-radius: 8px;
+    border: 2px solid var(--ui-control-border); background: var(--surface); color: var(--text);
+    font-weight: 600; font-size: 0.95rem; transition: background-color 150ms, border-color 150ms;
+  }
+  .dw-tab:hover { background: var(--surface-2); }
+  .dw-tab-on, .dw-tab[aria-pressed='true'] { border-color: var(--ui-accent-text); background: var(--ui-accent-soft); color: var(--ui-accent-text); }
+
+  .dw-tool {
+    display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    min-height: 60px; min-width: 60px; padding: 4px 6px; border-radius: 10px;
+    border: 2px solid var(--ui-control-border); background: var(--surface); color: var(--text);
+    font-weight: 600; font-size: 0.85rem; transition: background-color 150ms, color 150ms;
+  }
+  .dw-tool:hover:not(:disabled) { background: var(--surface-2); }
+  .dw-tool[aria-pressed='true'] { background: var(--ui-primary-bg); border-color: var(--ui-primary-bg); color: var(--ui-primary-fg); }
+  .dw-tool:disabled { cursor: not-allowed; background: var(--ui-disabled-bg); color: var(--ui-disabled-fg); border-color: transparent; }
+  .dw-tool-swatch { position: absolute; right: -7px; bottom: -5px; width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor; }
+
+  .dw-paint {
+    display: inline-flex; flex-direction: column; align-items: center; gap: 2px;
+    min-width: 60px; min-height: 76px; padding: 4px 2px; border-radius: 10px; border: 2px solid transparent;
+    background: transparent; color: var(--text);
+  }
+  .dw-paint:hover { background: var(--surface-2); }
+  .dw-paint-hint { border: 2px dashed var(--ui-accent-text); }
+  .dw-paint-name { font-size: 0.8rem; font-weight: 600; line-height: 1.15; text-align: center; max-width: 5.5rem; }
+
+  .dw-chip {
+    display: inline-flex; align-items: center; gap: 0.5rem; min-height: 48px; padding: 0 0.85rem; border-radius: 10px;
+    border: 2px solid var(--ui-control-border); background: var(--surface); font-weight: 600;
+  }
+  .dw-chip:hover { background: var(--surface-2); }
+  .dw-chip-dot { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #8a8f98; }
+
+  .dw-recipe {
+    display: inline-flex; align-items: center; gap: 2px; min-height: 44px; min-width: 64px; padding: 0 0.4rem;
+    border-radius: 8px; border: 1.5px solid var(--ui-control-border); background: var(--surface); font-weight: 700; color: var(--muted);
+  }
+  .dw-mini { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid #8a8f98; display: inline-block; }
+
+  .dw-thumb {
+    display: flex; flex-direction: column; align-items: stretch; gap: 4px; width: 100%; padding: 6px; border-radius: 10px;
+    border: 2px solid var(--ui-control-border); background: var(--surface); text-align: center; min-height: 44px;
+  }
+  .dw-thumb:hover { background: var(--surface-2); }
+  .dw-thumb svg { border: 1.5px solid var(--dw-paper-edge); border-radius: 4px; }
+  .dw-thumb-on { border-color: var(--ui-accent-text); outline: 3px solid var(--ui-accent-text); outline-offset: 1px; }
+  .dw-check { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--ui-control-border); display: inline-flex; align-items: center; justify-content: center; flex: none; }
+  .dw-check-on { background: var(--ui-primary-bg); border-color: var(--ui-primary-bg); color: var(--ui-primary-fg); }
+}
+
+/* the hand-held palette: a wooden board with two wells and a mixing pool (positions in % of the 320×200 art) */
+.dw-board { position: relative; width: 100%; max-width: 24rem; aspect-ratio: 8 / 5; }
+.dw-well, .dw-pool { position: absolute; display: flex; align-items: center; justify-content: center; font-weight: 800; }
+.dw-well { width: 18%; aspect-ratio: 1; border-radius: 50%; border: 3px solid #1f2328; font-size: 1.1rem; min-width: 48px; }
+.dw-well-0 { left: 31%; top: 13%; }
+.dw-well-1 { left: 53%; top: 8%; }
+.dw-well-empty { background: var(--dw-well); border: 3px dashed var(--dw-board-line); color: var(--dw-board-line); }
+.dw-pool { left: 40%; top: 45%; width: 48%; height: 40%; border-radius: 50% / 50%; border: 3px dashed var(--dw-board-line); background: var(--dw-well); color: var(--dw-board-line); padding: 0 6%; }
+.dw-pool-empty { font-size: 0.78rem; font-weight: 700; line-height: 1.2; text-align: center; }
+.dw-pool-on { border: 3px solid #1f2328; animation: dw-pour 180ms ease-out; cursor: pointer; }
+.dw-pool-name { font-size: 1.05rem; font-weight: 800; text-align: center; line-height: 1.15; }
+.dw-well:disabled, .dw-pool:disabled { cursor: default; }
+@keyframes dw-pour { from { transform: scale(0.82); opacity: 0.4; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .dw-pool-on { animation: none; }
+  .dw-tab, .dw-tool { transition: none; }
+}
+:root[data-reduce-motion] .dw-pool-on { animation: none; }
