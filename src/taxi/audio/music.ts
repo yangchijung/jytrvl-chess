@@ -1,8 +1,7 @@
 // Rush Taxi — background music (four instrumental tracks James made with Suno). Web Audio, not <audio>: a buffer
 // source loops between two sample positions with no gap, tracks cross-fade, and the last 10 s of an arcade run
 // speed the music up a little. iOS only allows sound after a touch, so nothing plays until the first tap or key.
-// Music and sound-effect volumes are separate (sound effects come with the next stage) and are remembered per
-// browser.
+// Music and sound-effect volumes are separate and are remembered per browser.
 
 import { Sfx, type EngineState, type SfxEvent } from './sfx';
 
@@ -49,7 +48,7 @@ export class Music {
       if (!AC) return;
       this.ctx = new AC();
       this.master = this.ctx.createGain();
-      this.master.connect(this.ctx.destination);
+      this.master.connect(Sfx.limiter(this.ctx)).connect(this.ctx.destination);
       this.musicBus = this.ctx.createGain();
       this.sfxBus = this.ctx.createGain();
       this.musicBus.connect(this.master);
@@ -117,8 +116,9 @@ export class Music {
     if (s) this.sfx.frame(s);
     else this.sfx.silence();
   }
-  effect(e: SfxEvent, strength = 1) {
-    if (this.sfx && this.unlocked) this.sfx.play(e, undefined, strength);
+  /** a one-shot sound, now or `delay` seconds from now */
+  effect(e: SfxEvent, strength = 1, delay = 0) {
+    if (this.sfx && this.ctx && this.unlocked) this.sfx.play(e, this.ctx.currentTime + delay, strength);
   }
 
   stop() {

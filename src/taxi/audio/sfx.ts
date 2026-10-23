@@ -11,7 +11,19 @@ export interface EngineState {
   skid: number;
   airborne: boolean;
 }
-export type SfxEvent = 'crash' | 'hit' | 'land' | 'rush' | 'near' | 'coin' | 'pickup' | 'drop' | 'timeout' | 'tick' | 'tickLast' | 'over';
+export type SfxEvent =
+  | "crash"
+  | "hit"
+  | "land"
+  | "rush"
+  | "near"
+  | "coin"
+  | "pickup"
+  | "drop"
+  | "timeout"
+  | "tick"
+  | "tickLast"
+  | "over";
 
 /** engine revs (0…1) for a speed: five gears, revs climb in each and drop at a shift */
 export function revs(kmh: number) {
@@ -19,10 +31,28 @@ export function revs(kmh: number) {
   const g = gears.findIndex((top, i) => i > 0 && kmh < top);
   const lo = gears[g - 1],
     hi = Math.min(gears[g], 150);
-  return 0.18 + 0.82 * Math.max(0, Math.min(1, (kmh - lo) / Math.max(1, hi - lo)));
+  return (
+    0.18 + 0.82 * Math.max(0, Math.min(1, (kmh - lo) / Math.max(1, hi - lo)))
+  );
 }
 
+/** engine loudness (gain) = base + throttle × throttle + revs × revs */
+export const ENGINE = { base: 0.011, throttle: 0.016, revs: 0.005 };
+/** tyre squeal gain at a full slide */
+export const SQUEAL = 0.48;
+
 export class Sfx {
+  /** a brick-wall limiter for the master bus: crashes stacked on the music never clip */
+  static limiter(ctx: BaseAudioContext) {
+    const c = ctx.createDynamicsCompressor();
+    c.threshold.value = -3;
+    c.knee.value = 0;
+    c.ratio.value = 20;
+    c.attack.value = 0.002;
+    c.release.value = 0.12;
+    return c;
+  }
+
   private engineGain: GainNode;
   private oscA: OscillatorNode;
   private oscB: OscillatorNode;
@@ -38,11 +68,11 @@ export class Sfx {
   ) {
     // engine: a saw and a square an octave below, through a low-pass that opens with the revs
     this.oscA = ctx.createOscillator();
-    this.oscA.type = 'sawtooth';
+    this.oscA.type = "sawtooth";
     this.oscB = ctx.createOscillator();
-    this.oscB.type = 'square';
+    this.oscB.type = "square";
     this.filter = ctx.createBiquadFilter();
-    this.filter.type = 'lowpass';
+    this.filter.type = "lowpass";
     this.filter.Q.value = 4;
     this.engineGain = ctx.createGain();
     this.engineGain.gain.value = 0;
@@ -59,7 +89,7 @@ export class Sfx {
     sq.buffer = this.noise;
     sq.loop = true;
     this.squealFilter = ctx.createBiquadFilter();
-    this.squealFilter.type = 'bandpass';
+    this.squealFilter.type = "bandpass";
     this.squealFilter.frequency.value = 1700;
     this.squealFilter.Q.value = 9;
     this.squealGain = ctx.createGain();
@@ -84,11 +114,28 @@ export class Sfx {
     const f = 48 + r * 120 + (s.airborne ? 25 : 0) * s.throttle; // the engine flares when the wheels leave the ground
     this.oscA.frequency.setTargetAtTime(f, at, 0.05);
     this.oscB.frequency.setTargetAtTime(f / 2, at, 0.05);
-    this.filter.frequency.setTargetAtTime(380 + r * 1400 + s.throttle * 600, at, 0.06);
-    this.engineGain.gain.setTargetAtTime(0.05 + s.throttle * 0.07 + r * 0.03, at, 0.08);
+    this.filter.frequency.setTargetAtTime(
+      380 + r * 1400 + s.throttle * 600,
+      at,
+      0.06,
+    );
+    // levels: flat out ≈ 11 dB under the music, idle ≈ 20 dB under (measured offline, see taxi-rec-audio.mjs)
+    this.engineGain.gain.setTargetAtTime(
+      ENGINE.base + s.throttle * ENGINE.throttle + r * ENGINE.revs,
+      at,
+      0.08,
+    );
     const sk = Math.max(0, Math.min(1, s.skid)) * Math.min(1, s.kmh / 25);
-    this.squealGain.gain.setTargetAtTime(sk * 0.16, at, 0.05);
-    this.squealFilter.frequency.setTargetAtTime(1500 + sk * 500 + Math.sin(at * 23) * 120, at, 0.03);
+    this.squealGain.gain.setTargetAtTime(sk * SQUEAL, at, 0.05);
+    this.squealFilter.frequency.setTargetAtTime(
+      1500 + sk * 500 + Math.sin(at * 23) * 120,
+      at,
+      0.03,
+    );
+  }
+  /** the engine's current loudness (gain), for the tests */
+  get engineLevel() {
+    return this.engineGain.gain.value;
   }
   /** fade the engine out (menus, pause) */
   silence(at = this.ctx.currentTime) {
@@ -96,11 +143,22 @@ export class Sfx {
     this.squealGain.gain.setTargetAtTime(0, at, 0.05);
   }
 
-  private tone(freq: number, at: number, dur: number, vol: number, type: OscillatorType = 'sine', slide = 0) {
+  private tone(
+    freq: number,
+    at: number,
+    dur: number,
+    vol: number,
+    type: OscillatorType = "sine",
+    slide = 0,
+  ) {
     const o = this.ctx.createOscillator();
     o.type = type;
     o.frequency.setValueAtTime(freq, at);
-    if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(20, freq * slide), at + dur);
+    if (slide)
+      o.frequency.exponentialRampToValueAtTime(
+        Math.max(20, freq * slide),
+        at + dur,
+      );
     const g = this.ctx.createGain();
     g.gain.setValueAtTime(0, at);
     g.gain.linearRampToValueAtTime(vol, at + 0.008);
@@ -109,7 +167,15 @@ export class Sfx {
     o.start(at);
     o.stop(at + dur + 0.02);
   }
-  private burst(at: number, dur: number, vol: number, freq: number, q: number, type: BiquadFilterType = 'lowpass', sweepTo = 0) {
+  private burst(
+    at: number,
+    dur: number,
+    vol: number,
+    freq: number,
+    q: number,
+    type: BiquadFilterType = "lowpass",
+    sweepTo = 0,
+  ) {
     const src = this.ctx.createBufferSource();
     src.buffer = this.noise;
     const f = this.ctx.createBiquadFilter();
@@ -125,51 +191,57 @@ export class Sfx {
     src.stop(at + dur + 0.02);
   }
 
-  /** one-shot sounds; strength scales crashes and landings */
+  /** one-shot sounds; strength scales crashes and landings. Levels (measured offline at the default volumes): the
+   * pay-outs and beeps 2–4 dB above the music, crashes up to 6 dB above, whooshes a little under it; all shorter
+   * than half a second except the final horn. */
   play(e: SfxEvent, at = this.ctx.currentTime, strength = 1) {
     const k = Math.max(0.3, Math.min(1.5, strength));
     switch (e) {
-      case 'crash':
-      case 'hit':
-        this.burst(at, 0.35, 0.5 * k, 900, 0.8);
-        this.tone(70, at, 0.3, 0.45 * k, 'sine', 0.5);
-        if (e === 'hit') this.tone(420, at + 0.02, 0.12, 0.12, 'square', 0.6); // a metallic clang off the other car
+      case "crash":
+      case "hit":
+        // the body of the crash is in the mids (what the ear hears); the low thump is kept small so it doesn't clip
+        this.burst(at, 0.32, 1.2 * k, 2000, 0.7);
+        this.tone(70, at, 0.25, 0.22 * k, "sine", 0.5);
+        if (e === "hit") this.tone(420, at + 0.02, 0.12, 0.2, "square", 0.6); // a metallic clang off the other car
         break;
-      case 'land':
-        this.tone(58, at, 0.22, 0.4 * k, 'sine', 0.6);
-        this.burst(at, 0.18, 0.18 * k, 400, 0.7);
+      case "land":
+        // heavier landings thud harder, but even a small hop is heard
+        this.tone(58, at, 0.22, 0.4 * (0.6 + 0.4 * k), "sine", 0.6);
+        this.burst(at, 0.2, 1.8 * (0.6 + 0.4 * k), 900, 0.7);
         break;
-      case 'rush':
-        this.burst(at, 0.5, 0.25, 300, 1.2, 'bandpass', 2400);
+      case "rush":
+        this.burst(at, 0.5, 3.8, 300, 0.9, "bandpass", 2400);
         break;
-      case 'near':
-        this.burst(at, 0.45, 0.22, 2600, 1.4, 'bandpass', 500);
+      case "near":
+        this.burst(at, 0.45, 1.3, 2600, 1.2, "bandpass", 500);
         break;
-      case 'coin':
-        this.tone(988, at, 0.09, 0.16, 'square');
-        this.tone(1319, at + 0.07, 0.22, 0.16, 'square');
+      case "coin":
+        this.tone(988, at, 0.09, 0.4, "square");
+        this.tone(1319, at + 0.07, 0.22, 0.4, "square");
         break;
-      case 'pickup':
-        [523, 659, 784].forEach((f, i) => this.tone(f, at + i * 0.07, 0.25, 0.14, 'triangle'));
+      case "pickup":
+        [523, 659, 784].forEach((f, i) =>
+          this.tone(f, at + i * 0.07, 0.25, 0.4, "triangle"),
+        );
         break;
-      case 'drop':
+      case "drop":
         // the meter's ka-ching
-        this.tone(1568, at, 0.08, 0.16, 'square');
-        this.tone(2093, at + 0.08, 0.35, 0.16, 'square');
-        this.burst(at, 0.12, 0.12, 5000, 1, 'highpass');
+        this.tone(1568, at, 0.08, 0.32, "square");
+        this.tone(2093, at + 0.08, 0.35, 0.32, "square");
+        this.burst(at, 0.12, 0.3, 5000, 1, "highpass");
         break;
-      case 'timeout':
-        this.tone(330, at, 0.25, 0.16, 'triangle', 0.7);
-        this.tone(247, at + 0.2, 0.35, 0.16, 'triangle', 0.7);
+      case "timeout":
+        this.tone(330, at, 0.25, 0.45, "triangle", 0.7);
+        this.tone(247, at + 0.2, 0.3, 0.45, "triangle", 0.7);
         break;
-      case 'tick':
-        this.tone(880, at, 0.09, 0.14, 'square');
+      case "tick":
+        this.tone(880, at, 0.09, 0.5, "square");
         break;
-      case 'tickLast':
-        this.tone(1320, at, 0.14, 0.18, 'square');
+      case "tickLast":
+        this.tone(1320, at, 0.14, 0.42, "square");
         break;
-      case 'over':
-        this.tone(1320, at, 0.6, 0.2, 'square', 0.5);
+      case "over":
+        this.tone(1320, at, 0.5, 0.4, "square", 0.5);
         break;
     }
   }

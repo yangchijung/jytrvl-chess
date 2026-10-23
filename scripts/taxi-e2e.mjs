@@ -160,6 +160,10 @@ try {
   r = await run();
   ok('X-05', 'a drift with a passenger aboard: tip combo and money go up', r.combo >= 1 && r.money > money0, JSON.stringify({ combo: r.combo, money: r.money }));
   await shot('4-combo');
+  // sound effects: the tap created them on the same audio context; the engine is audible while driving
+  await ff(0.5, { throttle: 1 });
+  await new Promise((res) => setTimeout(res, 400));
+  const engineDriving = await p.evaluate(() => ({ sfx: !!window.__taxiMusic.sfx, level: window.__taxiMusic.sfx?.engineLevel ?? -1, running: window.__taxiMusic.unlocked }));
   // running into a car breaks the combo (and knocks the car flying)
   await p.evaluate(() => {
     // a car on a long straight stretch, so 30 m ahead of it is still its lane
@@ -203,6 +207,9 @@ try {
   await new Promise((res) => setTimeout(res, 300));
   ok('X-08', 'Esc pauses: resume / restart / menu, plus separate music and sound-effect volume', !!(await p.$('[data-testid=taxi-paused]')) && !!(await p.$('[data-testid=taxi-volume-music]')) && !!(await p.$('[data-testid=taxi-volume-sfx]')));
   await shot('6-pause');
+  await new Promise((res) => setTimeout(res, 800));
+  const enginePaused = await p.evaluate(() => window.__taxiMusic.sfx?.engineLevel ?? -1);
+  ok('X-18', 'sound effects: after the tap they exist, the engine sounds while driving and fades to silence on pause', engineDriving.sfx && engineDriving.running && engineDriving.level > 0.015 && enginePaused >= 0 && enginePaused < 0.003, JSON.stringify({ ...engineDriving, paused: enginePaused }));
   await p.$eval('[data-testid=taxi-resume]', (b) => b.click());
   await p.evaluate(() => window.__taxi.setPaused(true));
   // run the clock out
