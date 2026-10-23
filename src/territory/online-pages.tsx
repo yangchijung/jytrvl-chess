@@ -6,7 +6,7 @@ import { Button, Card, PageTitle, Spinner } from '../components/ui';
 import { OnlineTerritory } from './online';
 import { TerritoryCanvas, useClient } from './TerritoryCanvas';
 import { EndOverlay } from './EndOverlay';
-import { PALETTE } from './render';
+import { trColor } from '../../shared/territory/colors';
 import { useAuth } from '../lib/auth';
 import { useStableName } from './pages';
 import type { BotLevel } from '../../shared/territory/ai';
@@ -54,7 +54,7 @@ function Lobby({ c }: { c: OnlineTerritory }) {
           <ul className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)]">
             {l.seats.map((s, i) => (
               <li key={i} className="flex items-center gap-3 px-3 py-2">
-                <span className="h-4 w-4 rounded" style={{ background: PALETTE[s.color % 8].base }} />
+                <span className="h-4 w-4 rounded" style={{ background: trColor(s.color).base }} />
                 <span className="flex-1 truncate">
                   {s.name}
                   {i === l.mySeat && ` (${t('online.you')})`}

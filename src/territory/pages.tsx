@@ -6,13 +6,14 @@ import { Button, Card, PageTitle, Segmented } from '../components/ui';
 import { LocalTerritory } from './local';
 import { TerritoryCanvas } from './TerritoryCanvas';
 import { EndOverlay } from './EndOverlay';
-import { PALETTE } from './render';
+import { TERRITORY_COLORS, assignColors } from '../../shared/territory/colors';
+import { ColorPicker, loadColorPrefs, saveColorPrefs, type ColorPrefs } from './ColorPicker';
 import { loadJSON, saveJSON } from '../lib/settings';
 import { api, ApiError } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import type { BotLevel } from '../../shared/territory/ai';
 
-export function TerritoryPreview() {
+export function TerritoryPreview({ me }: { me?: number } = {}) {
   // static illustration in the JY Games style (not a screenshot of any other game)
   const cells = [
     '..AAAA......',
@@ -24,12 +25,14 @@ export function TerritoryPreview() {
     '.CCCC...DD..',
     '..CC...DDDD.',
   ];
-  const map: Record<string, string> = { A: PALETTE[0].land, a: PALETTE[0].base, B: PALETTE[2].land, b: PALETTE[2].base, C: PALETTE[1].land, D: PALETTE[3].land };
+  // "A" is you (your chosen colour when one is given); the others take colours the way computer rivals do
+  const [ca, cb, cc, cd] = assignColors([me ?? 4, null, null, null]).map((k) => TERRITORY_COLORS[k]);
+  const map: Record<string, string> = { A: ca.land, a: ca.base, B: cb.land, b: cb.base, C: cc.land, D: cd.land };
   return (
     <div className="grid aspect-[2/1] overflow-hidden rounded-xl bg-[#fffdf8] dark:bg-[#1a2333]" style={{ gridTemplateColumns: 'repeat(12, 1fr)' }} aria-hidden="true">
       {cells.flatMap((row, y) =>
         [...row].map((ch, x) => (
-          <div key={`${x}-${y}`} style={{ background: map[ch] ?? 'transparent', opacity: ch === 'a' || ch === 'b' ? 0.7 : 1 }} className={ch === 'a' && x === 7 && y === 4 ? 'rounded-md ring-2 ring-white' : ''} />
+          <div key={`${x}-${y}`} style={{ background: map[ch] ?? 'transparent' }} className={ch === 'a' && x === 7 && y === 4 ? 'rounded-md ring-2 ring-[var(--text)]' : ''} />
         )),
       )}
     </div>
@@ -126,11 +129,24 @@ export function TerritoryPlay() {
       saveJSON(TSETUP_KEY, n);
       return n;
     });
+  const [colors, setColors] = useState<ColorPrefs>(loadColorPrefs);
+  const pick = (p: Partial<ColorPrefs>) =>
+    setColors((x) => {
+      const n = { ...x, ...p };
+      saveColorPrefs(n);
+      return n;
+    });
   const [client, setClient] = useState<LocalTerritory | null>(null);
   useEffect(() => () => client?.dispose(), [client]);
 
   const start = () => {
-    const humans = mode === 'local' ? [{ name: t('tr.setup.name1') }, { name: t('tr.setup.name2') }] : [{ name: me?.nickname ?? t('tr.hud.you') }];
+    const humans =
+      mode === 'local'
+        ? [
+            { name: t('tr.setup.name1'), color: colors.p1 },
+            { name: t('tr.setup.name2'), color: colors.p2 },
+          ]
+        : [{ name: me?.nickname ?? t('tr.hud.you'), color: colors.p1 }];
     client?.dispose();
     setClient(new LocalTerritory({ humans, bots: mode === 'local' ? Math.min(s.bots, 6) : Math.max(1, s.bots), level: s.level, durationMin: s.minutes, flow: true }));
   };
@@ -148,7 +164,20 @@ export function TerritoryPlay() {
     <div className="space-y-4">
       <PageTitle>{t(mode === 'local' ? 'tr.mode.local' : 'tr.mode.ai')}</PageTitle>
       <Card className="mx-auto max-w-2xl space-y-6">
-        <TerritoryPreview />
+        <TerritoryPreview me={colors.p1} />
+        <div className="space-y-4" data-testid="tr-colors">
+          <ColorPicker
+            label={t(mode === 'local' ? 'tr.color.p1' : 'tr.color.mine')}
+            value={colors.p1}
+            onChange={(c) => pick({ p1: c })}
+            taken={mode === 'local' ? new Map([[colors.p2, t('tr.setup.name2')]]) : undefined}
+            testId="tr-color-p1"
+          />
+          {mode === 'local' && (
+            <ColorPicker label={t('tr.color.p2')} value={colors.p2} onChange={(c) => pick({ p2: c })} taken={new Map([[colors.p1, t('tr.setup.name1')]])} testId="tr-color-p2" />
+          )}
+          <p className="text-sm text-[var(--muted)]">{t('tr.color.note')}</p>
+        </div>
         <fieldset>
           <legend className="mb-2 text-sm font-semibold text-[var(--muted)]">{t('tr.setup.bots')}</legend>
           <div className="flex flex-wrap gap-2">
