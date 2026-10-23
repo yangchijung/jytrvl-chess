@@ -4,6 +4,8 @@
 // Music and sound-effect volumes are separate (sound effects come with the next stage) and are remembered per
 // browser.
 
+import { Sfx, type EngineState, type SfxEvent } from './sfx';
+
 export type Track = 'menu' | 'arcade' | 'practice' | 'results';
 
 /** loop points (s) found on bar lines where the music continues seamlessly; results plays once */
@@ -37,6 +39,8 @@ export class Music {
   private rate = 1;
   private ducked = false;
   volumes = loadVolumes();
+  /** sound effects share the context and have their own volume */
+  sfx: Sfx | null = null;
 
   /** call from a user gesture (tap, click, key): creates or resumes the audio context and starts the wanted track */
   unlock() {
@@ -50,6 +54,7 @@ export class Music {
       this.sfxBus = this.ctx.createGain();
       this.musicBus.connect(this.master);
       this.sfxBus.connect(this.master);
+      this.sfx = new Sfx(this.ctx, this.sfxBus);
       this.applyVolumes();
     }
     if (this.ctx.state === 'suspended') void this.ctx.resume();
@@ -106,6 +111,16 @@ export class Music {
     void this.load(t === 'menu' ? 'arcade' : t === 'arcade' ? 'results' : 'menu');
   }
 
+  /** the car's sounds for this frame (engine, tyres); nothing before the first tap */
+  engine(s: EngineState | null) {
+    if (!this.sfx || !this.unlocked) return;
+    if (s) this.sfx.frame(s);
+    else this.sfx.silence();
+  }
+  effect(e: SfxEvent, strength = 1) {
+    if (this.sfx && this.unlocked) this.sfx.play(e, undefined, strength);
+  }
+
   stop() {
     this.wanted = null;
     if (!this.ctx || !this.current) return;
@@ -150,6 +165,7 @@ export class Music {
   }
   dispose() {
     this.stop();
+    this.sfx?.stop();
     void this.ctx?.close();
     this.ctx = null;
   }
