@@ -1,0 +1,115 @@
+{
+  "at": "2026-10-21T14:54:33.513Z",
+  "passed": 18,
+  "failed": 0,
+  "results": [
+    {
+      "id": "L1",
+      "name": "opens in drawing mode with the hint (zh)",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "D3",
+      "name": "a line under 25 m is refused with a message and drawing starts again",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "D1",
+      "name": "releasing turns the line into a track (ready) and writes the share code to #t=…",
+      "pass": true,
+      "info": "510 chars"
+    },
+    {
+      "id": "S1",
+      "name": "the drawn 24 m loop survives smoothing as a loop of about the same width (24 m); re-encoding the decoded track gives the same code",
+      "pass": true,
+      "info": "{\"back\":150,\"loopW\":23.97758304630664,\"loopH\":11.801627180608175,\"stable\":true}"
+    },
+    {
+      "id": "P1",
+      "name": "the same track simulated 10 times gives exactly the same ride (fixed 1/240 s steps)",
+      "pass": true,
+      "info": "{\"steps\":4944,\"time\":20.599999999999152,\"maxV\":23.169651616279484,\"maxG\":7.802186575313539,\"air\":1.679166666666662,\"flipped\":true,\"hash\":4031593836,\"sigma\":1}"
+    },
+    {
+      "id": "P2",
+      "name": "the train goes upside down in the loop and gets through to the end station",
+      "pass": true,
+      "info": "{\"flipped\":true,\"t\":\"20.6\",\"vmax\":\"83\",\"g\":\"7.80\"}"
+    },
+    {
+      "id": "R1",
+      "name": "Enter starts the ride: the train waits 2.2 s in the station, then leaves; first-person 3D with the minimap",
+      "pass": true,
+      "info": "{\"held\":{\"s\":22,\"v\":0,\"gf\":1,\"phase\":\"hold\"},\"moved\":{\"s\":28.59699999999999,\"v\":5.819999999999988,\"gf\":0.9978450837229685,\"phase\":\"run\"},\"mode\":\"ride\",\"s\":28.59699999999999,\"gl\":\"block\",\"mini\":\"block\"}"
+    },
+    {
+      "id": "R2",
+      "name": "3D view renders sky and ground (non-blank, different colours top and bottom)",
+      "pass": true,
+      "info": "[[128,195,101],[116,118,120],[146,192,228]]"
+    },
+    {
+      "id": "R3",
+      "name": "M hides the minimap and remembers it; V switches to the side view",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "E1",
+      "name": "the end screen shows length, top speed, max G and airtime with ride again / draw new / save / copy / share on X",
+      "pass": true,
+      "info": "到站了！  這條軌道的紀錄  全長 190m 最高速度 83km/h 最大 G 力 7.8G 騰空時間 1.7s 再搭一次 畫新的 存圖 複製連結 分享到 X"
+    },
+    {
+      "id": "E2",
+      "name": "save image produces a PNG download",
+      "pass": true,
+      "info": "coaster-VQZk_2QE.png blob:"
+    },
+    {
+      "id": "R4",
+      "name": "at the top of a loop the seat is upside down: the 3D view shows the ground at the top of the screen",
+      "pass": true,
+      "info": "{\"up\":{\"tx\":-0.9532667993488642,\"g\":-0.03253542597067976,\"sky\":[[37,42,50],[116,192,91]]},\"sky\":[[37,42,50],[116,192,91]]}"
+    },
+    {
+      "id": "L2",
+      "name": "a line longer than 1,500 m is kept whole (no length limit) and becomes a track",
+      "pass": true,
+      "info": "{\"mode\":\"ready\",\"len\":1709}"
+    },
+    {
+      "id": "L3",
+      "name": "a 5821 m track with many loops rides to the end; the 3D track stays light (light mesh for far parts, a few full-detail chunks near the eye)",
+      "pass": true,
+      "info": "{\"len\":5821,\"done\":true,\"t\":411.95833333304085,\"flipped\":true,\"buildMs\":14968,\"scenery\":168792,\"chunks\":118,\"farVerts\":176460,\"fullKept\":48,\"px\":[[116,118,120],[193,54,47]]}"
+    },
+    {
+      "id": "SH1",
+      "name": "a shared link opens straight into the decoded track, fitted to the screen, with a banner (ja)",
+      "pass": true,
+      "info": ""
+    },
+    {
+      "id": "SH2",
+      "name": "the same link opened 10 times: every ride is identical, and identical to the drawer’s",
+      "pass": true,
+      "info": "4031593836,4031593836,4031593836,4031593836,4031593836,4031593836,4031593836,4031593836,4031593836,4031593836"
+    },
+    {
+      "id": "T1",
+      "name": "phone: a finger stroke becomes a track; no page scroll; buttons at least 44 px",
+      "pass": true,
+      "info": "ready"
+    },
+    {
+      "id": "ALL",
+      "name": "no page errors",
+      "pass": true,
+      "info": ""
+    }
+  ]
+}

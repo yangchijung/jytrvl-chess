@@ -7,6 +7,9 @@
 // the shared document: every version names the saves it builds on (`anc`), each tab first keeps its newest save
 // under its own key (only that tab writes it), and a tab whose save is later missing from the shared document
 // copies it aside as a conflict and says so. A save left behind by a closed tab is copied aside on the next load.
+// A tab's own copy is removed only after the copy aside was written and read back (product review R2b); when that
+// fails (storage full, write error, read-back mismatch) the copy stays where it is, the tab moves on to a new key
+// so its later saves cannot overwrite it, and the next load tries again.
 import { loadKeyed, KEY as V1_KEY, type Notice, type Store } from './storage';
 import { readSave } from '../../shared/doodle/model';
 import { SCENE_KEY, readScene } from '../../shared/doodle/scene';
@@ -60,13 +63,15 @@ export class DoodleStore {
   v1Raw: string[] = [];
   /** a change this tab could not save because another tab had changed the drawing first (kept, downloadable) */
   conflict: string | null = null;
+  /** the change in `conflict` could not be stored separately; it stays only in this tab's own copy and memory */
+  conflictUnsaved = false;
   private target: string | null;
   private store: Store | null;
   private base: string | null = null;
   private release: (() => void) | null = null;
   private subs = new Set<() => void>();
   private gone = false;
-  private readonly tab = Math.random().toString(36).slice(2, 10);
+  private tab = Math.random().toString(36).slice(2, 10);
   private n = 0;
   /** token of this tab's newest save in uncoordinated mode, until it is confirmed in the shared document */
   private pending: string | null = null;
@@ -210,13 +215,25 @@ export class DoodleStore {
       /* leaving the copy behind loses nothing */
     }
   }
-  private saveAside(doc: string) {
-    this.conflict = doc;
+  /** Write and read back; true only when the text is really stored under that key. */
+  private persist(k: string, text: string): boolean {
+    if (!this.store) return false;
     try {
-      this.store?.setItem(`${V2_KEY}.conflict-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`, doc);
+      this.store.setItem(k, text);
+      return this.store.getItem(k) === text;
     } catch {
-      /* the in-memory copy is still offered as a download */
+      return false;
     }
+  }
+  private static asideKey() {
+    return `${V2_KEY}.conflict-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+  }
+  /** Copy a change aside. Returns true only when it is stored (written and read back); it is offered as a download either way. */
+  private saveAside(doc: string): boolean {
+    this.conflict = doc;
+    const ok = this.persist(DoodleStore.asideKey(), doc);
+    this.conflictUnsaved = !ok;
+    return ok;
   }
   /**
    * Is this tab's newest save still part of the shared drawing? If another tab wrote over it, copy it aside,
@@ -238,9 +255,10 @@ export class DoodleStore {
     } catch {
       mine = null;
     }
-    this.saveAside(mine?.doc ?? JSON.stringify(this.v));
+    if (this.saveAside(mine?.doc ?? JSON.stringify(this.v))) this.removeKey(this.tabKey());
+    // not stored aside: this tab's own copy is now the only stored one — keep it and write later saves elsewhere
+    else this.tab = Math.random().toString(36).slice(2, 10);
     this.pending = null;
-    this.removeKey(this.tabKey());
     this.status = 'none';
     if (raw !== null) this.adoptStored();
     this.emit();
@@ -271,8 +289,7 @@ export class DoodleStore {
         continue;
       }
       if (now - c.at < STALE_MS) continue; // its tab may still be open and will check it itself
-      this.saveAside(c.doc);
-      this.removeKey(k);
+      if (this.saveAside(c.doc)) this.removeKey(k); // otherwise kept for the next load to try again
     }
   }
   private scheduleVerify() {
@@ -335,13 +352,6 @@ export class DoodleStore {
 
   /** The refused change is copied to its own key (and offered as a download) so neither tab's work is lost. */
   private keepConflict(next: SavedV2) {
-    const text = JSON.stringify(next);
-    this.conflict = text;
-    if (!this.store) return;
-    try {
-      this.store.setItem(`${V2_KEY}.conflict-${Date.now().toString(36)}`, text);
-    } catch {
-      /* the in-memory copy is still offered as a download */
-    }
+    this.saveAside(JSON.stringify(next));
   }
 }

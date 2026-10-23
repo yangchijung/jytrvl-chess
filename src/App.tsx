@@ -29,6 +29,17 @@ const RescueRoomPage = lazy(() => import('./rescue/pages').then((m) => ({ defaul
 const TrailPage = lazy(() => import('./trail/pages').then((m) => ({ default: m.TrailPage })));
 const RobotPage = lazy(() => import('./robot/pages').then((m) => ({ default: m.RobotPage })));
 const RestaurantPage = lazy(() => import('./restaurant/pages').then((m) => ({ default: m.RestaurantPage })));
+const BumperPage = lazy(() => import('./bumper/BumperPage').then((m) => ({ default: m.BumperPage })));
+const MathParentPage = lazy(() => import('./math/parent-page').then((m) => ({ default: m.MathParentPage })));
+const MathIslandPage = lazy(() => import('./math/island').then((m) => ({ default: m.MathIslandPage })));
+const FactoryPage = lazy(() => import('./math/factory-page').then((m) => ({ default: m.FactoryPage })));
+const ApplePage = lazy(() => import('./math/apple-page').then((m) => ({ default: m.ApplePage })));
+const TrainPage = lazy(() => import('./math/train-page').then((m) => ({ default: m.TrainPage })));
+const ShopPage = lazy(() => import('./math/shop-page').then((m) => ({ default: m.ShopPage })));
+const BalancePage = lazy(() => import('./math/balance-page').then((m) => ({ default: m.BalancePage })));
+const ClockPage = lazy(() => import('./math/clock-page').then((m) => ({ default: m.ClockPage })));
+const GardenPage = lazy(() => import('./math/garden-page').then((m) => ({ default: m.GardenPage })));
+const FrogPage = lazy(() => import('./math/frog-page').then((m) => ({ default: m.FrogPage })));
 const lazyEl = (el: ReactElement) => <Suspense fallback={<Spinner />}>{el}</Suspense>;
 
 function pages(prefix: string) {
@@ -51,6 +62,17 @@ function pages(prefix: string) {
     <Route key={p('/trail')} path={p('/trail')} element={lazyEl(<TrailPage />)} />,
     <Route key={p('/robot')} path={p('/robot')} element={lazyEl(<RobotPage />)} />,
     <Route key={p('/restaurant')} path={p('/restaurant')} element={lazyEl(<RestaurantPage />)} />,
+    <Route key={p('/bumper')} path={p('/bumper')} element={lazyEl(<BumperPage />)} />,
+    <Route key={p('/math')} path={p('/math')} element={lazyEl(<MathIslandPage />)} />,
+    <Route key={p('/math/parent')} path={p('/math/parent')} element={lazyEl(<MathParentPage />)} />,
+    <Route key={p('/math/g1/apple')} path={p('/math/g1/apple')} element={lazyEl(<ApplePage />)} />,
+    <Route key={p('/math/g1/train')} path={p('/math/g1/train')} element={lazyEl(<TrainPage />)} />,
+    <Route key={p('/math/g1/shop')} path={p('/math/g1/shop')} element={lazyEl(<ShopPage />)} />,
+    <Route key={p('/math/g1/balance')} path={p('/math/g1/balance')} element={lazyEl(<BalancePage />)} />,
+    <Route key={p('/math/g1/clock')} path={p('/math/g1/clock')} element={lazyEl(<ClockPage />)} />,
+    <Route key={p('/math/g2/garden')} path={p('/math/g2/garden')} element={lazyEl(<GardenPage />)} />,
+    <Route key={p('/math/g3/frog')} path={p('/math/g3/frog')} element={lazyEl(<FrogPage />)} />,
+    <Route key={p('/math/g3/factory')} path={p('/math/g3/factory')} element={lazyEl(<FactoryPage />)} />,
     <Route key={p('/snake')} path={p('/snake')} element={<SnakeHub />} />,
     <Route key={p('/snake/play')} path={p('/snake/play')} element={<SnakePlay />} />,
     <Route key={p('/snake/new-room')} path={p('/snake/new-room')} element={<ArenaNewRoom game="snake" />} />,

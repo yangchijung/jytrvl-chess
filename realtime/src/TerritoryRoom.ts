@@ -1,14 +1,19 @@
 // TerritoryRoom Durable Object — authoritative Territory Rush match (2–8 players, humans and bots).
 // Clients only send steering input; positions, trails, captures, speed and results are computed here.
+// T3: a room is created either 'grid' (four-way, every older room) or 'flow' (continuous steering, FlowGame
+// stepped every STEP_MS, inputs are target angles). The engine is fixed at creation and stored with the room.
 import { DurableObject } from 'cloudflare:workers';
 import { TerritoryGame, TICK_MS, MAX_PLAYERS, mapSizeFor, rng, type Dir } from '../../shared/territory/engine';
 import { botThink, newBotMemory, type BotLevel, type BotMemory } from '../../shared/territory/ai';
+import { FlowGame, STEP_MS } from '../../shared/territory/flow';
+import { flowBotThink, newFlowBotMemory, type FlowBotMemory } from '../../shared/territory/flow-ai';
 import {
   T_COUNTDOWN_MS,
   T_MIN_PLAYERS,
   T_PLAYER_FIELDS,
   T_ROOM_TTL_MS,
   type TClientMsg,
+  type TEngine,
   type TLobbyMsg,
   type TRoomStatus,
   type TServerMsg,
@@ -31,6 +36,8 @@ export interface TRoomMeta {
   minutes: number;
   hostId: string | null;
   createdAt: number;
+  /** absent = 'grid' (rooms created before T3 keep playing four-way) */
+  engine?: TEngine;
 }
 
 interface Attachment {
@@ -41,13 +48,14 @@ interface Attachment {
 }
 
 const BOT_NAMES = ['Nova', 'Pixel', 'Bolt', 'Mochi', 'Echo', 'Kiwi', 'Comet', 'Tofu'];
+const engineOf = (m: TRoomMeta | null): TEngine => (m?.engine === 'flow' ? 'flow' : 'grid');
 
 export class TerritoryRoom extends DurableObject<Env> {
   private meta: TRoomMeta | null = null;
   private seats: TSeat[] = [];
   private status: TRoomStatus = 'lobby';
   private game: TerritoryGame | null = null;
-  private brains = new Map<number, { mem: BotMemory; rand: () => number; level: BotLevel }>();
+  private brains = new Map<number, { mem: BotMemory; fmem: FlowBotMemory; rand: () => number; level: BotLevel }>();
   private loop: ReturnType<typeof setInterval> | null = null;
   private countdownAt = 0;
   private buckets = new Map<WebSocket, { tokens: number; at: number }>();
@@ -80,6 +88,8 @@ export class TerritoryRoom extends DurableObject<Env> {
       if (this.meta) return Response.json({ error: 'exists' }, { status: 409 });
       const body = (await req.json()) as { meta: TRoomMeta; seats?: TSeat[] };
       this.meta = body.meta;
+      // kill switch: new rooms are four-way while TERRITORY_FLOW is "off"
+      this.meta.engine = body.meta.engine === 'flow' && this.env.TERRITORY_FLOW !== 'off' ? 'flow' : 'grid';
       this.seats = body.seats ?? [];
       await this.save();
       if (this.meta.kind === 'match') this.beginCountdown(4000);
@@ -87,7 +97,7 @@ export class TerritoryRoom extends DurableObject<Env> {
     }
     if (url.pathname === '/info') {
       if (!this.meta) return Response.json({ exists: false });
-      return Response.json({ exists: true, status: this.status, players: this.seats.length, minutes: this.meta.minutes });
+      return Response.json({ exists: true, status: this.status, players: this.seats.length, minutes: this.meta.minutes, engine: engineOf(this.meta) });
     }
     if (url.pathname === '/ws') return this.accept(req);
     return new Response('not found', { status: 404 });
@@ -150,8 +160,15 @@ export class TerritoryRoom extends DurableObject<Env> {
     if (m.t === 'ping') return this.send(ws, { t: 'pong' });
     if (m.t === 'dir') {
       if (seat === null || !this.game || this.status !== 'playing' && this.status !== 'countdown') return;
-      if (typeof m.d !== 'number' || m.d < 0 || m.d > 3) return;
+      if (typeof m.d !== 'number' || !Number.isInteger(m.d) || m.d < 0 || m.d > 3) return;
       this.game.steer(seat, m.d as Dir);
+      return;
+    }
+    if (m.t === 'aim') {
+      // continuous rooms only; the angle is the only thing a client can set (finite number, wrapped by the engine)
+      if (seat === null || !(this.game instanceof FlowGame) || (this.status !== 'playing' && this.status !== 'countdown')) return;
+      if (typeof m.a !== 'number' || !Number.isFinite(m.a) || Math.abs(m.a) > 100) return;
+      this.game.setTarget(seat, m.a);
       return;
     }
     const isHost = att.playerId === this.meta?.hostId;
@@ -160,7 +177,7 @@ export class TerritoryRoom extends DurableObject<Env> {
       if (m.op === 'add' && this.seats.length < MAX_PLAYERS) {
         const level: BotLevel = ['easy', 'medium', 'hard'].includes(m.level) ? m.level : 'medium';
         const n = this.seats.filter((s) => s.bot).length;
-        this.seats.push({ playerId: null, userId: null, name: `${BOT_NAMES[n % 8]}🤖`, bot: true, level, ipHash: '' });
+        this.seats.push({ playerId: null, userId: null, name: BOT_NAMES[n % 8], bot: true, level, ipHash: '' });
       } else if (m.op === 'remove' && this.seats[m.seat]?.bot) this.seats.splice(m.seat, 1);
       await this.save();
       this.sendLobby();
@@ -212,12 +229,15 @@ export class TerritoryRoom extends DurableObject<Env> {
     const n = this.seats.length;
     const size = mapSizeFor(n);
     const seed = crypto.getRandomValues(new Uint32Array(1))[0];
-    const g = new TerritoryGame({ width: size, height: size, durationTicks: Math.round((this.meta.minutes * 60000) / TICK_MS), seed });
+    const flow = engineOf(this.meta) === 'flow';
+    const stepMs = flow ? STEP_MS : TICK_MS;
+    const cfg = { width: size, height: size, durationTicks: Math.round((this.meta.minutes * 60000) / stepMs), seed };
+    const g = flow ? new FlowGame(cfg) : new TerritoryGame(cfg);
     this.brains.clear();
     this.seats.forEach((s, k) => {
       g.addPlayer(s.playerId ?? `bot${k}`, s.name, s.bot);
       // bots, and humans while disconnected, are driven by a brain
-      this.brains.set(k, { mem: newBotMemory(), rand: rng(seed + k * 7919), level: s.level ?? 'medium' });
+      this.brains.set(k, { mem: newBotMemory(), fmem: newFlowBotMemory(), rand: rng(seed + k * 7919), level: s.level ?? 'medium' });
     });
     g.start();
     this.game = g;
@@ -236,7 +256,7 @@ export class TerritoryRoom extends DurableObject<Env> {
     this.status = 'playing';
     this.sendLobby();
     if (this.loop) clearInterval(this.loop);
-    this.loop = setInterval(() => this.tick(), TICK_MS);
+    this.loop = setInterval(() => this.tick(), this.game instanceof FlowGame ? STEP_MS : TICK_MS);
   }
 
   private tick() {
@@ -246,8 +266,11 @@ export class TerritoryRoom extends DurableObject<Env> {
       const s = this.seats[k];
       const b = this.brains.get(k);
       if (!b || !g.players[k]?.alive) continue;
-      if (s.bot) botThink(g, k, b.mem, b.level, b.rand);
-      else if (!this.connected(s.playerId)) botThink(g, k, b.mem, 'medium', b.rand); // autopilot while disconnected
+      const level = s.bot ? b.level : 'medium';
+      if (!s.bot && this.connected(s.playerId)) continue;
+      // bots, and the autopilot of a disconnected human
+      if (g instanceof FlowGame) flowBotThink(g, k, b.fmem, level, b.rand);
+      else botThink(g, k, b.mem, level, b.rand);
     }
     g.step();
     const pl: number[] = [];
@@ -256,7 +279,7 @@ export class TerritoryRoom extends DurableObject<Env> {
     for (const c of g.ownerChanges) oc.push(c.i, c.v);
     const tc: number[] = [];
     for (const c of g.trailChanges) tc.push(c.i, c.v);
-    this.broadcast({ t: 'tick', n: g.tick, pl, oc, tc, ev: g.events });
+    this.broadcast({ t: 'tick', n: g.tick, pl, oc, tc, ev: g.events, ...(g instanceof FlowGame ? { fl: g.flowTick() } : {}) });
     if (g.result) void this.finish();
   }
 
@@ -274,7 +297,7 @@ export class TerritoryRoom extends DurableObject<Env> {
     }
     const end: TServerMsg = { t: 'end', result: g.result!, recorded };
     this.broadcast(end);
-    this.final = { snap: { t: 'snap', status: 'ended', snap: g.snapshot(), mySeat: null, countdownMs: 0 }, end };
+    this.final = { snap: { t: 'snap', status: 'ended', snap: g.snapshot(), mySeat: null, countdownMs: 0, ...(g instanceof FlowGame ? { flow: g.flowPublic() } : {}) }, end };
     this.sendLobby();
     await this.ctx.storage.put('final', this.final);
     await this.save();
@@ -320,6 +343,7 @@ export class TerritoryRoom extends DurableObject<Env> {
       snap: this.game.snapshot(),
       mySeat: this.seatOf(playerId),
       countdownMs: Math.max(0, this.countdownAt - Date.now()),
+      ...(this.game instanceof FlowGame ? { flow: this.game.flowPublic() } : {}),
     });
   }
 
@@ -334,6 +358,7 @@ export class TerritoryRoom extends DurableObject<Env> {
         kind: this.meta.kind,
         status: this.status,
         minutes: this.meta.minutes,
+        engine: engineOf(this.meta),
         hostSeat: this.hostSeat(),
         mySeat: this.seatOf(att.playerId),
         seats: this.seats.map((s, k) => ({ name: s.name, bot: s.bot, level: s.level, connected: s.bot || this.connected(s.playerId), isUser: !!s.userId, color: k })),

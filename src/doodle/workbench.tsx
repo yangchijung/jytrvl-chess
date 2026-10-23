@@ -92,6 +92,7 @@ const W: Record<string, L> = {
   uncoord: { zh: '這個瀏覽器無法協調多個分頁，請只開一個分頁畫。', en: 'This browser cannot coordinate tabs; please draw in one tab only.' },
   v1Kept: { zh: '舊的存檔讀不出來，所以沒有搬進新畫板；原本的資料留著沒動，可以下載。', en: 'The old save could not be read, so it was not moved in; it is kept untouched and can be downloaded.' },
   conflict: { zh: '另一個分頁剛改過這張畫，這裡已換成最新的；剛才這一筆另外保留，可以下載。', en: 'Another tab changed this drawing first. This tab now shows the newest one; your last change is kept separately and can be downloaded.' },
+  conflictUnsaved: { zh: '另一個分頁剛改過這張畫，這裡已換成最新的。剛才這一筆沒能另存（瀏覽器空間可能不足），還留在這個瀏覽器裡，請先下載。', en: 'Another tab changed this drawing first. This tab now shows the newest one. Your last change could not be stored separately (storage may be full); it is still in this browser\'s tab copy — please download it.' },
   downloadThis: { zh: '下載剛才這一筆', en: 'Download that change' },
   imported: { zh: '之前的畫已經搬進新的畫板，原本的存檔也留著。', en: 'Your earlier drawings moved into the new workbench; the old save is kept too.' },
   sceneHint: { zh: '點身體、尾巴或魚鰭，就能上色', en: 'Tap the body, tail or fin to colour it' },
@@ -440,8 +441,8 @@ export function DoodlePage() {
         </div>
       )}
       {store.conflict && (
-        <div className="flex flex-wrap items-center gap-2 rounded-md bg-[var(--ui-alert-bg)] px-3 py-2 text-[var(--ui-alert-text)]" role="alert" data-testid="tab-conflict">
-          <p>{tr(W.conflict)}</p>
+        <div className="flex flex-wrap items-center gap-2 rounded-md bg-[var(--ui-alert-bg)] px-3 py-2 text-[var(--ui-alert-text)]" role="alert" data-testid="tab-conflict" data-unsaved={store.conflictUnsaved ? "1" : undefined}>
+          <p>{tr(store.conflictUnsaved ? W.conflictUnsaved : W.conflict)}</p>
           <Button variant="secondary" size="sm" onClick={() => downloadText(store.conflict!)} data-testid="download-conflict">
             <Icon d={ICONS.save} />
             {tr(W.downloadThis)}

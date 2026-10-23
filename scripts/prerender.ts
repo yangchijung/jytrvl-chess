@@ -1,7 +1,8 @@
 /// <reference types="node" />
 // Post-build: writes per-route HTML shells with correct <head> metadata for SEO and link previews,
 // plus sitemap.xml and robots.txt. The SPA takes over on load.
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, appendFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { PAGES, ORIGIN } from '../src/lib/seo';
 
 const base = readFileSync('dist/index.html', 'utf8');
@@ -9,6 +10,18 @@ const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').repl
 const loc = (lang: 'zh' | 'en', p: string) => (lang === 'zh' ? p : p === '/' ? '/en' : `/en${p}`);
 
 const urls: string[] = [];
+// Sketch Coaster is one self-contained page at /coaster/ (public/coaster/index.html, kept as a single file by
+// design). The site CSP allows no inline script, so this page gets the same policy plus the hash of its one
+// inline script, computed from the built file at every build.
+const coasterHtml = readFileSync('dist/coaster/index.html', 'utf8');
+const coasterScript = coasterHtml.match(/<script>([\s\S]*?)<\/script>/)?.[1];
+if (!coasterScript) throw new Error('coaster: inline script not found');
+const coasterHash = createHash('sha256').update(coasterScript, 'utf8').digest('base64');
+appendFileSync(
+  'dist/_headers',
+  `\n/coaster/*\n  ! Content-Security-Policy\n  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-${coasterHash}'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'\n`,
+);
+const COASTER_URL = `  <url><loc>${ORIGIN}/coaster/</loc></url>\n`;
 for (const [path, m] of Object.entries(PAGES)) {
   for (const lang of ['zh', 'en'] as const) {
     const href = ORIGIN + loc(lang, path);
@@ -50,7 +63,7 @@ writeFileSync(
           `  <url><loc>${ORIGIN + loc(lang, p)}</loc><xhtml:link rel="alternate" hreflang="zh-Hant-TW" href="${ORIGIN + loc('zh', p)}"/><xhtml:link rel="alternate" hreflang="en" href="${ORIGIN + loc('en', p)}"/></url>`,
       ),
     )
-    .join('\n')}\n</urlset>\n`,
+    .join('\n')}\n${COASTER_URL}</urlset>\n`,
 );
 writeFileSync(
   'dist/robots.txt',
