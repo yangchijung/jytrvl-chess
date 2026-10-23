@@ -2,6 +2,10 @@
 // inner bevel, translucent trails, rounded "token" runners with direction eyes).
 import { DIRS, type TerritoryGame } from '../../shared/territory/engine';
 import type { TerritoryClient } from './client';
+import { trColor } from '../../shared/territory/colors';
+
+/** Legacy 8-colour palette, still used by Snake Arena, Blocks and the Arena lobby. Territory Rush uses
+ *  TERRITORY_COLORS (shared/territory/colors.ts) through trColor(). */
 
 export const PALETTE = [
   { base: '#1f9d6b', land: '#8fd4b5', dark: '#126645' }, // jade
@@ -109,8 +113,8 @@ export function draw(ctx: CanvasRenderingContext2D, wPx: number, hPx: number, c:
       let e = x + 1;
       while (e <= x1 && g.owner[y * g.w + e] === o) e++;
       if (o >= 0) {
-        const pal = PALETTE[g.players[o].color % PALETTE.length];
-        ctx.fillStyle = pal.land;
+        const pal = trColor(g.players[o].color);
+        ctx.fillStyle = theme.dark ? pal.landDk : pal.land;
         ctx.fillRect(ox + x * cs, oy + y * cs, (e - x) * cs + 0.5, cs + 0.5);
       }
       x = e;
@@ -123,13 +127,13 @@ export function draw(ctx: CanvasRenderingContext2D, wPx: number, hPx: number, c:
       for (let x = x0; x <= x1; x++) {
         const o = g.owner[y * g.w + x];
         if (o < 0) continue;
-        const pal = PALETTE[g.players[o].color % PALETTE.length];
+        const pal = trColor(g.players[o].color);
         const up = y > 0 ? g.owner[(y - 1) * g.w + x] : -2;
         const dn = y < g.h - 1 ? g.owner[(y + 1) * g.w + x] : -2;
         const lf = x > 0 ? g.owner[y * g.w + x - 1] : -2;
         const rt = x < g.w - 1 ? g.owner[y * g.w + x + 1] : -2;
         if (up === o && dn === o && lf === o && rt === o) continue;
-        ctx.strokeStyle = pal.base;
+        ctx.strokeStyle = theme.dark ? pal.base : pal.dark;
         ctx.beginPath();
         const px = ox + x * cs,
           py = oy + y * cs;
@@ -175,29 +179,32 @@ export function draw(ctx: CanvasRenderingContext2D, wPx: number, hPx: number, c:
       const fl = fg.flow[k];
       if (!p.alive || !fl || !p.trail.length || !fl.path.length) return;
       const [hx, hy] = headPos(c, g, k, f);
-      const pal = PALETTE[p.color % PALETTE.length];
-      ctx.strokeStyle = pal.base;
-      ctx.globalAlpha = 0.7;
-      ctx.lineWidth = cs * 0.5;
+      const pal = trColor(p.color);
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       ctx.beginPath();
       ctx.moveTo(ox + fl.path[0][0] * cs, oy + fl.path[0][1] * cs);
       for (const [x, y] of fl.path) ctx.lineTo(ox + x * cs, oy + y * cs);
       ctx.lineTo(ox + (hx + 0.5) * cs, oy + (hy + 0.5) * cs);
+      // edge first, then the bright core: the line stays visible on its own land and on the bare board
+      ctx.strokeStyle = trailEdge(theme, pal.dark);
+      ctx.lineWidth = cs * 0.62;
       ctx.stroke();
-      ctx.globalAlpha = 1;
+      ctx.strokeStyle = pal.base;
+      ctx.lineWidth = cs * 0.4;
+      ctx.stroke();
     });
   } else for (let y = y0; y <= y1; y++)
     for (let x = x0; x <= x1; x++) {
       const t = g.trail[y * g.w + x];
       if (t < 0) continue;
-      const pal = PALETTE[g.players[t].color % PALETTE.length];
-      ctx.fillStyle = pal.base;
-      ctx.globalAlpha = 0.55;
-      const inset = cs * 0.18;
+      const pal = trColor(g.players[t].color);
+      const inset = cs * 0.14;
+      ctx.fillStyle = trailEdge(theme, pal.dark);
       ctx.fillRect(ox + x * cs + inset, oy + y * cs + inset, cs - inset * 2, cs - inset * 2);
-      ctx.globalAlpha = 1;
+      const core = cs * 0.24;
+      ctx.fillStyle = pal.base;
+      ctx.fillRect(ox + x * cs + core, oy + y * cs + core, cs - core * 2, cs - core * 2);
     }
   // map edge
   ctx.strokeStyle = theme.edge;
@@ -209,15 +216,24 @@ export function draw(ctx: CanvasRenderingContext2D, wPx: number, hPx: number, c:
   g.players.forEach((p, k) => {
     if (!p.alive) return;
     const [hx, hy] = headPos(c, g, k, f);
-    const pal = PALETTE[p.color % PALETTE.length];
+    const pal = trColor(p.color);
     const px = ox + (hx + 0.5) * cs,
       py = oy + (hy + 0.5) * cs;
     const r = cs * 0.62;
+    const mine = c.me.includes(k);
+    if (mine) {
+      // "this is you": a ring in the board's ink colour, so you are found by shape, not by colour alone
+      ctx.strokeStyle = theme.dark ? '#f1ece2' : '#1b2a41';
+      ctx.lineWidth = Math.max(2, cs * 0.14);
+      ctx.beginPath();
+      ctx.arc(px, py, r * 1.6, 0, Math.PI * 2);
+      ctx.stroke();
+    }
     ctx.fillStyle = pal.base;
     roundRect(ctx, px - r, py - r, r * 2, r * 2, r * 0.45);
     ctx.fill();
     ctx.lineWidth = Math.max(1.5, cs * 0.1);
-    ctx.strokeStyle = '#ffffff';
+    ctx.strokeStyle = theme.dark ? '#ffffff' : pal.dark;
     ctx.stroke();
     // eyes looking in the move direction (the exact heading when steering is continuous)
     const hd = fg?.flow[k]?.heading;
@@ -228,9 +244,12 @@ export function draw(ctx: CanvasRenderingContext2D, wPx: number, hPx: number, c:
       sy = dx * r * 0.36;
     for (const s of [-1, 1]) {
       ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = pal.dark;
+      ctx.lineWidth = Math.max(1, cs * 0.05);
       ctx.beginPath();
       ctx.arc(px + ex + sx * s, py + ey + sy * s, r * 0.24, 0, Math.PI * 2);
       ctx.fill();
+      ctx.stroke();
       ctx.fillStyle = pal.dark;
       ctx.beginPath();
       ctx.arc(px + ex * 1.35 + sx * s, py + ey * 1.35 + sy * s, r * 0.12, 0, Math.PI * 2);
@@ -239,8 +258,14 @@ export function draw(ctx: CanvasRenderingContext2D, wPx: number, hPx: number, c:
     if (cs >= 10) {
       ctx.font = `600 ${Math.max(11, cs * 0.55)}px Inter, "Noto Sans TC", sans-serif`;
       ctx.textAlign = 'center';
+      // name with a halo in the board colour, readable over any land tint
+      const ly = py - (mine ? r * 1.6 : r) - 6;
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = 3.5;
+      ctx.strokeStyle = theme.dark ? '#141c2a' : '#fffdf8';
+      ctx.strokeText(p.name, px, ly);
       ctx.fillStyle = theme.dark ? '#f1ece2' : '#1b2a41';
-      ctx.fillText(p.name, px, py - r - 6);
+      ctx.fillText(p.name, px, ly);
     }
     if (c.me.includes(k) && c.me.length === 1) c.screenHead = { x: px, y: py, cell: cs };
     if (c.me.includes(k)) c.screenHeads[k] = { x: px, y: py, cell: cs };
@@ -254,7 +279,7 @@ export function draw(ctx: CanvasRenderingContext2D, wPx: number, hPx: number, c:
       if (item.ev.type !== 'death') continue;
       const p = g.players[item.ev.player];
       if (!p) continue;
-      const color = PALETTE[p.color % PALETTE.length].base;
+      const color = trColor(p.color).base;
       for (let n = 0; n < 22; n++) {
         const a = Math.random() * Math.PI * 2,
           s = 0.03 + Math.random() * 0.09;
@@ -280,6 +305,10 @@ export function draw(ctx: CanvasRenderingContext2D, wPx: number, hPx: number, c:
   }
 }
 
+function trailEdge(theme: Theme, dark: string) {
+  return theme.dark ? '#0b1019' : dark;
+}
+
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
@@ -296,13 +325,18 @@ export function drawMinimap(ctx: CanvasRenderingContext2D, c: TerritoryClient, t
   if (!g) return;
   const img = ctx.createImageData(g.w, g.h);
   const bg = theme.dark ? [32, 42, 60] : [236, 230, 216];
-  const rgb = PALETTE.map((p) => hexRgb(p.base));
+  const rgbOf = new Map<number, number[]>();
+  const rgb = (color: number) => {
+    let v = rgbOf.get(color);
+    if (!v) rgbOf.set(color, (v = hexRgb(trColor(color).base)));
+    return v;
+  };
   for (let i = 0; i < g.owner.length; i++) {
     const o = g.owner[i],
       t = g.trail[i];
     let col = bg;
-    if (o >= 0) col = rgb[g.players[o].color % PALETTE.length];
-    if (t >= 0) col = rgb[g.players[t].color % PALETTE.length].map((v) => Math.min(255, v + 60));
+    if (o >= 0) col = rgb(g.players[o].color);
+    if (t >= 0) col = rgb(g.players[t].color).map((v) => Math.min(255, v + 60));
     img.data[i * 4] = col[0];
     img.data[i * 4 + 1] = col[1];
     img.data[i * 4 + 2] = col[2];

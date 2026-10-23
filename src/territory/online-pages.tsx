@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useI18n } from '../i18n';
 import { ConnBanner } from '../components/ConnBanner';
@@ -6,19 +6,23 @@ import { Button, Card, PageTitle, Spinner } from '../components/ui';
 import { OnlineTerritory } from './online';
 import { TerritoryCanvas, useClient } from './TerritoryCanvas';
 import { EndOverlay } from './EndOverlay';
-import { PALETTE } from './render';
+import { trColor } from '../../shared/territory/colors';
+import { ColorPicker, colorName, loadColorPrefs, saveColorPrefs } from './ColorPicker';
 import { useAuth } from '../lib/auth';
 import { useStableName } from './pages';
 import type { BotLevel } from '../../shared/territory/ai';
 
 function Lobby({ c }: { c: OnlineTerritory }) {
-  const { t, to } = useI18n();
+  const { t, to, lang } = useI18n();
   const nav = useNavigate();
   const [copied, setCopied] = useState(false);
   const [level, setLevel] = useState<BotLevel>('medium');
   const l = c.lobby!;
   const isHost = l.mySeat !== null && l.mySeat === l.hostSeat;
   const url = `${location.origin}/territory/room/${l.id}`;
+  const mine = l.mySeat !== null ? l.seats[l.mySeat] : null;
+  const takenBy = new Map(l.seats.flatMap((s, i) => (i === l.mySeat ? [] : [[s.color, s.name] as [number, string]])));
+  const wanted = c.wantedColor;
   return (
     <div className="space-y-4">
       <PageTitle>{t('tr.room.title')}</PageTitle>
@@ -49,15 +53,36 @@ function Lobby({ c }: { c: OnlineTerritory }) {
             </p>
           </div>
         )}
+        {mine && (
+          <div className="space-y-2" data-testid="tr-room-color" data-color={mine.color}>
+            <ColorPicker
+              label={t('tr.color.mine')}
+              value={mine.color}
+              taken={takenBy}
+              onChange={(col) => {
+                saveColorPrefs({ ...loadColorPrefs(), p1: col });
+                c.setColor(col);
+              }}
+            />
+            {wanted !== null && wanted !== mine.color ? (
+              <p className="text-sm font-semibold" role="status" data-testid="tr-color-moved">
+                {t('tr.color.moved', { want: colorName(wanted, lang), got: colorName(mine.color, lang) })}
+              </p>
+            ) : (
+              <p className="text-sm text-[var(--muted)]">{t('tr.color.onlineNote')}</p>
+            )}
+          </div>
+        )}
         <div>
           <h2 className="mb-2 font-semibold">{t('tr.room.players', { n: l.seats.length })}</h2>
           <ul className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)]">
             {l.seats.map((s, i) => (
-              <li key={i} className="flex items-center gap-3 px-3 py-2">
-                <span className="h-4 w-4 rounded" style={{ background: PALETTE[s.color % 8].base }} />
-                <span className="flex-1 truncate">
+              <li key={i} className="flex items-center gap-3 px-3 py-2" data-seat-color={s.color}>
+                <span className="h-5 w-5 shrink-0 rounded border-2" style={{ background: trColor(s.color).base, borderColor: trColor(s.color).dark }} aria-hidden="true" />
+                <span className="min-w-0 flex-1 truncate">
                   {s.name}
                   {i === l.mySeat && ` (${t('online.you')})`}
+                  <span className="ml-2 text-xs text-[var(--muted)]">{colorName(s.color, lang)}</span>
                 </span>
                 {i === l.hostSeat && <span className="rounded bg-[var(--gold)] px-1.5 text-xs text-black">{t('tr.room.host')}</span>}
                 {s.bot && <span className="text-xs text-[var(--muted)]">{t(`level.${s.level ?? 'medium'}`)}</span>}
@@ -146,7 +171,7 @@ export function TerritoryRoomPage() {
   const [c, setC] = useState<OnlineTerritory | null>(null);
   useEffect(() => {
     if (!id || loading) return;
-    const ctl = new OnlineTerritory(`/api/territory/rooms/${id.toUpperCase()}/ws`, name);
+    const ctl = new OnlineTerritory(`/api/territory/rooms/${id.toUpperCase()}/ws`, name, undefined, loadColorPrefs().p1);
     setC(ctl);
     return () => ctl.dispose();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -161,9 +186,12 @@ export function TerritoryMatchPage() {
   const name = useStableName();
   const [waiting, setWaiting] = useState(1);
   const [err, setErr] = useState(false);
+  const [color, setColor] = useState(() => loadColorPrefs().p1);
+  const wsRef = useRef<WebSocket | null>(null);
   useEffect(() => {
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-    const ws = new WebSocket(`${proto}://${location.host}/api/territory/match/ws?engine=flow&name=${encodeURIComponent(name)}`);
+    const ws = new WebSocket(`${proto}://${location.host}/api/territory/match/ws?engine=flow&name=${encodeURIComponent(name)}&color=${color}`);
+    wsRef.current = ws;
     ws.onmessage = (e) => {
       const m = JSON.parse(e.data);
       if (m.t === 'queue') setWaiting(m.waiting);
@@ -185,6 +213,18 @@ export function TerritoryMatchPage() {
       <Card className="mx-auto max-w-md space-y-4 text-center">
         <Spinner label={t('tr.match.searching', { n: waiting })} />
         <p className="text-sm text-[var(--muted)]">{t('tr.match.note')}</p>
+        <div className="text-left" data-testid="tr-match-color">
+          <ColorPicker
+            label={t('tr.color.mine')}
+            value={color}
+            onChange={(c) => {
+              setColor(c);
+              saveColorPrefs({ ...loadColorPrefs(), p1: c });
+              if (wsRef.current?.readyState === 1) wsRef.current.send(JSON.stringify({ t: 'color', c }));
+            }}
+          />
+          <p className="mt-2 text-sm text-[var(--muted)]">{t('tr.color.onlineNote')}</p>
+        </div>
         {err && <p className="text-[var(--danger)]">{t('err.network')}</p>}
         <Button variant="secondary" onClick={() => nav(to('/territory'))}>
           {t('mm.cancel')}
