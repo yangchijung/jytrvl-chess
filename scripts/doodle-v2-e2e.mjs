@@ -318,6 +318,79 @@ try {
     await ctx.close();
   }
 
+  // ---------------------------------------------------------------- R2b: copying aside fails (storage full)
+  // Same late write as R2a, but in B's browser every write to a `.conflict-*` key throws QuotaExceededError.
+  // B's own tab copy must survive (also after a reload), B must say the change could not be stored separately,
+  // and once space is back a later load copies it aside and only then removes the tab copy.
+  {
+    const ctx = await browser.createBrowserContext();
+    const mk = async (full) => {
+      const q = await page(1280, 900, { ctx });
+      await q.evaluateOnNewDocument((full) => {
+        try {
+          Object.defineProperty(Navigator.prototype, 'locks', { configurable: true, get: () => undefined });
+          if (full) {
+            const set = Storage.prototype.setItem;
+            Storage.prototype.setItem = function (k, v) {
+              if (String(k).startsWith('jy.doodle.v2.conflict-')) throw new DOMException('full', 'QuotaExceededError');
+              return set.call(this, k, v);
+            };
+          }
+        } catch {
+          /* ignore */
+        }
+      }, full);
+      await go(q);
+      return q;
+    };
+    const a = await mk(false);
+    const b = await mk(true);
+    await b.bringToFront();
+    await tap(b, '[data-testid=surface-grid]');
+    await tap(b, '[data-testid=cell-3]');
+    await sleep(200);
+    const tabCopies = (q) => q.evaluate(() => Object.entries(localStorage).filter(([k]) => k.startsWith('jy.doodle.v2.tab-')).map(([k, v]) => [k, JSON.parse(JSON.parse(v).doc).grid.n]));
+    const before = await tabCopies(b);
+    await a.evaluate(() => {
+      const d = JSON.parse(localStorage.getItem('jy.doodle.v2'));
+      d.grid = { ops: [], n: 0 };
+      d.anc = ['othertab.1'];
+      localStorage.setItem('jy.doodle.v2', JSON.stringify(d));
+    });
+    await sleep(400);
+    const seen = await b.evaluate(() => ({
+      unsaved: document.querySelector('[data-testid=tab-conflict]')?.dataset.unsaved ?? null,
+      download: !!document.querySelector('[data-testid=download-conflict]'),
+      status: window.__doodle?.status,
+      aside: Object.keys(localStorage).filter((k) => k.startsWith('jy.doodle.v2.conflict-')).length,
+    }));
+    const kept = await tabCopies(b);
+    const keptKey = before.find(([, n]) => n === 1)?.[0];
+    const stillThere = keptKey && kept.some(([k, n]) => k === keptKey && n === 1);
+    ok('R2b', 'no Web Locks, storage full for the copy aside: B’s only stored copy of its stamp stays, the alert says it could not be stored separately and offers the download, not called saved', !!keptKey && stillThere && seen.unsaved === '1' && seen.download && seen.status !== 'ok' && seen.aside === 0, JSON.stringify({ before, kept, ...seen }));
+    // B keeps drawing (still full), then reloads: the stamp copy is still there
+    await tap(b, '[data-testid=cell-4]');
+    await sleep(200);
+    const laterSaved = ((await V2(b))?.grid.ops ?? []).some((o) => o.i === 4);
+    await b.reload({ waitUntil: 'networkidle0' });
+    await sleep(300);
+    const afterReload = await tabCopies(b);
+    ok('R2b', 'a later save (cell 4, in the shared drawing) and a reload do not overwrite or remove that copy', laterSaved && afterReload.some(([k, n]) => k === keptKey && n === 1), JSON.stringify({ laterSaved, afterReload }));
+    await b.close();
+    await a.close();
+    // space is back: a page opened later copies it aside, then removes the tab copy
+    await sleep(5200);
+    const c = await mk(false);
+    await sleep(300);
+    const end = await c.evaluate((k) => ({
+      tab: localStorage.getItem(k) !== null,
+      aside: Object.entries(localStorage).filter(([x]) => x.startsWith('jy.doodle.v2.conflict-')).map(([, v]) => JSON.parse(v).grid.ops.map((o) => o.i)),
+      banner: !!document.querySelector('[data-testid=tab-conflict]'),
+    }), keptKey);
+    ok('R2b', 'once space is back, the next load copies the stamp aside (cell 3) and only then removes the tab copy', !end.tab && end.aside.some((x) => x.includes(3)) && end.banner, JSON.stringify(end));
+    await ctx.close();
+  }
+
   // ---------------------------------------------------------------- CP08 broken / newer V2, storage full, two tabs
   {
     const p = await page(1280, 900);
