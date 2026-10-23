@@ -158,6 +158,11 @@ export const PAGES: Record<string, PageMeta> = {
     description: { zh: '選菜單、合併採買共用食材、分批備餐，打烊後看懂帳本。試玩原型。', en: 'Pick a menu, buy shared ingredients together, cook in batches and read the books. Playtest prototype.' },
     index: false,
   },
+  '/bumper': {
+    title: { zh: '瘋狂碰碰車（試玩原型）｜JY Games', en: 'Crazy Bumper (prototype) | JY Games' },
+    description: { zh: '3D 碰碰車：選一隻動物和一台車，60 秒在嘉年華場地裡互撞。兒童試玩原型。', en: 'A 3D bumper-car game: pick an animal and a car and bump around a carnival arena for 60 seconds. Kids playtest prototype.' },
+    index: false,
+  },
   '/learn/sudoku': {
     title: { zh: '數獨規則教學｜JY Games', en: 'How to Play Sudoku | JY Games' },
     description: { zh: '五個互動步驟：每列、每行、每宮 1–9，單一候選，以及筆記與提示。', en: 'Five interactive steps: rows, columns and boxes 1–9, single candidates, notes and hints.' },
