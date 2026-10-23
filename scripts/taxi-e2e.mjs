@@ -353,9 +353,9 @@ try {
         if (d < closest) closest = d;
         if (k === 9) await shot(`7-board-pass-${dirSign > 0 ? 'a' : 'b'}`);
       }
-      pass.push({ dir: dirSign, ...worst, closest: +closest.toFixed(1) });
+      pass.push({ dir: dirSign, ...worst, carToBoard: +closest.toFixed(1) });
     }
-    ok('X-21', 'chase camera: no board, landmark or wall hides the cab when driving past a name board', pass.every((x) => x.blocked === 0 && x.nearHits === 0 && x.closest < 25), JSON.stringify(pass));
+    ok('X-26', 'chase camera: no board, landmark or wall hides the cab when driving past a name board', pass.every((x) => x.blocked === 0 && x.nearHits === 0 && x.carToBoard < 25), JSON.stringify(pass));
   }
   ok('ALL', 'no page errors', errors.length === 0, errors.slice(0, 4).join(' | '));
 } catch (e) {
