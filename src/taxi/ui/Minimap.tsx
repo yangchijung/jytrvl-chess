@@ -46,7 +46,8 @@ export function Minimap({ game, mode }: { game: () => Game | null; mode: 'arcade
     const ctx = cv?.getContext('2d');
     if (!cv || !ctx) return;
     let raf = 0,
-      last = 0;
+      last = 0,
+      prev = '';
     const draw = (now: number) => {
       raf = requestAnimationFrame(draw);
       if (now - last < 32) return; // ~30 updates a second is plenty for a map
@@ -61,6 +62,12 @@ export function Minimap({ game, mode }: { game: () => Game | null; mode: 'arcade
       const R = px / 2;
       const scale = R / MINIMAP_RANGE; // device pixels per metre
       const pose = g.pose();
+      const run = g.run();
+      const play = run && run.phase === 'play' ? run : null;
+      // nothing moved and nobody came or went (paused, waiting at a light): keep the last picture
+      const key = `${px}|${pose.x.toFixed(1)}|${pose.z.toFixed(1)}|${pose.yaw.toFixed(3)}|${pose.view.toFixed(3)}|${play?.rider?.id ?? '-'}|${play?.waiting.map((p) => p.id).join(',') ?? ''}`;
+      if (key === prev) return;
+      prev = key;
       const { canvas: map, frame } = staticMap(g.level);
       const car = frame.toPx(pose.x, pose.z);
 
@@ -77,8 +84,6 @@ export function Minimap({ game, mode }: { game: () => Game | null; mode: 'arcade
       ctx.restore();
 
       const at = (x: number, z: number) => worldToMap(x - pose.x, z - pose.z, pose.view, scale);
-      const run = g.run();
-      const play = run && run.phase === 'play' ? run : null;
       // the target: where the guide arrow points
       const target = play ? (play.rider ? { x: play.rider.dest.x, z: play.rider.dest.z, dest: true, color: MAP_COLORS.dest } : [...play.waiting].sort((a, b) => Math.hypot(a.stop.x - pose.x, a.stop.z - pose.z) - Math.hypot(b.stop.x - pose.x, b.stop.z - pose.z)).map((p) => ({ x: p.stop.x, z: p.stop.z, dest: false, color: BAND_COLOR[p.band], id: p.id }))[0]) : undefined;
       const targetId = target && 'id' in target ? target.id : -1;
