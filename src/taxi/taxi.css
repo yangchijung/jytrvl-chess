@@ -63,3 +63,8 @@
 .taxi-results-x { font-size: 2.2rem; font-weight: 900; color: #23303f; }
 @media (prefers-reduced-motion: reduce) { .taxi-time[data-low='true'] { animation: none; } .taxi-digit-strip, .taxi-bar > span, .taxi-arrow svg { transition: none; } }
 @media (max-width: 700px) { .taxi-mode { width: 130px; height: 130px; } .taxi-bar { width: 120px; } }
+/* pause menu: music and sound-effect volume (big thumbs, finger friendly) */
+.taxi-volumes { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+.taxi-volume { display: flex; align-items: center; gap: 10px; min-height: 64px; padding: 8px 18px; border-radius: 18px; border: 4px solid #23303f; background: #fffaf2; color: #23303f; font-size: 1.25rem; font-weight: 800; }
+.taxi-volume input { width: 180px; height: 44px; accent-color: #23303f; cursor: pointer; }
+.taxi-volume input:focus-visible { outline: 3px solid #1565c0; outline-offset: 2px; }

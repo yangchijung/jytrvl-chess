@@ -7,15 +7,25 @@ import { Input, type Controls } from './core/input';
 import { Car, HALF } from './vehicle/car';
 import { TUNING, type Tuning } from './vehicle/tuning';
 import { ChaseCam } from './fx/camera';
+import { buildTaxi } from './fx/taxiModel';
+import { Effects } from './fx/effects';
+import type { EngineState, SfxEvent } from './audio/sfx';
+import { carById, driverById, tuningFor } from './vehicle/roster';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { newRun, tick, type Mode, type RunEvent, type RunState } from './gameplay/rules';
 import { RunView } from './gameplay/view';
 import { testLevel, type Level } from './world/level';
 import { cityLevel } from './world/city';
 import { buildPhysics, buildScene } from './world/build';
+import { drawSky } from './world/decor';
 import { TAXI_GROUPS, Traffic, type TaxiNow } from './world/traffic';
 import { People } from './world/people';
 
 export const STEP = 1 / 60;
+const SKY = { horizon: '#CBE7F6', zenith: '#5FAEE6' };
 const PALETTE = { sky: '#8FD0F5', asphalt: '#3A3F47', taxi: '#FFC72C', ink: '#23303F', tyre: '#1E2228', glass: '#5C7A99' };
 
 export interface HudState {
@@ -45,12 +55,22 @@ export interface Game {
   startRun(mode: Mode | null, seed?: number): void;
   run(): RunState | null;
   setPaused(p: boolean): void;
+  /** choose the cab and the driver (the car's handling and look change) */
+  setCar(carId: string, driverId: string): void;
+  /** the menu: a slow aerial orbit of the city instead of the chase camera */
+  setMenu(on: boolean): void;
   level: Level;
   traffic: Traffic | null;
   people: People | null;
 }
 
-export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) => void, opts: { lowPower?: boolean; lang?: 'zh' | 'en'; track?: 'city' | 'test'; onEvent?: (e: RunEvent) => void; onPause?: (paused: boolean) => void } = {}): Promise<Game> {
+/** what the game needs from the sound system (it is created on the page, after the first tap) */
+export interface GameAudio {
+  engine(s: EngineState | null): void;
+  effect(e: SfxEvent, strength?: number): void;
+}
+
+export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) => void, opts: { lowPower?: boolean; lang?: 'zh' | 'en'; track?: 'city' | 'test'; onEvent?: (e: RunEvent) => void; onPause?: (paused: boolean) => void; audio?: GameAudio } = {}): Promise<Game> {
   await RAPIER.init();
   const level = opts.track === 'test' ? testLevel() : cityLevel();
   const SPAWN = level.spawn;
@@ -64,7 +84,8 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
   renderer.shadowMap.type = THREE.PCFShadowMap;
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(PALETTE.sky);
-  scene.fog = level.id === 'city' ? new THREE.Fog(PALETTE.sky, 190, 560) : new THREE.Fog(PALETTE.sky, 160, 420);
+  scene.fog = level.id === 'city' ? new THREE.Fog(SKY.horizon, 200, 600) : new THREE.Fog(PALETTE.sky, 160, 420);
+  const sky = level.id === 'city' ? drawSky(scene, SKY.horizon, SKY.zenith) : null;
   scene.add(new THREE.HemisphereLight('#EAF6FF', '#6B6F5A', 1.6));
   const sun = new THREE.DirectionalLight('#FFF4DC', 2.2);
   sun.castShadow = true;
@@ -76,10 +97,25 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
   sc.far = 80;
   scene.add(sun, sun.target);
   const chase = new ChaseCam(canvas.clientWidth / Math.max(1, canvas.clientHeight));
+  scene.add(chase.cam); // the speed streaks ride on the camera
+  const fx = new Effects(scene, chase.cam);
+  // a light bloom on bright things (lamps, signs, sparks) on desktops; phones and tablets skip it for speed
+  let composer: EffectComposer | null = null;
+  if (!opts.lowPower) {
+    composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, chase.cam));
+    composer.addPass(new UnrealBloomPass(new THREE.Vector2(256, 256), 0.22, 0.35, 0.93));
+    composer.addPass(new OutputPass());
+  }
+  renderer.info.autoReset = false;
+  let hitCool = 0;
+  let pendingHit = 0;
+  let puffT = 0;
 
   // ---------- the level: colliders and the drawn world ----------
   const { soft, dynamics } = buildPhysics(RAPIER, world, level);
-  const { props } = buildScene(scene, level, opts.lang ?? 'zh');
+  const { props, update: updateWorld } = buildScene(scene, level, opts.lang ?? 'zh');
+  let worldClock = 0;
   const cones = dynamics.map((d, i) => ({ b: d.b, mesh: props[i] }));
 
   // ---------- the car ----------
@@ -95,26 +131,15 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
   const events = new RAPIER.EventQueue(true);
   let run: RunState | null = null;
   let landSeen = 0;
-  const carGroup = new THREE.Group();
-  const mat = (c: string) => new THREE.MeshLambertMaterial({ color: c, flatShading: true });
-  const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(HALF.x * 2, HALF.y * 2, HALF.z * 2), mat(PALETTE.taxi));
-  const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.6, 2.0), mat(PALETTE.glass));
-  cabin.position.set(0, HALF.y + 0.3, -0.25);
-  const roofSign = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.25, 0.3), mat('#FFFFFF'));
-  roofSign.position.set(0, HALF.y + 0.72, -0.2);
-  const stripe = new THREE.Mesh(new THREE.BoxGeometry(HALF.x * 2 + 0.02, 0.12, HALF.z * 2 - 0.4), mat(PALETTE.ink));
-  stripe.position.y = 0.05;
-  for (const m of [bodyMesh, cabin, roofSign]) m.castShadow = true;
-  carGroup.add(bodyMesh, cabin, roofSign, stripe);
+  let taxi = buildTaxi(tuning.wheelRadius);
+  let carGroup = taxi.group;
   scene.add(carGroup);
-  const wheelGeo = new THREE.CylinderGeometry(tuning.wheelRadius, tuning.wheelRadius, 0.32, 14);
-  wheelGeo.rotateZ(Math.PI / 2);
-  const wheels = [0, 1, 2, 3].map(() => {
-    const w = new THREE.Mesh(wheelGeo, mat(PALETTE.tyre));
-    w.castShadow = true;
-    scene.add(w);
-    return w;
-  });
+  let wheels = taxi.wheels;
+  for (const w of wheels) scene.add(w);
+  let landBump = 0;
+  let rushSeen = 0;
+  let menu = false;
+  let orbit = 0;
 
   // ---------- loop: fixed step + interpolation ----------
   const input = new Input();
@@ -166,10 +191,14 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
         if (e.t === 'hit') {
           crash = true;
           chase.bump(Math.min(0.4, e.speed / 40));
+          opts.audio?.effect('hit', e.speed / 15);
           // the car flies off; the taxi keeps most of its speed
           const v = car.body.linvel();
           car.body.setLinvel({ x: v.x * 0.8, y: v.y, z: v.z * 0.8 }, true);
-        } else nearMiss = true;
+        } else {
+          nearMiss = true;
+          opts.audio?.effect('near');
+        }
       }
     people?.update(STEP, tx);
     world.step(events);
@@ -202,13 +231,21 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
         safe.yaw = Math.atan2(f.x, f.z);
       }
     }
+    hitCool = Math.max(0, hitCool - STEP);
+    if (crash && hitCool === 0) {
+      pendingHit = Math.max(pendingHit, 6 + car.kmh() / 6);
+      hitCool = 0.35;
+    }
     snap(cur);
     if (run && run.phase === 'play') {
       const landed = car.ev.landings !== landSeen;
       landSeen = car.ev.landings;
       const t = car.body.translation();
       const ev = tick(run, STEP, { x: t.x, z: t.z, kmh: car.kmh(), drifting: car.drifting, airborne: car.airborne, landedAfter: landed ? car.ev.lastAir : 0, crash, nearMiss }, level.stops, level.places);
-      for (const e of ev) opts.onEvent?.(e);
+      for (const e of ev) {
+        if (e.t === 'pickup' || e.t === 'drop') fx.coinBurst(cur.p, e.t === 'drop' ? 16 : 8);
+        opts.onEvent?.(e);
+      }
     }
   };
   const draw = (alpha: number, dt: number) => {
@@ -229,6 +266,8 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
     }
     traffic?.draw();
     people?.draw();
+    worldClock += dt;
+    updateWorld(traffic ? traffic.time : worldClock, dt);
     for (const c of cones) {
       const t = c.b.translation(),
         r = c.b.rotation();
@@ -238,7 +277,40 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
     if (car.ev.landings !== landings) {
       landings = car.ev.landings;
       chase.bump(Math.min(0.5, car.ev.lastLanding / 25));
+      landBump = Math.min(1, car.ev.lastLanding / 8);
+      if (car.ev.lastLanding > 3) fx.dust(p, car.ev.lastLanding);
+      if (car.ev.lastLanding > 2) opts.audio?.effect('land', car.ev.lastLanding / 8);
     }
+    // tyre smoke and marks from the rear wheels: drifting, hard braking, wheelspin
+    {
+      const v = car.body.linvel();
+      const vel = new THREE.Vector3(v.x, v.y, v.z);
+      const down = car.wheelsDown() >= 2 && !car.airborne;
+      const hardBrake = lastControls.brake > 0.5 && car.speed() > 8;
+      const spin = lastControls.throttle > 0.5 && car.kmh() < 22 && (car.rushLeft > 0 || car.kmh() > 2);
+      const smoking = down && (car.drifting || hardBrake || spin);
+      puffT += dt;
+      for (const i of [2, 3]) {
+        const at = wheels[i].position.clone().setY(Math.max(0.15, wheels[i].position.y - tuning.wheelRadius + 0.15));
+        if (smoking && puffT > 0.035) fx.puff(at, vel, car.drifting);
+        fx.mark(i - 2, down && (car.drifting || hardBrake) ? at : null);
+      }
+      if (puffT > 0.035) puffT = 0;
+      if (pendingHit) {
+        const f = car.forward();
+        fx.hit(p.clone().add(new THREE.Vector3(f.x * 2.1, 0.5, f.z * 2.1)), new THREE.Vector3(-f.x, 0, -f.z), pendingHit);
+        opts.audio?.effect('crash', pendingHit / 20);
+        pendingHit = 0;
+      }
+      fx.update(dt, car.kmh());
+      if (car.ev.rush !== rushSeen) {
+        rushSeen = car.ev.rush;
+        opts.audio?.effect('rush');
+      }
+      opts.audio?.engine(menu ? null : { kmh: car.kmh(), throttle: lastControls.throttle, skid: car.drifting ? 1 : hardBrake ? 0.8 : spin ? 0.5 : 0, airborne: car.airborne });
+    }
+    landBump = Math.max(0, landBump - dt * 2.5);
+    taxi.animate({ steer: lastControls.steer, throttle: lastControls.throttle, braking: lastControls.brake > 0.5 && car.speed() > 1, airborne: car.airborne, bump: landBump, dt });
     const lv = car.body.linvel();
     chase.update(
       { pos: p, fwd: new THREE.Vector3(0, 0, 1).applyQuaternion(q), vel: new THREE.Vector3(lv.x, lv.y, lv.z), kmh: car.kmh(), drifting: car.drifting, steer: lastControls.steer, airborne: car.airborne },
@@ -248,7 +320,20 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
     sun.position.set(p.x + 20, p.y + 40, p.z + 10);
     sun.target.position.copy(p);
     view.update(run, p, performance.now() / 1000);
-    renderer.render(scene, chase.cam);
+    if (menu) {
+      // the menu's background: a slow aerial orbit over the Love River
+      orbit += dt * 0.045;
+      chase.cam.position.set(Math.cos(orbit) * 290, 150, Math.sin(orbit) * 290);
+      chase.cam.lookAt(0, 0, 0);
+      if (Math.abs(chase.cam.fov - 55) > 0.1) {
+        chase.cam.fov = 55;
+        chase.cam.updateProjectionMatrix();
+      }
+    }
+    sky?.position.set(chase.cam.position.x, 0, chase.cam.position.z);
+    renderer.info.reset();
+    if (composer) composer.render(dt);
+    else renderer.render(scene, chase.cam);
     // the guide arrow: to the destination while carrying, otherwise to the nearest waiting passenger
     let arrow: HudState['arrow'] = null;
     if (run && run.phase === 'play') {
@@ -277,8 +362,10 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
       frames = 0;
       fpsT = now;
     }
-    const c = input.read();
-    if (c.pause && run?.phase !== 'over') {
+    const read = input.read();
+    // on the menu and in the garage the parked cab ignores the keys and the touch controls
+    const c: Controls = menu ? { ...read, throttle: 0, brake: 0, steer: 0, drift: false, rush: false, reset: false } : read;
+    if (c.pause && run?.phase !== 'over' && !menu) {
       paused = !paused;
       opts.onPause?.(paused);
     }
@@ -301,8 +388,10 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
     const w = canvas.clientWidth,
       h = canvas.clientHeight;
     renderer.setSize(w, h, false);
+    composer?.setSize(w, h);
     chase.cam.aspect = w / Math.max(1, h);
     chase.cam.updateProjectionMatrix();
+    fx.resize(h * renderer.getPixelRatio(), chase.cam.fov);
   };
   resize();
 
@@ -355,6 +444,38 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
     setPaused(p) {
       paused = p;
       last = performance.now();
+      if (p) opts.audio?.engine(null);
+    },
+    setCar(carId, driverId) {
+      const spec = carById(carId);
+      Object.assign(tuning, tuningFor(spec));
+      car.applyTuning();
+      scene.remove(carGroup);
+      for (const w of wheels) scene.remove(w);
+      // free the old cab's GPU buffers (geometry, materials, the sign textures)
+      const seen = new Set<unknown>();
+      for (const o of [carGroup, ...wheels])
+        o.traverse((m) => {
+          const mesh = m as THREE.Mesh;
+          if (!mesh.isMesh) return;
+          if (!seen.has(mesh.geometry)) seen.add(mesh.geometry), mesh.geometry.dispose();
+          for (const mt of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+            if (seen.has(mt)) continue;
+            seen.add(mt);
+            (mt as THREE.MeshBasicMaterial).map?.dispose();
+            mt.dispose();
+          }
+        });
+      taxi = buildTaxi(tuning.wheelRadius, spec.look, driverById(driverId).look);
+      carGroup = taxi.group;
+      wheels = taxi.wheels;
+      scene.add(carGroup);
+      for (const w of wheels) scene.add(w);
+    },
+    setMenu(on) {
+      menu = on;
+      if (!on) chase.snap();
+      else opts.audio?.engine(null);
     },
   };
 }

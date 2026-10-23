@@ -6,6 +6,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import type RAPIER_NS from '@dimforge/rapier3d-compat';
 import { wedgePoints } from './greybox';
 import type { Level, Prim, Shape } from './level';
+import { buildingMaterial, drawDecor, waterMaterial } from './decor';
 
 type R = typeof RAPIER_NS;
 const rotY = (yaw = 0) => ({ x: 0, y: Math.sin(yaw / 2), z: 0, w: Math.cos(yaw / 2) });
@@ -99,6 +100,8 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
   const q = new THREE.Quaternion();
   const up = new THREE.Vector3(0, 1, 0);
 
+  const seaWater = waterMaterial(LOOK.sea);
+  const riverWater = waterMaterial(LOOK.river);
   // ---------- ground, outside, water ----------
   if (level.id === 'test') {
     const S = level.bounds * 2;
@@ -128,14 +131,14 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
       g.position.set((x0 + x1) / 2, -0.08, (z0 + z1) / 2);
       scene.add(g);
     }
-    const sea = new THREE.Mesh(new THREE.PlaneGeometry(far, far * 2), lambert(LOOK.sea));
+    const sea = new THREE.Mesh(new THREE.PlaneGeometry(far, far * 2), seaWater.mat);
     sea.rotation.x = -Math.PI / 2;
     sea.position.set(-B - far / 2, -0.6, 0);
     scene.add(sea);
   }
   if (level.water) {
     const w = level.water;
-    const water = new THREE.Mesh(new THREE.PlaneGeometry(w.x1 - w.x0, w.z1 - w.z0), lambert(LOOK.river));
+    const water = new THREE.Mesh(new THREE.PlaneGeometry(w.x1 - w.x0, w.z1 - w.z0), riverWater.mat);
     water.rotation.x = -Math.PI / 2;
     water.position.set((w.x0 + w.x1) / 2, w.y, (w.z0 + w.z1) / 2);
     scene.add(water);
@@ -158,7 +161,23 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
   quads(level.marks, 0.045);
 
   // ---------- plain boxes (buildings, rails, walls, decks) in one instanced mesh ----------
-  const boxes = level.shapes.filter((s): s is Extract<Shape, { kind: 'box' }> => s.kind === 'box' && !s.dynamic && !s.hidden);
+  const all = level.shapes.filter((s): s is Extract<Shape, { kind: 'box' }> => s.kind === 'box' && !s.dynamic && !s.hidden);
+  const boxes = all.filter((s) => s.look === undefined);
+  const blds = all.filter((s) => s.look !== undefined);
+  if (blds.length) {
+    // buildings: windows, arcades and roofs drawn by the shader from each building's look
+    const geo = new THREE.BoxGeometry(1, 1, 1);
+    geo.setAttribute('aLook', new THREE.InstancedBufferAttribute(new Float32Array(blds.map((s) => s.look ?? 0)), 1));
+    const inst = new THREE.InstancedMesh(geo, buildingMaterial(), blds.length);
+    blds.forEach((s, i) => {
+      m4.compose(new THREE.Vector3(...s.p), q.setFromAxisAngle(up, s.yaw ?? 0), new THREE.Vector3(...s.size));
+      inst.setMatrixAt(i, m4);
+      inst.setColorAt(i, new THREE.Color(s.color));
+    });
+    inst.castShadow = true;
+    inst.receiveShadow = true;
+    scene.add(inst);
+  }
   if (boxes.length) {
     const inst = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ flatShading: true }), boxes.length);
     boxes.forEach((s, i) => {
@@ -248,5 +267,14 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
       scene.add(mesh);
       return mesh;
     });
-  return { props };
+  const decor = level.decor ? drawDecor(scene, level) : null;
+  return {
+    props,
+    /** per frame: moving water, boats, traffic lights (t = the traffic clock) */
+    update(t: number, dt: number) {
+      seaWater.uTime.value = t;
+      riverWater.uTime.value = t;
+      decor?.update(t, dt);
+    },
+  };
 }

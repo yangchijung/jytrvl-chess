@@ -1,0 +1,55 @@
+/* Rush Taxi garage: cab row on top, drivers + back / 出發 below. Taxi yellow #FFC72C, ink #23303F, paper #FFFAF2.
+   Fits iPad landscape (1180×820) and phone landscape (844×390) without scrolling. */
+.taxi-garage { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 16px; padding: 84px 24px 24px; background: rgba(35, 48, 63, 0.55); overflow-y: auto; }
+.taxi-garage-cabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.taxi-garage-bottom { display: flex; gap: 16px; align-items: stretch; }
+.taxi-garage-drivers { flex: 1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.taxi-garage-actions { display: flex; gap: 16px; align-items: center; }
+
+.taxi-garage-card { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px; border-radius: 20px; border: 4px solid #23303f; background: #fffaf2; color: #23303f; cursor: pointer; transition: background-color 150ms ease-out; min-width: 0; }
+.taxi-garage-card[aria-pressed='true'] { background: #ffc72c; border-width: 6px; padding: 10px; }
+.taxi-garage-card:focus-visible, .taxi-garage-back:focus-visible, .taxi-garage-go:focus-visible { outline: 5px solid #ffffff; outline-offset: 3px; }
+.taxi-garage-check { position: absolute; top: 6px; right: 6px; width: 32px; height: 32px; }
+
+.taxi-cab-pic { width: 100%; height: clamp(56px, 17vh, 140px); }
+.taxi-garage-name { display: flex; align-items: baseline; gap: 8px; font-size: 1.5rem; font-weight: 900; line-height: 1.1; }
+.taxi-garage-name small { font-size: 1rem; font-weight: 800; }
+.taxi-stats { display: flex; flex-direction: column; gap: 4px; }
+.taxi-stat { display: flex; align-items: center; gap: 4px; }
+.taxi-stat-icon { width: 26px; height: 26px; margin-right: 4px; flex: none; }
+.taxi-pip { width: 16px; height: 16px; border-radius: 4px; border: 2.5px solid #23303f; background: transparent; }
+.taxi-pip[data-on='true'] { background: #23303f; }
+
+.taxi-driver-card { justify-content: center; }
+.taxi-driver-pic { width: auto; height: clamp(56px, 13vh, 112px); }
+
+.taxi-garage-back { width: 72px; height: 72px; flex: none; display: flex; align-items: center; justify-content: center; border-radius: 18px; border: 4px solid #23303f; background: #fffaf2; color: #23303f; cursor: pointer; }
+.taxi-garage-back:active { background: #ffc72c; }
+.taxi-garage-go { min-width: 200px; height: 100%; min-height: 96px; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 0 28px; border-radius: 22px; border: 5px solid #23303f; background: #ffc72c; color: #23303f; font-size: 2.2rem; font-weight: 900; cursor: pointer; }
+.taxi-garage-go:active { background: #fffaf2; }
+
+/* phone landscape: the home button sits in a left gutter instead of above, everything a little smaller */
+@media (max-height: 520px) {
+  .taxi-garage { padding: 10px 12px 10px 80px; gap: 10px; }
+  .taxi-garage-cabs, .taxi-garage-drivers, .taxi-garage-bottom, .taxi-garage-actions { gap: 10px; }
+  .taxi-garage-card { padding: 6px 8px; gap: 4px; border-radius: 16px; border-width: 3px; }
+  .taxi-garage-card[aria-pressed='true'] { padding: 4px 6px; border-width: 5px; }
+  .taxi-garage-check { width: 26px; height: 26px; top: 4px; right: 4px; }
+  .taxi-cab-pic { height: clamp(48px, 19vh, 80px); }
+  .taxi-garage-name { font-size: 1.2rem; }
+  .taxi-garage-name small { font-size: 0.85rem; }
+  .taxi-stats { gap: 2px; }
+  .taxi-stat-icon { width: 20px; height: 20px; }
+  .taxi-pip { width: 12px; height: 12px; border-width: 2px; border-radius: 3px; }
+  .taxi-driver-pic { height: clamp(44px, 15vh, 64px); }
+  .taxi-garage-back { width: 64px; height: 64px; border-radius: 16px; }
+  .taxi-garage-go { min-width: 150px; min-height: 80px; padding: 0 16px; font-size: 1.7rem; }
+}
+/* narrow screens (portrait phones): cabs and drivers two to a row, page may scroll */
+@media (max-width: 640px) {
+  .taxi-garage { justify-content: flex-start; padding: 80px 12px 12px; }
+  .taxi-garage-cabs, .taxi-garage-drivers { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .taxi-garage-bottom { flex-direction: column; }
+  .taxi-garage-actions { justify-content: space-between; }
+}
+@media (prefers-reduced-motion: reduce) { .taxi-garage-card { transition: none; } }

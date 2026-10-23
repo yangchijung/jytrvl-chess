@@ -45,6 +45,26 @@ export interface Walk {
   cz: number;
   h: number;
 }
+/** street furniture and building details (drawn only, apart from the palm trunks) */
+export interface Decor {
+  /** rooftop water tanks (stainless, on a stand): position on the roof */
+  tanks: { x: number; y: number; z: number }[];
+  /** rooftop sheet-metal extensions */
+  sheds: { x: number; y: number; z: number; w: number; d: number; h: number; color: string }[];
+  /** air-conditioner boxes on the walls; yaw = the wall's outward direction */
+  acs: { x: number; y: number; z: number; yaw: number }[];
+  /** vertical shop signboards sticking out over the pavement; yaw = the board's face direction */
+  shopSigns: { x: number; y: number; z: number; yaw: number; word: number; color: number }[];
+  scooters: { x: number; z: number; yaw: number; color: string }[];
+  /** street lamps on the kerb; yaw = towards the road */
+  lamps: { x: number; z: number; yaw: number }[];
+  /** traffic lights: one head facing the traffic that comes along `axis` */
+  signals: { x: number; z: number; yaw: number; axis: 'x' | 'z' }[];
+  palms: { x: number; z: number; h: number }[];
+  curbs: Rect[];
+  /** Love River boats: they cruise between x0 and x1 at z */
+  boats: { z: number; x0: number; x1: number; speed: number; color: string }[];
+}
 export interface Tree {
   x: number;
   z: number;
@@ -71,6 +91,7 @@ export interface Level {
   walks: Walk[];
   /** places the traffic avoids (jump ramps) */
   avoid: { x: number; z: number; r: number }[];
+  decor: Decor | null;
 }
 
 /** the stage 1 grey-box ground (still used for the physics feel tests and the ?track=test page) */
@@ -92,5 +113,6 @@ export function testLevel(): Level {
     graph: null,
     walks: [],
     avoid: [],
+    decor: null,
   };
 }

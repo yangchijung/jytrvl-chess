@@ -7,6 +7,7 @@ import { roomCode } from '../../server/crypto';
 import type { Env } from './env';
 import type { TRoomMeta, TSeat } from './TerritoryRoom';
 import type { TServerMsg } from './territoryProtocol';
+import { assignColors, isColor, parseColor } from '../../shared/territory/colors';
 
 interface Waiter {
   playerId: string;
@@ -16,6 +17,8 @@ interface Waiter {
   joinedAt: number;
   /** T3: pages that steer continuously ask for 'flow'; each engine has its own queue object */
   engine?: 'grid' | 'flow';
+  /** colour asked for (absent from old pages) */
+  color?: number | null;
 }
 
 const FILL_TO = 4;
@@ -33,6 +36,7 @@ export class TerritoryLobby extends DurableObject<Env> {
       ipHash: req.headers.get('x-jy-ip') ?? '',
       joinedAt: Date.now(),
       engine: new URL(req.url).searchParams.get('engine') === 'flow' ? 'flow' : 'grid',
+      color: parseColor(req.headers.get('x-jy-color')),
     };
     if (!w.playerId) return new Response('no identity', { status: 400 });
     for (const old of this.ctx.getWebSockets(w.playerId)) old.close(4000, 'replaced');
@@ -44,7 +48,18 @@ export class TerritoryLobby extends DurableObject<Env> {
   }
 
   async webSocketMessage(ws: WebSocket, raw: string | ArrayBuffer) {
-    if (String(raw).includes('ping')) ws.send(JSON.stringify({ t: 'pong' } satisfies TServerMsg));
+    const text = typeof raw === 'string' ? raw : new TextDecoder().decode(raw);
+    if (text.includes('ping')) return ws.send(JSON.stringify({ t: 'pong' } satisfies TServerMsg));
+    // a waiting player changed colour: remember it for the room this player is matched into
+    try {
+      const m = JSON.parse(text) as { t?: string; c?: unknown };
+      if (m.t === 'color' && isColor(m.c)) {
+        const w = ws.deserializeAttachment() as Waiter | null;
+        if (w) ws.serializeAttachment({ ...w, color: m.c });
+      }
+    } catch {
+      /* ignore */
+    }
   }
   async webSocketClose() {
     this.notify();
@@ -81,6 +96,9 @@ export class TerritoryLobby extends DurableObject<Env> {
       const group = q.slice(0, 8);
       const seats: TSeat[] = group.map((x) => ({ playerId: x.w.playerId, userId: x.w.userId, name: x.w.name, bot: false, ipHash: x.w.ipHash }));
       for (let k = 0; seats.length < FILL_TO; k++) seats.push({ playerId: null, userId: null, name: BOT_NAMES[k], bot: true, level: 'medium', ipHash: '' });
+      // earlier joiners keep their colour; clashes move to the nearest free colour, bots take the rest
+      const colors = assignColors([...group.map((x) => x.w.color), ...seats.slice(group.length).map(() => null)]);
+      seats.forEach((s, k) => (s.color = colors[k]));
       const room = await this.createRoom(seats, group[0].w.engine === 'flow' ? 'flow' : 'grid');
       for (const x of group) {
         x.ws.send(JSON.stringify({ t: 'matched', room } satisfies TServerMsg));

@@ -4,7 +4,7 @@
 
 /** `hidden` shapes only collide (their look is drawn elsewhere, e.g. a landmark's merged mesh) */
 export type Shape =
-  | { kind: 'box'; id: string; p: [number, number, number]; size: [number, number, number]; yaw?: number; color: string; dynamic?: boolean; hidden?: boolean }
+  | { kind: 'box'; id: string; p: [number, number, number]; size: [number, number, number]; yaw?: number; color: string; dynamic?: boolean; hidden?: boolean; /** a building, drawn with windows: 0 house, 1 tower, 2 hall, 3 warehouse */ look?: number }
   | { kind: 'wedge'; id: string; p: [number, number, number]; size: [number, number, number]; yaw?: number; color: string }
   | { kind: 'cyl'; id: string; p: [number, number, number]; r: number; h: number; color: string; hidden?: boolean }
   | { kind: 'ball'; id: string; p: [number, number, number]; r: number; color: string; hidden?: boolean };

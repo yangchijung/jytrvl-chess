@@ -32,6 +32,8 @@ export class OnlineTerritory extends TerritoryClient {
     private path: string, // e.g. /api/territory/rooms/ABCD12/ws
     private guestName: string,
     private onMatched?: (room: string) => void,
+    /** colour asked for when joining (palette index); the server keeps it if free or gives the nearest free one */
+    private color: number | null = null,
   ) {
     super();
     this.connect();
@@ -41,7 +43,7 @@ export class OnlineTerritory extends TerritoryClient {
   private connect() {
     if (this.disposed) return;
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-    const ws = new WebSocket(`${proto}://${location.host}${this.path}?name=${encodeURIComponent(this.guestName)}`);
+    const ws = new WebSocket(`${proto}://${location.host}${this.path}?name=${encodeURIComponent(this.guestName)}${this.color !== null ? `&color=${this.color}` : ''}`);
     this.ws = ws;
     ws.onopen = () => {
       this.conn = 'open';
@@ -226,6 +228,15 @@ export class OnlineTerritory extends TerritoryClient {
   }
   again() {
     this.send({ t: 'again' });
+  }
+  /** Lobby: ask for another colour (also used for the next reconnect). */
+  setColor(c: number) {
+    this.color = c;
+    this.send({ t: 'color', c });
+  }
+  /** colour this page asked for most recently (null = none) */
+  get wantedColor() {
+    return this.color;
   }
 
   update() {
