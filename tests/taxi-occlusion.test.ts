@@ -44,7 +44,15 @@ describe('chase camera occlusion fade', () => {
     expect(occlusionFade(board, cam, car, 0)).toBe(0);
     expect(occlusionFade(board, cam, car, OCC_NEAR)).toBe(0);
     expect(occlusionFade(board, cam, car, OCC_NEAR_BOARD)).toBeGreaterThan(0.5);
-    expect(occlusionFade(cam.clone().add(v(0, 3, 16.5)), cam, car, OCC_NEAR_BOARD)).toBe(0); // readable from afar
+    expect(occlusionFade(cam.clone().add(v(0, 3, 17)), cam, car, OCC_NEAR_BOARD)).toBeLessThan(0.05); // readable from afar
+  });
+  it('a board up in a corner fades from further away than one straight down the road', () => {
+    const fwd = car.clone().sub(cam).normalize();
+    const ahead = cam.clone().addScaledVector(fwd, 14); // on the line of sight beyond the cab
+    const corner = cam.clone().add(v(-7, 5, 7)); // ~11 m up and to the left (the 郵局 shot)
+    expect(occlusionFade(corner, cam, car, OCC_NEAR_BOARD)).toBeGreaterThan(0.7);
+    expect(occlusionFade(ahead, cam, car, OCC_NEAR_BOARD)).toBeLessThan(0.2);
+    expect(occlusionFade(corner, cam, car, OCC_NEAR)).toBe(0); // landmark walls keep the plain sphere
   });
   it('wraps an existing onBeforeCompile and keeps a distinct program key', () => {
     const calls: string[] = [];

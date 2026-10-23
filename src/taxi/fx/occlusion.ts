@@ -25,6 +25,13 @@ export const OCC_R_CAR = 2.3;
 export const OCC_NEAR = 4.5;
 export const OCC_NEAR_BOARD = 16;
 /**
+ * Boards only: something well off the line of sight (up in a corner of the screen) counts as this much closer, so a
+ * board looming over the pavement fades from further away than one straight ahead down the road, which stays readable.
+ * Applies to near radii above OCC_NEAR (landmark walls keep the plain sphere).
+ */
+export const OCC_SIDE_SCALE = 0.45;
+export const occSide = (near: number) => near > OCC_NEAR;
+/**
  * How far along the camera→car line the cone reaches (1 = the car's centre). Boards and landmark parts reach a
  * little past the car; building walls stop short of it, so a wall the taxi drives along never gets a hole beside it.
  */
@@ -60,7 +67,14 @@ export function occlusionFade(w: THREE.Vector3Like, cam: THREE.Vector3Like, car:
     f = (1 - smooth(r * 0.7, r, d)) * (1 - smooth(occReach(near) - 0.15, occReach(near), h));
   }
   const fc = f * OCC_MAX;
-  return near > 0 ? Math.max(fc, (1 - smooth(near * 0.5, near, Math.hypot(wx, wy, wz))) * OCC_MAX_NEAR) : fc;
+  if (near <= 0) return fc;
+  const dw = Math.hypot(wx, wy, wz);
+  let de = dw;
+  if (occSide(near)) {
+    const c = (wx * abx + wy * aby + wz * abz) / Math.max(1e-6, dw * Math.sqrt(len2));
+    de *= OCC_SIDE_SCALE + (1 - OCC_SIDE_SCALE) * smooth(0.8, 0.93, c);
+  }
+  return Math.max(fc, (1 - smooth(near * 0.5, near, de)) * OCC_MAX_NEAR);
 }
 
 const VERT_HEAD = /* glsl */ `
@@ -95,7 +109,13 @@ if (uOccOn > 0.5) {
     f = (1.0 - smoothstep(r * 0.7, r, length(w - ab * hc))) * (1.0 - smoothstep(${(occReach(near) - 0.15).toFixed(2)}, ${occReach(near).toFixed(2)}, h));
   }
   f *= ${OCC_MAX.toFixed(3)};
-  ${near > 0 ? `f = max(f, (1.0 - smoothstep(${(near * 0.5).toFixed(3)}, ${near.toFixed(3)}, length(w))) * ${OCC_MAX_NEAR.toFixed(3)});` : ''}
+  ${
+    near > 0
+      ? `float de = length(w);
+  ${occSide(near) ? `de *= mix(${OCC_SIDE_SCALE.toFixed(3)}, 1.0, smoothstep(0.8, 0.93, dot(w, ab) / max(1e-6, length(w) * length(ab))));` : ''}
+  f = max(f, (1.0 - smoothstep(${(near * 0.5).toFixed(3)}, ${near.toFixed(3)}, de)) * ${OCC_MAX_NEAR.toFixed(3)});`
+      : ''
+  }
   if (f > occBayer(gl_FragCoord.xy)) discard;
 }`;
 
