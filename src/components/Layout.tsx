@@ -28,8 +28,9 @@ const menuLink = ({ isActive }: { isActive: boolean }) =>
   `ui-t flex min-h-11 items-center rounded-md px-3 font-medium hover:bg-[var(--surface-2)] ${isActive ? 'border-l-4 border-[var(--ui-accent-text)] bg-[var(--surface-2)] pl-2' : ''}`;
 
 /** full-screen pages without the site header: Math Island pages redesigned for pre-readers (rolled out page by
- * page; each draws its own icon bar and links to a "for adults" page) and Crazy Bumper (draws its own controls) */
-const FULL_SCREEN = ['/math', '/math/g1/apple', '/bumper'];
+ * page; each draws its own icon bar and links to a "for adults" page), Rush Taxi and Crazy Bumper (both draw their own
+ * controls) */
+const FULL_SCREEN = ['/math', '/math/g1/apple', '/taxi', '/bumper'];
 const isFullScreen = (path: string) => FULL_SCREEN.includes(path.replace(/^\/en(?=\/|$)/, '').replace(/\/$/, '') || '/');
 
 export function Layout({ children }: { children: ReactNode }) {
