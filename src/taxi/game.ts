@@ -7,6 +7,7 @@ import { Input, type Controls } from './core/input';
 import { Car, HALF } from './vehicle/car';
 import { TUNING, type Tuning } from './vehicle/tuning';
 import { ChaseCam } from './fx/camera';
+import { OCC_CAR_LIFT, sightCheck, updateOcclusion } from './fx/occlusion';
 import { buildTaxi } from './fx/taxiModel';
 import { Effects } from './fx/effects';
 import type { EngineState, SfxEvent } from './audio/sfx';
@@ -25,8 +26,11 @@ import { TAXI_GROUPS, Traffic, type TaxiNow } from './world/traffic';
 import { People } from './world/people';
 
 export const STEP = 1 / 60;
-const SKY = { horizon: '#CBE7F6', zenith: '#5FAEE6' };
-const PALETTE = { sky: '#8FD0F5', asphalt: '#3A3F47', taxi: '#FFC72C', ink: '#23303F', tyre: '#1E2228', glass: '#5C7A99' };
+// a clear subtropical afternoon: the haze at the horizon is warm and pale, the sky overhead a deep clean blue
+const SKY = { horizon: '#E8E6DA', glow: '#F7E3BC', zenith: '#2F86DA' };
+/** the sun's angle (from the car): high in the south-west, so shadows fall short and to the north-east */
+const SUN_DIR = new THREE.Vector3(-0.52, 0.78, 0.34).normalize();
+const PALETTE = { sky: '#9BD3F2', asphalt: '#3A3F47', taxi: '#FFC72C', ink: '#23303F', tyre: '#1E2228', glass: '#5C7A99' };
 
 export interface HudState {
   kmh: number;
@@ -51,6 +55,8 @@ export interface Game {
   /** test hook: run the simulation for `seconds` of game time right now (rendering one frame after) */
   ff(seconds: number, c?: Partial<Controls>): void;
   stats(): { drawCalls: number; triangles: number };
+  /** test hook: is anything opaque between the camera and the taxi, or a board right in front of the lens? */
+  sight(): ReturnType<typeof sightCheck>;
   /** start an arcade run (50 s) or free practice; null ends it (free driving) */
   startRun(mode: Mode | null, seed?: number): void;
   run(): RunState | null;
@@ -59,6 +65,8 @@ export interface Game {
   setCar(carId: string, driverId: string): void;
   /** the menu: a slow aerial orbit of the city instead of the chase camera */
   setMenu(on: boolean): void;
+  /** read-only, for the minimap: where the car is, which way it points (yaw) and which way the camera looks (view) */
+  pose(): { x: number; z: number; yaw: number; view: number };
   level: Level;
   traffic: Traffic | null;
   people: People | null;
@@ -82,19 +90,28 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, opts.lowPower ? 1.5 : 2));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
+  // no tone mapping on purpose: ACES and AgX shift the taxi yellow towards orange, and the neutral curve's toe
+  // crushes the asphalt and the shadows to near black; the lights below are balanced so sunlit faces just reach
+  // their base colour (taxi yellow stays #FFC72C) and shade stays readable
+  renderer.toneMapping = THREE.NoToneMapping;
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(PALETTE.sky);
-  scene.fog = level.id === 'city' ? new THREE.Fog(SKY.horizon, 200, 600) : new THREE.Fog(PALETTE.sky, 160, 420);
-  const sky = level.id === 'city' ? drawSky(scene, SKY.horizon, SKY.zenith) : null;
-  scene.add(new THREE.HemisphereLight('#EAF6FF', '#6B6F5A', 1.6));
-  const sun = new THREE.DirectionalLight('#FFF4DC', 2.2);
+  // light haze only: it starts past the next few blocks and ends just inside the camera's far plane (900 m), so
+  // the skyline stays readable from the menu and the edge of the world still melts into the horizon
+  scene.fog = level.id === 'city' ? new THREE.Fog(SKY.horizon, 260, 860) : new THREE.Fog(PALETTE.sky, 160, 420);
+  const sky = level.id === 'city' ? drawSky(scene, SKY.horizon, SKY.zenith, SKY.glow) : null;
+  // a blue sky fill and a warm ground bounce, kept lower than the sun so shaded sides read darker than lit ones
+  scene.add(new THREE.HemisphereLight('#CFE8FF', '#8C7B5E', 1.15));
+  const sun = new THREE.DirectionalLight('#FFEACB', 2.6);
   sun.castShadow = true;
   sun.shadow.mapSize.set(1024, 1024);
   const sc = sun.shadow.camera as THREE.OrthographicCamera;
   sc.left = sc.bottom = -18;
   sc.right = sc.top = 18;
   sc.near = 1;
-  sc.far = 80;
+  sc.far = 90;
+  sun.shadow.bias = -0.0006;
+  sun.shadow.normalBias = 0.03;
   scene.add(sun, sun.target);
   const chase = new ChaseCam(canvas.clientWidth / Math.max(1, canvas.clientHeight));
   scene.add(chase.cam); // the speed streaks ride on the camera
@@ -114,7 +131,7 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
 
   // ---------- the level: colliders and the drawn world ----------
   const { soft, dynamics } = buildPhysics(RAPIER, world, level);
-  const { props, update: updateWorld } = buildScene(scene, level, opts.lang ?? 'zh');
+  const { props, faded, update: updateWorld } = buildScene(scene, level, opts.lang ?? 'zh');
   let worldClock = 0;
   const cones = dynamics.map((d, i) => ({ b: d.b, mesh: props[i] }));
 
@@ -173,6 +190,7 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
     return hit ? hit.timeOfImpact : len;
   };
 
+  const poseDir = new THREE.Vector3();
   const taxiNow = (): TaxiNow => {
     const t = car.body.translation(),
       v = car.body.linvel(),
@@ -317,8 +335,10 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
       dt,
       occlude,
     );
-    sun.position.set(p.x + 20, p.y + 40, p.z + 10);
-    sun.target.position.copy(p);
+    // the shadow box (36 m square) is centred a little ahead of the car, where the chase camera looks
+    const ahead = new THREE.Vector3(0, 0, 6).applyQuaternion(q);
+    sun.target.position.set(p.x + ahead.x, p.y, p.z + ahead.z);
+    sun.position.copy(sun.target.position).addScaledVector(SUN_DIR, 45);
     view.update(run, p, performance.now() / 1000);
     if (menu) {
       // the menu's background: a slow aerial orbit over the Love River
@@ -330,6 +350,8 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
         chase.cam.updateProjectionMatrix();
       }
     }
+    // boards and landmark parts between the lens and the cab dither away (off for the menu's orbit)
+    updateOcclusion(chase.cam.position, p.clone().setY(p.y + OCC_CAR_LIFT), !menu);
     sky?.position.set(chase.cam.position.x, 0, chase.cam.position.z);
     renderer.info.reset();
     if (composer) composer.render(dt);
@@ -422,6 +444,7 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
       prev.q.copy(cur.q);
       draw(1, Math.max(STEP, Math.min(1, seconds))); // a longer camera step so it catches up after a jump in time
     },
+    sight: () => sightCheck(scene, chase.cam, carGroup, faded),
     stats: () => ({ drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles }),
     startRun(mode, seed) {
       view.clear();
@@ -438,6 +461,12 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
       acc = 0;
     },
     run: () => run,
+    pose() {
+      const t = car.body.translation(),
+        f = car.forward();
+      chase.cam.getWorldDirection(poseDir);
+      return { x: t.x, z: t.z, yaw: Math.atan2(f.x, f.z), view: Math.atan2(poseDir.x, poseDir.z) };
+    },
     level,
     traffic,
     people,

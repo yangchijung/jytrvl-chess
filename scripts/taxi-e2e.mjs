@@ -152,6 +152,26 @@ try {
   let r = await run();
   ok('X-02', 'arcade starts with 50 s on the clock, 0 money, five people waiting, the arrow (yellow) pointing to the nearest one', r.time > 49.5 && r.money === 0 && r.waiting.length === 5 && (await p.$eval('[data-testid=taxi-arrow]', (e) => e.dataset.to)) === 'pickup' && (await p.$eval('[data-testid=taxi-time]', (e) => e.dataset.value)) === '50', JSON.stringify({ time: r.time, waiting: r.waiting.length }));
   await shot('2-start');
+  // the minimap: visible during an arcade run, never takes touches, and clear of the pedals, the stick, the clock and
+  // the top buttons, on the iPad and on a phone held sideways (844 × 390)
+  const mapCheck = () =>
+    p.evaluate(() => {
+      const m = document.querySelector('[data-testid=taxi-minimap]');
+      if (!m) return { found: false };
+      const r = m.getBoundingClientRect();
+      const hits = (sel) => [...document.querySelectorAll(sel)].filter((e) => { const b = e.getBoundingClientRect(); return b.width && !(b.right <= r.left || b.left >= r.right || b.bottom <= r.top || b.top >= r.bottom); }).map((e) => e.className);
+      return { found: true, w: Math.round(r.width), top: Math.round(r.top), bottom: Math.round(r.bottom), pe: getComputedStyle(m).pointerEvents, hidden: m.getAttribute('aria-hidden'), drawn: m.querySelector('canvas')?.dataset.drawn === '1', overlaps: hits('.taxi-gas, .taxi-brake, .taxi-drift, .taxi-rush, .taxi-stick-base, .taxi-time, .taxi-home, .taxi-reset, .taxi-pause, .taxi-rider, .taxi-arrow') };
+    });
+  await new Promise((res) => setTimeout(res, 200));
+  const mapPad = await mapCheck();
+  await p.setViewport({ width: 844, height: 390, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+  await new Promise((res) => setTimeout(res, 300));
+  await shot('2b-phone-minimap');
+  const mapPhone = await mapCheck();
+  await p.setViewport({ width: 1180, height: 820, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+  await new Promise((res) => setTimeout(res, 200));
+  const mapOk = (m) => m.found && m.w >= 100 && m.pe === 'none' && m.hidden === 'true' && m.drawn && m.overlaps.length === 0;
+  ok('X-25', 'minimap: visible during an arcade run, no touches, clear of the pedals, stick and top controls (iPad and phone)', mapOk(mapPad) && mapOk(mapPhone), JSON.stringify({ pad: mapPad, phone: mapPhone }));
   // music: the tap on "arcade" unlocked sound; the arcade track is playing (decoded from the mp3)
   await p.waitForFunction(() => window.__taxiMusic?.current?.track === 'arcade', { timeout: 15000 }).catch(() => null);
   const mus = await p.evaluate(() => ({ unlocked: window.__taxiMusic.unlocked, track: window.__taxiMusic.current?.track, loop: window.__taxiMusic.current?.src.loop, loopEnd: window.__taxiMusic.current?.src.loopEnd, dur: window.__taxiMusic.current?.src.buffer.duration }));
@@ -324,6 +344,39 @@ try {
   ok('X-14', 'the city: at least 30 destinations, traffic and people on the streets, the Love River named at the bridges', world.id === 'city' && world.places >= 30 && world.cars >= 20 && world.people >= 40 && world.bridges === 8, JSON.stringify(world));
   const st = await p.evaluate(() => window.__taxi.stats());
   ok('X-13', 'draw calls under 150', st.drawCalls < 150, JSON.stringify(st));
+  // chase camera vs the landmark name boards: drive past the 郵局 board both ways along its street; at every step
+  // nothing drawn opaque may sit between the lens and the cab, and no board may fill the lens up close
+  {
+    const pass = [];
+    for (const dirSign of [1, -1]) {
+      const at = await p.evaluate((dirSign) => {
+        const g = window.__taxi;
+        const s = g.level.signs.find((x) => x.id === 'post');
+        const pl = g.level.places.find((x) => x.id === 'post');
+        const ax = Math.sin(s.yaw) * dirSign,
+          az = Math.cos(s.yaw) * dirSign;
+        g.place({ x: pl.x - ax * 22, y: 1, z: pl.z - az * 22 }, Math.atan2(ax, az));
+        return { sx: s.x, sz: s.z };
+      }, dirSign);
+      let worst = { blocked: 0, nearHits: 0, blockers: [] },
+        closest = Infinity;
+      for (let k = 0; k < 24; k++) {
+        await ff(0.2, { throttle: 0.45 });
+        const v = await p.evaluate(() => {
+          const s = window.__taxi.sight();
+          const own = s.blockers.filter((b) => /^(boards|landmarks|buildings)@/.test(b));
+          return { ...s, own };
+        });
+        if (v.own.length > worst.blocked || v.nearHits > worst.nearHits) worst = { blocked: v.own.length, nearHits: v.nearHits, blockers: v.blockers };
+        const cam = await p.evaluate(() => window.__taxi.car.body.translation());
+        const d = Math.hypot(cam.x - at.sx, cam.z - at.sz);
+        if (d < closest) closest = d;
+        if (k === 9) await shot(`7-board-pass-${dirSign > 0 ? 'a' : 'b'}`);
+      }
+      pass.push({ dir: dirSign, ...worst, carToBoard: +closest.toFixed(1) });
+    }
+    ok('X-26', 'chase camera: no board, landmark or wall hides the cab when driving past a name board', pass.every((x) => x.blocked === 0 && x.nearHits === 0 && x.carToBoard < 25), JSON.stringify(pass));
+  }
   ok('ALL', 'no page errors', errors.length === 0, errors.slice(0, 4).join(' | '));
 } catch (e) {
   ok('ERR', 'script error', false, e.stack);

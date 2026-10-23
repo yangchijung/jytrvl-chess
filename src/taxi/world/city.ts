@@ -7,6 +7,7 @@
 import CITY from './city.json';
 import type { Decor, Level, Prim, Rect, Shape, Sign, Tree, Walk } from './level';
 import type { Place, Spot } from '../gameplay/rules';
+import { alleyBlock, campusBlock, harbourBlock, towerBlock, type BlockCtx, type Bld, type Massing } from './massing';
 
 type PrimRow = (string | number)[];
 interface LandmarkJson {
@@ -19,7 +20,7 @@ interface LandmarkJson {
 }
 type District = keyof typeof CITY.districts;
 
-const C = { lot: '#D9DCE1', park: '#7CB342', stunt: '#BDBDBD', harborLot: '#CFD8DC', rail: '#ECEFF1', ramp: '#C9A86A', wall: '#B5BCC6', mark: '#F5F5F5', post: '#5D6B78', seawall: '#90A4AE' };
+const C = { lot: '#D6CCBC', park: '#7CB342', stunt: '#C9BCA4', harborLot: '#C4C2B8', rail: '#F1EEE6', ramp: '#D2A55E', wall: '#CFC4B2', mark: '#F7F5EE', post: '#5D6B78', seawall: '#93A5A3' };
 export const DOORS: Record<string, [number, number]> = { n: [0, 1], s: [0, -1], e: [1, 0], w: [-1, 0] };
 
 /** small deterministic hash → [0, 1) */
@@ -52,7 +53,6 @@ export const SIGN_COLORS = [
   ['#2E7D32', '#FFFFFF'],
   ['#FFFFFF', '#1565C0'],
 ];
-const LOOK: Record<string, number> = { alley: 0, towers: 1, campus: 2, warehouses: 3 };
 
 export function cityLevel(): Level {
   const { pitch, road, half, lines, river, spawn } = CITY;
@@ -109,7 +109,8 @@ export function cityLevel(): Level {
   const landmarks = new Map<string, LandmarkJson>((CITY.landmarks as LandmarkJson[]).map((l) => [`${l.block[0]},${l.block[1]}`, l]));
   const parks = new Set(CITY.parks.map((p) => `${p[0]},${p[1]}`));
   const stunt = `${CITY.stuntPark.block[0]},${CITY.stuntPark.block[1]}`;
-  const blds: { x: number; z: number; w: number; d: number; h: number; look: number; cx: number; cz: number; gx: number; gz: number; k: number }[] = [];
+  const blds: (Bld & { cx: number; cz: number; gx: number; gz: number })[] = [];
+  const massing: Massing = { masses: [], slabs: [], pitched: [], roofs: [] };
   const shopBlocks: { cx: number; cz: number; gx: number; gz: number; dist: District }[] = [];
   const span = Math.round((lines.length - 1) / 2); // blocks from −5 to 5
   for (let gx = -span; gx <= span; gx++)
@@ -145,47 +146,21 @@ export function cityLevel(): Level {
       }
       lots.push({ x: cx, z: cz, w: lot, d: lot, color: dist === 'harbor' ? C.harborLot : C.lot });
       shopBlocks.push({ cx, cz, gx, gz, dist });
-      const [h0, h1] = style.height;
-      const hgt = (k: number) => Math.round(h0 + h(gx, gz, k, 7) * (h1 - h0));
-      const col = (k: number) => pick(style.colors, h(gx, gz, k, 3));
-      const building = (x: number, z: number, w: number, d: number, k: number) => {
-        const y = hgt(k);
-        const look = LOOK[style.style] ?? 0;
-        shapes.push({ kind: 'box', id: `c${n++}`, p: [cx + x, y / 2, cz + z], size: [w, y, d], color: col(k), look });
-        blds.push({ x: cx + x, z: cz + z, w, d, h: y, look, cx, cz, gx, gz, k });
-      };
+      const ctx: BlockCtx = { cx, cz, r: (...k: number[]) => h(gx, gz, ...k), color: (k: number) => pick(style.colors, h(gx, gz, k, 3)), height: style.height, nearRiver: gz === -1 || gz === 1, lot };
       const alongX = h(gx, gz, 11) < 0.5;
-      if (style.style === 'alley') {
-        // two rows of houses with an alley between them (wide enough to drive through)
-        const gap = 8,
-          a = (lot - 6 - gap) / 2,
-          off = gap / 2 + a / 2;
-        for (const s of [-1, 1]) {
-          // each row is two or three houses of different heights
-          const parts = 2 + Math.floor(h(gx, gz, s, 5) * 2);
-          const len = lot - 6;
-          for (let k = 0; k < parts; k++) {
-            const seg = len / parts,
-              mid = -len / 2 + seg * (k + 0.5);
-            if (alongX) building(mid, s * off, seg - 0.6, a, k * 2 + (s > 0 ? 1 : 0));
-            else building(s * off, mid, a, seg - 0.6, k * 2 + (s > 0 ? 1 : 0));
-          }
-        }
-      } else if (style.style === 'towers') {
-        if (h(gx, gz, 13) < 0.3) building(0, 0, 32, 32, 0);
-        else for (const [i, [sx, sz]] of [[-1, -1], [1, -1], [-1, 1], [1, 1]].entries()) building(sx * 11.5, sz * 11.5, 14, 14, i);
-      } else if (style.style === 'campus') {
-        if (alongX) building(0, 0, 32, 18, 0);
-        else building(0, 0, 18, 32, 0);
-        for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) trees.push({ x: cx + sx * 18.5, z: cz + sz * 18.5, h: 5 + h(gx, gz, sx, sz) * 3 });
-      } else {
-        // warehouses: two long sheds with a loading lane between
-        const off = 10.5;
-        for (const s of [-1, 1]) {
-          if (alongX) building(0, s * off, 38, 14, s > 0 ? 1 : 0);
-          else building(s * off, 0, 14, 38, s > 0 ? 1 : 0);
-        }
+      const built = style.style === 'alley' ? alleyBlock(ctx, alongX) : style.style === 'towers' ? towerBlock(ctx) : style.style === 'campus' ? campusBlock(ctx, alongX) : harbourBlock(ctx, alongX);
+      for (const b of built) {
+        const m = b.base;
+        // the base is the street wall and the collider; the upper volumes get a plain hidden collider of their own
+        shapes.push({ kind: 'box', id: `c${n++}`, p: [m.x, m.y0 + m.h / 2, m.z], size: [m.w, m.h, m.d], color: m.color, look: m.look });
+        for (const u of b.upper) box([u.x, u.y0 + u.h / 2, u.z], [u.w, u.h, u.d], u.color, true);
+        massing.masses.push(...b.upper);
+        massing.slabs.push(...b.slabs);
+        if (b.pitch) massing.pitched.push(b.pitch);
+        if (b.roof) massing.roofs.push(b.roof);
+        blds.push({ ...b, cx, cz, gx, gz });
       }
+      if (style.style === 'campus') for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) trees.push({ x: cx + sx * 18.5, z: cz + sz * 18.5, h: 5 + h(gx, gz, sx, sz) * 3 });
     }
 
   function addLandmark(lm: LandmarkJson, cx: number, cz: number) {
@@ -295,32 +270,39 @@ export function cityLevel(): Level {
     const d: Decor = { tanks: [], sheds: [], acs: [], shopSigns: [], scooters: [], lamps: [], signals: [], palms: [], curbs: [], boats: [] };
     const SHED = ['#5B8DB8', '#D9DCE1', '#8FA3B5', '#4F7D5C', '#B0BEC5'];
     const SCOOT = ['#E53935', '#FFFFFF', '#1E88E5', '#212121', '#FDD835', '#90A4AE', '#8E24AA', '#43A047'];
-    for (const b of blds) {
-      const r = (...k: number[]) => h(b.gx, b.gz, b.k, ...k);
+    for (const bl of blds) {
+      const r = (...k: number[]) => h(bl.gx, bl.gz, bl.k, ...k);
+      const b = bl.base;
       // the faces that look onto a street: near the lot edge, facing out of the block
       const faces: { nx: number; nz: number; cx: number; cz: number; len: number }[] = [];
-      const rx = b.x - b.cx,
-        rz2 = b.z - b.cz;
+      const rx = b.x - bl.cx,
+        rz2 = b.z - bl.cz;
       if (rx + b.w / 2 > 12) faces.push({ nx: 1, nz: 0, cx: b.x + b.w / 2, cz: b.z, len: b.d });
       if (rx - b.w / 2 < -12) faces.push({ nx: -1, nz: 0, cx: b.x - b.w / 2, cz: b.z, len: b.d });
       if (rz2 + b.d / 2 > 12) faces.push({ nx: 0, nz: 1, cx: b.x, cz: b.z + b.d / 2, len: b.w });
       if (rz2 - b.d / 2 < -12) faces.push({ nx: 0, nz: -1, cx: b.x, cz: b.z - b.d / 2, len: b.w });
       faces.forEach((f, fi) => {
+        // a party wall between two houses of a row is not a street face
+        const ox = f.cx + f.nx * 0.3,
+          oz = f.cz + f.nz * 0.3;
+        if (blds.some((o) => o !== bl && Math.abs(ox - o.base.x) < o.base.w / 2 && Math.abs(oz - o.base.z) < o.base.d / 2)) return;
+        // the balcony face keeps its front clear
+        if (bl.balcony && bl.balcony.nx === f.nx && bl.balcony.nz === f.nz) return;
         const tx = -f.nz,
           tz = f.nx; // along the face
         // shop signboards: old town and downtown, above the arcade
         if ((b.look === 0 || b.look === 1) && b.h >= 7) {
-          const count = Math.min(3, Math.floor(f.len / 4.5));
+          const count = Math.max(1, Math.min(3, Math.floor(f.len / 4.5)));
           for (let i = 0; i < count; i++) {
             if (r(fi, i, 1) < 0.25) continue;
             const t = (((i + 0.5) / count) - 0.5) * (f.len - 2) + (r(fi, i, 2) - 0.5) * 1.2;
             d.shopSigns.push({ x: f.cx + tx * t + f.nx * 0.65, y: 5.2 + r(fi, i, 3) * 1.2, z: f.cz + tz * t + f.nz * 0.65, yaw: Math.atan2(tx, tz), word: Math.floor(r(fi, i, 4) * SHOP_WORDS.length), color: Math.floor(r(fi, i, 5) * SIGN_COLORS.length) });
           }
         }
-        // air conditioners on the upper floors (not on glass towers)
+        // air conditioners on the upper floors of the base wall (not on glass towers)
         if (b.look !== 1) {
           const floors = Math.max(0, Math.floor((b.h - 3.4) / 3));
-          const count = Math.min(6, Math.floor(f.len / 4) * floors > 0 ? 2 + Math.floor(r(fi, 6) * 4) : 0);
+          const count = Math.min(f.len < 8 ? 2 : 6, Math.floor(f.len / 4) * floors > 0 ? 1 + Math.floor(r(fi, 6) * (f.len < 8 ? 2 : 5)) : 0);
           for (let i = 0; i < count; i++) {
             const fl = Math.floor(r(fi, i, 7) * floors);
             const t = (r(fi, i, 8) - 0.5) * (f.len - 2);
@@ -328,17 +310,18 @@ export function cityLevel(): Level {
           }
         }
       });
-      // rooftops: water tanks (houses, halls, warehouses) and sheet-metal extensions (old town)
-      if (b.look !== 1) {
-        const tanks = 1 + (r(9) < 0.5 ? 1 : 0);
-        for (let i = 0; i < tanks; i++) d.tanks.push({ x: b.x + (r(10, i) - 0.5) * (b.w - 3), y: b.h, z: b.z + (r(11, i) - 0.5) * (b.d - 3) });
-      }
+      // rooftops: water tanks on every flat roof that is not a glass tower's, sheet-metal extensions in the old town
+      const roof = bl.roof;
+      if (!roof) continue;
+      // (the narrow old-street houses outnumber the old blocks: not every roof gets a tank, to keep the triangle count)
+      const tanks = r(16) < 0.38 ? 0 : 1 + (r(9) < 0.5 && roof.w * roof.d > 150 ? 1 : 0);
+      for (let i = 0; i < tanks; i++) d.tanks.push({ x: roof.x + (r(10, i) - 0.5) * (roof.w - 3), y: roof.y, z: roof.z + (r(11, i) - 0.5) * (roof.d - 3) });
       if (b.look === 0 && r(12) < 0.45) {
-        const w = b.w * 0.55,
-          dd = b.d * 0.55;
+        const w = roof.w * 0.55,
+          dd = roof.d * 0.55;
         const sx = r(13) < 0.5 ? -1 : 1,
           sz = r(14) < 0.5 ? -1 : 1;
-        d.sheds.push({ x: b.x + sx * (b.w - w) / 2, y: b.h, z: b.z + sz * (b.d - dd) / 2, w, d: dd, h: 2.4, color: SHED[Math.floor(r(15) * SHED.length)] });
+        d.sheds.push({ x: roof.x + sx * (roof.w - w) / 2, y: roof.y, z: roof.z + sz * (roof.d - dd) / 2, w, d: dd, h: 2.4, color: SHED[Math.floor(r(15) * SHED.length)] });
       }
     }
     // the pavement of each ordinary block: scooters parked nose to the kerb, a lamp per side, painted kerbs
@@ -447,5 +430,6 @@ export function cityLevel(): Level {
     walks,
     avoid,
     decor,
+    massing,
   };
 }

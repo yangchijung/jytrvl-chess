@@ -7,10 +7,13 @@ import type RAPIER_NS from '@dimforge/rapier3d-compat';
 import { wedgePoints } from './greybox';
 import type { Level, Prim, Shape } from './level';
 import { buildingMaterial, drawDecor, waterMaterial } from './decor';
+import { pitchTriangles, type Pitch } from './massing';
+import { buildingLook } from './facade';
+import { addOcclusionFade, OCC_NEAR, OCC_NEAR_BOARD } from '../fx/occlusion';
 
 type R = typeof RAPIER_NS;
 const rotY = (yaw = 0) => ({ x: 0, y: Math.sin(yaw / 2), z: 0, w: Math.cos(yaw / 2) });
-export const LOOK = { asphalt: '#3A3F47', grass: '#7DA453', sea: '#1E88E5', river: '#2B8FD6', trunk: '#6D4C41', crown: '#4CAF50', ink: '#23303F' };
+export const LOOK = { asphalt: '#525459', grass: '#7AAF4C', sea: '#1D7FC6', river: '#2397B8', trunk: '#6D4C41', crown: '#4CAF50', ink: '#23303F' };
 
 /** colliders for the whole level; returns the handles that never count as a crash and the moving props */
 export function buildPhysics(RAPIER: R, world: RAPIER_NS.World, level: Level) {
@@ -61,6 +64,28 @@ function primGeometry(p: Prim) {
   return g;
 }
 
+/** a shed roof: sheet slopes, gable ends in the wall paint, glazed north lights on sawtooth bays */
+function pitchGeometry(p: Pitch) {
+  const { pos, glass } = pitchTriangles(p);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.computeVertexNormals();
+  const nrm = g.getAttribute('normal');
+  const roof = new THREE.Color(p.roof),
+    wall = new THREE.Color(p.wall),
+    pane = new THREE.Color('#5E7A8C');
+  const col = new Float32Array(pos.length);
+  for (let t = 0; t < glass.length; t++) {
+    const c = glass[t] ? pane : Math.abs(nrm.getY(t * 3)) < 0.05 ? wall : roof;
+    for (let k = 0; k < 3; k++) col.set([c.r, c.g, c.b], (t * 3 + k) * 3);
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  // same attributes and indexing as the landmark primitives, so they merge into one mesh
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array((pos.length / 3) * 2), 2));
+  g.setIndex(Array.from({ length: pos.length / 3 }, (_, i) => i));
+  return g;
+}
+
 /** one text atlas for every board: white bold name on the dark board colour, auto-fitted to the cell */
 function signAtlas(names: string[]) {
   const cw = 512,
@@ -99,6 +124,8 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
   const m4 = new THREE.Matrix4();
   const q = new THREE.Quaternion();
   const up = new THREE.Vector3(0, 1, 0);
+  /** meshes that dither away between the chase camera and the car (value: radius around the lens that also fades, 0 = none) */
+  const faded = new Map<THREE.Object3D, number>();
 
   const seaWater = waterMaterial(LOOK.sea);
   const riverWater = waterMaterial(LOOK.river);
@@ -161,14 +188,20 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
   quads(level.marks, 0.045);
 
   // ---------- plain boxes (buildings, rails, walls, decks) in one instanced mesh ----------
+  type Inst = { p: [number, number, number]; size: [number, number, number]; color: string; yaw?: number; look?: number };
   const all = level.shapes.filter((s): s is Extract<Shape, { kind: 'box' }> => s.kind === 'box' && !s.dynamic && !s.hidden);
-  const boxes = all.filter((s) => s.look === undefined);
-  const blds = all.filter((s) => s.look !== undefined);
+  const ms = level.massing;
+  const boxes: Inst[] = [...all.filter((s) => s.look === undefined), ...(ms?.slabs ?? []).map((b) => ({ p: [b.x, b.y, b.z] as [number, number, number], size: [b.w, b.h, b.d] as [number, number, number], color: b.color }))];
+  const blds: Inst[] = [...all.filter((s) => s.look !== undefined), ...(ms?.masses ?? []).map((m) => ({ p: [m.x, m.y0 + m.h / 2, m.z] as [number, number, number], size: [m.w, m.h, m.d] as [number, number, number], color: m.color, look: m.look }))];
   if (blds.length) {
-    // buildings: windows, arcades and roofs drawn by the shader from each building's look
+    // buildings: windows, arcades and roofs drawn by the shader from each building's look; no bottom face (never seen)
     const geo = new THREE.BoxGeometry(1, 1, 1);
-    geo.setAttribute('aLook', new THREE.InstancedBufferAttribute(new Float32Array(blds.map((s) => s.look ?? 0)), 1));
-    const inst = new THREE.InstancedMesh(geo, buildingMaterial(), blds.length);
+    const ix = Array.from(geo.index!.array);
+    geo.setIndex([...ix.slice(0, 18), ...ix.slice(24)]);
+    geo.setAttribute('aLook', new THREE.InstancedBufferAttribute(new Float32Array(blds.map((s) => buildingLook(s.look ?? 0, s.p[0], s.p[2]))), 1));
+    const inst = new THREE.InstancedMesh(geo, addOcclusionFade(buildingMaterial()), blds.length);
+    inst.name = 'buildings';
+    faded.set(inst, 0);
     blds.forEach((s, i) => {
       m4.compose(new THREE.Vector3(...s.p), q.setFromAxisAngle(up, s.yaw ?? 0), new THREE.Vector3(...s.size));
       inst.setMatrixAt(i, m4);
@@ -212,8 +245,12 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
     scene.add(mesh);
   }
   // ---------- landmarks: one merged mesh with vertex colours ----------
-  if (level.prims.length) {
-    const mesh = new THREE.Mesh(mergeGeometries(level.prims.map(primGeometry)), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }));
+  // (the harbour's pitched shed roofs share this mesh: no extra draw call)
+  const merged = [...level.prims.map(primGeometry), ...(ms?.pitched ?? []).map(pitchGeometry)];
+  if (merged.length) {
+    const mesh = new THREE.Mesh(mergeGeometries(merged), addOcclusionFade(new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }), { near: OCC_NEAR }));
+    mesh.name = 'landmarks';
+    faded.set(mesh, OCC_NEAR);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     scene.add(mesh);
@@ -239,7 +276,10 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
         parts.push(g);
       }
     }
-    const mesh = new THREE.Mesh(mergeGeometries(parts), new THREE.MeshBasicMaterial({ map: tex }));
+    // boards hang over the pavement at about camera height: they fade out of the way of the chase camera
+    const mesh = new THREE.Mesh(mergeGeometries(parts), addOcclusionFade(new THREE.MeshBasicMaterial({ map: tex }), { near: OCC_NEAR_BOARD }));
+    mesh.name = 'boards';
+    faded.set(mesh, OCC_NEAR_BOARD);
     scene.add(mesh);
   }
   // ---------- trees ----------
@@ -270,6 +310,7 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
   const decor = level.decor ? drawDecor(scene, level) : null;
   return {
     props,
+    faded,
     /** per frame: moving water, boats, traffic lights (t = the traffic clock) */
     update(t: number, dt: number) {
       seaWater.uTime.value = t;

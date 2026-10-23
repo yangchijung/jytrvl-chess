@@ -15,6 +15,7 @@ import { Music, type Track } from './audio/music';
 import { Garage } from './ui/Garage';
 import { loadChoice, saveChoice, type GarageChoice } from './ui/garageChoice';
 import { Help } from './ui/Help';
+import { Minimap } from './ui/Minimap';
 import { Settings, useControlSettings } from './ui/Settings';
 import { useTouchGuard } from './ui/useTouchGuard';
 import './taxi.css';
@@ -74,6 +75,7 @@ export function TaxiPage() {
   const tr = (l: { zh: string; en: string }) => l[lang];
   const canvas = useRef<HTMLCanvasElement>(null);
   const game = useRef<Game | null>(null);
+  const getGame = useCallback(() => game.current, []);
   const [state, setState] = useState<'loading' | 'ready' | 'failed'>('loading');
   const [hud, setHud] = useState<HudState | null>(null);
   const [dev, setDev] = useState(false);
@@ -346,6 +348,7 @@ export function TaxiPage() {
         </div>
       )}
       {hud && screen === 'play' && <Hud hud={hud} labels={{ time: tr(T.time), money: tr(T.money), dist: tr(T.dist) }} />}
+      {hud?.run && screen === 'play' && <Minimap game={getGame} mode={hud.run.mode} />}
       <div className="taxi-pops" aria-live="polite" data-testid="taxi-pops">
         {pops.map((p) => (
           <div key={p.id} className={`taxi-pop taxi-pop-${p.kind}`} data-kind={p.kind} style={{ borderColor: p.color }}>
@@ -369,7 +372,7 @@ export function TaxiPage() {
         </button>
       )}
       {state === 'ready' && screen === 'menu' && (
-        <div className="taxi-overlay" data-testid="taxi-menu">
+        <div className="taxi-overlay taxi-overlay-light" data-testid="taxi-menu">
           <svg viewBox="0 0 120 60" width="220" height="110" aria-hidden="true">
             <rect x="10" y="22" width="100" height="24" rx="6" fill="#FFC72C" stroke="#23303F" strokeWidth="3" />
             <path d="M30 22l10-12h40l10 12" fill="#5C7A99" stroke="#23303F" strokeWidth="3" strokeLinejoin="round" />

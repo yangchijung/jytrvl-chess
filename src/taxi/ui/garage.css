@@ -1,6 +1,6 @@
 /* Rush Taxi garage: cab row on top, drivers + back / 出發 below. Taxi yellow #FFC72C, ink #23303F, paper #FFFAF2.
    Fits iPad landscape (1180×820) and phone landscape (844×390) without scrolling. */
-.taxi-garage { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 16px; padding: 84px 24px 24px; background: rgba(35, 48, 63, 0.55); overflow-y: auto; }
+.taxi-garage { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 16px; padding: 84px 24px 24px; background: rgba(35, 48, 63, 0.15); overflow-y: auto; }
 .taxi-garage-cabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
 .taxi-garage-bottom { display: flex; gap: 16px; align-items: stretch; }
 .taxi-garage-drivers { flex: 1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
