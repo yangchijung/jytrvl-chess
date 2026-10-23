@@ -58,9 +58,26 @@ function instanced(geo: THREE.BufferGeometry, mat: THREE.Material, items: Item[]
 }
 
 /**
- * Building walls: the instance colour is the paint; the shader adds floors and windows by world position, so it
- * works on every box size without textures. aLook: 0 house (small windows with iron grilles, an arcade at street
- * level), 1 glass tower, 2 hall, 3 corrugated warehouse with roller doors.
+ * Building walls, drawn in the shader by world position so every box size works without textures. The instance
+ * colour is the paint; everything else comes from `aLook` (see facade.ts):
+ *
+ *   aLook = style + variant
+ *     style   = floor(aLook): 0 house, 1 tower, 2 hall, 3 warehouse
+ *     variant = fract(aLook) in (0, 1): seeds r1..r9 below; 0 (a plain integer, the old encoding) means
+ *               "derive it from the building's position", so older callers still get varied facades.
+ *
+ *   house     painted render or 二丁掛 tile (cream, brick red, mint, grey, beige) with a running-bond grid; window
+ *             width, bay and floor height vary; painted iron window cages (鐵窗); balcony slabs with rails; the
+ *             arcade (騎樓) at street level with shop fronts: awnings, roller shutters, lit interiors
+ *   tower     62 %: glass curtain wall (tint, mullion pitch, spandrel bands, sky reflected more up high and at
+ *             grazing angles, a lit lobby); otherwise a punched or ribbon-window concrete office
+ *   hall      brick, tile or paint; tall or wide windows; a glazed entrance level
+ *   warehouse corrugated sheet in faded colours, mismatched replacement sheets, rust streaks under the roof edge,
+ *             roller doors (some open), a strip of high windows or translucent panels
+ *   all       per-building hue and brightness jitter, dark streaks under windows, grime at the base
+ *
+ * Cost: no texture reads, one material, the same single instanced draw call. Fine lines fade to their average
+ * once they get thinner than a pixel or two, so distant facades do not shimmer.
  */
 export function buildingMaterial() {
   const mat = new THREE.MeshLambertMaterial({ flatShading: true });
@@ -70,72 +87,217 @@ export function buildingMaterial() {
         '#include <common>',
         `#include <common>
         attribute float aLook;
-        varying vec3 vW; varying vec3 vNW; varying float vRoof; varying float vLook;`,
+        varying vec3 vW; varying vec3 vNW; varying float vRoof; varying float vLook; varying vec3 vOrg; varying vec3 vExt;`,
       )
       .replace(
         '#include <begin_vertex>',
         `#include <begin_vertex>
-        vec4 wpos = modelMatrix * instanceMatrix * vec4(position, 1.0);
+        mat4 bm = modelMatrix * instanceMatrix;
+        vec4 wpos = bm * vec4(position, 1.0);
         vW = wpos.xyz;
-        vNW = normalize(mat3(modelMatrix * instanceMatrix) * normal);
-        vRoof = (modelMatrix * instanceMatrix * vec4(0.0, 0.5, 0.0, 1.0)).y;
+        vNW = normalize(mat3(bm) * normal);
+        vRoof = (bm * vec4(0.0, 0.5, 0.0, 1.0)).y;
+        vOrg = (bm * vec4(0.0, -0.5, 0.0, 1.0)).xyz;
+        vExt = vec3(abs(bm[0].x) + abs(bm[2].x), length(bm[1].xyz), abs(bm[0].z) + abs(bm[2].z));
         vLook = aLook;`,
       );
     sh.fragmentShader = sh.fragmentShader
       .replace(
         '#include <common>',
         `#include <common>
-        varying vec3 vW; varying vec3 vNW; varying float vRoof; varying float vLook;
+        varying vec3 vW; varying vec3 vNW; varying float vRoof; varying float vLook; varying vec3 vOrg; varying vec3 vExt;
         float hsh(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-        float box2(vec2 p, vec2 a, vec2 b) { vec2 s = step(a, p) * step(p, b); return s.x * s.y; }`,
+        float box2(vec2 p, vec2 a, vec2 b) { vec2 s = step(a, p) * step(p, b); return s.x * s.y; }
+        // a line of half-width w at every integer of q; fq = fwidth(q). Fades to its average coverage when small.
+        float line1(float q, float w, float fq) {
+          float d = min(fract(q), 1.0 - fract(q));
+          return mix(1.0 - smoothstep(w - fq, w + fq, d), 2.0 * w, smoothstep(0.15, 0.4, fq));
+        }
+        vec3 pick4(float r, vec3 a, vec3 b, vec3 c, vec3 d) { return r < 0.25 ? a : r < 0.5 ? b : r < 0.75 ? c : d; }
+        vec3 pick5(float r, vec3 a, vec3 b, vec3 c, vec3 d, vec3 e) { return r < 0.2 ? a : r < 0.4 ? b : r < 0.6 ? c : r < 0.8 ? d : e; }`,
       )
       .replace(
         '#include <color_fragment>',
         `#include <color_fragment>
         {
           vec3 paint = diffuseColor.rgb;
-          if (abs(vNW.y) > 0.5) {
-            // flat roof: concrete, a little darker, with a faint slab grid
+          float sty = floor(vLook + 0.0005);
+          float vr = vLook - sty;
+          if (vr < 0.001) vr = hsh(vOrg.xz * 0.173 + 5.3);
+          int look = int(sty);
+          float r1 = hsh(vec2(vr * 97.3, 1.7)), r2 = hsh(vec2(vr * 61.1, 4.3)), r3 = hsh(vec2(vr * 43.7, 8.9));
+          float r4 = hsh(vec2(vr * 29.9, 2.1)), r5 = hsh(vec2(vr * 83.3, 6.7)), r6 = hsh(vec2(vr * 17.9, 9.5));
+          float r7 = hsh(vec2(vr * 71.3, 3.9)), r8 = hsh(vec2(vr * 37.1, 7.3)), r9 = hsh(vec2(vr * 53.9, 5.1));
+          // per-building hue and brightness jitter, so neighbours never match
+          paint *= (0.88 + 0.2 * r1) * mix(vec3(1.05, 1.0, 0.93), vec3(0.94, 1.0, 1.06), r2);
+          bool xFace = abs(vNW.x) > 0.5;
+          float W = xFace ? vExt.z : vExt.x;
+          float u = (xFace ? vW.z - vOrg.z : vW.x - vOrg.x) + 0.5 * W; // 0..W along the face
+          float y = vW.y - vOrg.y;                                       // above the building's foot
+          float top = vRoof - vW.y;
+          vec2 fuv = fwidth(vec2(u, y)) + 1e-4;
+          vec3 glow = vec3(0.0);
+          vec3 sky = vec3(0.70, 0.80, 0.90);
+          vec3 glass = vec3(0.26, 0.36, 0.46);
+          bool wallFace = abs(vNW.y) < 0.5;
+          if (!wallFace) {
+            // flat roof: concrete (some old-town roofs in green or grey waterproof paint), warehouses in sheet
+            vec3 conc = vec3(0.62, 0.63, 0.62) * (0.9 + 0.16 * r3);
+            if (look == 0 && r4 < 0.3) conc = r5 < 0.5 ? vec3(0.42, 0.56, 0.47) : vec3(0.53, 0.57, 0.59);
             vec2 g = fract(vW.xz / 4.0);
-            diffuseColor.rgb = mix(vec3(0.62, 0.63, 0.62), paint, 0.25) * (0.92 + 0.08 * step(0.03, min(g.x, g.y)));
-          } else {
-            float u = abs(vNW.x) > 0.5 ? vW.z : vW.x;
-            float v = vW.y;
-            int look = int(vLook + 0.5);
-            vec3 glass = vec3(0.26, 0.36, 0.46);
-            float top = vRoof - v;
-            if (look == 3) {
-              // warehouse: corrugated sheet, roller doors at street level, a strip of high windows
-              float rib = 0.9 + 0.1 * step(0.5, fract(u / 0.7));
-              diffuseColor.rgb = paint * rib;
-              vec2 dc = vec2(fract(u / 9.0), v);
-              if (box2(dc, vec2(0.18, 0.0), vec2(0.82, 4.6)) > 0.5) diffuseColor.rgb = vec3(0.72, 0.74, 0.76) * (0.92 + 0.08 * step(0.5, fract(v / 0.35)));
-              if (top > 0.8 && top < 1.8 && fract(u / 3.0) > 0.25) diffuseColor.rgb = glass;
-            } else {
-              float fh = look == 1 ? 3.6 : look == 2 ? 3.8 : 3.0;
-              float cw = look == 1 ? 1.8 : look == 2 ? 3.0 : 2.4;
-              float ground = look == 1 ? 4.2 : 3.4;
-              if (v < ground) {
-                // street level: the shaded arcade (騎樓) with lit shop fronts between columns
-                float col = fract(u / 4.0);
-                diffuseColor.rgb = col < 0.12 ? paint * 0.9 : mix(vec3(0.18, 0.2, 0.22), vec3(0.85, 0.78, 0.6), step(0.6, v) * step(v, ground - 0.9) * 0.55);
-              } else {
-                vec2 cell = vec2(u / cw, (v - ground) / fh);
-                vec2 f = fract(cell);
-                float r = hsh(floor(cell) + vLook * 17.0);
-                vec2 a = look == 1 ? vec2(0.06, 0.1) : look == 2 ? vec2(0.16, 0.3) : vec2(0.2, 0.28);
-                vec2 b = look == 1 ? vec2(0.94, 0.92) : look == 2 ? vec2(0.84, 0.85) : vec2(0.8, 0.82);
-                if (box2(f, a, b) > 0.5) {
-                  vec3 w = glass * (0.82 + 0.4 * r) + (look == 1 ? vec3(0.08, 0.1, 0.12) * f.y : vec3(0.0));
-                  // iron window grilles on the houses
-                  if (look == 0) w *= 0.78 + 0.22 * step(0.22, fract(f.y * 6.0)) * step(0.18, fract(f.x * 5.0));
-                  diffuseColor.rgb = w;
-                } else if (look == 1) diffuseColor.rgb = paint * 0.85;
-              }
-              // parapet band under the roof edge
-              if (top < 0.55) diffuseColor.rgb = paint * 1.12;
+            float rib = look == 3 ? mix(0.9 + 0.1 * step(0.5, fract(u / 0.7)), 0.95, smoothstep(0.1, 0.3, fuv.x / 0.7))
+                                  : 0.92 + 0.08 * step(0.03, min(g.x, g.y));
+            diffuseColor.rgb = mix(conc, paint, 0.22) * rib;
+          } else if (look == 3) {
+            // warehouse: sun-faded corrugated sheet
+            vec3 faded = r4 < 0.5 ? pick5(r5, vec3(0.42, 0.60, 0.60), vec3(0.47, 0.58, 0.70), vec3(0.68, 0.45, 0.33), vec3(0.82, 0.79, 0.70), vec3(0.52, 0.63, 0.50)) : paint;
+            vec3 wall = mix(faded, vec3(0.78, 0.77, 0.73), 0.15 + 0.25 * r6);
+            float rw = 0.3 + 0.25 * r7;
+            wall *= mix(0.88 + 0.12 * (0.5 + 0.5 * sin(u / rw * 6.2832)), 0.94, smoothstep(0.15, 0.4, fuv.x / rw));
+            float hs = hsh(vec2(floor(u / 1.1), vr * 13.0)); // a few replaced sheets that do not match
+            if (hs < 0.08) wall *= 1.12; else if (hs > 0.93) wall = mix(wall, vec3(0.72, 0.74, 0.75), 0.6);
+            float col = floor(u / rw);
+            float len = 0.6 + 3.5 * hsh(vec2(col, vr * 3.0 + 1.0));
+            float rust = step(0.7, hsh(vec2(col, vr * 7.0))) * (1.0 - smoothstep(0.0, len, top)) * (0.3 + 0.4 * r8);
+            wall = mix(wall, vec3(0.45, 0.27, 0.17), rust);
+            if (y < 0.6) wall = vec3(0.55, 0.55, 0.53); // concrete plinth
+            // roller doors, fitted to the facade
+            float nb = max(1.0, floor(W / (8.0 + 3.0 * r3)));
+            float bi = floor(u / (W / nb)), bf = fract(u / (W / nb));
+            float dh = 4.0 + 0.8 * r5;
+            if (W > 6.0 && vExt.y > dh + 1.4 && bf > 0.18 && bf < 0.82 && y < dh + 0.25) {
+              vec3 door = mix(pick4(hsh(vec2(bi, vr * 11.0)), vec3(0.74, 0.76, 0.78), vec3(0.42, 0.55, 0.66), vec3(0.45, 0.58, 0.45), vec3(0.80, 0.55, 0.32)), vec3(0.75), 0.2);
+              door *= 1.0 - 0.1 * line1(y / 0.3, 0.2, fuv.y / 0.3);
+              bool opened = hsh(vec2(bi, vr * 5.0 + 2.0)) < 0.22;
+              wall = opened ? vec3(0.13, 0.13, 0.12) : door;
+              if (bf < 0.2 || bf > 0.8 || y > dh) wall = vec3(0.36, 0.37, 0.38); // frame and header
             }
+            // a strip of high windows or translucent panels
+            if (r6 < 0.75 && top > 0.8 && top < 1.6 && fract(u / 3.0) > 0.25) wall = r7 < 0.5 ? mix(glass, sky, 0.3) : vec3(0.80, 0.82, 0.74);
+            diffuseColor.rgb = wall;
+          } else if (look == 1 && r3 < 0.62) {
+            // glass tower: tinted curtain wall, mullions, floor bands, the sky reflected
+            vec3 tint = pick5(r4, vec3(0.24, 0.35, 0.46), vec3(0.20, 0.38, 0.40), vec3(0.36, 0.32, 0.27), vec3(0.19, 0.24, 0.30), vec3(0.36, 0.45, 0.44));
+            float ground = 4.4;
+            float fh = 3.5 + 0.6 * r5;
+            float mw = W / max(1.0, floor(W / (1.2 + 0.9 * r6)));
+            vec3 V = normalize(vW - cameraPosition);
+            float fres = pow(1.0 - abs(dot(V, vNW)), 3.0);
+            float hgt = clamp(y / max(vExt.y, 1.0), 0.0, 1.0);
+            vec2 cell = vec2(u / mw, (y - ground) / fh);
+            vec3 g = tint * (0.9 + 0.18 * hsh(floor(cell) + vr * 31.0));
+            g = mix(g, sky, 0.1 + 0.25 * hgt + 0.45 * fres);
+            float band = 0.25 + 0.65 * r7;
+            float fy = fract(cell.y) * fh;
+            vec3 spandrel = r9 < 0.5 ? mix(tint, paint, 0.55) * 0.8 : tint * 0.62;
+            g = mix(g, spandrel, 1.0 - smoothstep(band - fuv.y, band + fuv.y, fy));
+            vec3 frame = r8 < 0.5 ? vec3(0.72, 0.74, 0.76) : paint * 0.72;
+            g = mix(g, frame, line1(cell.x, 0.035, fuv.x / mw));
+            if (y < ground) {
+              // lobby: lit glass behind columns, a canopy
+              g = fract(u / 6.0) < 0.1 ? paint * 0.8 : mix(vec3(0.86, 0.82, 0.68), tint, 0.3);
+              if (fract(u / 6.0) >= 0.1) glow = vec3(0.07, 0.06, 0.04);
+              if (y > ground - 0.6) g = paint * 0.7;
+            }
+            if (top < 0.9) g = paint * 1.05;
+            diffuseColor.rgb = g;
+          } else {
+            // punched windows: houses, halls, concrete offices
+            float ground = look == 1 ? 4.2 : 3.4;
+            float fh, cw; vec2 wa, wb;
+            if (look == 0) {
+              fh = 2.95 + 0.35 * r5; cw = 1.7 + 1.5 * r6;
+              float ww = 0.42 + 0.3 * r7;
+              wa = vec2(0.5 - 0.5 * ww, 0.32); wb = vec2(0.5 + 0.5 * ww, 0.84);
+            } else if (look == 2) {
+              fh = 3.6 + 0.5 * r5; cw = 2.4 + 1.8 * r6;
+              if (r7 < 0.5) { wa = vec2(0.3, 0.18); wb = vec2(0.7, 0.88); } else { wa = vec2(0.08, 0.35); wb = vec2(0.92, 0.78); }
+            } else {
+              fh = 3.5 + 0.4 * r5; cw = 1.6 + 0.8 * r6;
+              if (r7 < 0.5) { wa = vec2(-0.1, 0.32); wb = vec2(1.1, 0.86); } else { wa = vec2(0.1, 0.15); wb = vec2(0.9, 0.9); }
+            }
+            cw = W / max(1.0, floor(W / cw));
+            // wall finish: paint, or 二丁掛 tile in a running bond
+            bool tile = look == 1 ? r4 < 0.4 : r3 < 0.6;
+            vec3 wall = paint;
+            if (tile) {
+              vec3 tc = pick5(r4, vec3(0.87, 0.81, 0.68), vec3(0.64, 0.32, 0.25), vec3(0.63, 0.79, 0.71), vec3(0.64, 0.65, 0.66), vec3(0.82, 0.70, 0.63));
+              wall = mix(tc, paint, 0.2) * (0.94 + 0.12 * r1);
+              vec2 tq = vec2(u / 0.48, y / 0.16);
+              tq.x += 0.5 * step(0.5, fract(tq.y * 0.5));
+              vec2 fq = fuv / vec2(0.48, 0.16);
+              wall *= 1.0 - 0.13 * max(line1(tq.x, 0.05, fq.x), line1(tq.y, 0.08, fq.y));
+            }
+            vec3 c = wall;
+            if (y < ground) {
+              // street level: the arcade (騎樓) with shop fronts between the columns
+              float nbay = max(1.0, floor(W / 3.8));
+              float bi = floor(u / (W / nbay)), bf = fract(u / (W / nbay));
+              float hb = hsh(vec2(bi, vr * 7.0 + 1.0)), hb2 = hsh(vec2(bi, vr * 9.0 + 4.0));
+              if (bf < 0.07 || bf > 0.93) c = wall * 0.9;
+              else if (y > ground - 0.55) c = wall * 0.72; // arcade beam in shade
+              else if (look == 0 && y > ground - 0.95) {
+                // awning or shop sign band, sometimes striped
+                vec3 aw = pick5(hb2, vec3(0.72, 0.22, 0.20), vec3(0.22, 0.50, 0.32), vec3(0.20, 0.38, 0.62), vec3(0.88, 0.55, 0.18), vec3(0.90, 0.88, 0.80));
+                c = hb < 0.45 ? mix(aw, vec3(0.92, 0.91, 0.88), step(0.5, fract(u / 0.5))) : aw;
+              } else if (look != 2 && hb < 0.3) {
+                // roller shutter pulled down
+                c = pick4(hb2, vec3(0.70, 0.72, 0.73), vec3(0.40, 0.56, 0.46), vec3(0.45, 0.53, 0.62), vec3(0.83, 0.80, 0.70));
+                c *= (1.0 - 0.12 * line1(y / 0.12, 0.2, fuv.y / 0.12)) * 0.85;
+              } else {
+                // open shop, lit inside: warm or cool light, shelves, a darker floor
+                vec3 lit = hb2 < 0.6 ? vec3(0.95, 0.85, 0.62) : vec3(0.86, 0.91, 0.93);
+                if (look == 2) lit = mix(glass, vec3(0.85, 0.88, 0.86), 0.5);
+                c = lit * 0.82 * (1.0 - 0.25 * line1(y / 0.65, 0.04, fuv.y / 0.65)) * (y < 0.3 ? 0.55 : 1.0);
+                glow = lit * 0.07;
+              }
+            } else {
+              vec2 cell = vec2(u / cw, (y - ground) / fh);
+              vec2 f = fract(cell), ci = floor(cell);
+              bool balc = look == 0 ? r8 < 0.45 : look == 2 ? r8 < 0.2 : false;
+              if (box2(f, wa, wb) > 0.5) {
+                float pr = hsh(ci + vr * 17.0);
+                vec3 w = glass * (0.8 + 0.35 * pr);
+                float rc = hsh(ci + vr * 5.0 + 0.5);
+                if (rc < 0.3) w = mix(w, pick4(hsh(ci + vr * 9.0), vec3(0.85, 0.80, 0.66), vec3(0.72, 0.78, 0.80), vec3(0.80, 0.66, 0.60), vec3(0.90, 0.90, 0.86)), 0.45);
+                w = mix(w, sky, 0.1 + 0.2 * (f.y - wa.y) / (wb.y - wa.y));
+                if (look == 1) w = mix(w, wall * 0.8, line1(u / 1.2, 0.04, fuv.x / 1.2)); // mullions on ribbons
+                c = w;
+              } else {
+                // dark streaks washed down from the sills
+                float below = (wa.y - f.y) * fh;
+                if (f.x > wa.x && f.x < wb.x && below > 0.0 && !(balc && f.y < 0.28)) {
+                  float st = hsh(vec2(floor(u * 5.0), vr * 3.0 + ci.y));
+                  c *= 1.0 - 0.16 * (1.0 - smoothstep(0.0, 1.3, below)) * st * (0.4 + 0.6 * r9);
+                }
+              }
+              if (balc) {
+                // balcony slab and rail along the foot of each floor, shade under the next slab
+                if (f.y < 0.28) {
+                  c = mix(wall, vec3(0.86, 0.86, 0.84), 0.35);
+                  if (r6 < 0.5 && f.y > 0.06) c *= 1.0 - 0.45 * line1(u / 0.16, 0.12, fuv.x / 0.16);
+                  if (f.y > 0.25) c *= 1.08;
+                } else if (f.y > 0.95) c *= 0.8;
+              }
+              // 鐵窗: painted iron window cages
+              bool hasCage = look == 0 ? r2 > 0.3 : look == 2 ? r2 > 0.85 : false;
+              vec2 ca = wa - vec2(0.05, 0.04), cb = wb + vec2(0.05, 0.03);
+              if (hasCage && hsh(ci + vr * 3.0 + 0.7) > 0.15 && box2(f, ca, cb) > 0.5) {
+                vec3 cage = pick5(r9, vec3(0.86, 0.87, 0.85), vec3(0.56, 0.27, 0.21), vec3(0.30, 0.50, 0.38), vec3(0.33, 0.46, 0.60), vec3(0.70, 0.72, 0.72));
+                vec2 p = (f - ca) / (cb - ca);
+                vec2 fp = fuv / (vec2(cw, fh) * (cb - ca));
+                float bars = max(line1(p.x * 7.0, 0.09, fp.x * 7.0), line1(p.y * 3.0, 0.07, fp.y * 3.0));
+                float edge = 1.0 - box2(p, vec2(0.04), vec2(0.96));
+                c = mix(c * 0.85, cage, max(bars, edge));
+              }
+            }
+            // parapet band under the roof edge, a dark coping on top
+            if (top < 0.55) c = wall * 1.1 * (top < 0.1 ? 0.75 : 1.0);
+            diffuseColor.rgb = c;
           }
+          // grime at the base
+          if (wallFace) diffuseColor.rgb *= 1.0 - 0.2 * (1.0 - smoothstep(0.0, 1.1, y)) * (0.6 + 0.4 * hsh(vec2(floor(u * 1.3), vr)));
+          totalEmissiveRadiance += glow;
         }`,
       );
   };

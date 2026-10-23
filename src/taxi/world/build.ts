@@ -7,6 +7,7 @@ import type RAPIER_NS from '@dimforge/rapier3d-compat';
 import { wedgePoints } from './greybox';
 import type { Level, Prim, Shape } from './level';
 import { buildingMaterial, drawDecor, waterMaterial } from './decor';
+import { buildingLook } from './facade';
 
 type R = typeof RAPIER_NS;
 const rotY = (yaw = 0) => ({ x: 0, y: Math.sin(yaw / 2), z: 0, w: Math.cos(yaw / 2) });
@@ -167,7 +168,7 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
   if (blds.length) {
     // buildings: windows, arcades and roofs drawn by the shader from each building's look
     const geo = new THREE.BoxGeometry(1, 1, 1);
-    geo.setAttribute('aLook', new THREE.InstancedBufferAttribute(new Float32Array(blds.map((s) => s.look ?? 0)), 1));
+    geo.setAttribute('aLook', new THREE.InstancedBufferAttribute(new Float32Array(blds.map((s) => buildingLook(s.look ?? 0, s.p[0], s.p[2]))), 1));
     const inst = new THREE.InstancedMesh(geo, buildingMaterial(), blds.length);
     blds.forEach((s, i) => {
       m4.compose(new THREE.Vector3(...s.p), q.setFromAxisAngle(up, s.yaw ?? 0), new THREE.Vector3(...s.size));
