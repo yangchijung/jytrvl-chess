@@ -5,6 +5,7 @@
 import { GROUND, greybox, type Shape } from './greybox';
 import type { Place, Spot } from '../gameplay/rules';
 import { PLACES, STOPS } from '../gameplay/places';
+import type { Massing } from './massing';
 
 export type { Shape };
 
@@ -92,6 +93,8 @@ export interface Level {
   /** places the traffic avoids (jump ramps) */
   avoid: { x: number; z: number; r: number }[];
   decor: Decor | null;
+  /** building detail drawn on top of the base boxes: upper volumes, balconies and crowns, pitched roofs, flat roofs */
+  massing?: Massing;
 }
 
 /** the stage 1 grey-box ground (still used for the physics feel tests and the ?track=test page) */
