@@ -1,5 +1,5 @@
 import { Onboarding } from '../components/Onboarding';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useI18n } from '../i18n';
 import { Button, Card, PageTitle, Segmented } from '../components/ui';
@@ -27,12 +27,17 @@ export function TerritoryPreview({ me }: { me?: number } = {}) {
   ];
   // "A" is you (your chosen colour when one is given); the others take colours the way computer rivals do
   const [ca, cb, cc, cd] = assignColors([me ?? 4, null, null, null]).map((k) => TERRITORY_COLORS[k]);
-  const map: Record<string, string> = { A: ca.land, a: ca.base, B: cb.land, b: cb.base, C: cc.land, D: cd.land };
+  // [light board, dark board] — land uses the same tints as the game board in each theme
+  const map: Record<string, [string, string]> = { A: [ca.land, ca.landDk], a: [ca.base, ca.base], B: [cb.land, cb.landDk], b: [cb.base, cb.base], C: [cc.land, cc.landDk], D: [cd.land, cd.landDk] };
   return (
     <div className="grid aspect-[2/1] overflow-hidden rounded-xl bg-[#fffdf8] dark:bg-[#1a2333]" style={{ gridTemplateColumns: 'repeat(12, 1fr)' }} aria-hidden="true">
       {cells.flatMap((row, y) =>
         [...row].map((ch, x) => (
-          <div key={`${x}-${y}`} style={{ background: map[ch] ?? 'transparent' }} className={ch === 'a' && x === 7 && y === 4 ? 'rounded-md ring-2 ring-[var(--text)]' : ''} />
+          <div
+            key={`${x}-${y}`}
+            style={map[ch] ? ({ '--tl': map[ch][0], '--td': map[ch][1] } as CSSProperties) : undefined}
+            className={`${map[ch] ? 'bg-[var(--tl)] dark:bg-[var(--td)]' : ''} ${ch === 'a' && x === 7 && y === 4 ? 'rounded-md ring-2 ring-[var(--text)]' : ''}`}
+          />
         )),
       )}
     </div>
