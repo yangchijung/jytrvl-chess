@@ -7,6 +7,17 @@ import { TerritoryCanvas, useClient } from './TerritoryCanvas';
 import { useI18n, type StringKey } from '../i18n';
 import { Button, Notice } from '../components/ui';
 import type { TerritoryGame } from '../../shared/territory/engine';
+import { FlowGame, turnCounter } from '../../shared/territory/flow';
+
+/** Tutorial safety net for continuous steering: about to leave the map → aim back towards the centre. */
+function flowGuard(g: FlowGame) {
+  const f = g.flow[0];
+  const p = g.players[0];
+  if (!f || !p?.alive) return;
+  const x = f.fx + Math.cos(f.heading) * 3,
+    y = f.fy + Math.sin(f.heading) * 3;
+  if (x < 1 || y < 1 || x > g.w - 1 || y > g.h - 1) g.setTarget(0, Math.atan2(g.h / 2 - f.fy, g.w / 2 - f.fx));
+}
 
 type StepId = 1 | 2 | 3 | 4 | 5;
 
@@ -40,26 +51,25 @@ function guardRails(g: TerritoryGame, ownTrail: boolean) {
   me.queue = [options[0] as 0 | 1 | 2 | 3];
 }
 
-function makeClient(step: StepId): LocalTerritory {
+function makeClient(step: StepId, name: string): LocalTerritory {
   const c = new LocalTerritory({
-    humans: [{ name: '🙂' }],
+    humans: [{ name }],
     bots: step === 4 ? 1 : 0,
     level: 'easy',
     durationMin: 0,
     size: step === 4 ? 30 : 26,
     seed: 1234 + step,
     countdownMs: 600,
+    flow: true,
   });
-  let turnAt = 0;
   c.beforeStep = (g: TerritoryGame) => {
+    if (g instanceof FlowGame) {
+      flowGuard(g);
+      // scripted rival: a wide circle far from home, so its line stays out in the open for a long time
+      if (step === 4 && g.players[1]?.alive) g.setTarget(1, g.flow[1].heading + 0.05);
+      return;
+    }
     guardRails(g, step !== 4);
-    if (step !== 4) return;
-    // scripted rival: walks a big square far from home so its trail stays exposed for a long time
-    const b = g.players[1];
-    if (!b?.alive) return;
-    b.queue = [];
-    turnAt++;
-    if (turnAt % 9 === 0) b.queue.push(((b.dir + 1) % 4) as 0 | 1 | 2 | 3);
   };
   return c;
 }
@@ -71,7 +81,7 @@ export function TerritoryLearn() {
   const [done, setDone] = useState(false);
   const [retry, setRetry] = useState(false);
   const [turns, setTurns] = useState(0);
-  const client = useMemo(() => makeClient(step), [step]);
+  const client = useMemo(() => makeClient(step, t('tr.hud.you')), [step]); // eslint-disable-line react-hooks/exhaustive-deps
   useClient(client);
   const turnsRef = useRef(0);
 
@@ -80,11 +90,10 @@ export function TerritoryLearn() {
     setRetry(false);
     turnsRef.current = 0;
     setTurns(0);
-    let lastDir = client.game!.players[0].dir;
+    const counted = turnCounter(client.flow?.flow[0]?.heading ?? 0);
     client.onStep = (g) => {
-      const me = g.players[0];
-      if (step === 1 && me.dir !== lastDir) {
-        lastDir = me.dir;
+      const h = (g as FlowGame).flow?.[0]?.heading;
+      if (step === 1 && h !== undefined && counted(h)) {
         turnsRef.current++;
         setTurns(turnsRef.current);
         if (turnsRef.current >= 3) setDone(true);
@@ -113,6 +122,7 @@ export function TerritoryLearn() {
           ))}
         </div>
         <p className="text-sm text-[var(--muted)]">{t('learn.lesson', { n: step })}</p>
+        <StepPicture step={step} />
         <h2 className="font-serif text-2xl font-bold">{t(`tr.learn.s${step}.title` as StringKey)}</h2>
         <p className="text-lg leading-relaxed">{t(`tr.learn.s${step}.text` as StringKey)}</p>
         {step === 1 && !done && <p className="font-medium">{t('tr.learn.progress', { n: turns })}</p>}
@@ -145,5 +155,57 @@ export function TerritoryLearn() {
         </div>
       </section>
     </div>
+  );
+}
+
+/** One small picture per lesson: what to do, drawn in the game's own colours (original, no text inside). */
+function StepPicture({ step }: { step: StepId }) {
+  const me = '#1f9d6b',
+    meLand = '#8fd4b5',
+    rival = '#e4572e',
+    ink = 'var(--text)';
+  const runner = (x: number, y: number, c = me) => <rect x={x - 7} y={y - 7} width="14" height="14" rx="5" fill={c} stroke="#fff" strokeWidth="2" />;
+  return (
+    <svg viewBox="0 0 240 120" className="block w-full max-w-sm rounded-md border border-[var(--border)] bg-[var(--surface)]" aria-hidden="true" data-testid={`tr-learn-pic-${step}`}>
+      {step === 1 && (
+        <>
+          <path d="M30 95 C70 95 80 40 120 40 S180 85 205 50" fill="none" stroke={me} strokeWidth="6" strokeLinecap="round" opacity="0.7" />
+          {runner(205, 50)}
+          <path d="M205 50 L225 22" stroke={ink} strokeWidth="2" strokeDasharray="4 4" />
+          <path d="M222 14 l6 14 l-5 -2 l-3 6 l-3 -2 l3 -5 l-5 -1 z" fill={ink} />
+        </>
+      )}
+      {step === 2 && (
+        <>
+          <rect x="30" y="60" width="50" height="40" fill={meLand} />
+          <path d="M80 70 C120 40 170 40 175 70 S130 105 80 92" fill={meLand} opacity="0.55" stroke={me} strokeWidth="5" strokeLinecap="round" />
+          {runner(82, 90)}
+        </>
+      )}
+      {step === 3 && (
+        <>
+          <rect x="20" y="60" width="44" height="40" fill={meLand} />
+          <path d="M64 80 C110 30 170 40 160 80 S120 70 110 55" fill="none" stroke={me} strokeWidth="5" strokeLinecap="round" opacity="0.7" />
+          {runner(110, 55)}
+          <path d="M98 43 l24 24 M122 43 l-24 24" stroke="#b3261e" strokeWidth="4" strokeLinecap="round" />
+        </>
+      )}
+      {step === 4 && (
+        <>
+          <path d="M150 20 C210 30 215 95 160 100" fill="none" stroke={rival} strokeWidth="5" strokeLinecap="round" opacity="0.7" />
+          {runner(160, 100, rival)}
+          <path d="M40 60 C90 60 150 60 196 58" fill="none" stroke={me} strokeWidth="5" strokeLinecap="round" opacity="0.7" />
+          {runner(196, 58)}
+        </>
+      )}
+      {step === 5 && (
+        <>
+          <rect x="20" y="20" width="200" height="80" fill="none" stroke={ink} strokeWidth="2" />
+          <rect x="20" y="20" width="130" height="80" fill={meLand} />
+          <rect x="150" y="20" width="70" height="40" fill="#f4ad97" />
+          <path d="M150 20 V100" stroke={ink} strokeWidth="2" strokeDasharray="4 4" />
+        </>
+      )}
+    </svg>
   );
 }

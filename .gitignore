@@ -7,3 +7,6 @@ logs
 *.log
 .dev.vars
 *.tsbuildinfo
+artifacts/
+test-results/
+playwright-report/

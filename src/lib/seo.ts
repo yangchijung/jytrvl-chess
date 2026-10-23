@@ -9,7 +9,7 @@ export interface PageMeta {
 
 export const PAGES: Record<string, PageMeta> = {
   '/': {
-    title: { zh: 'JY Games｜西洋棋・象棋・暗棋・領地爭奪戰・貪食蛇・方塊消除・數獨・色彩塗鴉樂', en: 'JY Games | Chess, Xiangqi, Banqi, Territory Rush, Snake Arena, Block Puzzle Battle, Sudoku & Color Doodle' },
+    title: { zh: 'JY Games｜西洋棋・象棋・暗棋・領地爭奪戰・貪食蛇・方塊消除・數獨・色彩塗鴉樂・數學遊樂島・手繪雲霄飛車', en: 'JY Games | Chess, Xiangqi, Banqi, Territory Rush, Snake Arena, Block Puzzle Battle, Sudoku, Color Doodle, Math Island & Sketch Coaster' },
     description: {
       zh: '免費線上遊戲平台：棋藝策略（西洋棋、中國象棋、台灣暗棋）、即時競技（領地爭奪戰、貪食蛇競技場）與益智創作（方塊消除對戰、經典數獨、色彩塗鴉樂）。三級電腦 AI、線上對戰、互動教學。',
       en: 'Free online game platform: strategy (Chess, Xiangqi, Banqi), real-time action (Territory Rush, Snake Arena) and puzzles & creativity (Block Puzzle Battle, Classic Sudoku, Color Doodle). Three AI levels, online play and interactive lessons.',
@@ -73,6 +73,56 @@ export const PAGES: Record<string, PageMeta> = {
     },
     index: true,
   },
+  '/math': {
+    title: { zh: '數學遊樂島｜一到三年級動手數學遊戲｜JY Games', en: 'Math Island | Hands-on Maths Games for Grades 1–3 | JY Games' },
+    description: { zh: '免登入的兒童數學小遊戲：一年級蘋果籃（合起來數一數）、湊十小火車（先湊成 10）、零錢小商店（用錢幣付錢）、天平等一等（等號的意思）、時鐘修理站（撥時鐘），二年級乘法花圃，三年級分裝工廠（平分）、數線青蛙。動手擺一擺再數一數，附國語朗讀，不計時、不扣分。', en: 'Free kids maths games with no sign-in: Apple Basket (putting together), Make-Ten Train, Coin Shop, Balance Scale and Clock Repair for grades 1–2, Multiplication Garden for grade 2, and Packing Factory and Number-Line Frog for grade 3. Move things, then count; Mandarin voice prompts, no timer, no penalties.' },
+    index: true,
+  },
+  '/math/parent': {
+    title: { zh: '給大人看｜數學遊樂島｜JY Games', en: 'For adults | Math Island | JY Games' },
+    description: { zh: '數學遊樂島的大人說明：每款遊戲練什麼、對應課綱、年級顏色、隱私與朗讀。', en: 'Math Island for adults: what each game practises, curriculum links, grade colours, privacy and spoken prompts.' },
+    index: true,
+  },
+  '/math/g1/apple': {
+    title: { zh: '蘋果籃｜一年級合起來數一數｜數學遊樂島｜JY Games', en: 'Apple Basket | Grade 1 Putting Together | Math Island | JY Games' },
+    description: { zh: '一年級：把兩堆蘋果放進籃子，數一數一共幾顆。5 題，答錯可以再數一次。', en: 'Grade 1: put two groups of apples into the basket and count them. 5 problems; a wrong answer can be counted again.' },
+    index: true,
+  },
+  '/math/g1/train': {
+    title: { zh: '湊十小火車｜一年級先湊成 10｜數學遊樂島｜JY Games', en: 'Make-Ten Train | Grade 1 Make Ten First | Math Island | JY Games' },
+    description: { zh: '一年級：請乘客上火車，第一節坐滿 10 人再坐第二節，看懂 8 加 5 是 10 和 3。5 題，答錯可以再數一次。', en: 'Grade 1: board the riders, filling car 1 to ten before car 2, and see 8 + 5 as 10 and 3. 5 problems; a wrong answer can be counted again.' },
+    index: true,
+  },
+  '/math/g1/shop': {
+    title: { zh: '零錢小商店｜一、二年級用錢幣付錢｜數學遊樂島｜JY Games', en: 'Coin Shop | Grades 1–2 Paying with Coins | Math Island | JY Games' },
+    description: { zh: '一、二年級：用 1、5、10、50 元硬幣湊出剛好的價錢。錢不夠或付太多會告訴你差多少。5 題。', en: 'Grades 1–2: pay the exact price with 1, 5, 10 and 50 dollar coins. Too little or too much tells you by how much. 5 problems.' },
+    index: true,
+  },
+  '/math/g1/balance': {
+    title: { zh: '天平等一等｜一、二年級等號的意思｜數學遊樂島｜JY Games', en: 'Balance Scale | Grades 1–2 What = Means | Math Island | JY Games' },
+    description: { zh: '一、二年級：放積木讓天平兩邊一樣重，認識等號是「兩邊一樣多」，□ 不一定在右邊。5 題。', en: 'Grades 1–2: add blocks until the scale is level, and learn that = means both sides are the same; the box is not always on the right. 5 problems.' },
+    index: true,
+  },
+  '/math/g1/clock': {
+    title: { zh: '時鐘修理站｜一、二年級撥時鐘｜數學遊樂島｜JY Games', en: 'Clock Repair | Grades 1–2 Setting the Clock | Math Island | JY Games' },
+    description: { zh: '一、二年級：轉長針撥時鐘，短針會跟著走，走過 12 點上午變下午。整點、半點、幾時幾分，5 題。', en: 'Grades 1–2: turn the minute hand and the hour hand follows; past 12 the morning turns into afternoon. Whole and half hours, then hours and minutes. 5 problems.' },
+    index: true,
+  },
+  '/math/g2/garden': {
+    title: { zh: '乘法花圃｜二年級乘法的意思｜數學遊樂島｜JY Games', en: 'Multiplication Garden | Grade 2 What Multiplying Means | Math Island | JY Games' },
+    description: { zh: '二年級：拉出一塊花圃，每排一樣多，看懂「每排幾朵 × 幾排」，轉過來花一樣多。不用背九九乘法表。5 題。', en: 'Grade 2: pull out a flower bed with equal rows, see “in each row × rows”, and turn it round to find the same number. No times-table drills. 5 problems.' },
+    index: true,
+  },
+  '/math/g3/frog': {
+    title: { zh: '數線青蛙｜三年級數線｜數學遊樂島｜JY Games', en: 'Number-Line Frog | Grade 3 Number Lines | Math Island | JY Games' },
+    description: { zh: '三年級：青蛙在數線上跳，選出牠會停在哪裡。刻度 1、10、100，還有只標兩端的數線。5 題。', en: 'Grade 3: the frog jumps along the number line; pick where it lands. Marks of 1, 10 and 100, and a line labelled only at its ends. 5 problems.' },
+    index: true,
+  },
+  '/math/g3/factory': {
+    title: { zh: '分裝工廠｜三年級平分｜數學遊樂島｜JY Games', en: 'Packing Factory | Grade 3 Equal Sharing | Math Island | JY Games' },
+    description: { zh: '三年級：把餅乾平分到每一盒，再說每盒有幾個。5 題，答錯可以再分一次。', en: 'Grade 3: share cookies equally into boxes, then say how many are in each. 5 problems; a wrong answer can be shared again.' },
+    index: true,
+  },
   '/territory/flow': {
     title: { zh: '領地爭奪戰 連續轉向（預覽）｜JY Games', en: 'Territory Rush free steering (preview) | JY Games' },
     description: { zh: '滑鼠指向或手指觸碰就轉向的領地爭奪戰試玩預覽。', en: 'Preview of Territory Rush with point-to-steer and touch steering.' },
@@ -107,6 +157,11 @@ export const PAGES: Record<string, PageMeta> = {
     title: { zh: '餐廳當老闆（一日原型）｜JY Games', en: 'Little Restaurant Owner (one-day prototype) | JY Games' },
     description: { zh: '選菜單、合併採買共用食材、分批備餐，打烊後看懂帳本。試玩原型。', en: 'Pick a menu, buy shared ingredients together, cook in batches and read the books. Playtest prototype.' },
     index: false,
+  },
+  '/bumper': {
+    title: { zh: '瘋狂碰碰車｜JY Games', en: 'Crazy Bumper | JY Games' },
+    description: { zh: '3D 碰碰車：選一隻動物和一台車，60 秒在嘉年華場地裡互撞、搶道具、撿星星。', en: 'A 3D bumper-car game: pick an animal and a car, bump around a carnival arena for 60 seconds, grab power-ups and collect stars.' },
+    index: true,
   },
   '/learn/sudoku': {
     title: { zh: '數獨規則教學｜JY Games', en: 'How to Play Sudoku | JY Games' },

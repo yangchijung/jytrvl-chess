@@ -132,7 +132,7 @@ export function TerritoryPlay() {
   const start = () => {
     const humans = mode === 'local' ? [{ name: t('tr.setup.name1') }, { name: t('tr.setup.name2') }] : [{ name: me?.nickname ?? t('tr.hud.you') }];
     client?.dispose();
-    setClient(new LocalTerritory({ humans, bots: mode === 'local' ? Math.min(s.bots, 6) : Math.max(1, s.bots), level: s.level, durationMin: s.minutes }));
+    setClient(new LocalTerritory({ humans, bots: mode === 'local' ? Math.min(s.bots, 6) : Math.max(1, s.bots), level: s.level, durationMin: s.minutes, flow: true }));
   };
 
   if (client) {
@@ -177,8 +177,8 @@ export function TerritoryPlay() {
           onChange={(v) => up({ minutes: Number(v) })}
           options={[2, 3, 5].map((m) => ({ value: String(m), label: t('tr.setup.minutes', { m }) }))}
         />
-        <p className="text-sm text-[var(--muted)]">{mode === 'local' ? t('tr.hud.controls2p') : t('tr.hud.controls')}</p>
-        <Button size="lg" className="w-full" onClick={start}>
+        <p className="text-sm text-[var(--muted)]">{mode === 'local' ? t('tr.hud.flow2p') : `${t('tr.hud.flowMouse')}；${t('tr.hud.flowTouch')}`}</p>
+        <Button size="lg" className="w-full" onClick={start} data-testid="tr-start">
           {t('tr.setup.start')}
         </Button>
         <button type="button" className="min-h-11 w-full text-sm underline" onClick={() => nav(to('/territory'))}>
@@ -196,7 +196,7 @@ export function TerritoryNewRoom() {
   const [err, setErr] = useState<string | null>(null);
   const create = async () => {
     try {
-      const r = await api<{ id: string }>('/territory/rooms', { method: 'POST', body: JSON.stringify({ minutes: Number(minutes) }) });
+      const r = await api<{ id: string }>('/territory/rooms', { method: 'POST', body: JSON.stringify({ minutes: Number(minutes), engine: 'flow' }) });
       nav(to(`/territory/room/${r.id}`));
     } catch (e) {
       setErr(e instanceof ApiError && e.status === 429 ? t('err.rateLimit') : t('err.generic'));

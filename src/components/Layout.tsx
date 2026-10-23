@@ -20,12 +20,17 @@ function Logo() {
   );
 }
 
-const GAMES = ['chess', 'xiangqi', 'banqi', 'territory', 'snake', 'blocks', 'sudoku', 'doodle'] as const;
+const GAMES = ['chess', 'xiangqi', 'banqi', 'territory', 'snake', 'bumper', 'blocks', 'sudoku', 'doodle', 'coaster', 'math'] as const;
 const iconBtn = 'ui-t flex h-11 min-w-11 items-center justify-center rounded-md px-2 hover:bg-[var(--surface-2)]';
 const navLink = ({ isActive }: { isActive: boolean }) =>
   `ui-t flex min-h-11 items-center rounded-md px-3 text-sm font-medium hover:bg-[var(--surface-2)] ${isActive ? 'underline decoration-2 underline-offset-[6px]' : ''}`;
 const menuLink = ({ isActive }: { isActive: boolean }) =>
   `ui-t flex min-h-11 items-center rounded-md px-3 font-medium hover:bg-[var(--surface-2)] ${isActive ? 'border-l-4 border-[var(--ui-accent-text)] bg-[var(--surface-2)] pl-2' : ''}`;
+
+/** full-screen pages without the site header: Math Island pages redesigned for pre-readers (rolled out page by
+ * page; each draws its own icon bar and links to a "for adults" page) and Crazy Bumper (draws its own controls) */
+const FULL_SCREEN = ['/math', '/math/g1/apple', '/bumper'];
+const isFullScreen = (path: string) => FULL_SCREEN.includes(path.replace(/^\/en(?=\/|$)/, '').replace(/\/$/, '') || '/');
 
 export function Layout({ children }: { children: ReactNode }) {
   usePageMeta();
@@ -77,6 +82,16 @@ export function Layout({ children }: { children: ReactNode }) {
     );
   const authError = new URLSearchParams(loc.search).get('auth_error');
   const user = me?.kind === 'user' ? me : null;
+
+  // full-screen pages (see FULL_SCREEN): no site header or footer
+  if (isFullScreen(loc.pathname))
+    return (
+      <div className="flex min-h-dvh flex-col">
+        <main id="main" tabIndex={-1} className="w-full flex-1">
+          {children}
+        </main>
+      </div>
+    );
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -153,9 +168,15 @@ export function Layout({ children }: { children: ReactNode }) {
                 </li>
                 {GAMES.map((g) => (
                   <li key={g}>
-                    <NavLink to={to(`/${g}`)} className={menuLink}>
-                      {t(`game.${g}`)}
-                    </NavLink>
+                    {g === 'coaster' ? (
+                      <a href={`/coaster/?lang=${lang}`} className={menuLink({ isActive: false })}>
+                        {t(`game.${g}`)}
+                      </a>
+                    ) : (
+                      <NavLink to={to(`/${g}`)} className={menuLink}>
+                        {t(`game.${g}`)}
+                      </NavLink>
+                    )}
                   </li>
                 ))}
               </ul>
