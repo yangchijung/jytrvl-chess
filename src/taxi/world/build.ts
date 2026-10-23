@@ -7,6 +7,7 @@ import type RAPIER_NS from '@dimforge/rapier3d-compat';
 import { wedgePoints } from './greybox';
 import type { Level, Prim, Shape } from './level';
 import { buildingMaterial, drawDecor, waterMaterial } from './decor';
+import { pitchTriangles, type Pitch } from './massing';
 
 type R = typeof RAPIER_NS;
 const rotY = (yaw = 0) => ({ x: 0, y: Math.sin(yaw / 2), z: 0, w: Math.cos(yaw / 2) });
@@ -58,6 +59,28 @@ function primGeometry(p: Prim) {
   const col = new Float32Array(n * 3);
   for (let i = 0; i < n; i++) col.set([c.r, c.g, c.b], i * 3);
   g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  return g;
+}
+
+/** a shed roof: sheet slopes, gable ends in the wall paint, glazed north lights on sawtooth bays */
+function pitchGeometry(p: Pitch) {
+  const { pos, glass } = pitchTriangles(p);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.computeVertexNormals();
+  const nrm = g.getAttribute('normal');
+  const roof = new THREE.Color(p.roof),
+    wall = new THREE.Color(p.wall),
+    pane = new THREE.Color('#5E7A8C');
+  const col = new Float32Array(pos.length);
+  for (let t = 0; t < glass.length; t++) {
+    const c = glass[t] ? pane : Math.abs(nrm.getY(t * 3)) < 0.05 ? wall : roof;
+    for (let k = 0; k < 3; k++) col.set([c.r, c.g, c.b], (t * 3 + k) * 3);
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  // same attributes and indexing as the landmark primitives, so they merge into one mesh
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array((pos.length / 3) * 2), 2));
+  g.setIndex(Array.from({ length: pos.length / 3 }, (_, i) => i));
   return g;
 }
 
@@ -161,12 +184,16 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
   quads(level.marks, 0.045);
 
   // ---------- plain boxes (buildings, rails, walls, decks) in one instanced mesh ----------
+  type Inst = { p: [number, number, number]; size: [number, number, number]; color: string; yaw?: number; look?: number };
   const all = level.shapes.filter((s): s is Extract<Shape, { kind: 'box' }> => s.kind === 'box' && !s.dynamic && !s.hidden);
-  const boxes = all.filter((s) => s.look === undefined);
-  const blds = all.filter((s) => s.look !== undefined);
+  const ms = level.massing;
+  const boxes: Inst[] = [...all.filter((s) => s.look === undefined), ...(ms?.slabs ?? []).map((b) => ({ p: [b.x, b.y, b.z] as [number, number, number], size: [b.w, b.h, b.d] as [number, number, number], color: b.color }))];
+  const blds: Inst[] = [...all.filter((s) => s.look !== undefined), ...(ms?.masses ?? []).map((m) => ({ p: [m.x, m.y0 + m.h / 2, m.z] as [number, number, number], size: [m.w, m.h, m.d] as [number, number, number], color: m.color, look: m.look }))];
   if (blds.length) {
-    // buildings: windows, arcades and roofs drawn by the shader from each building's look
+    // buildings: windows, arcades and roofs drawn by the shader from each building's look; no bottom face (never seen)
     const geo = new THREE.BoxGeometry(1, 1, 1);
+    const ix = Array.from(geo.index!.array);
+    geo.setIndex([...ix.slice(0, 18), ...ix.slice(24)]);
     geo.setAttribute('aLook', new THREE.InstancedBufferAttribute(new Float32Array(blds.map((s) => s.look ?? 0)), 1));
     const inst = new THREE.InstancedMesh(geo, buildingMaterial(), blds.length);
     blds.forEach((s, i) => {
@@ -212,8 +239,10 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
     scene.add(mesh);
   }
   // ---------- landmarks: one merged mesh with vertex colours ----------
-  if (level.prims.length) {
-    const mesh = new THREE.Mesh(mergeGeometries(level.prims.map(primGeometry)), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }));
+  // (the harbour's pitched shed roofs share this mesh: no extra draw call)
+  const merged = [...level.prims.map(primGeometry), ...(ms?.pitched ?? []).map(pitchGeometry)];
+  if (merged.length) {
+    const mesh = new THREE.Mesh(mergeGeometries(merged), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }));
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     scene.add(mesh);
