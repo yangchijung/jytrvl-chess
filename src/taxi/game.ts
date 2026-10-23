@@ -85,10 +85,10 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, opts.lowPower ? 1.5 : 2));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
-  // Khronos neutral tone mapping keeps base colours (taxi yellow, kerb red, park green) true while rolling off
-  // the brightest sunlit faces instead of clipping them to white
-  renderer.toneMapping = THREE.NeutralToneMapping;
-  renderer.toneMappingExposure = 1.0;
+  // no tone mapping on purpose: ACES and AgX shift the taxi yellow towards orange, and the neutral curve's toe
+  // crushes the asphalt and the shadows to near black; the lights below are balanced so sunlit faces just reach
+  // their base colour (taxi yellow stays #FFC72C) and shade stays readable
+  renderer.toneMapping = THREE.NoToneMapping;
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(PALETTE.sky);
   // light haze only: it starts past the next few blocks and ends just inside the camera's far plane (900 m), so
@@ -97,7 +97,7 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
   const sky = level.id === 'city' ? drawSky(scene, SKY.horizon, SKY.zenith, SKY.glow) : null;
   // a blue sky fill and a warm ground bounce, kept lower than the sun so shaded sides read darker than lit ones
   scene.add(new THREE.HemisphereLight('#CFE8FF', '#8C7B5E', 1.15));
-  const sun = new THREE.DirectionalLight('#FFEACB', 2.9);
+  const sun = new THREE.DirectionalLight('#FFEACB', 2.6);
   sun.castShadow = true;
   sun.shadow.mapSize.set(1024, 1024);
   const sc = sun.shadow.camera as THREE.OrthographicCamera;

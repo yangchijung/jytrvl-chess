@@ -10,7 +10,7 @@ import { buildingMaterial, drawDecor, waterMaterial } from './decor';
 
 type R = typeof RAPIER_NS;
 const rotY = (yaw = 0) => ({ x: 0, y: Math.sin(yaw / 2), z: 0, w: Math.cos(yaw / 2) });
-export const LOOK = { asphalt: '#45464A', grass: '#7AAF4C', sea: '#1D7FC6', river: '#2397B8', trunk: '#6D4C41', crown: '#4CAF50', ink: '#23303F' };
+export const LOOK = { asphalt: '#525459', grass: '#7AAF4C', sea: '#1D7FC6', river: '#2397B8', trunk: '#6D4C41', crown: '#4CAF50', ink: '#23303F' };
 
 /** colliders for the whole level; returns the handles that never count as a crash and the moving props */
 export function buildPhysics(RAPIER: R, world: RAPIER_NS.World, level: Level) {

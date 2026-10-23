@@ -326,13 +326,14 @@ export function waterMaterial(color: string) {
         `#include <color_fragment>
       float w = sin(vWp.x * 0.35 + uTime * 1.2) * sin(vWp.z * 0.5 - uTime * 0.8) + sin((vWp.x + vWp.z) * 0.9 + uTime * 2.0) * 0.4;
       diffuseColor.rgb *= 0.95 + 0.08 * w;
-      diffuseColor.rgb += vec3(0.22, 0.26, 0.28) * smoothstep(1.15, 1.35, w);`,
+      diffuseColor.rgb += vec3(0.22, 0.26, 0.28) * smoothstep(1.15, 1.35, w) * (1.0 - smoothstep(150.0, 450.0, length(vViewPosition)));`,
       )
       .replace(
         '#include <normal_fragment_maps>',
         `#include <normal_fragment_maps>
       vec2 rip = vec2(cos(vWp.x * 0.9 + uTime * 1.7) + 0.6 * cos((vWp.x + vWp.z) * 1.7 + uTime * 2.3), cos(vWp.z * 1.1 - uTime * 1.3) + 0.6 * cos((vWp.x - vWp.z) * 1.5 - uTime * 1.9));
-      normal = normalize(normal + (viewMatrix * vec4(rip.x * 0.09, 0.0, rip.y * 0.09, 0.0)).xyz);`,
+      rip *= 0.09 * (1.0 - smoothstep(120.0, 420.0, length(vViewPosition))); // calm far away: no glitter at the horizon
+      normal = normalize(normal + (viewMatrix * vec4(rip.x, 0.0, rip.y, 0.0)).xyz);`,
       );
   };
   return { mat, uTime };
@@ -367,10 +368,12 @@ export function drawSky(scene: THREE.Scene, horizon: string, zenith: string, glo
   return sky;
 }
 
-/** the sky dome's colour at height `y` (−1 … 1 on the dome): the horizon colour at and below 0 (it matches the fog,
- * so the ground melts into it), a warm glow just above, then blue that deepens towards the top */
+/** the sky dome's colour at height `y` (−1 … 1 on the dome, 0 = eye level): the horizon colour at and below 0 (it
+ * matches the fog, so the ground melts into it), a thin warm glow just above, then blue that deepens towards the top */
 export function skyColour(y: number, horizon: string, glow: string, zenith: string) {
   const t = Math.max(0, y);
-  const c = new THREE.Color(horizon).lerp(new THREE.Color(glow), Math.min(1, t / 0.05));
-  return c.lerp(new THREE.Color(zenith), Math.pow(Math.min(1, Math.max(0, (t - 0.04) / 0.96)), 0.55));
+  const mid = new THREE.Color(zenith).lerp(new THREE.Color('#FFFFFF'), 0.45); // the paler blue low in the sky
+  if (t < 0.03) return new THREE.Color(horizon).lerp(new THREE.Color(glow), t / 0.03);
+  if (t < 0.14) return new THREE.Color(glow).lerp(mid, (t - 0.03) / 0.11);
+  return mid.lerp(new THREE.Color(zenith), Math.pow(Math.min(1, (t - 0.14) / 0.56), 0.8));
 }
