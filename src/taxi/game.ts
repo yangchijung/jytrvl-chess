@@ -7,6 +7,7 @@ import { Input, type Controls } from './core/input';
 import { Car, HALF } from './vehicle/car';
 import { TUNING, type Tuning } from './vehicle/tuning';
 import { ChaseCam } from './fx/camera';
+import { OCC_CAR_LIFT, sightCheck, updateOcclusion } from './fx/occlusion';
 import { buildTaxi } from './fx/taxiModel';
 import { Effects } from './fx/effects';
 import type { EngineState, SfxEvent } from './audio/sfx';
@@ -54,6 +55,8 @@ export interface Game {
   /** test hook: run the simulation for `seconds` of game time right now (rendering one frame after) */
   ff(seconds: number, c?: Partial<Controls>): void;
   stats(): { drawCalls: number; triangles: number };
+  /** test hook: is anything opaque between the camera and the taxi, or a board right in front of the lens? */
+  sight(): ReturnType<typeof sightCheck>;
   /** start an arcade run (50 s) or free practice; null ends it (free driving) */
   startRun(mode: Mode | null, seed?: number): void;
   run(): RunState | null;
@@ -126,7 +129,7 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
 
   // ---------- the level: colliders and the drawn world ----------
   const { soft, dynamics } = buildPhysics(RAPIER, world, level);
-  const { props, update: updateWorld } = buildScene(scene, level, opts.lang ?? 'zh');
+  const { props, faded, update: updateWorld } = buildScene(scene, level, opts.lang ?? 'zh');
   let worldClock = 0;
   const cones = dynamics.map((d, i) => ({ b: d.b, mesh: props[i] }));
 
@@ -344,6 +347,8 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
         chase.cam.updateProjectionMatrix();
       }
     }
+    // boards and landmark parts between the lens and the cab dither away (off for the menu's orbit)
+    updateOcclusion(chase.cam.position, p.clone().setY(p.y + OCC_CAR_LIFT), !menu);
     sky?.position.set(chase.cam.position.x, 0, chase.cam.position.z);
     renderer.info.reset();
     if (composer) composer.render(dt);
@@ -436,6 +441,7 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
       prev.q.copy(cur.q);
       draw(1, Math.max(STEP, Math.min(1, seconds))); // a longer camera step so it catches up after a jump in time
     },
+    sight: () => sightCheck(scene, chase.cam, carGroup, faded),
     stats: () => ({ drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles }),
     startRun(mode, seed) {
       view.clear();

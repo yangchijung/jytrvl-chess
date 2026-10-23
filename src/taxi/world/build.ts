@@ -9,6 +9,7 @@ import type { Level, Prim, Shape } from './level';
 import { buildingMaterial, drawDecor, waterMaterial } from './decor';
 import { pitchTriangles, type Pitch } from './massing';
 import { buildingLook } from './facade';
+import { addOcclusionFade, OCC_NEAR, OCC_NEAR_BOARD } from '../fx/occlusion';
 
 type R = typeof RAPIER_NS;
 const rotY = (yaw = 0) => ({ x: 0, y: Math.sin(yaw / 2), z: 0, w: Math.cos(yaw / 2) });
@@ -123,6 +124,8 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
   const m4 = new THREE.Matrix4();
   const q = new THREE.Quaternion();
   const up = new THREE.Vector3(0, 1, 0);
+  /** meshes that dither away between the chase camera and the car (value: radius around the lens that also fades, 0 = none) */
+  const faded = new Map<THREE.Object3D, number>();
 
   const seaWater = waterMaterial(LOOK.sea);
   const riverWater = waterMaterial(LOOK.river);
@@ -196,7 +199,9 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
     const ix = Array.from(geo.index!.array);
     geo.setIndex([...ix.slice(0, 18), ...ix.slice(24)]);
     geo.setAttribute('aLook', new THREE.InstancedBufferAttribute(new Float32Array(blds.map((s) => buildingLook(s.look ?? 0, s.p[0], s.p[2]))), 1));
-    const inst = new THREE.InstancedMesh(geo, buildingMaterial(), blds.length);
+    const inst = new THREE.InstancedMesh(geo, addOcclusionFade(buildingMaterial()), blds.length);
+    inst.name = 'buildings';
+    faded.set(inst, 0);
     blds.forEach((s, i) => {
       m4.compose(new THREE.Vector3(...s.p), q.setFromAxisAngle(up, s.yaw ?? 0), new THREE.Vector3(...s.size));
       inst.setMatrixAt(i, m4);
@@ -243,7 +248,9 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
   // (the harbour's pitched shed roofs share this mesh: no extra draw call)
   const merged = [...level.prims.map(primGeometry), ...(ms?.pitched ?? []).map(pitchGeometry)];
   if (merged.length) {
-    const mesh = new THREE.Mesh(mergeGeometries(merged), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }));
+    const mesh = new THREE.Mesh(mergeGeometries(merged), addOcclusionFade(new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }), { near: OCC_NEAR }));
+    mesh.name = 'landmarks';
+    faded.set(mesh, OCC_NEAR);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     scene.add(mesh);
@@ -269,7 +276,10 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
         parts.push(g);
       }
     }
-    const mesh = new THREE.Mesh(mergeGeometries(parts), new THREE.MeshBasicMaterial({ map: tex }));
+    // boards hang over the pavement at about camera height: they fade out of the way of the chase camera
+    const mesh = new THREE.Mesh(mergeGeometries(parts), addOcclusionFade(new THREE.MeshBasicMaterial({ map: tex }), { near: OCC_NEAR_BOARD }));
+    mesh.name = 'boards';
+    faded.set(mesh, OCC_NEAR_BOARD);
     scene.add(mesh);
   }
   // ---------- trees ----------
@@ -300,6 +310,7 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
   const decor = level.decor ? drawDecor(scene, level) : null;
   return {
     props,
+    faded,
     /** per frame: moving water, boats, traffic lights (t = the traffic clock) */
     update(t: number, dt: number) {
       seaWater.uTime.value = t;
