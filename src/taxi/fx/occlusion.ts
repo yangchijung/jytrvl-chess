@@ -17,15 +17,22 @@ export const OCC_CAR_LIFT = 0.3;
 /** the cone: this radius at the camera end, this at the car end (the taxi is ~2 m wide, ~1.6 m tall) */
 export const OCC_R_CAM = 0.9;
 export const OCC_R_CAR = 2.3;
-/** a sphere around the lens: anything this close is faded (only for materials made with `near`) */
+/**
+ * Spheres around the lens: anything this close is faded. Landmark parts use the small one (their walls are big, a
+ * hole should only open right at the lens); name boards the large one: a 9 m board hanging over the pavement fills a
+ * corner of the screen from 8 m away, and by then the driver has read it.
+ */
 export const OCC_NEAR = 4.5;
+export const OCC_NEAR_BOARD = 14;
 /**
  * How far along the camera→car line the cone reaches (1 = the car's centre). Boards and landmark parts reach a
  * little past the car; building walls stop short of it, so a wall the taxi drives along never gets a hole beside it.
  */
-export const occReach = (near: boolean) => (near ? 1.05 : 0.8);
-/** the most a fragment fades (1 = gone): a faint trace of a board stays so the player knows it is there */
+export const occReach = (near: number) => (near > 0 ? 1.05 : 0.8);
+/** the most a fragment fades (1 = gone): a faint trace stays so the player knows something is there */
 export const OCC_MAX = 0.9;
+/** near the lens a little more of a board stays, so it reads as see-through rather than gone */
+export const OCC_MAX_NEAR = 0.8;
 
 const smooth = (a: number, b: number, x: number) => {
   const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
@@ -36,7 +43,7 @@ const smooth = (a: number, b: number, x: number) => {
  * How much a point at `w` fades (0 = drawn, OCC_MAX = almost all of it discarded), given the camera and the car's
  * centre. Mirrors the GLSL below exactly.
  */
-export function occlusionFade(w: THREE.Vector3Like, cam: THREE.Vector3Like, car: THREE.Vector3Like, near: boolean): number {
+export function occlusionFade(w: THREE.Vector3Like, cam: THREE.Vector3Like, car: THREE.Vector3Like, near: number): number {
   const abx = car.x - cam.x,
     aby = car.y - cam.y,
     abz = car.z - cam.z;
@@ -52,8 +59,8 @@ export function occlusionFade(w: THREE.Vector3Like, cam: THREE.Vector3Like, car:
     const r = OCC_R_CAM + (OCC_R_CAR - OCC_R_CAM) * hc;
     f = (1 - smooth(r * 0.7, r, d)) * (1 - smooth(occReach(near) - 0.15, occReach(near), h));
   }
-  if (near) f = Math.max(f, 1 - smooth(OCC_NEAR * 0.55, OCC_NEAR, Math.hypot(wx, wy, wz)));
-  return f * OCC_MAX;
+  const fc = f * OCC_MAX;
+  return near > 0 ? Math.max(fc, (1 - smooth(near * 0.5, near, Math.hypot(wx, wy, wz))) * OCC_MAX_NEAR) : fc;
 }
 
 const VERT_HEAD = /* glsl */ `
@@ -76,7 +83,7 @@ float occBayer(vec2 p) {
   float v = 8.0 * mod(a + b, 2.0) + 4.0 * b + 2.0 * mod(c + d, 2.0) + d;
   return (v + 0.5) / 16.0;
 }`;
-const fragBody = (near: boolean) => /* glsl */ `
+const fragBody = (near: number) => /* glsl */ `
 if (uOccOn > 0.5) {
   vec3 ab = uOccCar - uOccCam;
   vec3 w = vOccW - uOccCam;
@@ -87,8 +94,9 @@ if (uOccOn > 0.5) {
     float r = mix(${OCC_R_CAM.toFixed(3)}, ${OCC_R_CAR.toFixed(3)}, hc);
     f = (1.0 - smoothstep(r * 0.7, r, length(w - ab * hc))) * (1.0 - smoothstep(${(occReach(near) - 0.15).toFixed(2)}, ${occReach(near).toFixed(2)}, h));
   }
-  ${near ? `f = max(f, 1.0 - smoothstep(${(OCC_NEAR * 0.55).toFixed(3)}, ${OCC_NEAR.toFixed(3)}, length(w)));` : ''}
-  if (f * ${OCC_MAX.toFixed(3)} > occBayer(gl_FragCoord.xy)) discard;
+  f *= ${OCC_MAX.toFixed(3)};
+  ${near > 0 ? `f = max(f, (1.0 - smoothstep(${(near * 0.5).toFixed(3)}, ${near.toFixed(3)}, length(w))) * ${OCC_MAX_NEAR.toFixed(3)});` : ''}
+  if (f > occBayer(gl_FragCoord.xy)) discard;
 }`;
 
 /**
@@ -96,8 +104,8 @@ if (uOccOn > 0.5) {
  * whatever is within a few metres of the lens (boards and landmark parts; not building walls, which the camera's own
  * wall check already keeps out of).
  */
-export function addOcclusionFade<M extends THREE.Material>(mat: M, opts: { near?: boolean } = {}): M {
-  const near = !!opts.near;
+export function addOcclusionFade<M extends THREE.Material>(mat: M, opts: { near?: number } = {}): M {
+  const near = opts.near ?? 0;
   const prev = mat.onBeforeCompile;
   const prevSrc = prev.toString();
   const prevKey = mat.customProgramCacheKey.bind(mat);
@@ -110,7 +118,7 @@ export function addOcclusionFade<M extends THREE.Material>(mat: M, opts: { near?
   };
   // the program cache keys on onBeforeCompile's source, which is this wrapper for every faded material: keep the
   // wrapped material's own key in it so two different shaders never share one program
-  mat.customProgramCacheKey = () => `${keyBefore}|${prevSrc}|occ${near ? 'N' : ''}`;
+  mat.customProgramCacheKey = () => `${keyBefore}|${prevSrc}|occ${near}`;
   return mat;
 }
 
@@ -126,7 +134,7 @@ export function updateOcclusion(cam: THREE.Vector3, car: THREE.Vector3, on: bool
  * (anything solid in front of the car that the fade does not take away). Also counts unfaded board/landmark hits
  * within the lens sphere along a coarse grid of screen rays (the "board fills the corner of the screen" case).
  */
-export function sightCheck(scene: THREE.Scene, cam: THREE.Camera, car: THREE.Object3D, faded: Map<THREE.Object3D, boolean>) {
+export function sightCheck(scene: THREE.Scene, cam: THREE.Camera, car: THREE.Object3D, faded: Map<THREE.Object3D, number>) {
   const rc = new THREE.Raycaster();
   const carC = car.position.clone().add(new THREE.Vector3(0, OCC_CAR_LIFT, 0));
   const q = car.quaternion;
@@ -161,8 +169,8 @@ export function sightCheck(scene: THREE.Scene, cam: THREE.Camera, car: THREE.Obj
     rays++;
     for (const h of rc.intersectObjects(scene.children, true)) {
       if (!solid(h.object)) continue;
-      const fades = faded.get(h.object);
-      if (fades !== undefined && occlusionFade(h.point, cam.position, carC, fades) > 0.5) continue;
+      const near = faded.get(h.object);
+      if (near !== undefined && occlusionFade(h.point, cam.position, carC, near) > 0.5) continue;
       blockers.push(`${h.object.name || h.object.type}@${h.distance.toFixed(1)}`);
       break;
     }
@@ -172,9 +180,9 @@ export function sightCheck(scene: THREE.Scene, cam: THREE.Camera, car: THREE.Obj
   for (let i = -3; i <= 3; i++)
     for (let j = -3; j <= 3; j++) {
       rc.setFromCamera(new THREE.Vector2(i / 3.2, j / 3.2), cam);
-      rc.far = OCC_NEAR * 0.5;
       for (const h of rc.intersectObjects([...faded.keys()], false)) {
-        if (faded.get(h.object) && occlusionFade(h.point, cam.position, carC, true) < 0.5) nearHits++;
+        const near = faded.get(h.object) ?? 0;
+        if (h.distance < near * 0.5 && occlusionFade(h.point, cam.position, carC, near) < 0.5) nearHits++;
         break;
       }
     }

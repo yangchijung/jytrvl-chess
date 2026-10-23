@@ -7,7 +7,7 @@ import type RAPIER_NS from '@dimforge/rapier3d-compat';
 import { wedgePoints } from './greybox';
 import type { Level, Prim, Shape } from './level';
 import { buildingMaterial, drawDecor, waterMaterial } from './decor';
-import { addOcclusionFade } from '../fx/occlusion';
+import { addOcclusionFade, OCC_NEAR, OCC_NEAR_BOARD } from '../fx/occlusion';
 
 type R = typeof RAPIER_NS;
 const rotY = (yaw = 0) => ({ x: 0, y: Math.sin(yaw / 2), z: 0, w: Math.cos(yaw / 2) });
@@ -100,8 +100,8 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
   const m4 = new THREE.Matrix4();
   const q = new THREE.Quaternion();
   const up = new THREE.Vector3(0, 1, 0);
-  /** meshes that dither away between the chase camera and the car (true: also right in front of the lens) */
-  const faded = new Map<THREE.Object3D, boolean>();
+  /** meshes that dither away between the chase camera and the car (value: radius around the lens that also fades, 0 = none) */
+  const faded = new Map<THREE.Object3D, number>();
 
   const seaWater = waterMaterial(LOOK.sea);
   const riverWater = waterMaterial(LOOK.river);
@@ -173,7 +173,7 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
     geo.setAttribute('aLook', new THREE.InstancedBufferAttribute(new Float32Array(blds.map((s) => s.look ?? 0)), 1));
     const inst = new THREE.InstancedMesh(geo, addOcclusionFade(buildingMaterial()), blds.length);
     inst.name = 'buildings';
-    faded.set(inst, false);
+    faded.set(inst, 0);
     blds.forEach((s, i) => {
       m4.compose(new THREE.Vector3(...s.p), q.setFromAxisAngle(up, s.yaw ?? 0), new THREE.Vector3(...s.size));
       inst.setMatrixAt(i, m4);
@@ -218,9 +218,9 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
   }
   // ---------- landmarks: one merged mesh with vertex colours ----------
   if (level.prims.length) {
-    const mesh = new THREE.Mesh(mergeGeometries(level.prims.map(primGeometry)), addOcclusionFade(new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }), { near: true }));
+    const mesh = new THREE.Mesh(mergeGeometries(level.prims.map(primGeometry)), addOcclusionFade(new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }), { near: OCC_NEAR }));
     mesh.name = 'landmarks';
-    faded.set(mesh, true);
+    faded.set(mesh, OCC_NEAR);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     scene.add(mesh);
@@ -247,9 +247,9 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
       }
     }
     // boards hang over the pavement at about camera height: they fade out of the way of the chase camera
-    const mesh = new THREE.Mesh(mergeGeometries(parts), addOcclusionFade(new THREE.MeshBasicMaterial({ map: tex }), { near: true }));
+    const mesh = new THREE.Mesh(mergeGeometries(parts), addOcclusionFade(new THREE.MeshBasicMaterial({ map: tex }), { near: OCC_NEAR_BOARD }));
     mesh.name = 'boards';
-    faded.set(mesh, true);
+    faded.set(mesh, OCC_NEAR_BOARD);
     scene.add(mesh);
   }
   // ---------- trees ----------
