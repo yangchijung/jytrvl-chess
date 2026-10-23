@@ -4,7 +4,7 @@ import { LinkButton, PageTitle } from '../components/ui';
 
 const STEPS = [
   { zh: ['選一個顏色，在畫紙上畫畫', '手指、滑鼠或觸控筆都可以；畫錯就按「復原」。'], en: ['Pick a colour and draw on the paper', 'Use a finger, mouse or stylus; press Undo to take a mark back.'] },
-  { zh: ['選兩個顏色，按「混一混」', '紅加黃變橙、黃加藍變綠、藍加紅變紫。這裡用簡化的顏料混色模型，真實顏料會有差異。'], en: ['Pick two colours and press Mix', 'Red and yellow make orange, yellow and blue make green, blue and red make purple. This is a simplified paint model; real pigments may differ.'] },
+  { zh: ['在調色盤上選兩色，按「混一混」', '紅加黃變橙、紅加白變粉紅，混好的顏色還能再加白；紅黃藍白黑五種顏料可以混出 24 種顏色。這裡用簡化的顏料混色模型，真實顏料會有差異。'], en: ['Put two paints on the palette and press Mix', 'Red and yellow make orange, red and white make pink, and a mixed colour can take more white: five paints make 24 more colours. This is a simplified paint model; real pigments may differ.'] },
   { zh: ['試試小任務', '先猜、再混、用新顏色畫一筆。猜錯沒關係，可以重試或跳過；也能用「格子蓋印章」只靠鍵盤完成。沒有分數，也不評作品好壞。'], en: ['Try a short task', 'Guess, mix, then make a mark with the new colour. Wrong guesses are fine; retry or skip any time. The stamp grid works with the keyboard alone. There are no scores and no judging of pictures.'] },
 ];
 

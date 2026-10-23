@@ -1,8 +1,13 @@
-// Color Doodle — pure model (docs/product/DOODLE_COLOR_LAB_V1.md). Paint mixing is a fixed, explicit table
-// (simplified RYB teaching model); colours are never averaged. Drawings are replayable operation lists.
+// Color Doodle — pure model (docs/product/DOODLE_COLOR_LAB_V1.md, V2: DOODLE_WORKBENCH_V2.md). Paint mixing is a
+// fixed, explicit table (simplified RYB teaching model); colours are never averaged. Drawings are replayable
+// operation lists. V2: 5 base paints + 24 mixable results (29 colours); any result can be mixed again.
+// Keep this file self-contained (only the lessons.json import): product diagnostics inline it as one module.
 import data from './lessons.json';
 
-export type ColorId = 'red' | 'yellow' | 'blue' | 'white' | 'orange' | 'green' | 'purple' | 'light_blue';
+/** One of the 29 colour ids in lessons.json (checked at runtime with isColorId). */
+export type ColorId = string;
+/** The eight colours of the first release: the V1 save format only ever contains these. */
+export const V1_COLOR_IDS = ['red', 'yellow', 'blue', 'white', 'orange', 'green', 'purple', 'light_blue'] as const;
 export type Mark = 'circle' | 'triangle' | 'square' | 'cross' | 'diamond' | 'leaf' | 'star' | 'square-outline';
 export type Shape = 'circle' | 'triangle' | 'square';
 export type Size = 's' | 'm' | 'l';
@@ -10,7 +15,8 @@ export interface ColorDef {
   id: ColorId;
   hex: string;
   name: { zh: string; en: string };
-  mark: Mark;
+  /** the first eight colours also carry a shape mark; newer ones are told apart by name + selection outline */
+  mark?: Mark;
 }
 export interface Recipe {
   id: string;
@@ -43,12 +49,32 @@ export const RECIPES = data.recipes.map((r) => ({ id: r.id, inputs: r.inputs as 
 export const LESSONS = data.lessons as unknown as Lesson[];
 export const WHEEL = data.wheel as ColorId[];
 export const COPY = data.copy as Record<string, { zh: string; en: string }>;
+/** V1 mixing pad inputs (kept for the first release's lesson flow). */
 export const BASE_COLORS: ColorId[] = ['red', 'yellow', 'blue', 'white'];
-export const colorOf = (id: ColorId) => COLORS.find((c) => c.id === id)!;
+/** V2: the five paints that are always on the palette. */
+export const BASE_PAINTS = (data as unknown as { baseColors: ColorId[] }).baseColors;
+export const isColorId = (x: unknown): x is ColorId => typeof x === 'string' && COLORS.some((c) => c.id === x);
+export const colorOf = (id: ColorId) => COLORS.find((c) => c.id === id) ?? COLORS[0];
 
 /** Fixed recipe lookup, order-independent. Unsupported pairs return null (never an invented colour). */
 export function mix(a: ColorId, b: ColorId): Recipe | null {
   return RECIPES.find((r) => (r.inputs[0] === a && r.inputs[1] === b) || (r.inputs[0] === b && r.inputs[1] === a)) ?? null;
+}
+/** How a pair mixes: a recipe, the same colour twice (stays that colour), or not in the table (nothing invented). */
+export type MixOutcome = { kind: 'recipe'; recipe: Recipe } | { kind: 'same'; color: ColorId } | { kind: 'none' };
+export function mixOutcome(a: ColorId, b: ColorId): MixOutcome {
+  if (a === b) return { kind: 'same', color: a };
+  const r = mix(a, b);
+  return r ? { kind: 'recipe', recipe: r } : { kind: 'none' };
+}
+/** Colours that make a recipe together with `a` (to outline the possible second paint). */
+export const partnersOf = (a: ColorId): ColorId[] => RECIPES.flatMap((r) => (r.inputs[0] === a ? [r.inputs[1]] : r.inputs[1] === a ? [r.inputs[0]] : []));
+/** The recipe that produces a colour (each of the 24 results has exactly one). */
+export const recipeOf = (out: ColorId): Recipe | null => RECIPES.find((r) => r.output === out) ?? null;
+/** Text colour that stays readable on a swatch (relative luminance). */
+export function inkOn(hex: string): string {
+  const v = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2] > 0.3 ? '#1f2328' : '#ffffff';
 }
 
 // ------------------------------------------------------------------ drawings
@@ -178,23 +204,24 @@ export interface Saved {
 }
 export const blankSave = (): Saved => ({ schemaVersion: 1, free: empty(), grid: empty(), done: [], level: 'easy', mixedColors: [], surface: 'free', active: null });
 
-const isColor = (x: unknown): x is ColorId => COLORS.some((c) => c.id === x);
+// The V1 format keeps exactly its eight colours (a V2 colour in a V1 save would be unreadable to the first release).
+const isColor = (x: unknown): x is ColorId => (V1_COLOR_IDS as readonly unknown[]).includes(x);
 const num01 = (x: unknown) => typeof x === 'number' && x >= -0.05 && x <= 1.05;
 const isSize = (x: unknown) => x === 's' || x === 'm' || x === 'l';
 const isShape = (x: unknown) => x === 'circle' || x === 'triangle' || x === 'square';
-function validFreeOp(o: FreeOp): boolean {
+export function validFreeOp(o: FreeOp, isC: (x: unknown) => boolean = isColor): boolean {
   if (!o || typeof o !== 'object') return false;
   if (o.t === 'clear') return true;
-  if (o.t === 'stroke') return isColor(o.color) && isSize(o.size) && Array.isArray(o.pts) && o.pts.length > 0 && o.pts.length <= READ_MAX_PTS && o.pts.every((p) => Array.isArray(p) && num01(p[0]) && num01(p[1]));
-  if (o.t === 'stamp') return isColor(o.color) && isShape(o.shape) && isSize(o.size) && num01(o.x) && num01(o.y);
+  if (o.t === 'stroke') return isC(o.color) && isSize(o.size) && Array.isArray(o.pts) && o.pts.length > 0 && o.pts.length <= READ_MAX_PTS && o.pts.every((p) => Array.isArray(p) && num01(p[0]) && num01(p[1]));
+  if (o.t === 'stamp') return isC(o.color) && isShape(o.shape) && isSize(o.size) && num01(o.x) && num01(o.y);
   return false;
 }
-function validGridOp(o: GridOp): boolean {
+export function validGridOp(o: GridOp, isC: (x: unknown) => boolean = isColor): boolean {
   if (!o || typeof o !== 'object') return false;
   if (o.t === 'clear') return true;
-  return o.t === 'cell' && Number.isInteger(o.i) && o.i >= 0 && o.i < 9 && (o.value === null || (isColor(o.value?.color) && isShape(o.value?.shape)));
+  return o.t === 'cell' && Number.isInteger(o.i) && o.i >= 0 && o.i < 9 && (o.value === null || (isC(o.value?.color) && isShape(o.value?.shape)));
 }
-function validRun(r: LessonRun): boolean {
+export function validRun(r: LessonRun, isC: (x: unknown) => boolean = isColor): boolean {
   return (
     !!r &&
     LESSONS.some((l) => l.id === r.lessonId) &&
@@ -204,7 +231,7 @@ function validRun(r: LessonRun): boolean {
     r.mixed.every((m) => typeof m === 'string' && m.length < 40) &&
     !!r.marks &&
     typeof r.marks === 'object' &&
-    Object.entries(r.marks).every(([k, v]) => isColor(k) && Number.isInteger(v) && (v as number) >= 0)
+    Object.entries(r.marks).every(([k, v]) => isC(k) && Number.isInteger(v) && (v as number) >= 0)
   );
 }
 
@@ -238,7 +265,7 @@ export function readSave(get: () => string | null): LoadResult {
   return validSave(x) ? { kind: 'ok', save: migrate(x) } : { kind: 'broken', raw, cause: 'schema' };
 }
 
-const validHistory = <Op>(h: History<Op>, ok: (o: Op) => boolean) => !!h && Array.isArray(h.ops) && h.ops.length <= MAX_OPS && Number.isInteger(h.n) && h.n >= 0 && h.n <= h.ops.length && h.ops.every(ok);
+export const validHistory = <Op>(h: History<Op>, ok: (o: Op) => boolean) => !!h && Array.isArray(h.ops) && h.ops.length <= MAX_OPS && Number.isInteger(h.n) && h.n >= 0 && h.n <= h.ops.length && h.ops.every((o) => ok(o));
 
 /** Strict check of a stored drawing; anything unexpected is rejected (the caller keeps a backup, never overwrites silently). */
 export function validSave(x: unknown): x is Saved {

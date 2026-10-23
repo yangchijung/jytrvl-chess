@@ -1,13 +1,17 @@
 // Color Doodle — picture play ("玩圖畫", B1 "我的小魚"). A scene is an original line drawing split into a few
 // large regions that are filled with one tap. Saved under its own versioned key, never inside the old
 // free/grid save (docs/product/DOODLE_PLAYFUL_V1_1.md §5).
-import { COLORS, MAX_OPS, empty, push, type ColorId, type History } from './model';
+import { MAX_OPS, V1_COLOR_IDS, empty, push, type ColorId, type History } from './model';
+import { REGIONS_OF } from './templates';
 
 export const SCENE_KEY = 'jy.doodle.scene.v1';
 export const SCENE_IDS = ['fish'] as const;
 export type SceneId = (typeof SCENE_IDS)[number];
 export const FISH_REGIONS = ['body', 'tail', 'fin'] as const;
-export type Region = (typeof FISH_REGIONS)[number];
+/** A region id of a scene (V1: the three fish regions; V2 scenes list their own in SCENE_REGIONS). */
+export type Region = string;
+/** V2: the six templates (fish keeps the three V1 region ids). */
+export const SCENE_REGIONS: Record<string, readonly string[]> = REGIONS_OF;
 
 export type SceneOp = { t: 'fill'; region: Region; color: ColorId | null } | { t: 'clear' };
 
@@ -25,11 +29,11 @@ export interface SceneSave {
 export const blankScene = (): SceneSave => ({ schemaVersion: 1, sceneId: 'fish', open: false, fills: empty<SceneOp>(), mixedOrange: false, done: false });
 
 /** Current colour of every region (after the last applied "new picture"). */
-export function regionColors(h: History<SceneOp>): Record<Region, ColorId | null> {
-  const out: Record<Region, ColorId | null> = { body: null, tail: null, fin: null };
+export function regionColors(h: History<SceneOp>, regions: readonly string[] = FISH_REGIONS): Record<Region, ColorId | null> {
+  const out: Record<Region, ColorId | null> = Object.fromEntries(regions.map((r) => [r, null]));
   for (const op of h.ops.slice(0, h.n)) {
-    if (op.t === 'clear') for (const r of FISH_REGIONS) out[r] = null;
-    else out[op.region] = op.color;
+    if (op.t === 'clear') for (const r of regions) out[r] = null;
+    else if (op.region in out) out[op.region] = op.color;
   }
   return out;
 }
@@ -38,17 +42,18 @@ export const anyFilled = (h: History<SceneOp>) => Object.values(regionColors(h))
 export const taskMet = (s: Pick<SceneSave, 'mixedOrange' | 'fills'>) => s.mixedOrange && Object.values(regionColors(s.fills)).includes('orange');
 
 /** Adds a fill without exceeding MAX_OPS: a full history folds into the current colours (the picture is unchanged). */
-export function pushScene(h: History<SceneOp>, op: SceneOp): History<SceneOp> {
+export function pushScene(h: History<SceneOp>, op: SceneOp, regions: readonly string[] = FISH_REGIONS): History<SceneOp> {
   let base = { ops: h.ops.slice(0, h.n), n: h.n };
   if (base.n + 1 > MAX_OPS) {
-    const cur = regionColors(base);
-    const ops: SceneOp[] = FISH_REGIONS.flatMap((region) => (cur[region] ? [{ t: 'fill' as const, region, color: cur[region] }] : []));
+    const cur = regionColors(base, regions);
+    const ops: SceneOp[] = regions.flatMap((region) => (cur[region] ? [{ t: 'fill' as const, region, color: cur[region] }] : []));
     base = { ops, n: ops.length };
   }
   return push(base, op);
 }
 
-const isColor = (x: unknown): x is ColorId => COLORS.some((c) => c.id === x);
+// the V1 scene save keeps the first release's eight colours
+const isColor = (x: unknown): x is ColorId => (V1_COLOR_IDS as readonly unknown[]).includes(x);
 const isRegion = (x: unknown): x is Region => (FISH_REGIONS as readonly unknown[]).includes(x);
 const validOp = (o: SceneOp) => !!o && (o.t === 'clear' || (o.t === 'fill' && isRegion(o.region) && (o.color === null || isColor(o.color))));
 

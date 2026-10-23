@@ -1,0 +1,106 @@
+/* Crazy Bumper: full-screen 3D arena with a picture-only children's interface.
+   Colours: ink #1E2A44 (outlines, numbers), cream #FFFDF7 (plates), green #13893A (the one big action),
+   lemon #FFD600 (stars, lightning), alert red #C62828 (last 10 seconds, paired with a bigger number).
+   Flat plates with solid outlines: no gradients, blur or drop shadows. Every control is at least 64 × 64 px. */
+.bump { position: fixed; inset: 0; overflow: hidden; background: #bfefd0; color: #1e2a44; touch-action: none; -webkit-user-select: none; user-select: none; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; font-family: Inter, 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', system-ui, sans-serif; }
+.bump-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+.bump button { font-family: inherit; cursor: pointer; }
+.bump :focus-visible { outline: 4px solid #1565c0; outline-offset: 3px; }
+.bump-num { font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1; color: #1e2a44; }
+
+.bump-icon-btn { position: absolute; display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 64px; height: 64px; border-radius: 16px; border: 3px solid #1e2a44; background: #fffdf7; color: #1e2a44; padding: 0; transition: transform 120ms ease-out; }
+.bump-icon-btn:active { transform: scale(0.94); }
+.bump-tl { top: calc(16px + env(safe-area-inset-top)); left: calc(16px + env(safe-area-inset-left)); }
+.bump-tr { top: calc(16px + env(safe-area-inset-top)); right: calc(16px + env(safe-area-inset-right)); }
+
+/* ---------- title ---------- */
+.bump-title { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: calc(16px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom)); pointer-events: none; }
+.bump-title > * { pointer-events: auto; }
+.bump-logo { margin: 0; height: 64px; box-sizing: border-box; display: flex; align-items: center; padding: 0 20px; border-radius: 16px; border: 3px solid #1e2a44; background: #ffd600; font-size: 2rem; font-weight: 900; letter-spacing: 0.01em; white-space: nowrap; pointer-events: none; }
+.bump-panel { display: flex; align-items: center; gap: 24px; padding: 16px; border-radius: 24px; border: 3px solid #1e2a44; background: #fffdf7; }
+.bump-pickers { display: flex; flex-direction: column; gap: 8px; }
+.bump-grid { display: grid; grid-template-columns: repeat(6, 72px); gap: 8px; }
+.bump-pick { position: relative; box-sizing: border-box; width: 72px; height: 72px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 16px; border: 3px solid #c9d3e3; background: #ffffff; transition: transform 120ms ease-out, border-color 120ms; }
+.bump-pick[aria-pressed='true'] { border: 4px solid #1e2a44; background: #fff3b0; }
+.bump-pick:active { transform: scale(0.94); }
+.bump-check { position: absolute; top: -9px; right: -9px; }
+.bump-big { box-sizing: border-box; width: 240px; height: 96px; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 0 16px; border-radius: 24px; border: 3px solid #1e2a44; border-bottom-width: 8px; background: #13893a; color: #ffffff; font-size: 2rem; font-weight: 900; letter-spacing: 0.04em; transition: transform 120ms ease-out, border-bottom-width 120ms ease-out; }
+.bump-big:active { transform: translateY(3px); border-bottom-width: 5px; }
+.bump-big[data-ready='false'] { background: #13893a; }
+
+/* ---------- playing ---------- */
+.bump-score { position: absolute; top: calc(16px + env(safe-area-inset-top)); left: calc(16px + env(safe-area-inset-left)); height: 64px; box-sizing: border-box; display: flex; align-items: center; gap: 6px; padding: 0 16px 0 8px; border-radius: 16px; border: 3px solid #1e2a44; background: #fffdf7; pointer-events: none; transition: transform 160ms ease-out; }
+.bump-score .bump-num { font-size: 2.4rem; min-width: 1.2ch; }
+.bump-score[data-pop='true'] { transform: scale(1.12); }
+.bump-clock { position: absolute; top: calc(12px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 6px 16px 10px; border-radius: 16px; border: 3px solid #1e2a44; background: #fffdf7; pointer-events: none; }
+.bump-clock-row { display: flex; align-items: center; gap: 8px; }
+.bump-clock .bump-num { font-size: 2.4rem; min-width: 2ch; text-align: center; }
+.bump-clock[data-hurry='true'] .bump-num { color: #c62828; font-size: 3rem; animation: bump-tick 200ms ease-out; }
+.bump-bar { width: 180px; height: 12px; border-radius: 6px; background: #dce6f2; overflow: hidden; }
+.bump-bar > span { display: block; height: 100%; background: #13893a; transition: width 120ms linear; }
+.bump-clock[data-hurry='true'] .bump-bar > span { background: #c62828; }
+@keyframes bump-tick { from { transform: scale(1.35); } to { transform: scale(1); } }
+
+.bump-stick { position: absolute; left: 0; bottom: 0; width: 55%; height: 55%; touch-action: none; }
+.bump-stick-base { position: absolute; left: 0; top: 0; width: 132px; height: 132px; margin: -66px 0 0 -66px; box-sizing: border-box; border-radius: 50%; border: 4px solid rgba(30, 42, 68, 0.55); background: rgba(255, 253, 247, 0.5); display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.bump-stick-knob { width: 64px; height: 64px; box-sizing: border-box; border-radius: 50%; border: 4px solid #1e2a44; background: #fffdf7; }
+.bump-dash { position: absolute; right: calc(28px + env(safe-area-inset-right)); bottom: calc(28px + env(safe-area-inset-bottom)); width: 88px; height: 88px; box-sizing: border-box; padding: 0; border: 0; border-radius: 50%; background: #fffdf7; display: flex; align-items: center; justify-content: center; touch-action: none; transition: transform 120ms ease-out; }
+.bump-dash::before { content: ''; position: absolute; inset: 0; border-radius: 50%; border: 3px solid #1e2a44; }
+.bump-dash-ring { position: absolute; inset: 0; }
+.bump-dash svg:last-child { position: relative; transition: opacity 120ms; }
+.bump-dash[data-ready='false'] svg:last-child { opacity: 0.5; }
+.bump-dash:active { transform: scale(0.94); }
+
+/* +1 star flying into the score plate (220 ms), the crown when the player leads */
+.bump-fly { position: absolute; pointer-events: none; animation: bump-fly 220ms ease-in forwards; }
+@keyframes bump-fly { to { transform: translate(var(--dx), var(--dy)) scale(0.7); opacity: 0.6; } }
+.bump-crown { position: absolute; top: -14px; left: -8px; transform: rotate(-18deg); }
+
+/* ---------- result and pause ---------- */
+.bump-result, .bump-pause { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; padding: 16px; background: rgba(30, 42, 68, 0.35); animation: bump-fade 200ms ease-out; }
+/* the result keeps the scene clear: the camera frames the player's car in the upper half, the card sits below */
+.bump-result { justify-content: flex-end; gap: 20px; padding-bottom: calc(40px + env(safe-area-inset-bottom)); background: none; animation: none; }
+.bump-trophies { display: flex; align-items: flex-end; gap: 8px; }
+.bump-trophy { display: block; animation: bump-in 220ms ease-out backwards; animation-delay: calc(var(--i) * 160ms); }
+.bump-result-score { display: flex; align-items: center; gap: 8px; height: 72px; box-sizing: border-box; padding: 0 20px 0 12px; border-radius: 18px; border: 3px solid #1e2a44; background: #fffdf7; }
+.bump-result-score .bump-num { font-size: 3rem; }
+.bump-result-actions, .bump-pause-row { display: flex; align-items: center; gap: 16px; }
+.bump-square { position: static; width: 96px; height: 96px; border-radius: 24px; }
+.bump-resume { width: 140px; height: 140px; border-radius: 50%; border: 4px solid #1e2a44; border-bottom-width: 9px; background: #13893a; color: #ffffff; display: flex; align-items: center; justify-content: center; padding: 0 0 0 10px; }
+.bump-failed, .bump-loading { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); padding: 16px 24px; border-radius: 16px; border: 3px solid #1e2a44; background: #fffdf7; font-size: 1.5rem; font-weight: 800; }
+.bump-loading { width: 72px; height: 72px; padding: 0; box-sizing: border-box; border-radius: 50%; border: 8px solid #dce6f2; border-top-color: #13893a; background: transparent; animation: bump-spin 900ms linear infinite; }
+@keyframes bump-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes bump-in { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: scale(1); } }
+@keyframes bump-spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+
+/* ---------- phones (portrait) ---------- */
+@media (max-width: 640px) {
+  .bump-logo { font-size: 1.45rem; padding: 0 12px; }
+  .bump-panel { flex-direction: column; gap: 16px; padding: 14px; }
+  .bump-grid { grid-template-columns: repeat(3, 64px); }
+  .bump-pick { width: 64px; height: 64px; }
+  .bump-pick svg:first-child { width: 48px; height: 48px; }
+  .bump-pickers { flex-direction: row; gap: 14px; }
+  .bump-clock { padding: 4px 10px 8px; }
+  .bump-clock .bump-num { font-size: 2rem; }
+  .bump-clock[data-hurry='true'] .bump-num { font-size: 2.4rem; }
+  .bump-bar { width: 104px; }
+  .bump-score .bump-num { font-size: 2rem; }
+  .bump-dash { bottom: calc(40px + env(safe-area-inset-bottom)); right: calc(24px + env(safe-area-inset-right)); }
+  .bump-stick { width: 62%; height: 45%; }
+}
+/* very narrow: the two picture groups stack */
+@media (max-width: 470px) {
+  .bump-pickers { flex-direction: column; gap: 12px; }
+  .bump-grid { grid-template-columns: repeat(3, 64px); gap: 8px; }
+}
+@media (max-height: 560px) and (orientation: landscape) {
+  .bump-grid { grid-template-columns: repeat(6, 64px); }
+  .bump-pick { width: 64px; height: 64px; }
+  .bump-panel { padding: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bump-icon-btn, .bump-pick, .bump-big, .bump-score, .bump-dash, .bump-bar > span { transition: none; }
+  .bump-clock[data-hurry='true'] .bump-num, .bump-trophy, .bump-result, .bump-pause, .bump-fly { animation: none; }
+  .bump-loading { animation-duration: 3s; }
+}
