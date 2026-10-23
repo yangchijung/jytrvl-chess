@@ -55,9 +55,9 @@ export class ComboPop {
     this.sprite.visible = this.t < life;
     if (!this.sprite.visible) return;
     const pop = Math.min(1, this.t / 0.15);
-    const s = (0.6 + 0.4 * pop) * scale;
-    this.sprite.scale.set(3.6 * s, 1.8 * s, 1);
-    this.sprite.position.set(at.x, at.y + 4.2 * scale + this.t * 0.8, at.z);
+    const s = (0.6 + 0.4 * pop) * (1 + (scale - 1) * 0.4);
+    this.sprite.scale.set(2.8 * s, 1.4 * s, 1);
+    this.sprite.position.set(at.x, at.y + 3.4 * scale + this.t * 0.8, at.z);
     this.sprite.material.opacity = this.t > life - 0.25 ? (life - this.t) / 0.25 : 1;
   }
 }

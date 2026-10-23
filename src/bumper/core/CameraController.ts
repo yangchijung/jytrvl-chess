@@ -48,11 +48,37 @@ export class CameraController {
     this.trauma = Math.min(1, this.trauma + amount);
   }
 
-  /** the player's heading, so the result camera can swing round to the driver's face */
+  /** where the result camera looks from (car heading = in front of the driver's face) */
   heading = 0;
 
+  /** at the end of a round: the angle nearest the driver's face from which no post blocks the view */
+  chooseResultView(car: { x: number; z: number }, yaw: number, posts: readonly { x: number; z: number }[], postRadius: number) {
+    const dist = this.portrait ? 11 : 8.5;
+    for (const d of [0, 0.7, -0.7, 1.4, -1.4, 2.1, -2.1, Math.PI]) {
+      const a = yaw + d;
+      const cx = car.x + Math.sin(a) * dist,
+        cz = car.z + Math.cos(a) * dist;
+      const blocked = posts.some((p) => {
+        // distance from the post centre to the segment camera→car (on the floor plane)
+        const vx = car.x - cx,
+          vz = car.z - cz;
+        const t = Math.max(0, Math.min(1, ((p.x - cx) * vx + (p.z - cz) * vz) / (vx * vx + vz * vz)));
+        return Math.hypot(cx + vx * t - p.x, cz + vz * t - p.z) < postRadius + 1.2;
+      });
+      if (!blocked) {
+        this.heading = a;
+        return;
+      }
+    }
+    this.heading = yaw;
+  }
+
+  /** the player's size (giant mode backs the camera off) */
+  zoom = 1;
+  private zoomNow = 1;
+
   private offset(): THREE.Vector3 {
-    const far = this.portrait ? new THREE.Vector3(0, 26, -19) : new THREE.Vector3(0, 17, -15);
+    const far = (this.portrait ? new THREE.Vector3(0, 26, -19) : new THREE.Vector3(0, 17, -15)).multiplyScalar(1 + (this.zoomNow - 1) * 0.55);
     if (this.mode === 'result') {
       // swing from the usual view to a close view in front of the car (the shorter way round)
       const front = new THREE.Vector3(Math.sin(this.heading), 0, Math.cos(this.heading)).multiplyScalar(this.portrait ? 11 : 8.5).setY(this.portrait ? 6.5 : 4.6);
@@ -78,6 +104,7 @@ export class CameraController {
   /** dt is real time (the result slow motion does not slow the camera) */
   update(target: THREE.Vector3, lead: THREE.Vector3, dt: number) {
     this.time += dt;
+    this.zoomNow += (this.zoom - this.zoomNow) * Math.min(1, dt * 4);
     let want: THREE.Vector3;
     let lookAt: THREE.Vector3;
     let stiff = 18;

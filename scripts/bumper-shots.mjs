@@ -25,7 +25,8 @@ async function open(size, query = '') {
 }
 const info = (p) => p.evaluate(() => ({ ...window.__bumper.info(), stats: { ...window.__GAME_STATS__, consoleErrors: window.__GAME_STATS__.consoleErrors.length } }));
 
-for (const [name, size] of [
+const ONLY_P2 = process.argv.includes('--p2');
+for (const [name, size] of ONLY_P2 ? [] : [
   ['ipad', { width: 1024, height: 768 }],
   ['mobile', { width: 390, height: 844 }],
 ]) {
@@ -50,6 +51,33 @@ for (const [name, size] of [
   await p.waitForTimeout(1600);
   await p.screenshot({ path: `${OUT}/${name}-result.png` });
   console.log(name, 'result', JSON.stringify(await info(p)), 'errors', errors);
+  await ctx.close();
+}
+
+// P2 showcase: a gift box, giant / shield / magnet, floor stars, the crown and a combo symbol, hand-stepped
+for (const [name, size] of [
+  ['ipad', { width: 1024, height: 768 }],
+  ['mobile', { width: 390, height: 844 }],
+]) {
+  const { ctx, p, errors } = await open(size, '?round=60');
+  await p.click('[data-testid=bumper-start]');
+  await p.evaluate(() => {
+    const g = window.__bumper;
+    g.setPaused(true);
+    g.ff(3.6, {});
+    g.powerUps.give(0, 'giant');
+    g.powerUps.give(1, 'shield');
+    g.powerUps.give(2, 'magnet');
+    const me = g.cars[0].pos();
+    g.starDrops.drop(5, me.x + 5, me.z + 4);
+    g.scores.onStarEvent({ car: 0, delta: 3, x: 0, z: 0 });
+    g.ff(0.6, { x: 0.3, y: 1, thrust: 0.6 });
+    g.combo.show(2);
+    g.ff(0.2, { x: 0.3, y: 1, thrust: 0.6 });
+  });
+  await p.waitForTimeout(400);
+  await p.screenshot({ path: `${OUT}/${name}-p2.png` });
+  console.log(name, 'p2', JSON.stringify(await info(p)), 'errors', errors);
   await ctx.close();
 }
 

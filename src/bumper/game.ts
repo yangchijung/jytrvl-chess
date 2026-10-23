@@ -71,6 +71,7 @@ export interface BumperGame {
   scores: ScoreManager;
   powerUps: PowerUpManager;
   starDrops: StarDropManager;
+  combo: ComboPop;
   /** for profiling and tests */
   engine: Engine;
   camera: CameraController;
@@ -344,6 +345,7 @@ export async function startBumper(canvas: HTMLCanvasElement, opts: StartOpts): P
     phase = 'result';
     resultT = 0;
     camera.mode = 'result';
+    camera.chooseResultView(cur[0], cur[0].yaw, arenaPhys.posts, ARENA.postRadius);
     input.enabled = false;
     audio.fanfare();
     void audio.setMusic('results');
@@ -425,7 +427,7 @@ export async function startBumper(canvas: HTMLCanvasElement, opts: StartOpts): P
     const p0 = models[0]?.root.position ?? tmpP.set(0, 0, 0);
     const v0 = cars[0].body.linvel();
     tmpL.set(v0.x, 0, v0.z);
-    camera.heading = cur[0].yaw;
+    camera.zoom = cars[0].scale;
     camera.update(tmpP.set(p0.x, 0, p0.z), tmpL, dt);
     engine.render(camera.cam);
     // stats for the test hook
@@ -466,6 +468,7 @@ export async function startBumper(canvas: HTMLCanvasElement, opts: StartOpts): P
     scores,
     powerUps,
     starDrops,
+    combo,
     engine,
     camera,
     start() {
