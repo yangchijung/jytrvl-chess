@@ -19,6 +19,7 @@ import {
   type TServerMsg,
 } from './territoryProtocol';
 import { recordTerritoryMatch } from './territoryPersist';
+import { assignColors, autoColor, isColor, parseColor, resolveColor } from '../../shared/territory/colors';
 import type { Env } from './env';
 
 export interface TSeat {
@@ -28,6 +29,8 @@ export interface TSeat {
   bot: boolean;
   level?: BotLevel;
   ipHash: string;
+  /** palette index, unique in the room; absent in rooms stored before colours could be chosen (filled on load) */
+  color?: number;
 }
 
 export interface TRoomMeta {
@@ -71,6 +74,7 @@ export class TerritoryRoom extends DurableObject<Env> {
       if (saved) {
         this.meta = saved.meta;
         this.seats = saved.seats;
+        this.fixColors();
         this.final = (await ctx.storage.get<{ snap: TServerMsg; end: TServerMsg }>('final')) ?? null;
         if (this.final) this.status = 'ended';
       }
@@ -91,6 +95,7 @@ export class TerritoryRoom extends DurableObject<Env> {
       // kill switch: new rooms are four-way while TERRITORY_FLOW is "off"
       this.meta.engine = body.meta.engine === 'flow' && this.env.TERRITORY_FLOW !== 'off' ? 'flow' : 'grid';
       this.seats = body.seats ?? [];
+      this.fixColors();
       await this.save();
       if (this.meta.kind === 'match') this.beginCountdown(4000);
       return Response.json({ ok: true });
@@ -113,12 +118,16 @@ export class TerritoryRoom extends DurableObject<Env> {
       ipHash: req.headers.get('x-jy-ip') ?? '',
     };
     if (!att.playerId) return new Response('no identity', { status: 400 });
+    // optional colour asked for by newer pages; old pages send none and get one assigned
+    const wantColor = parseColor(req.headers.get('x-jy-color'));
     const pair = new WebSocketPair();
     this.ctx.acceptWebSocket(pair[1], [att.playerId]);
     pair[1].serializeAttachment(att);
     // seat newcomers while in the lobby
     if (this.status === 'lobby' && this.seatOf(att.playerId) === null && this.seats.length < MAX_PLAYERS) {
-      this.seats.push({ playerId: att.playerId, userId: att.userId, name: att.name, bot: false, ipHash: att.ipHash });
+      // first come keeps a colour: a newcomer asking for a taken one gets the nearest free colour
+      const color = resolveColor(wantColor, this.seats.map((s) => s.color!));
+      this.seats.push({ playerId: att.playerId, userId: att.userId, name: att.name, bot: false, ipHash: att.ipHash, color });
       if (!this.meta.hostId) this.meta.hostId = att.playerId;
       void this.save();
     }
@@ -171,13 +180,24 @@ export class TerritoryRoom extends DurableObject<Env> {
       this.game.setTarget(seat, m.a);
       return;
     }
+    if (m.t === 'color') {
+      // anyone seated may change colour in the lobby; seats that already hold a colour keep it
+      if (seat === null || this.status !== 'lobby' || !isColor(m.c)) return;
+      this.seats[seat].color = resolveColor(
+        m.c,
+        this.seats.filter((_, k) => k !== seat).map((s) => s.color!),
+      );
+      await this.save();
+      this.sendLobby();
+      return;
+    }
     const isHost = att.playerId === this.meta?.hostId;
     if (!isHost) return this.send(ws, { t: 'error', code: 'not_host' });
     if (m.t === 'bot' && this.status === 'lobby') {
       if (m.op === 'add' && this.seats.length < MAX_PLAYERS) {
         const level: BotLevel = ['easy', 'medium', 'hard'].includes(m.level) ? m.level : 'medium';
         const n = this.seats.filter((s) => s.bot).length;
-        this.seats.push({ playerId: null, userId: null, name: BOT_NAMES[n % 8], bot: true, level, ipHash: '' });
+        this.seats.push({ playerId: null, userId: null, name: BOT_NAMES[n % 8], bot: true, level, ipHash: '', color: autoColor(this.seats.map((s) => s.color!)) });
       } else if (m.op === 'remove' && this.seats[m.seat]?.bot) this.seats.splice(m.seat, 1);
       await this.save();
       this.sendLobby();
@@ -234,8 +254,10 @@ export class TerritoryRoom extends DurableObject<Env> {
     const cfg = { width: size, height: size, durationTicks: Math.round((this.meta.minutes * 60000) / stepMs), seed };
     const g = flow ? new FlowGame(cfg) : new TerritoryGame(cfg);
     this.brains.clear();
+    this.fixColors();
     this.seats.forEach((s, k) => {
-      g.addPlayer(s.playerId ?? `bot${k}`, s.name, s.bot);
+      // the colour goes into the game, so every snapshot (and every reconnect) carries the same colours
+      g.addPlayer(s.playerId ?? `bot${k}`, s.name, s.bot, s.color);
       // bots, and humans while disconnected, are driven by a brain
       this.brains.set(k, { mem: newBotMemory(), fmem: newFlowBotMemory(), rand: rng(seed + k * 7919), level: s.level ?? 'medium' });
     });
@@ -315,6 +337,12 @@ export class TerritoryRoom extends DurableObject<Env> {
     this.seats = [];
   }
 
+  /** Make every seat's colour valid and unique, keeping the colours earlier seats already hold. */
+  private fixColors() {
+    const c = assignColors(this.seats.map((s) => s.color));
+    this.seats.forEach((s, k) => (s.color = c[k]));
+  }
+
   // ---------- output ----------
   private send(ws: WebSocket, m: TServerMsg) {
     try {
@@ -361,7 +389,7 @@ export class TerritoryRoom extends DurableObject<Env> {
         engine: engineOf(this.meta),
         hostSeat: this.hostSeat(),
         mySeat: this.seatOf(att.playerId),
-        seats: this.seats.map((s, k) => ({ name: s.name, bot: s.bot, level: s.level, connected: s.bot || this.connected(s.playerId), isUser: !!s.userId, color: k })),
+        seats: this.seats.map((s, k) => ({ name: s.name, bot: s.bot, level: s.level, connected: s.bot || this.connected(s.playerId), isUser: !!s.userId, color: s.color ?? k })),
       };
       this.send(ws, msg);
     }

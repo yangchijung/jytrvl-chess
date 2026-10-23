@@ -7,7 +7,17 @@ const stroke = (color: 'red' | 'orange' = 'red'): Extract<FreeOp, { t: 'stroke' 
 
 describe('color doodle model', () => {
   it('uses the product JSON unchanged', () => {
-    expect(JSON.parse(readFileSync('shared/doodle/lessons.json', 'utf8'))).toEqual(JSON.parse(readFileSync('docs/product/doodle-lessons-v1.json', 'utf8')));
+    // V1 lessons and copy unchanged; colours and recipes are the V2 handoff (29 colours / 24 recipes)
+    const ours = JSON.parse(readFileSync('shared/doodle/lessons.json', 'utf8'));
+    const v1 = JSON.parse(readFileSync('docs/product/doodle-lessons-v1.json', 'utf8'));
+    const v2 = JSON.parse(readFileSync('docs/product/doodle-palette-v2.json', 'utf8'));
+    expect(ours.lessons).toEqual(v1.lessons);
+    for (const k of Object.keys(v1.copy)) expect(ours.copy[k]).toEqual(v1.copy[k]);
+    expect(ours.colors.map((c: { id: string; hex: string; name: unknown }) => [c.id, c.hex, c.name])).toEqual(v2.colors.map((c: { id: string; hex: string; name: unknown }) => [c.id, c.hex, c.name]));
+    expect(ours.recipes.map((r: { id: string; inputs: string[]; output: string }) => [r.id, r.inputs, r.output])).toEqual(v2.recipes.map((r: { id: string; inputs: string[]; output: string }) => [r.id, r.inputs, r.output]));
+    // the first release's eight colours and four recipes are unchanged
+    for (const c of v1.colors) expect(ours.colors.find((x: { id: string }) => x.id === c.id)).toEqual(c);
+    for (const r of v1.recipes) expect(ours.recipes.find((x: { id: string }) => x.id === r.id)).toEqual(r);
     expect(LESSONS).toHaveLength(6);
   });
 
@@ -21,10 +31,12 @@ describe('color doodle model', () => {
     expect(mix('red', 'blue')?.output).toBe('purple');
     expect(mix('white', 'blue')?.output).toBe('light_blue');
     expect(mix('red', 'red')).toBeNull();
-    expect(mix('red', 'white')).toBeNull();
-    expect(mix('orange', 'blue')).toBeNull();
-    // every colour has a distinct non-colour marker
-    expect(new Set(COLORS.map((c) => c.mark)).size).toBe(COLORS.length);
+    expect(mix('red', 'green')).toBeNull(); // not in the table: nothing invented
+    expect(mix('red', 'white')?.output).toBe('pink'); // V2
+    expect(mix('orange', 'blue')?.output).toBe('brown'); // V2
+    // the first eight colours keep their distinct non-colour markers
+    const first8 = COLORS.slice(0, 8);
+    expect(new Set(first8.map((c) => c.mark)).size).toBe(8);
   });
 
   it('DC04: undo/redo per whole stroke; a new stroke drops the redo branch; clearing is undoable', () => {
