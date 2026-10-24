@@ -16,6 +16,7 @@ import { Garage } from './ui/Garage';
 import { loadChoice, saveChoice, type GarageChoice } from './ui/garageChoice';
 import { Help } from './ui/Help';
 import { Minimap } from './ui/Minimap';
+import { DistrictLabel, RoadName } from './ui/Whereabouts';
 import { Settings, useControlSettings } from './ui/Settings';
 import { QualityPicker } from './ui/QualityPicker';
 import { loadQualityPref, saveQualityPref, type QualityPref } from './fx/quality';
@@ -141,7 +142,7 @@ export function TaxiPage() {
           lowPower: touchUi,
           quality: qualityRef.current,
           lang,
-          track: new URLSearchParams(location.search).get('track') === 'test' ? 'test' : 'city',
+          track: (() => { const t = new URLSearchParams(location.search).get('track'); return t === 'test' ? 'test' : t === 'grid' ? 'grid' : 'city'; })(),
           onEvent: (e) => onEvent.current(e),
           onPause: (p) => {
             setPaused(p);
@@ -337,6 +338,7 @@ export function TaxiPage() {
             <span className="taxi-speed-n">{Math.round(hud.kmh)}</span>
             <span className="taxi-speed-u">km/h</span>
           </div>
+          <RoadName game={getGame} lang={lang} />
           <div className="taxi-badges" aria-hidden="true">
             <span className="taxi-badge" data-on={hud.rush} title="rush">
               <svg viewBox="0 0 24 24" width="34" height="34">
@@ -360,6 +362,7 @@ export function TaxiPage() {
       )}
       {hud && screen === 'play' && <Hud hud={hud} labels={{ time: tr(T.time), money: tr(T.money), dist: tr(T.dist) }} />}
       {hud?.run && screen === 'play' && <Minimap game={getGame} mode={hud.run.mode} />}
+      {hud?.run && screen === 'play' && <DistrictLabel game={getGame} lang={lang} mode={hud.run.mode} />}
       <div className="taxi-pops" aria-live="polite" data-testid="taxi-pops">
         {pops.map((p) => (
           <div key={p.id} className={`taxi-pop taxi-pop-${p.kind}`} data-kind={p.kind} style={{ borderColor: p.color }}>

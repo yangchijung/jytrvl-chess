@@ -92,3 +92,8 @@
   .tc-touchmap { width: 280px; }
 }
 @media (prefers-reduced-motion: reduce) { .tc-track, .tc-thumb, .tc-seg-btn, .tc-segment { transition: none; } }
+/* the map data credit (OpenStreetMap, ODbL): a plain ink link, 44 px tall for a finger */
+.tc-credit { margin: 8px 0 0; font-size: 0.9rem; font-weight: 700; }
+.tc-credit a { display: inline-flex; align-items: center; min-height: 44px; color: #23303f; text-decoration: underline; text-underline-offset: 3px; }
+.tc-credit a:focus-visible { outline: 3px solid #23303f; outline-offset: 2px; }
+.tc-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

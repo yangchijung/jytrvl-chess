@@ -18,6 +18,7 @@ import { newRun, tick, type Mode, type RunEvent, type RunState } from './gamepla
 import { RunView } from './gameplay/view';
 import { testLevel, type Level } from './world/level';
 import { cityLevel } from './world/city';
+import { osmLevel } from './world/osm/level';
 import { buildPhysics, buildScene } from './world/build';
 import { drawSky } from './world/decor';
 import { TAXI_GROUPS, Traffic, type TaxiNow } from './world/traffic';
@@ -93,9 +94,10 @@ export interface GameAudio {
   effect(e: SfxEvent, strength?: number): void;
 }
 
-export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) => void, opts: { lowPower?: boolean; quality?: QualityPref; lang?: 'zh' | 'en'; track?: 'city' | 'test'; onEvent?: (e: RunEvent) => void; onPause?: (paused: boolean) => void; audio?: GameAudio } = {}): Promise<Game> {
+export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) => void, opts: { lowPower?: boolean; quality?: QualityPref; lang?: 'zh' | 'en'; track?: 'city' | 'grid' | 'test'; onEvent?: (e: RunEvent) => void; onPause?: (paused: boolean) => void; audio?: GameAudio } = {}): Promise<Game> {
   await RAPIER.init();
-  const level = opts.track === 'test' ? testLevel() : cityLevel();
+  // the real-map Kaohsiung is the city; ?track=grid keeps the stage 3 hand-made grid city, ?track=test the test ground
+  const level = opts.track === 'test' ? testLevel() : opts.track === 'grid' ? cityLevel() : osmLevel();
   const SPAWN = level.spawn;
   const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
   world.timestep = STEP;
@@ -176,8 +178,9 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
   const car = new Car(RAPIER, world, SPAWN.p, SPAWN.yaw, tuning);
   car.collider.setCollisionGroups(TAXI_GROUPS);
   const view = new RunView(scene, opts.lang ?? 'zh');
-  const traffic = level.graph ? new Traffic(RAPIER, world, scene, level.graph, opts.lowPower ? 22 : 30) : null;
-  const people = level.walks.length ? new People(scene, level.walks, opts.lowPower ? 50 : 80) : null;
+  // the real map: traffic on its lanes and people on its sidewalks, both kept around the taxi
+  const traffic = level.graph ? new Traffic(RAPIER, world, scene, level.graph, opts.lowPower ? 22 : 30, 7, level.roadnet ? { net: level.roadnet, around: SPAWN.p } : undefined) : null;
+  const people = level.walks.length ? new People(scene, level.walks, opts.lowPower ? 50 : 80, 11, level.osm ? SPAWN.p : undefined) : null;
   /** the last spot where the car stood on flat ground, to come back to after a splash in the river */
   const safe = { p: { ...SPAWN.p }, yaw: SPAWN.yaw, t: 0 };
   let wet = 0;
@@ -421,15 +424,19 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
     }
     view.update(run, p, performance.now() / 1000);
     if (menu) {
-      // the menu's background: a slow aerial orbit over the Love River
+      // the menu's background: a slow aerial orbit over the Love River (radius and height keep the draw calls in the
+      // tablet budget: 290 m / 150 m saw the whole grid city, 165 calls and 377k triangles)
       orbit += dt * 0.045;
-      chase.cam.position.set(Math.cos(orbit) * 290, 150, Math.sin(orbit) * 290);
+      chase.cam.position.set(Math.cos(orbit) * 130, 170, Math.sin(orbit) * 130);
       chase.cam.lookAt(0, 0, 0);
       if (Math.abs(chase.cam.fov - 55) > 0.1) {
         chase.cam.fov = 55;
         chase.cam.updateProjectionMatrix();
       }
     }
+    // test hook (screenshots of the landmarks): a fixed camera [x, y, z, look-at x, y, z]
+    const peek = (globalThis as { __taxiPeek?: number[] }).__taxiPeek;
+    if (peek) (chase.cam.position.set(peek[0], peek[1], peek[2]), chase.cam.lookAt(peek[3], peek[4], peek[5]));
     // boards and landmark parts between the lens and the cab dither away (off for the menu's orbit)
     updateOcclusion(chase.cam.position, p.clone().setY(p.y + OCC_CAR_LIFT), !menu);
     sky?.position.set(chase.cam.position.x, 0, chase.cam.position.z);

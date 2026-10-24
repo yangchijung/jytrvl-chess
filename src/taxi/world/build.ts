@@ -6,10 +6,12 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import type RAPIER_NS from '@dimforge/rapier3d-compat';
 import { wedgePoints } from './greybox';
 import type { Level, Prim, Shape } from './level';
-import { buildingMaterial, drawDecor, waterMaterial } from './decor';
+import { buildingMaterial, drawDecor, drawSignals, waterMaterial } from './decor';
 import { addFakeAO } from '../fx/fakeAO';
 import { pitchTriangles, type Pitch } from './massing';
 import { buildingLook } from './facade';
+import { nearField } from './nearfield';
+import { buildSurfacePhysics, drawSurfaces, groupOfPoint } from './osm/surfaces';
 import { addOcclusionFade, OCC_NEAR, OCC_NEAR_BOARD } from '../fx/occlusion';
 import { brightenBasic } from '../fx/nightGlow';
 import { roadMaterial, withGlassReflection } from '../fx/surfaces';
@@ -21,6 +23,7 @@ export const LOOK = { asphalt: '#525459', grass: '#7AAF4C', sea: '#1D7FC6', rive
 /** colliders for the whole level; returns the handles that never count as a crash and the moving props */
 export function buildPhysics(RAPIER: R, world: RAPIER_NS.World, level: Level) {
   const soft = new Set<number>();
+  if (level.osm) for (const h of buildSurfacePhysics(RAPIER, world, level)) soft.add(h);
   for (const g of level.ground) soft.add(world.createCollider(RAPIER.ColliderDesc.cuboid(g.size[0] / 2, g.size[1] / 2, g.size[2] / 2).setTranslation(...g.p).setFriction(1)).handle);
   if (level.water) {
     const w = level.water;
@@ -32,6 +35,8 @@ export function buildPhysics(RAPIER: R, world: RAPIER_NS.World, level: Level) {
       const b = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(...s.p));
       soft.add(world.createCollider(RAPIER.ColliderDesc.cuboid(s.size[0] / 2, s.size[1] / 2, s.size[2] / 2).setDensity(40).setRestitution(0.3), b).handle);
       dynamics.push({ b, s });
+    } else if (s.kind === 'box' && s.nocollide) {
+      continue;
     } else if (s.kind === 'box') {
       const flat = s.size[1] <= 0.7 && s.p[1] <= 0; // bridge decks: part of the road
       const c = world.createCollider(RAPIER.ColliderDesc.cuboid(s.size[0] / 2, s.size[1] / 2, s.size[2] / 2).setTranslation(...s.p).setRotation(rotY(s.yaw)).setRestitution(0.2).setFriction(flat ? 1 : 0.4));
@@ -46,18 +51,41 @@ export function buildPhysics(RAPIER: R, world: RAPIER_NS.World, level: Level) {
   return { soft, dynamics };
 }
 
+/** a pitched roof (Prim 'gab'), centred at the origin: same attributes and indexing as the other primitives */
+function roofGeometry(L: number, W: number, H: number, hip = 0) {
+  const x = L / 2,
+    z = W / 2,
+    y0 = -H / 2,
+    y1 = H / 2,
+    r = Math.max(0, x - Math.min(hip, x));
+  const a = [-x, y0, -z], b = [x, y0, -z], c = [x, y0, z], d = [-x, y0, z], e = [-r, y1, 0], f = [r, y1, 0];
+  const tris = [a, e, f, a, f, b, c, f, e, c, e, d, b, f, c, d, e, a];
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(tris.flat(), 3));
+  g.computeVertexNormals();
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(tris.length * 2), 2));
+  g.setIndex(Array.from({ length: tris.length }, (_, i) => i));
+  return g;
+}
+
 function primGeometry(p: Prim) {
   let g: THREE.BufferGeometry;
+  // square prisms: `r` is the half side, so the corner radius is r·√2 and the corners turn onto the diagonals
+  const sq = (n?: number) => (n === 4 ? Math.SQRT2 : 1);
   if (p.t === 'box') g = new THREE.BoxGeometry(p.sx, p.sy, p.sz);
-  else if (p.t === 'cyl') g = new THREE.CylinderGeometry(p.r, p.r, p.h, 18);
+  else if (p.t === 'cyl') g = new THREE.CylinderGeometry((p.rt ?? p.r) * sq(p.seg), p.r * sq(p.seg), p.h, p.seg ?? 18);
   else if (p.t === 'cone') {
-    g = new THREE.ConeGeometry(p.r, Math.abs(p.h), 18);
+    g = new THREE.ConeGeometry(p.r * sq(p.seg), Math.abs(p.h), p.seg ?? 18);
     if (p.h < 0) g.rotateX(Math.PI);
-  } else if (p.t === 'sph') g = new THREE.SphereGeometry(p.r, 16, 12);
+  } else if (p.t === 'sph') g = new THREE.SphereGeometry(p.r, p.seg ?? 16, p.seg ? Math.max(4, Math.round(p.seg * 0.75)) : 12);
+  else if (p.t === 'gab') g = roofGeometry(p.L, p.W, p.H, p.hip);
   else {
     g = new THREE.TorusGeometry(p.R, p.tube, 8, 40);
     g.rotateY(p.yaw);
   }
+  if ((p.t === 'cyl' || p.t === 'cone') && p.seg === 4) g.rotateY(Math.PI / 4);
+  if ((p.t === 'cyl' || p.t === 'cone') && p.sx) g.scale(p.sx, 1, 1);
+  if (p.t !== 'tor' && p.t !== 'sph' && p.yaw) g.rotateY(p.yaw);
   g.translate(p.x, p.y, p.z);
   const c = new THREE.Color(p.color);
   const n = g.getAttribute('position').count;
@@ -147,6 +175,22 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
     const grid = new THREE.GridHelper(S, S / 10, '#5A616B', '#4A5059');
     grid.position.y = 0.02;
     scene.add(ground, grid);
+  } else if (level.osm) {
+    drawSurfaces(scene, level, { river: riverWater.mat, sea: seaWater.mat });
+    // far land round the map: grass to the east and north, the sea to the west and south
+    const r = level.rect!,
+      far = 2500;
+    for (const [x0, x1, z0, z1, mat] of [
+      [r.x1, r.x1 + far, r.z0 - far, r.z1 + far, lambert(LOOK.grass)],
+      [r.x0, r.x1, r.z0 - far, r.z0, lambert(LOOK.grass)],
+      [r.x0 - far, r.x0, r.z0 - far, r.z1 + far, seaWater.mat],
+      [r.x0, r.x1, r.z1, r.z1 + far, seaWater.mat],
+    ] as const) {
+      const g = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, z1 - z0), mat);
+      g.rotation.x = -Math.PI / 2;
+      g.position.set((x0 + x1) / 2, mat === seaWater.mat ? level.water!.y : -0.08, (z0 + z1) / 2);
+      scene.add(g);
+    }
   } else {
     for (const g of level.ground) {
       const m = new THREE.Mesh(new THREE.BoxGeometry(...g.size), asphalt);
@@ -173,7 +217,7 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
     scene.add(sea);
     waters.push(sea);
   }
-  if (level.water) {
+  if (level.water && !level.osm) {
     const w = level.water;
     const water = new THREE.Mesh(new THREE.PlaneGeometry(w.x1 - w.x0, w.z1 - w.z0), riverWater.mat);
     water.rotation.x = -Math.PI / 2;
@@ -205,26 +249,67 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
   const ms = level.massing;
   const boxes: Inst[] = [...all.filter((s) => s.look === undefined), ...(ms?.slabs ?? []).map((b) => ({ p: [b.x, b.y, b.z] as [number, number, number], size: [b.w, b.h, b.d] as [number, number, number], color: b.color }))];
   const blds: Inst[] = [...all.filter((s) => s.look !== undefined), ...(ms?.masses ?? []).map((m) => ({ p: [m.x, m.y0 + m.h / 2, m.z] as [number, number, number], size: [m.w, m.h, m.d] as [number, number, number], color: m.color, look: m.look }))];
-  if (blds.length) {
+  // the real-map city has tens of thousands of buildings: one instanced mesh per 920 m square (4 × 4 data tiles), so
+  // the frustum culls the squares behind and beside the camera; the hand-made levels keep a single mesh
+  const squares = <T extends Inst>(items: T[]): T[][] => {
+    if (!level.osm || items.length < 400) return [items];
+    const S = 920;
+    const map = new Map<string, T[]>();
+    for (const it of items) {
+      const k = `${Math.floor(it.p[0] / S)},${Math.floor(it.p[2] / S)}`;
+      (map.get(k) ?? map.set(k, []).get(k)!).push(it);
+    }
+    return [...map.values()];
+  };
+  const bldMat = blds.length ? addOcclusionFade(addFakeAO(withGlassReflection(buildingMaterial()), 'base')) : null;
+  const bldMesh = (part: Inst[]) => {
     // buildings: windows, arcades and roofs drawn by the shader from each building's look; no bottom face (never seen)
     const geo = new THREE.BoxGeometry(1, 1, 1);
     const ix = Array.from(geo.index!.array);
     geo.setIndex([...ix.slice(0, 18), ...ix.slice(24)]);
-    geo.setAttribute('aLook', new THREE.InstancedBufferAttribute(new Float32Array(blds.map((s) => buildingLook(s.look ?? 0, s.p[0], s.p[2]))), 1));
-    const inst = new THREE.InstancedMesh(geo, addOcclusionFade(addFakeAO(withGlassReflection(buildingMaterial()), 'base')), blds.length);
+    geo.setAttribute('aLook', new THREE.InstancedBufferAttribute(new Float32Array(part.map((s) => buildingLook(s.look ?? 0, s.p[0], s.p[2]))), 1));
+    const inst = new THREE.InstancedMesh(geo, bldMat!, part.length);
     inst.name = 'buildings';
     faded.set(inst, 0);
-    blds.forEach((s, i) => {
+    part.forEach((s, i) => {
       m4.compose(new THREE.Vector3(...s.p), q.setFromAxisAngle(up, s.yaw ?? 0), new THREE.Vector3(...s.size));
       inst.setMatrixAt(i, m4);
       inst.setColorAt(i, new THREE.Color(s.color));
     });
+    inst.computeBoundingSphere();
     inst.castShadow = true;
     inst.receiveShadow = true;
-    scene.add(inst);
+    return inst;
+  };
+  for (const part of blds.length ? squares(blds) : []) {
+    const inst = bldMesh(part);
+    if (!level.osm) {
+      scene.add(inst);
+      continue;
+    }
+    // a whole square in the sun's 36 m shadow box would draw thousands of boxes into the shadow map: the squares
+    // only receive, and a near-field caster (below) throws the shadows of the buildings round the camera
+    inst.castShadow = false;
+    // far squares (centre 1100 m away, so every building in it at least 450 m) keep only the skyline: buildings of
+    // 18 m and up; the low rows there are a few pixels deep in the haze
+    const tall = part.filter((s) => s.size[1] >= 18);
+    const lod = new THREE.LOD();
+    const c = inst.boundingSphere!.center;
+    lod.position.set(c.x, 0, c.z);
+    inst.position.set(-c.x, 0, -c.z);
+    lod.addLevel(inst, 0);
+    const far = tall.length ? bldMesh(tall) : new THREE.Object3D();
+    far.position.set(-c.x, 0, -c.z);
+    lod.addLevel(far, 1100);
+    scene.add(lod);
   }
-  if (boxes.length) {
-    const inst = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), addFakeAO(new THREE.MeshLambertMaterial({ flatShading: true }), 'base'), boxes.length);
+  if (blds.length && level.osm) scene.add(nearField(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial(), blds.map((s) => ({ x: s.p[0], y: s.p[1], z: s.p[2], yaw: s.yaw, s: new THREE.Vector3(...s.size) })), 130, { shadowOnly: true }));
+  const boxMat = addFakeAO(new THREE.MeshLambertMaterial({ flatShading: true }), 'base');
+  if (boxes.length && level.osm) {
+    // balconies, canopies and rails are small and many: only those within 380 m of the camera, one draw call
+    scene.add(nearField(new THREE.BoxGeometry(1, 1, 1), boxMat, boxes.map((s) => ({ x: s.p[0], y: s.p[1], z: s.p[2], yaw: s.yaw, s: new THREE.Vector3(...s.size), color: s.color })), 380));
+  } else if (boxes.length) {
+    const inst = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), boxMat, boxes.length);
     boxes.forEach((s, i) => {
       m4.compose(new THREE.Vector3(...s.p), q.setFromAxisAngle(up, s.yaw ?? 0), new THREE.Vector3(...s.size));
       inst.setMatrixAt(i, m4);
@@ -258,14 +343,26 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
   }
   // ---------- landmarks: one merged mesh with vertex colours ----------
   // (the harbour's pitched shed roofs share this mesh: no extra draw call)
+  // (the real-map city splits them per drawn square, like the ground, so the view and the shadow pass cull them)
   const merged = [...level.prims.map(primGeometry), ...(ms?.pitched ?? []).map(pitchGeometry)];
   if (merged.length) {
-    const mesh = new THREE.Mesh(mergeGeometries(merged), addOcclusionFade(addFakeAO(new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }), 'base'), { near: OCC_NEAR }));
-    mesh.name = 'landmarks';
-    faded.set(mesh, OCC_NEAR);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    scene.add(mesh);
+    const lmMat = addOcclusionFade(addFakeAO(new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }), 'base'), { near: OCC_NEAR });
+    const sets = new Map<number, THREE.BufferGeometry[]>();
+    merged.forEach((g, i) => {
+      const p = level.prims[i];
+      const k = level.osm && p ? groupOfPoint(level.osm, p.x, p.z) : 0;
+      const set = sets.get(k);
+      if (set) set.push(g);
+      else sets.set(k, [g]);
+    });
+    for (const [, parts] of sets) {
+      const mesh = new THREE.Mesh(mergeGeometries(parts), lmMat);
+      mesh.name = 'landmarks';
+      faded.set(mesh, OCC_NEAR);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      scene.add(mesh);
+    }
   }
   // ---------- name boards: one atlas, one merged mesh (front and back faces both read correctly) ----------
   if (level.signs.length) {
@@ -320,6 +417,8 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
       return mesh;
     });
   const decor = level.decor ? drawDecor(scene, level) : null;
+  // the real map's traffic lights (two draw calls for all of them)
+  const signals = level.signals?.length ? drawSignals(scene, level.signals, true) : null;
   return {
     props,
     faded,
@@ -330,6 +429,7 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
       seaWater.uTime.value = t;
       riverWater.uTime.value = t;
       decor?.update(t, dt);
+      signals?.update(t);
     },
   };
 }
