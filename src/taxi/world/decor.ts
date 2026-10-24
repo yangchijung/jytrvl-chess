@@ -10,6 +10,9 @@ import { SHOP_WORDS, SIGN_COLORS } from './city';
 import { lightFor } from './traffic';
 import { nearField } from './nearfield';
 import { phaseLight } from './osm/roadnet';
+import { brightenBasic, glowVertexColours, lightPools, uNight } from '../fx/nightGlow';
+import type { Quality } from '../fx/quality';
+import { MIRROR, surfaceQuality, usesEnvironment, WATER_HEAD, WATER_REFLECT } from '../fx/surfaces';
 
 const m4 = new THREE.Matrix4();
 const q = new THREE.Quaternion();
@@ -101,6 +104,7 @@ function farCull(mesh: THREE.Mesh, far: number) {
 export function buildingMaterial() {
   const mat = new THREE.MeshLambertMaterial({ flatShading: true });
   mat.onBeforeCompile = (sh) => {
+    sh.uniforms.uNight = uNight;
     sh.vertexShader = sh.vertexShader
       .replace(
         '#include <common>',
@@ -125,6 +129,7 @@ export function buildingMaterial() {
         '#include <common>',
         `#include <common>
         varying vec3 vW; varying vec3 vNW; varying float vRoof; varying float vLook; varying vec3 vOrg; varying vec3 vExt;
+        uniform float uNight;
         float hsh(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
         float box2(vec2 p, vec2 a, vec2 b) { vec2 s = step(a, p) * step(p, b); return s.x * s.y; }
         // a line of half-width w at every integer of q; fq = fwidth(q). Fades to its average coverage when small.
@@ -158,6 +163,10 @@ export function buildingMaterial() {
           float top = vRoof - vW.y;
           vec2 fuv = fwidth(vec2(u, y)) + 1e-4;
           vec3 glow = vec3(0.0);
+          // night only (× uNight below): lit windows and shop fronts. Each window is on or off by its own hash of
+          // the building's seed and the window cell; warm (tungsten) or cool (fluorescent) light.
+          vec3 nglow = vec3(0.0);
+          vec3 warmL = vec3(1.0, 0.72, 0.38), coolL = vec3(0.72, 0.86, 1.0);
           vec3 sky = vec3(0.70, 0.80, 0.90);
           vec3 glass = vec3(0.26, 0.36, 0.46);
           bool wallFace = abs(vNW.y) < 0.5;
@@ -191,6 +200,7 @@ export function buildingMaterial() {
               door *= 1.0 - 0.1 * line1(y / 0.3, 0.2, fuv.y / 0.3);
               bool opened = hsh(vec2(bi, vr * 5.0 + 2.0)) < 0.22;
               wall = opened ? vec3(0.13, 0.13, 0.12) : door;
+              if (opened && hsh(vec2(bi, vr * 19.0)) < 0.6) nglow = warmL * 0.55;
               if (bf < 0.2 || bf > 0.8 || y > dh) wall = vec3(0.36, 0.37, 0.38); // frame and header
             }
             // a strip of high windows or translucent panels
@@ -207,6 +217,12 @@ export function buildingMaterial() {
             float hgt = clamp(y / max(vExt.y, 1.0), 0.0, 1.0);
             vec2 cell = vec2(u / mw, (y - ground) / fh);
             vec3 g = tint * (0.9 + 0.18 * hsh(floor(cell) + vr * 31.0));
+            {
+              // offices: whole runs of a floor lit together, some floors dark
+              float fl = hsh(vec2(floor(cell.y), vr * 23.0 + 1.3));
+              float on = step(0.35, fl) * step(0.3, hsh(vec2(floor(cell.x / 3.0), floor(cell.y) + vr * 29.0)));
+              nglow = mix(coolL, warmL, step(0.7, fl)) * on * (0.45 + 0.25 * hsh(floor(cell) + vr * 7.0));
+            }
             g = mix(g, sky, 0.1 + 0.25 * hgt + 0.45 * fres);
             float band = 0.25 + 0.65 * r7;
             float fy = fract(cell.y) * fh;
@@ -218,9 +234,10 @@ export function buildingMaterial() {
               // lobby: lit glass behind columns, a canopy
               g = fract(u / 6.0) < 0.1 ? paint * 0.8 : mix(vec3(0.86, 0.82, 0.68), tint, 0.3);
               if (fract(u / 6.0) >= 0.1) glow = vec3(0.07, 0.06, 0.04);
-              if (y > ground - 0.6) g = paint * 0.7;
+              nglow = fract(u / 6.0) >= 0.1 ? vec3(0.95, 0.88, 0.70) * 0.8 : vec3(0.0);
+              if (y > ground - 0.6) g = paint * 0.7, nglow = vec3(0.0);
             }
-            if (top < 0.9) g = paint * 1.05;
+            if (top < 0.9) g = paint * 1.05, nglow = vec3(0.0);
             diffuseColor.rgb = g;
           } else {
             // punched windows: houses, halls, concrete offices
@@ -261,6 +278,7 @@ export function buildingMaterial() {
                 // awning or shop sign band, sometimes striped
                 vec3 aw = pick5(hb2, vec3(0.72, 0.22, 0.20), vec3(0.22, 0.50, 0.32), vec3(0.20, 0.38, 0.62), vec3(0.88, 0.55, 0.18), vec3(0.90, 0.88, 0.80));
                 c = hb < 0.45 ? mix(aw, vec3(0.92, 0.91, 0.88), step(0.5, fract(u / 0.5))) : aw;
+                nglow = c * 0.35; // lit from below by the shop
               } else if (look != 2 && hb < 0.3) {
                 // roller shutter pulled down
                 c = pick4(hb2, vec3(0.70, 0.72, 0.73), vec3(0.40, 0.56, 0.46), vec3(0.45, 0.53, 0.62), vec3(0.83, 0.80, 0.70));
@@ -271,6 +289,7 @@ export function buildingMaterial() {
                 if (look == 2) lit = mix(glass, vec3(0.85, 0.88, 0.86), 0.5);
                 c = lit * 0.82 * (1.0 - 0.25 * line1(y / 0.65, 0.04, fuv.y / 0.65)) * (y < 0.3 ? 0.55 : 1.0);
                 glow = lit * 0.07;
+                nglow = (hb2 < 0.6 ? warmL : coolL) * (y < 0.3 ? 0.35 : 0.9);
               }
             } else {
               vec2 cell = vec2(u / cw, (y - ground) / fh);
@@ -284,6 +303,9 @@ export function buildingMaterial() {
                 w = mix(w, sky, 0.1 + 0.2 * (f.y - wa.y) / (wb.y - wa.y));
                 if (look == 1) w = mix(w, wall * 0.8, line1(u / 1.2, 0.04, fuv.x / 1.2)); // mullions on ribbons
                 c = w;
+                float on = step(look == 0 ? 0.42 : 0.5, hsh(ci + vr * 23.0 + 3.1));
+                nglow = mix(warmL, coolL, step(0.62, hsh(ci + vr * 41.0 + 0.3))) * on * (0.5 + 0.4 * hsh(ci + vr * 13.0));
+                if (rc < 0.3) nglow *= 0.6; // curtains drawn
               } else {
                 // dark streaks washed down from the sills
                 float below = (wa.y - f.y) * fh;
@@ -310,15 +332,17 @@ export function buildingMaterial() {
                 float bars = max(line1(p.x * 7.0, 0.09, fp.x * 7.0), line1(p.y * 3.0, 0.07, fp.y * 3.0));
                 float edge = 1.0 - box2(p, vec2(0.04), vec2(0.96));
                 c = mix(c * 0.85, cage, max(bars, edge));
+                nglow *= 1.0 - 0.8 * max(bars, edge); // the cage in front of a lit window
               }
             }
             // parapet band under the roof edge, a dark coping on top
-            if (top < 0.55) c = wall * 1.1 * (top < 0.1 ? 0.75 : 1.0);
+            if (top < 0.55) c = wall * 1.1 * (top < 0.1 ? 0.75 : 1.0), nglow = vec3(0.0);
             diffuseColor.rgb = c;
           }
           // grime at the base
           if (wallFace) diffuseColor.rgb *= 1.0 - 0.2 * (1.0 - smoothstep(0.0, 1.1, y)) * (0.6 + 0.4 * hsh(vec2(floor(u * 1.3), vr)));
           totalEmissiveRadiance += glow;
+          if (wallFace) totalEmissiveRadiance += nglow * uNight;
         }`,
       );
   };
@@ -383,6 +407,8 @@ export function drawDecor(scene: THREE.Scene, level: Level) {
         .replace('#include <common>', '#include <common>\nvarying vec3 vFg; varying vec3 vBg;')
         .replace('#include <map_fragment>', '#ifdef USE_MAP\nfloat ink = texture2D(map, vMapUv).r;\ndiffuseColor.rgb = mix(vBg, vFg, ink);\n#endif');
     };
+    // neon-bright after dark: the desktop bloom picks the signs up
+    brightenBasic(mat, 0.7);
     mats.push(mat);
     // one merged mesh per 460 m square, dropped past 480 m from its centre (signs 155 m or more away), so the far
     // squares cost nothing
@@ -435,8 +461,12 @@ export function drawDecor(scene: THREE.Scene, level: Level) {
 
   // ---------- street lamps: pole, an arm over the road, the lamp ----------
   const lampGeo = mergeGeometries([cyl(0.09, 0.12, 6.4, 0, 3.2, 0, '#5D6B78', level.osm ? 5 : 8), bx(0.08, 0.08, 1.8, 0, 6.3, 0.85, '#5D6B78'), bx(0.36, 0.14, 0.6, 0, 6.2, 1.75, '#EEEEEE')]);
+  // at night the near-white head glows warm (the only near-white part of the lamp) and lights a pool on the road
+  const lampMat = glowVertexColours(vc(), [{ mask: 'step(0.8, min(vColor.r, min(vColor.g, vColor.b)))', gain: 1.6, tint: '1.0, 0.86, 0.62' }]);
   // (the real-map city has thousands: no shadows from them, the chunks are too big for the shadow camera to cull)
-  add(instanced(lampGeo, vc(), d.lamps.map((l) => ({ x: l.x, y: 0, z: l.z, yaw: l.yaw })), !level.osm, chunk.far * 0.8));
+  add(instanced(lampGeo, lampMat, d.lamps.map((l) => ({ x: l.x, y: 0, z: l.z, yaw: l.yaw })), !level.osm, chunk.far * 0.8));
+  const pools = lightPools(d.lamps.map((l) => ({ x: l.x + Math.sin(l.yaw) * 1.75, z: l.z + Math.cos(l.yaw) * 1.75 })));
+  add(pools);
   // ---------- kerbs ----------
   // (the real-map city draws its kerbs merged with the light rail: drawGround)
   if (!level.osm) add(instanced(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ flatShading: true }), d.curbs.map((c) => ({ x: c.x, y: 0.07, z: c.z, s: new THREE.Vector3(c.w, 0.14, c.d), color: c.color })), false));
@@ -484,6 +514,7 @@ export function drawDecor(scene: THREE.Scene, level: Level) {
   return {
     update(t: number, dt: number) {
       pathBoats?.(t, dt);
+      if (pools) pools.visible = uNight.value > 0.02;
       // traffic lights follow the same clock as the traffic
       signals.update(t);
       const water = level.water;
@@ -523,7 +554,8 @@ export function drawSignals(scene: THREE.Scene, list: Signal[], lean: boolean) {
   }
   // the lamps: small boxes, or for the real map flat discs facing the drivers
   const lampGeo = lean ? new THREE.PlaneGeometry(0.17, 0.17) : new THREE.BoxGeometry(0.16, 0.16, 0.05);
-  const lamps = new THREE.InstancedMesh(lampGeo, new THREE.MeshBasicMaterial(), list.length * 3);
+  // unlit, so they read at any time of day; brighter at night (bloom on desktop)
+  const lamps = new THREE.InstancedMesh(lampGeo, brightenBasic(new THREE.MeshBasicMaterial(), 0.9), list.length * 3);
   list.forEach((s, i) => {
     for (let k = 0; k < 3; k++) {
       // red, yellow, green from left to right as seen by the drivers
@@ -801,13 +833,25 @@ function drawGround(scene: THREE.Scene, d: Decor) {
   }
 }
 
-/** water that moves: soft bands drifting across the surface (river and sea) */
-export function waterMaterial(color: string) {
+/**
+ * water that moves: soft bands drifting across the surface (river and sea). On 'mid' and 'high' it also reflects
+ * (surfaces.ts): the environment map plus a fake bank from `box` (the water's extent, x0 x1 z0 z1) and `bankH` (how
+ * tall the bank looks); 'high' adds the planar mirror. 'low' is the original look.
+ */
+export function waterMaterial(color: string, opts: { box?: [number, number, number, number]; bankH?: number; tier?: Quality } = {}) {
   // Phong for a sun glint; the ripple tilts the normal a little so the glint breaks into sparkles
   const mat = new THREE.MeshPhongMaterial({ color, specular: '#CFE6F2', shininess: 70 });
   const uTime = { value: 0 };
+  const tier = opts.tier ?? surfaceQuality();
+  const box = opts.box ?? [-1e5, 1e5, -1e5, 1e5];
+  const refl = { uWaterBox: { value: new THREE.Vector4(...box) }, uBankH: { value: opts.bankH ?? 12 }, uReflK: { value: 0.6 } };
+  if (tier === 'high') mat.defines = { WATER_MIRROR: '' };
   mat.onBeforeCompile = (sh) => {
     sh.uniforms.uTime = uTime;
+    if (tier !== 'low') {
+      Object.assign(sh.uniforms, refl, tier === 'high' ? MIRROR : {});
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>${WATER_HEAD}`).replace('#include <envmap_fragment>', `${WATER_REFLECT}\n#include <envmap_fragment>`);
+    }
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWp;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvWp = (modelMatrix * vec4(position, 1.0)).xyz;');
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vWp; uniform float uTime;')
@@ -826,6 +870,8 @@ export function waterMaterial(color: string) {
       normal = normalize(normal + (viewMatrix * vec4(rip.x, 0.0, rip.y, 0.0)).xyz);`,
       );
   };
+  mat.customProgramCacheKey = () => `water-${tier}`;
+  if (tier !== 'low') usesEnvironment(mat);
   return { mat, uTime };
 }
 
@@ -835,11 +881,21 @@ export function drawSky(scene: THREE.Scene, horizon: string, zenith: string, glo
   const g = new THREE.SphereGeometry(850, 32, 16);
   const pos = g.getAttribute('position');
   const col = new Float32Array(pos.count * 3);
-  for (let i = 0; i < pos.count; i++) {
-    const c = skyColour(pos.getY(i) / 850, horizon, glow, zenith);
-    col.set([c.r, c.g, c.b], i * 3);
-  }
-  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  const colAttr = new THREE.BufferAttribute(col, 3);
+  /** repaint the dome (a few hundred vertices; game.ts calls it only when the time of day has moved) */
+  const paint = (h: string, gl: string, z: string, pale?: number) => {
+    // one colour per ring of the sphere: compute each height once
+    const memo = new Map<number, THREE.Color>();
+    for (let i = 0; i < pos.count; i++) {
+      const y = pos.getY(i);
+      let c = memo.get(y);
+      if (!c) memo.set(y, (c = skyColour(y / 850, h, gl, z, pale)));
+      col.set([c.r, c.g, c.b], i * 3);
+    }
+    colAttr.needsUpdate = true;
+  };
+  paint(horizon, glow, zenith);
+  g.setAttribute('color', colAttr);
   const dome = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false }));
   dome.renderOrder = -1;
   // the sky moves with the camera, so it is always the same distance away
@@ -855,14 +911,22 @@ export function drawSky(scene: THREE.Scene, horizon: string, zenith: string, glo
     clouds.setMatrixAt(i, m4);
   }
   sky.add(clouds);
-  return sky;
+  const cloudMat = clouds.material as THREE.MeshLambertMaterial;
+  return Object.assign(sky, {
+    /** new colours for the time of day: the dome (horizon, glow, zenith, paleness of the low sky) and the clouds */
+    recolour(o: { horizon: string; glow: string; zenith: string; pale: number; cloud: string; cloudEmissive: string }) {
+      paint(o.horizon, o.glow, o.zenith, o.pale);
+      cloudMat.color.set(o.cloud);
+      cloudMat.emissive.set(o.cloudEmissive);
+    },
+  });
 }
 
 /** the sky dome's colour at height `y` (−1 … 1 on the dome, 0 = eye level): the horizon colour at and below 0 (it
  * matches the fog, so the ground melts into it), a thin warm glow just above, then blue that deepens towards the top */
-export function skyColour(y: number, horizon: string, glow: string, zenith: string) {
+export function skyColour(y: number, horizon: string, glow: string, zenith: string, pale = 0.45) {
   const t = Math.max(0, y);
-  const mid = new THREE.Color(zenith).lerp(new THREE.Color('#FFFFFF'), 0.45); // the paler blue low in the sky
+  const mid = new THREE.Color(zenith).lerp(new THREE.Color('#FFFFFF'), pale); // the paler blue low in the sky
   if (t < 0.03) return new THREE.Color(horizon).lerp(new THREE.Color(glow), t / 0.03);
   if (t < 0.14) return new THREE.Color(glow).lerp(mid, (t - 0.03) / 0.11);
   return mid.lerp(new THREE.Color(zenith), Math.pow(Math.min(1, (t - 0.14) / 0.56), 0.8));

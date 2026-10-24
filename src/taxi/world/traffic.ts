@@ -12,6 +12,8 @@ import type RAPIER_NS from '@dimforge/rapier3d-compat';
 import type { RoadGraph } from './level';
 import { sedanGeometry } from '../fx/taxiModel';
 import { chooseTurn, laneDensity, phaseLight, type RoadNet } from './osm/roadnet';
+import { CAR_LIGHT_GLOW, glowVertexColours } from '../fx/nightGlow';
+import { trafficMaterial } from '../fx/surfaces';
 
 type R = typeof RAPIER_NS;
 /** collision groups (membership << 16 | filter): the taxi is group 2; a knocked car stops colliding with it, so the
@@ -103,11 +105,12 @@ export class Traffic {
     if (this.net) this.mids = this.net.lanes.map((l) => l.pts[Math.floor(l.pts.length / 2)]);
     this.adj = graph.nodes.map(() => []);
     for (const [a, b] of graph.edges) this.adj[a].push(b), this.adj[b].push(a);
-    const mat = (o: THREE.MeshLambertMaterialParameters = {}) => new THREE.MeshLambertMaterial({ flatShading: true, ...o });
-    // sedans: the paint takes each car's colour, glass, bumpers, lights and wheels keep theirs
+    // sedans: the paint takes each car's colour, glass, bumpers, lights and wheels keep theirs; one shared
+    // material (paint, glass, rubber told apart per vertex) for both meshes and every car
     const geo = sedanGeometry();
-    this.bodyMesh = new THREE.InstancedMesh(geo.paint, mat({ vertexColors: true }), count);
-    this.cabinMesh = new THREE.InstancedMesh(geo.detail, mat({ vertexColors: true }), count);
+    this.bodyMesh = new THREE.InstancedMesh(geo.paint, trafficMaterial('body'), count);
+    // after dark the head lamps (near white) and tail lamps (pure red) glow
+    this.cabinMesh = new THREE.InstancedMesh(geo.detail, glowVertexColours(trafficMaterial('detail'), CAR_LIGHT_GLOW), count);
     this.bodyMesh.castShadow = this.cabinMesh.castShadow = true;
     // the cars move all over the map: a bounding sphere computed once would hide them later
     this.bodyMesh.frustumCulled = this.cabinMesh.frustumCulled = false;
