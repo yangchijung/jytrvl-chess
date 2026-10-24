@@ -395,7 +395,7 @@ export const SCOOTER_DISTRICTS = ['鹽埕區', '三民區', '新興區', '苓雅
 const SCOOT = ['#E53935', '#FFFFFF', '#1E88E5', '#212121', '#FDD835', '#90A4AE', '#8E24AA', '#43A047'];
 export const KERB = { red: '#C62828', yellow: '#E2B227', grey: '#B9BDC2' } as const;
 /** lamp spacing along a road by rank (m) */
-const LAMP_STEP: Record<number, number> = { 5: 32, 4: 36, 3: 50, 2: 80, 1: 110 };
+const LAMP_STEP: Record<number, number> = { 5: 34, 4: 38, 3: 60, 2: 100, 1: 150 };
 
 export function osmDecor(data: OsmCityData, opts: OsmDecorOpts = {}): OsmDecor {
   const roads = new RoadIndex(data.roads);
@@ -502,7 +502,7 @@ export function osmDecor(data: OsmCityData, opts: OsmDecorOpts = {}): OsmDecor {
         const a = (isJunction(r.a) ? cornerR(r.a) + 6 : 3) + 1,
           b = L - (isJunction(r.b) ? cornerR(r.b) + 6 : 3) - 1;
         for (const side of r.oneway || rank >= 3 ? sides : [ri % 2 ? 1 : -1]) {
-          if (hash(ri, side, 1) < (rank >= 4 ? 0.7 : 0.55)) continue;
+          if (hash(ri, side, 1) < (rank >= 4 ? 0.82 : 0.76)) continue;
           let s = a + hash(ri, side, 2) * 6;
           while (s < b) {
             const run = 3 + hash(ri, side, s, 3) * 6;
@@ -519,7 +519,7 @@ export function osmDecor(data: OsmCityData, opts: OsmDecorOpts = {}): OsmDecor {
               if (nearStop(x, z, 5) || nearJunction(x, z, 10) || lampGrid.near(x, z, 1.2)) continue;
               scooters.push({ x, z, yaw: Math.atan2(p.dz * side, -p.dx * side), color: SCOOT[Math.floor(hash(ri, side, t, 4) * SCOOT.length)] });
             }
-            s += run + 22 + hash(ri, side, s, 5) * 30;
+            s += run + 30 + hash(ri, side, s, 5) * 40;
           }
         }
       }
@@ -587,14 +587,16 @@ export function osmDecor(data: OsmCityData, opts: OsmDecorOpts = {}): OsmDecor {
   // ---------- Love River boats: three lanes along the centre line, going back and forth ----------
   const boats: Decor['boats'] = [];
   if (river >= 0) {
-    const centre = riverCentre(data.water[river][0], water, 4);
+    // (the river alone: at its mouth the lanes must not run on into the harbour)
+    const riverWater = new WaterIndex([data.water[river]]);
+    const centre = riverCentre(data.water[river][0], riverWater, 4);
     const lanes: [number, number, string][] = [
       [-6, 3.4, '#E53935'],
       [0, 2.8, '#FFB300'],
       [6, 3.8, '#1E88E5'],
     ];
     lanes.forEach(([off, speed, color], k) => {
-      const path = longestRun(offsetLine(centre, off), (x, z) => water.inWater(x, z) && water.bankDist(x, z, 4) >= 3);
+      const path = longestRun(offsetLine(centre, off), (x, z) => riverWater.inWater(x, z) && riverWater.bankDist(x, z, 4) >= 3);
       if (path.length < 6 || polyLen(path) < 120) return;
       // x0/x1/z keep the straight-line fields meaningful for code that reads them (start and end of the path)
       boats.push({ z: path[0][1], x0: path[0][0], x1: path[path.length - 1][0], speed, color, path, phase: (k * 0.37 + 0.15) % 1 });
