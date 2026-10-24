@@ -18,6 +18,16 @@
 .tc-switch[aria-checked='true'] .tc-thumb { transform: translateX(26px); background: #23303f; }
 .tc-status { min-width: 0; color: #fffaf2; background: #23303f; border-radius: 10px; padding: 6px 12px; font-size: 1.1rem; font-weight: 800; }
 .tc-status:empty { display: none; }
+/* 時段: a segmented control in the same ink and paper; the chosen segment is filled ink with paper text (a change
+   of fill and contrast, not of hue alone) */
+.tc-seg-wrap { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.tc-seg-title { color: #fffaf2; font-size: 1.15rem; font-weight: 800; }
+.tc-seg { display: inline-flex; border: 4px solid #23303f; border-radius: 18px; background: #fffaf2; overflow: hidden; }
+.tc-seg-btn { min-height: 56px; min-width: 64px; padding: 6px 14px; border: 0; background: transparent; color: #23303f; font: inherit; font-size: 1.2rem; font-weight: 800; cursor: pointer; touch-action: manipulation; transition: background-color 160ms ease-out, color 160ms ease-out; }
+.tc-seg-btn + .tc-seg-btn { border-left: 3px solid #23303f; }
+.tc-seg-btn[aria-checked='true'] { background: #23303f; color: #fffaf2; }
+.tc-seg-btn:active { background: #ffc72c; color: #23303f; }
+.tc-seg-btn:focus-visible { outline: 3px solid #1565c0; outline-offset: -6px; }
 
 /* help panel */
 .tc-help { position: relative; width: min(920px, 100%); max-height: 100%; overflow-y: auto; box-sizing: border-box; padding: 16px 20px 20px; border-radius: 22px; border: 5px solid #23303f; background: #fffaf2; color: #23303f; touch-action: pan-y; }
@@ -54,6 +64,7 @@
   .tc-pausemenu .taxi-mode svg { width: 40px; height: 40px; }
   .tc-pausemenu .taxi-volume input { width: 140px; }
   .tc-btn, .tc-switch { padding: 6px 14px; font-size: 1.1rem; }
+  .tc-seg-btn { min-height: 48px; min-width: 56px; padding: 4px 10px; font-size: 1.1rem; }
   .tc-help { padding: 8px 14px 10px; }
   /* no room for a title row: the title stays for screen readers, the close button sits in the top-right corner */
   .tc-help-top { position: absolute; top: 8px; right: 8px; margin: 0; }
@@ -66,4 +77,4 @@
   .tc-pad-face, .tc-pad-stick { width: 32px; }
   .tc-touchmap { width: 280px; }
 }
-@media (prefers-reduced-motion: reduce) { .tc-track, .tc-thumb { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .tc-track, .tc-thumb, .tc-seg-btn { transition: none; } }

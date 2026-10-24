@@ -24,12 +24,11 @@ import { buildPhysics, buildScene } from './world/build';
 import { drawSky } from './world/decor';
 import { TAXI_GROUPS, Traffic, type TaxiNow } from './world/traffic';
 import { People } from './world/people';
+import { cycleT, lightingAt, type Lighting, type TimeSetting } from './fx/timeOfDay';
+import { headlightBeams, uNight } from './fx/nightGlow';
 
 export const STEP = 1 / 60;
-// a clear subtropical afternoon: the haze at the horizon is warm and pale, the sky overhead a deep clean blue
-const SKY = { horizon: '#E8E6DA', glow: '#F7E3BC', zenith: '#2F86DA' };
-/** the sun's angle (from the car): high in the south-west, so shadows fall short and to the north-east */
-const SUN_DIR = new THREE.Vector3(-0.52, 0.78, 0.34).normalize();
+// the sky, fog, sun and fill come from fx/timeOfDay.ts (day = a clear subtropical afternoon, sunset, night)
 const PALETTE = { sky: '#9BD3F2', asphalt: '#3A3F47', taxi: '#FFC72C', ink: '#23303F', tyre: '#1E2228', glass: '#5C7A99' };
 
 export interface HudState {
@@ -65,6 +64,10 @@ export interface Game {
   setCar(carId: string, driverId: string): void;
   /** the menu: a slow aerial orbit of the city instead of the chase camera */
   setMenu(on: boolean): void;
+  /** time of day: 白天 / 黃昏 / 夜晚 fixed, or 自動 (one day in six minutes of play) */
+  setTime(s: TimeSetting): void;
+  /** read-only (tests): the current setting, the point of the day cycle and how far the city lights are on */
+  timeOfDay(): { setting: TimeSetting; t: number; lights: number };
   /** read-only, for the minimap: where the car is, which way it points (yaw) and which way the camera looks (view) */
   pose(): { x: number; z: number; yaw: number; view: number };
   level: Level;
@@ -95,14 +98,19 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
   // their base colour (taxi yellow stays #FFC72C) and shade stays readable
   renderer.toneMapping = THREE.NoToneMapping;
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(PALETTE.sky);
-  // light haze only: it starts past the next few blocks and ends just inside the camera's far plane (900 m), so
-  // the skyline stays readable from the menu and the edge of the world still melts into the horizon
-  scene.fog = level.id === 'city' ? new THREE.Fog(SKY.horizon, 260, 860) : new THREE.Fog(PALETTE.sky, 160, 420);
-  const sky = level.id === 'city' ? drawSky(scene, SKY.horizon, SKY.zenith, SKY.glow) : null;
-  // a blue sky fill and a warm ground bounce, kept lower than the sun so shaded sides read darker than lit ones
-  scene.add(new THREE.HemisphereLight('#CFE8FF', '#8C7B5E', 1.15));
+  const city = level.id === 'city';
+  const bg = new THREE.Color(PALETTE.sky);
+  scene.background = bg;
+  // light haze only: by day it starts past the next few blocks and ends just inside the camera's far plane
+  // (900 m), so the skyline stays readable from the menu and the edge of the world still melts into the horizon
+  const fog = city ? new THREE.Fog('#E8E6DA', 260, 860) : new THREE.Fog(PALETTE.sky, 160, 420);
+  scene.fog = fog;
+  const sky = city ? drawSky(scene, '#E8E6DA', '#2F86DA', '#F7E3BC') : null;
+  // a sky fill and a ground bounce, kept lower than the sun so shaded sides read darker than lit ones
+  const hemi = new THREE.HemisphereLight('#CFE8FF', '#8C7B5E', 1.15);
+  scene.add(hemi);
   const sun = new THREE.DirectionalLight('#FFEACB', 2.6);
+  const sunDir = new THREE.Vector3(-0.52, 0.78, 0.34).normalize();
   sun.castShadow = true;
   sun.shadow.mapSize.set(1024, 1024);
   const sc = sun.shadow.camera as THREE.OrthographicCamera;
@@ -157,6 +165,36 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
   let rushSeen = 0;
   let menu = false;
   let orbit = 0;
+  // ---------- time of day ----------
+  let tod: TimeSetting = 'day';
+  let todClock = 0; // seconds of auto time
+  let todT = -1;
+  const beams = headlightBeams(-2.05);
+  scene.add(beams);
+  const applyLight = (L: Lighting) => {
+    sunDir.set(...L.sunDir);
+    sun.color.set(L.sunColor);
+    sun.intensity = L.sunIntensity * L.exposure;
+    hemi.color.set(L.hemiSky);
+    hemi.groundColor.set(L.hemiGround);
+    hemi.intensity = L.hemiIntensity * L.exposure;
+    uNight.value = L.lights;
+    if (!city) return;
+    fog.color.set(L.fogColor);
+    fog.near = L.fogNear;
+    fog.far = L.fogFar;
+    bg.set(L.skyHorizon);
+    sky?.recolour({ horizon: L.skyHorizon, glow: L.skyGlow, zenith: L.skyZenith, pale: L.skyPale, cloud: L.cloudColor, cloudEmissive: L.cloudEmissive });
+  };
+  /** re-light only when the cycle has moved enough to see (auto moves ~0.0003 per second) */
+  const updateTime = (dt: number) => {
+    if (tod === 'auto') todClock += dt;
+    const t = cycleT(tod, todClock);
+    if (Math.abs(t - todT) < 0.0004) return;
+    todT = t;
+    applyLight(lightingAt(t));
+  };
+  updateTime(0);
 
   // ---------- loop: fixed step + interpolation ----------
   const input = new Input();
@@ -338,7 +376,15 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
     // the shadow box (36 m square) is centred a little ahead of the car, where the chase camera looks
     const ahead = new THREE.Vector3(0, 0, 6).applyQuaternion(q);
     sun.target.position.set(p.x + ahead.x, p.y, p.z + ahead.z);
-    sun.position.copy(sun.target.position).addScaledVector(SUN_DIR, 45);
+    sun.position.copy(sun.target.position).addScaledVector(sunDir, 45);
+    updateTime(dt);
+    // the taxi's beams on the road, at night only (flat on the ground under the car; off in the air)
+    beams.visible = uNight.value > 0.02 && !car.airborne;
+    if (beams.visible) {
+      const f = new THREE.Vector3(0, 0, 1).applyQuaternion(q);
+      beams.position.set(p.x, p.y - 0.53, p.z); // the body rides about 0.6 m above the road
+      beams.rotation.set(0, Math.atan2(f.x, f.z), 0);
+    }
     view.update(run, p, performance.now() / 1000);
     if (menu) {
       // the menu's background: a slow aerial orbit over the Love River
@@ -501,6 +547,13 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
       scene.add(carGroup);
       for (const w of wheels) scene.add(w);
     },
+    setTime(s) {
+      if (s === tod) return;
+      tod = s;
+      todT = -1;
+      updateTime(0);
+    },
+    timeOfDay: () => ({ setting: tod, t: cycleT(tod, todClock), lights: uNight.value }),
     setMenu(on) {
       menu = on;
       if (!on) chase.snap();

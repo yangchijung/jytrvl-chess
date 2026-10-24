@@ -291,6 +291,19 @@ try {
   }
   ok('X-22', 'settings: auto gas is a real switch (role=switch, ≥64 px), saved per browser, not driving the car while paused; tilt toggle + 校正 when supported', sw.role === 'switch' && sw.on === 'false' && sw.h >= 64 && swOn === 'true' && saved === true && pausedGas === false && tiltOk, JSON.stringify({ sw, swOn, saved, pausedGas }) + ' ' + tiltInfo);
   await shot('6c-settings');
+  // 時段 in the same row: a radio group of four ≥44 px segments; 夜晚 lights the city and is remembered
+  {
+    const seg = await p.$$eval('[data-testid=taxi-time-of-day] [role=radio]', (e) => e.map((x) => ({ id: x.dataset.testid, on: x.getAttribute('aria-checked'), h: x.getBoundingClientRect().height, w: x.getBoundingClientRect().width, label: x.textContent })));
+    await p.click('[data-testid=taxi-time-night]');
+    await new Promise((res) => setTimeout(res, 150));
+    const after = await p.evaluate(() => ({ tod: window.__taxi.timeOfDay(), saved: JSON.parse(localStorage.getItem('jy.taxi.settings') ?? '{}').time, checked: document.querySelector('[data-testid=taxi-time-night]').getAttribute('aria-checked') }));
+    await p.evaluate(() => window.__taxi.ff(1 / 60));
+    await shot('6d-settings-night');
+    await p.click('[data-testid=taxi-time-day]');
+    await new Promise((res) => setTimeout(res, 150));
+    const back = await p.evaluate(() => window.__taxi.timeOfDay().setting);
+    ok('X-27', 'settings: 時段 is a four-way segmented control (白天 黃昏 夜晚 自動, ≥44 px); 夜晚 turns the city lights on and is saved; 白天 brings the day back', seg.length === 4 && seg.every((x) => x.h >= 44 && x.w >= 44) && seg[0].on === 'true' && seg.map((x) => x.label).join('') === '白天黃昏夜晚自動' && after.tod.setting === 'night' && after.tod.lights === 1 && after.saved === 'night' && after.checked === 'true' && back === 'day', JSON.stringify({ seg: seg.map((x) => `${x.label}:${Math.round(x.w)}x${Math.round(x.h)}:${x.on}`), after, back }));
+  }
   await p.$eval('[data-testid=taxi-resume]', (b) => b.click());
   // auto gas: real frames with no input → the car speeds up by itself
   await p.evaluate(() => window.__taxi.place({ x: -300, y: 1, z: -95.5 }, Math.PI / 2));
@@ -344,6 +357,29 @@ try {
   ok('X-14', 'the city: at least 30 destinations, traffic and people on the streets, the Love River named at the bridges', world.id === 'city' && world.places >= 30 && world.cars >= 20 && world.people >= 40 && world.bridges === 8, JSON.stringify(world));
   const st = await p.evaluate(() => window.__taxi.stats());
   ok('X-13', 'draw calls under 150', st.drawCalls < 150, JSON.stringify(st));
+  // time of day through the test hook: night and sunset on a street with shops, lamps and traffic, then the
+  // menu's overview at night; the extra night meshes (lamp pools, headlight beams) must stay inside the budget
+  {
+    const look = async (mood) => {
+      await p.evaluate((m) => window.__taxi.setTime(m), mood);
+      await p.evaluate(() => window.__taxi.place({ x: -300, y: 1, z: -95.5 }, Math.PI / 2));
+      await ff(1.2, { throttle: 0.35 });
+      await settle();
+      return p.evaluate(() => ({ ...window.__taxi.timeOfDay(), ...window.__taxi.stats() }));
+    };
+    const night = await look('night');
+    await shot('8-night');
+    const sunset = await look('sunset');
+    await shot('8-sunset');
+    await p.evaluate(() => window.__taxi.setTime('night'));
+    await p.evaluate(() => window.__taxi.setMenu(true));
+    await ff(1 / 60);
+    await shot('8-night-menu');
+    await p.evaluate(() => window.__taxi.setMenu(false));
+    await p.evaluate(() => window.__taxi.setTime('day'));
+    await ff(1 / 60);
+    ok('X-28', 'time of day: night has every light on, sunset half on, both under 150 draw calls', night.setting === 'night' && night.lights === 1 && night.drawCalls < 150 && sunset.setting === 'sunset' && sunset.lights > 0.2 && sunset.lights < 0.8 && sunset.drawCalls < 150, JSON.stringify({ night, sunset }));
+  }
   // chase camera vs the landmark name boards: drive past the 郵局 board both ways along its street; at every step
   // nothing drawn opaque may sit between the lens and the cab, and no board may fill the lens up close
   {

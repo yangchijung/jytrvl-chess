@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import type RAPIER_NS from '@dimforge/rapier3d-compat';
 import type { RoadGraph } from './level';
 import { sedanGeometry } from '../fx/taxiModel';
+import { CAR_LIGHT_GLOW, glowVertexColours } from '../fx/nightGlow';
 
 type R = typeof RAPIER_NS;
 /** collision groups (membership << 16 | filter): the taxi is group 2; a knocked car stops colliding with it, so the
@@ -83,7 +84,8 @@ export class Traffic {
     // sedans: the paint takes each car's colour, glass, bumpers, lights and wheels keep theirs
     const geo = sedanGeometry();
     this.bodyMesh = new THREE.InstancedMesh(geo.paint, mat({ vertexColors: true }), count);
-    this.cabinMesh = new THREE.InstancedMesh(geo.detail, mat({ vertexColors: true }), count);
+    // after dark the head lamps (near white) and tail lamps (pure red) glow
+    this.cabinMesh = new THREE.InstancedMesh(geo.detail, glowVertexColours(mat({ vertexColors: true }), CAR_LIGHT_GLOW), count);
     this.bodyMesh.castShadow = this.cabinMesh.castShadow = true;
     scene.add(this.bodyMesh, this.cabinMesh);
     const used = new Set<number>();

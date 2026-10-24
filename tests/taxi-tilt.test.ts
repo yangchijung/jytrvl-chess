@@ -123,12 +123,15 @@ describe('Input: auto gas and tilt', () => {
 
 describe('settings', () => {
   it('defaults: auto gas off, tilt off', () => {
-    expect(DEFAULT_SETTINGS).toEqual({ autoGas: false, tilt: false, tiltCentre: null });
+    expect(DEFAULT_SETTINGS).toEqual({ autoGas: false, tilt: false, tiltCentre: null, time: 'day' });
     expect(parseSettings(null)).toEqual(DEFAULT_SETTINGS);
     expect(parseSettings('not json')).toEqual(DEFAULT_SETTINGS);
   });
   it('reads saved values and drops bad ones', () => {
-    expect(parseSettings(JSON.stringify({ autoGas: true, tilt: true, tiltCentre: { beta: 4, gamma: 30 } }))).toEqual({ autoGas: true, tilt: true, tiltCentre: { beta: 4, gamma: 30 } });
+    expect(parseSettings(JSON.stringify({ autoGas: true, tilt: true, tiltCentre: { beta: 4, gamma: 30 } }))).toEqual({ autoGas: true, tilt: true, tiltCentre: { beta: 4, gamma: 30 }, time: 'day' });
+    expect(parseSettings(JSON.stringify({ time: 'night' })).time).toBe('night');
+    expect(parseSettings(JSON.stringify({ time: 'auto' })).time).toBe('auto');
+    expect(parseSettings(JSON.stringify({ time: 'midnight' })).time).toBe('day');
     expect(parseSettings(JSON.stringify({ autoGas: 'yes', tiltCentre: { beta: 'x' } }))).toEqual(DEFAULT_SETTINGS);
   });
 });

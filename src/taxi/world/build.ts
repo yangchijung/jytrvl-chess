@@ -10,6 +10,7 @@ import { buildingMaterial, drawDecor, waterMaterial } from './decor';
 import { pitchTriangles, type Pitch } from './massing';
 import { buildingLook } from './facade';
 import { addOcclusionFade, OCC_NEAR, OCC_NEAR_BOARD } from '../fx/occlusion';
+import { brightenBasic } from '../fx/nightGlow';
 
 type R = typeof RAPIER_NS;
 const rotY = (yaw = 0) => ({ x: 0, y: Math.sin(yaw / 2), z: 0, w: Math.cos(yaw / 2) });
@@ -277,7 +278,7 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
       }
     }
     // boards hang over the pavement at about camera height: they fade out of the way of the chase camera
-    const mesh = new THREE.Mesh(mergeGeometries(parts), addOcclusionFade(new THREE.MeshBasicMaterial({ map: tex }), { near: OCC_NEAR_BOARD }));
+    const mesh = new THREE.Mesh(mergeGeometries(parts), addOcclusionFade(brightenBasic(new THREE.MeshBasicMaterial({ map: tex }), 0.55), { near: OCC_NEAR_BOARD }));
     mesh.name = 'boards';
     faded.set(mesh, OCC_NEAR_BOARD);
     scene.add(mesh);

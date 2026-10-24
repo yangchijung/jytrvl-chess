@@ -1,6 +1,7 @@
 // Rush Taxi — control settings kept per browser (localStorage `jy.taxi.settings`). Storage may be missing or throw
 // (private windows, blocked site data): the game then plays with the defaults.
 import type { Tilt } from './tilt';
+import { isTimeSetting, type TimeSetting } from '../fx/timeOfDay';
 
 export interface TaxiSettings {
   /** full throttle unless braking (for small children) */
@@ -9,10 +10,12 @@ export interface TaxiSettings {
   tilt: boolean;
   /** the calibrated "straight ahead" tilt, or null = device level */
   tiltCentre: Tilt | null;
+  /** time of day: day, sunset, night, or auto (a slow day cycle) */
+  time: TimeSetting;
 }
 
 export const SETTINGS_KEY = 'jy.taxi.settings';
-export const DEFAULT_SETTINGS: TaxiSettings = { autoGas: false, tilt: false, tiltCentre: null };
+export const DEFAULT_SETTINGS: TaxiSettings = { autoGas: false, tilt: false, tiltCentre: null, time: 'day' };
 
 const num = (v: unknown) => typeof v === 'number' && Number.isFinite(v);
 
@@ -25,6 +28,7 @@ export function parseSettings(raw: string | null): TaxiSettings {
       autoGas: o.autoGas === true,
       tilt: o.tilt === true,
       tiltCentre: c && num(c.beta) && num(c.gamma) ? { beta: c.beta, gamma: c.gamma } : null,
+      time: isTimeSetting(o.time) ? o.time : 'day',
     };
   } catch {
     return { ...DEFAULT_SETTINGS };
