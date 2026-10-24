@@ -9,6 +9,7 @@ import type { Level, Prim, Shape } from './level';
 import { buildingMaterial, drawDecor, waterMaterial } from './decor';
 import { pitchTriangles, type Pitch } from './massing';
 import { buildingLook } from './facade';
+import { nearField } from './nearfield';
 import { buildSurfacePhysics, drawSurfaces } from './osm/surfaces';
 import { addOcclusionFade, OCC_NEAR, OCC_NEAR_BOARD } from '../fx/occlusion';
 
@@ -213,11 +214,11 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
   const ms = level.massing;
   const boxes: Inst[] = [...all.filter((s) => s.look === undefined), ...(ms?.slabs ?? []).map((b) => ({ p: [b.x, b.y, b.z] as [number, number, number], size: [b.w, b.h, b.d] as [number, number, number], color: b.color }))];
   const blds: Inst[] = [...all.filter((s) => s.look !== undefined), ...(ms?.masses ?? []).map((m) => ({ p: [m.x, m.y0 + m.h / 2, m.z] as [number, number, number], size: [m.w, m.h, m.d] as [number, number, number], color: m.color, look: m.look }))];
-  // the real-map city has tens of thousands of boxes: one instanced mesh per 460 m square (as surfaces.ts does), so
+  // the real-map city has tens of thousands of buildings: one instanced mesh per 690 m square (3 × 3 data tiles), so
   // the frustum culls the squares behind and beside the camera; the hand-made levels keep a single mesh
   const squares = <T extends Inst>(items: T[]): T[][] => {
     if (!level.osm || items.length < 400) return [items];
-    const S = 460;
+    const S = 690;
     const map = new Map<string, T[]>();
     for (const it of items) {
       const k = `${Math.floor(it.p[0] / S)},${Math.floor(it.p[2] / S)}`;
@@ -226,7 +227,7 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
     return [...map.values()];
   };
   const bldMat = blds.length ? addOcclusionFade(buildingMaterial()) : null;
-  for (const part of blds.length ? squares(blds) : []) {
+  const bldMesh = (part: Inst[]) => {
     // buildings: windows, arcades and roofs drawn by the shader from each building's look; no bottom face (never seen)
     const geo = new THREE.BoxGeometry(1, 1, 1);
     const ix = Array.from(geo.index!.array);
@@ -243,17 +244,38 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
     inst.computeBoundingSphere();
     inst.castShadow = true;
     inst.receiveShadow = true;
-    scene.add(inst);
+    return inst;
+  };
+  for (const part of blds.length ? squares(blds) : []) {
+    const inst = bldMesh(part);
+    if (!level.osm) {
+      scene.add(inst);
+      continue;
+    }
+    // far squares (centre 900 m away, so every building in it at least 410 m) keep only the skyline: buildings of
+    // 18 m and up; the low rows there are a few pixels deep in the haze
+    const tall = part.filter((s) => s.size[1] >= 18);
+    const lod = new THREE.LOD();
+    const c = inst.boundingSphere!.center;
+    lod.position.set(c.x, 0, c.z);
+    inst.position.set(-c.x, 0, -c.z);
+    lod.addLevel(inst, 0);
+    const far = tall.length ? bldMesh(tall) : new THREE.Object3D();
+    far.position.set(-c.x, 0, -c.z);
+    lod.addLevel(far, 900);
+    scene.add(lod);
   }
   const boxMat = new THREE.MeshLambertMaterial({ flatShading: true });
-  for (const part of boxes.length ? squares(boxes) : []) {
-    const inst = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), boxMat, part.length);
-    part.forEach((s, i) => {
+  if (boxes.length && level.osm) {
+    // balconies, canopies and rails are small and many: only those within 380 m of the camera, one draw call
+    scene.add(nearField(new THREE.BoxGeometry(1, 1, 1), boxMat, boxes.map((s) => ({ x: s.p[0], y: s.p[1], z: s.p[2], yaw: s.yaw, s: new THREE.Vector3(...s.size), color: s.color })), 380));
+  } else if (boxes.length) {
+    const inst = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), boxMat, boxes.length);
+    boxes.forEach((s, i) => {
       m4.compose(new THREE.Vector3(...s.p), q.setFromAxisAngle(up, s.yaw ?? 0), new THREE.Vector3(...s.size));
       inst.setMatrixAt(i, m4);
       inst.setColorAt(i, new THREE.Color(s.color));
     });
-    inst.computeBoundingSphere();
     inst.castShadow = true;
     inst.receiveShadow = true;
     scene.add(inst);

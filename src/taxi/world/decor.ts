@@ -8,6 +8,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import type { Decor, Level } from './level';
 import { SHOP_WORDS, SIGN_COLORS } from './city';
 import { lightFor } from './traffic';
+import { nearField } from './nearfield';
 
 const m4 = new THREE.Matrix4();
 const q = new THREE.Quaternion();
@@ -39,9 +40,7 @@ function tiles<T extends { x: number; z: number }>(items: T[]) {
   }
   return [...map.values()];
 }
-/** `far`: small detail is dropped beyond this distance from the tile's centre (a THREE.LOD per tile), which saves
- *  draw calls and triangles where it would be a pixel or two under the haze anyway */
-function instanced(geo: THREE.BufferGeometry, mat: THREE.Material, items: Item[], shadow = true, far = Infinity) {
+function instanced(geo: THREE.BufferGeometry, mat: THREE.Material, items: Item[], shadow = true) {
   if (!items.length) return null;
   const group = new THREE.Group();
   for (const part of items.length > 120 ? tiles(items) : [items]) {
@@ -54,7 +53,7 @@ function instanced(geo: THREE.BufferGeometry, mat: THREE.Material, items: Item[]
     mesh.computeBoundingSphere();
     mesh.castShadow = shadow;
     mesh.receiveShadow = true;
-    group.add(far < Infinity ? farCull(mesh, far) : mesh);
+    group.add(mesh);
   }
   return group;
 }
@@ -356,11 +355,13 @@ export function drawDecor(scene: THREE.Scene, level: Level) {
 
   // ---------- rooftops ----------
   const tankGeo = mergeGeometries([cyl(0.62, 0.62, 1.3, 0, 1.45, 0, '#C9CED6', 12), cyl(0.64, 0.64, 0.08, 0, 2.12, 0, '#AEB4BC', 12), ...[-1, 1].flatMap((sx) => [-1, 1].map((sz) => bx(0.08, 0.8, 0.08, sx * 0.45, 0.4, sz * 0.45, '#5D6B78')))]);
-  add(instanced(tankGeo, vc(), d.tanks, true, 330));
-  add(instanced(new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0), new THREE.MeshLambertMaterial({ flatShading: true }), d.sheds.map((s) => ({ x: s.x, y: s.y, z: s.z, s: new THREE.Vector3(s.w, s.h, s.d), color: s.color })), true, 330));
+  // tanks, sheds and air conditioners are many and small (thousands in the real-map city): only the ones near the
+  // camera are drawn, one draw call per kind (see nearfield.ts)
+  add(nearField(tankGeo, vc(), d.tanks, 300));
+  add(nearField(new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0), new THREE.MeshLambertMaterial({ flatShading: true }), d.sheds.map((s) => ({ x: s.x, y: s.y, z: s.z, s: new THREE.Vector3(s.w, s.h, s.d), color: s.color })), 300));
   // ---------- walls: air conditioners (a dark fan on the front) ----------
   const acGeo = mergeGeometries([bx(0.8, 0.55, 0.42, 0, 0, 0, '#D5D8DC'), colored(new THREE.CircleGeometry(0.2, 10).translate(0.12, 0, 0.215), '#4A4F57')]);
-  add(instanced(acGeo, vc(), d.acs, false, 240));
+  add(nearField(acGeo, vc(), d.acs, 200));
 
   // ---------- vertical shop signboards: coloured board, word in the contrasting colour (both faces) ----------
   if (d.shopSigns.length) {
@@ -405,7 +406,9 @@ export function drawDecor(scene: THREE.Scene, level: Level) {
       parts.push(f.toNonIndexed());
     }
     const geo = mergeGeometries(parts.map((g) => (g.index ? g.toNonIndexed() : g)));
-    scene.add(farCull(new THREE.Mesh(geo, mat), 300));
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.name = 'shopSigns';
+    scene.add(farCull(mesh, 300));
     }
   }
 

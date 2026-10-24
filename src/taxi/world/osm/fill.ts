@@ -403,7 +403,7 @@ export function mappedBoxes(data: OsmCityData): Obb[] {
 }
 
 export function fillBlocks(data: OsmCityData, opt: FillOptions = {}): FillResult {
-  const maxTanks = opt.maxTanks ?? 1100;
+  const maxTanks = opt.maxTanks ?? 900;
   const maxSigns = opt.maxSigns ?? 1400;
   const maxAcs = opt.maxAcs ?? 5000;
   const shapes: Shape[] = [];
