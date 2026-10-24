@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import type RAPIER_NS from '@dimforge/rapier3d-compat';
 import type { RoadGraph } from './level';
 import { sedanGeometry } from '../fx/taxiModel';
+import { trafficMaterial } from '../fx/surfaces';
 
 type R = typeof RAPIER_NS;
 /** collision groups (membership << 16 | filter): the taxi is group 2; a knocked car stops colliding with it, so the
@@ -79,11 +80,12 @@ export class Traffic {
     this.seed = seed;
     this.adj = graph.nodes.map(() => []);
     for (const [a, b] of graph.edges) this.adj[a].push(b), this.adj[b].push(a);
-    const mat = (o: THREE.MeshLambertMaterialParameters = {}) => new THREE.MeshLambertMaterial({ flatShading: true, ...o });
-    // sedans: the paint takes each car's colour, glass, bumpers, lights and wheels keep theirs
+    // sedans: the paint takes each car's colour, glass, bumpers, lights and wheels keep theirs; one shared
+    // material (paint, glass, rubber told apart per vertex) for both meshes and every car
     const geo = sedanGeometry();
-    this.bodyMesh = new THREE.InstancedMesh(geo.paint, mat({ vertexColors: true }), count);
-    this.cabinMesh = new THREE.InstancedMesh(geo.detail, mat({ vertexColors: true }), count);
+    const mat = trafficMaterial();
+    this.bodyMesh = new THREE.InstancedMesh(geo.paint, mat, count);
+    this.cabinMesh = new THREE.InstancedMesh(geo.detail, mat, count);
     this.bodyMesh.castShadow = this.cabinMesh.castShadow = true;
     scene.add(this.bodyMesh, this.cabinMesh);
     const used = new Set<number>();

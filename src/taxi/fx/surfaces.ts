@@ -1,0 +1,337 @@
+// Rush Taxi: materials that look like what they are made of. Everything here keys off one quality tier:
+//
+//   low   today's look: Lambert cabs, Lambert roads, Phong water with ripples and glints, no environment map
+//   mid   environment map (scene.environment, 64 px PMREM); the taxi in clearcoat paint, chrome, glass and rubber
+//         (MeshPhysical); traffic in one shared MeshStandard; glass towers and water reflect the environment, the
+//         river and sea also reflect a fake bank; roads and pavement get grain, varied shine and a paint sheen
+//   high  as mid with a 128 px PMREM, plus a real planar reflection on the water (see waterMirror.ts)
+//
+// Parts of a merged car mesh say what they are through a per-vertex `aSurf` value (SURF below), so one material
+// draws paint, trim, chrome, glass and tyres in a single draw call.
+import * as THREE from 'three';
+import type { Quality } from './quality';
+import { FACADE_DECODE_GLSL } from '../world/facade';
+
+let tier: Quality = 'low';
+/** set once, before the scene is built; callers that never set it keep the 'low' (original) look */
+export function setSurfaceQuality(q: Quality) {
+  tier = q;
+}
+export function surfaceQuality(): Quality {
+  return tier;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// cars
+
+export const SURF = { paint: 0, plastic: 1, rubber: 2, chrome: 3, glass: 4, lamp: 5, cloth: 6 } as const;
+export type Surf = (typeof SURF)[keyof typeof SURF];
+
+/** what a car part's colour is made of (the cab and sedan palettes); unknown colours are paint (stripes, liveries) */
+const SURF_OF: Record<string, Surf> = {
+  '#FFC72C': SURF.paint,
+  '#FFFFFF': SURF.paint,
+  '#262A30': SURF.plastic,
+  '#1B1E23': SURF.plastic,
+  '#F5F5F5': SURF.plastic,
+  '#C9CED6': SURF.chrome,
+  '#2C4258': SURF.glass,
+  '#33475C': SURF.glass,
+  '#FFF4D6': SURF.lamp,
+  '#C62828': SURF.lamp,
+  '#3A3F47': SURF.cloth,
+  '#4A4F57': SURF.cloth,
+  '#1E2228': SURF.rubber,
+};
+export function surfFor(color: string): Surf {
+  return SURF_OF[color.toUpperCase()] ?? SURF.paint;
+}
+
+/** roughness and metalness of each surface (paint comes from the material's own uniforms) */
+export const SURF_PBR: Record<Surf, [number, number]> = {
+  [SURF.paint]: [0.4, 0],
+  [SURF.plastic]: [0.55, 0],
+  [SURF.rubber]: [0.95, 0],
+  [SURF.chrome]: [0.18, 1],
+  [SURF.glass]: [0.05, 0],
+  [SURF.lamp]: [0.15, 0],
+  [SURF.cloth]: [0.9, 0],
+};
+
+const f = (n: number) => n.toFixed(3);
+const CAR_FRAG = /* glsl */ `
+{
+  float sk = floor(vSurf + 0.5);
+  if (sk < 0.5) { roughnessFactor = uPaintRough; metalnessFactor = uPaintMetal; }
+  else if (sk < 1.5) { roughnessFactor = ${f(SURF_PBR[1][0])}; metalnessFactor = ${f(SURF_PBR[1][1])}; }
+  else if (sk < 2.5) { roughnessFactor = ${f(SURF_PBR[2][0])}; metalnessFactor = ${f(SURF_PBR[2][1])}; }
+  else if (sk < 3.5) { roughnessFactor = ${f(SURF_PBR[3][0])}; metalnessFactor = ${f(SURF_PBR[3][1])}; }
+  else if (sk < 4.5) { roughnessFactor = ${f(SURF_PBR[4][0])}; metalnessFactor = ${f(SURF_PBR[4][1])}; }
+  else if (sk < 5.5) { roughnessFactor = ${f(SURF_PBR[5][0])}; metalnessFactor = ${f(SURF_PBR[5][1])}; }
+  else { roughnessFactor = ${f(SURF_PBR[6][0])}; metalnessFactor = ${f(SURF_PBR[6][1])}; }
+}`;
+
+function surfShader(mat: THREE.MeshStandardMaterial, paintRough: number, paintMetal: number, key: string) {
+  const uPaintRough = { value: paintRough };
+  const uPaintMetal = { value: paintMetal };
+  mat.onBeforeCompile = (sh) => {
+    sh.uniforms.uPaintRough = uPaintRough;
+    sh.uniforms.uPaintMetal = uPaintMetal;
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float aSurf;\nvarying float vSurf;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvSurf = aSurf;');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying float vSurf;\nuniform float uPaintRough;\nuniform float uPaintMetal;')
+      .replace('#include <metalnessmap_fragment>', `#include <metalnessmap_fragment>${CAR_FRAG}`)
+      // the clearcoat is on the paint only
+      .replace('#include <lights_physical_fragment>', '#include <lights_physical_fragment>\n#ifdef USE_CLEARCOAT\nmaterial.clearcoat *= step(floor(vSurf + 0.5), 0.5);\n#endif');
+  };
+  mat.customProgramCacheKey = () => `surf-${key}`;
+  return mat;
+}
+
+/** the taxi's body and wheels: clearcoat paint on mid and high, the original Lambert on low */
+export function taxiBodyMaterial(): THREE.Material {
+  if (tier === 'low') return new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+  const m = new THREE.MeshPhysicalMaterial({ vertexColors: true, flatShading: true, roughness: 0.4, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.06 });
+  return surfShader(m, 0.42, 0, 'taxi');
+}
+
+/** the taxi's glass house: tinted, see-through, reflecting the sky */
+export function taxiGlassMaterial(opacity: number): THREE.Material {
+  if (tier === 'low') return new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, opacity, depthWrite: false });
+  // a little metalness raises the reflectance so the sky reads on the glass even through the transparency
+  return new THREE.MeshStandardMaterial({ vertexColors: true, transparent: true, opacity: Math.min(1, opacity + 0.08), depthWrite: false, roughness: 0.05, metalness: 0.35 });
+}
+
+let npcMat: { tier: Quality; mat: THREE.Material } | null = null;
+/** one material for every traffic car (body and detail, all instanced): two programs for the whole traffic */
+export function trafficMaterial(): THREE.Material {
+  if (npcMat && npcMat.tier === tier) return npcMat.mat;
+  const mat = tier === 'low' ? new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }) : surfShader(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.4, metalness: 0.1 }), 0.36, 0.12, 'npc');
+  npcMat = { tier, mat };
+  return mat;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// glass towers
+
+export const GLASS_REFL = { value: 0.8 };
+
+/** the environment chunk for the glass curtain walls; needs buildingMaterial's varyings (vW, vNW, vLook, vOrg, vRoof) */
+export const GLASS_TOWER_GLSL = /* glsl */ `
+#if defined( USE_ENVMAP ) && defined( ENVMAP_TYPE_CUBE_UV )
+if (abs(vNW.y) < 0.5 && facadeIsGlass(vLook, vOrg) && vW.y - vOrg.y > 4.4 && vRoof - vW.y > 0.9) {
+  vec3 gV = normalize(vW - cameraPosition);
+  vec3 gN = normalize(vNW);
+  vec3 gEnv = textureCubeUV(envMap, envMapRotation * reflect(gV, gN), 0.06).rgb * envMapIntensity;
+  float gK = uGlassRefl * (0.16 + 0.5 * pow(1.0 - abs(dot(gV, gN)), 3.0));
+  // lit windows and lobbies (the emissive part) stay as they are; only the lit glass gives way to the reflection
+  outgoingLight = mix(outgoingLight - totalEmissiveRadiance, gEnv, gK) + totalEmissiveRadiance;
+}
+#endif
+`;
+
+/** adds environment reflections to the glass towers of a material made by buildingMaterial(), after its own hook */
+export function withGlassReflection<M extends THREE.Material>(mat: M): M {
+  const prev = mat.onBeforeCompile;
+  const prevSrc = prev.toString();
+  const keyBefore = mat.customProgramCacheKey();
+  mat.onBeforeCompile = (sh, r) => {
+    prev.call(mat, sh, r);
+    sh.uniforms.uGlassRefl = GLASS_REFL;
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>\nuniform float uGlassRefl;${FACADE_DECODE_GLSL}`).replace('#include <envmap_fragment>', `${GLASS_TOWER_GLSL}\n#include <envmap_fragment>`);
+  };
+  mat.customProgramCacheKey = () => `${keyBefore}|${prevSrc}|glass`;
+  return mat;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// roads, pavement and paint; wet mode
+
+/** wetness of the streets, 0 (dry, the default) … 1 (after a downpour) */
+export const WET = { value: 0 };
+/** the low tier's road materials and their dry colours (a handful per game) */
+const roadBase = new Map<THREE.MeshLambertMaterial, THREE.Color>();
+export function setWet(v: number) {
+  WET.value = Math.max(0, Math.min(1, Number.isFinite(v) ? v : 0));
+  // low has no road shader: the streets just darken
+  for (const [m, base] of roadBase) m.color.copy(base).multiplyScalar(1 - 0.35 * WET.value);
+}
+
+/** one tiny tiling noise texture shared by every road material: r and g value noise at two seeds, b blobs */
+let noiseTex: THREE.DataTexture | null = null;
+export function roadNoise() {
+  if (noiseTex) return noiseTex;
+  const N = 64;
+  const data = new Uint8Array(N * N * 4);
+  let s = 1234567;
+  const rnd = () => ((s = (Math.imul(s, 1103515245) + 12345) >>> 0) >>> 8) / 16777216;
+  const grid = (cells: number) => Array.from({ length: cells * cells }, rnd);
+  const smooth = (g: number[], cells: number, x: number, y: number) => {
+    const fx = (x / N) * cells,
+      fy = (y / N) * cells;
+    const x0 = Math.floor(fx),
+      y0 = Math.floor(fy);
+    const tx = fx - x0,
+      ty = fy - y0;
+    const sx = tx * tx * (3 - 2 * tx),
+      sy = ty * ty * (3 - 2 * ty);
+    const at = (i: number, j: number) => g[(j % cells) * cells + (i % cells)];
+    return (at(x0, y0) * (1 - sx) + at(x0 + 1, y0) * sx) * (1 - sy) + (at(x0, y0 + 1) * (1 - sx) + at(x0 + 1, y0 + 1) * sx) * sy;
+  };
+  const blobs = grid(6);
+  for (let y = 0; y < N; y++)
+    for (let x = 0; x < N; x++) {
+      const i = (y * N + x) * 4;
+      data[i] = Math.round(rnd() * 255);
+      data[i + 1] = Math.round(rnd() * 255);
+      data[i + 2] = Math.round(smooth(blobs, 6, x, y) * 255);
+      data[i + 3] = 255;
+    }
+  noiseTex = new THREE.DataTexture(data, N, N, THREE.RGBAFormat);
+  noiseTex.wrapS = noiseTex.wrapT = THREE.RepeatWrapping;
+  noiseTex.magFilter = THREE.LinearFilter;
+  noiseTex.minFilter = THREE.LinearMipmapLinearFilter;
+  noiseTex.generateMipmaps = true;
+  noiseTex.needsUpdate = true;
+  return noiseTex;
+}
+
+export type RoadKind = 'asphalt' | 'pavement' | 'paint';
+/** shine (Phong specular strength), shininess and grain per kind */
+export const ROAD_LOOK: Record<RoadKind, { spec: number; shin: number; grain: number }> = {
+  asphalt: { spec: 0.16, shin: 14, grain: 1 },
+  pavement: { spec: 0.07, shin: 10, grain: 0.6 },
+  paint: { spec: 0.32, shin: 36, grain: 0.35 },
+};
+
+const ROAD_FRAG_HEAD = /* glsl */ `
+varying vec3 vRw;
+uniform sampler2D uRoadNoise;
+uniform float uWet;
+uniform float uGrain;
+uniform float uShine;`;
+
+const ROAD_COLOR = /* glsl */ `
+vec2 rgp = vRw.xz;
+float rPatch = texture2D(uRoadNoise, rgp / 190.0).g;          // worn and patched areas, a few metres across
+float rAgg = texture2D(uRoadNoise, rgp / 15.0).r;             // aggregate, a quarter metre
+float rGrain = texture2D(uRoadNoise, rgp / 1.6 + 0.37).g;    // fine grain (mipmapped away in the distance)
+float rPuddle = smoothstep(0.56, 0.72, texture2D(uRoadNoise, rgp / 330.0).b + 0.22 * (rPatch - 0.5)) * uWet;
+diffuseColor.rgb *= 0.94 + 0.1 * (rPatch - 0.5) + uGrain * (0.05 * (rAgg - 0.5) + 0.07 * (rGrain - 0.5));
+diffuseColor.rgb *= 1.0 - 0.36 * uWet - 0.22 * rPuddle;`;
+
+const ROAD_SPEC = /* glsl */ `
+specularStrength = uShine * (0.55 + 0.9 * rPatch * rAgg);
+specularStrength = mix(specularStrength, 1.0, max(rPuddle, 0.35 * uWet));`;
+
+const ROAD_ENV = /* glsl */ `
+#if defined( USE_ENVMAP ) && defined( ENVMAP_TYPE_CUBE_UV )
+if (uWet > 0.001) {
+  vec3 rV = normalize(vRw - cameraPosition);
+  vec3 rR = reflect(rV, vec3(0.0, 1.0, 0.0));
+  vec3 rEnv = textureCubeUV(envMap, envMapRotation * rR, mix(0.3, 0.02, rPuddle)).rgb * envMapIntensity;
+  float rF = 0.04 + 0.96 * pow(1.0 - abs(rV.y), 5.0);
+  outgoingLight = mix(outgoingLight, rEnv, clamp(rF * (0.35 * uWet + 0.65 * rPuddle) + 0.25 * rPuddle, 0.0, 0.9));
+}
+#endif`;
+
+/**
+ * Street surfaces with no textures but one shared 64 px noise: asphalt grain and worn patches with a shine that
+ * varies across them, pavement with a finer grain, and road paint with a satin sheen. `setWet` darkens them and
+ * (mid and high) adds puddles that mirror the environment. Works for plain and instanced meshes.
+ */
+export function roadMaterial(color: string | THREE.Color | null, kind: RoadKind, params: THREE.MeshPhongMaterialParameters = {}): THREE.Material {
+  const base = color === null ? new THREE.Color('#FFFFFF') : new THREE.Color(color);
+  if (tier === 'low') {
+    const m = new THREE.MeshLambertMaterial({ color: base, flatShading: true, ...(params as THREE.MeshLambertMaterialParameters) });
+    roadBase.set(m, base.clone());
+    return m;
+  }
+  const look = ROAD_LOOK[kind];
+  const m = new THREE.MeshPhongMaterial({ color: base, specular: '#FFFFFF', shininess: look.shin, flatShading: true, ...params });
+  const uGrain = { value: look.grain },
+    uShine = { value: look.spec };
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.uRoadNoise = { value: roadNoise() };
+    sh.uniforms.uWet = WET;
+    sh.uniforms.uGrain = uGrain;
+    sh.uniforms.uShine = uShine;
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vRw;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\n{ vec4 rw = vec4(transformed, 1.0);\n#ifdef USE_INSTANCING\nrw = instanceMatrix * rw;\n#endif\nvRw = (modelMatrix * rw).xyz; }');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', `#include <common>${ROAD_FRAG_HEAD}`)
+      .replace('#include <color_fragment>', `#include <color_fragment>${ROAD_COLOR}`)
+      .replace('#include <specularmap_fragment>', `#include <specularmap_fragment>${ROAD_SPEC}`)
+      .replace('#include <envmap_fragment>', `${ROAD_ENV}\n#include <envmap_fragment>`);
+  };
+  m.customProgramCacheKey = () => 'road';
+  return m;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// water
+
+/** the planar reflection's texture and projection (world → texture), filled by WaterMirror on 'high' */
+export const MIRROR = { uMirror: { value: null as THREE.Texture | null }, uMirrorMat: { value: new THREE.Matrix4() }, uMirrorOn: { value: 0 } };
+
+/**
+ * Where a ray reflected off the water at (px, pz), going (rx, ry, rz) with ry > 0, meets the bank of a rectangular
+ * water body [x0, x1] × [z0, z1]: the horizontal distance and the height above the water there. The water shader
+ * draws the bank (a darker band) where that height is under the bank's height, the sky above it. (Twin of the GLSL.)
+ */
+export function bankRise(px: number, pz: number, rx: number, ry: number, rz: number, box: [number, number, number, number]) {
+  const hl = Math.max(Math.hypot(rx, rz), 1e-4);
+  const dx = rx / hl,
+    dz = rz / hl;
+  const tx = dx > 1e-4 ? (box[1] - px) / dx : dx < -1e-4 ? (box[0] - px) / dx : 1e6;
+  const tz = dz > 1e-4 ? (box[3] - pz) / dz : dz < -1e-4 ? (box[2] - pz) / dz : 1e6;
+  const dist = Math.max(0, Math.min(tx, tz));
+  return { dist, rise: (dist * Math.max(ry, 0)) / hl };
+}
+
+export const WATER_HEAD = /* glsl */ `
+uniform vec4 uWaterBox;
+uniform float uBankH;
+uniform float uReflK;
+#ifdef WATER_MIRROR
+uniform sampler2D uMirror;
+uniform mat4 uMirrorMat;
+uniform float uMirrorOn;
+#endif`;
+
+export const WATER_REFLECT = /* glsl */ `
+#if defined( USE_ENVMAP ) && defined( ENVMAP_TYPE_CUBE_UV )
+{
+  vec3 wN = normalize(inverseTransformDirection(normal, viewMatrix));
+  vec3 wV = normalize(vWp - cameraPosition);
+  vec3 wR = reflect(wV, wN);
+  wR.y = abs(wR.y) + 0.01;
+  wR = normalize(wR);
+  vec3 refl = textureCubeUV(envMap, envMapRotation * wR, 0.03).rgb * envMapIntensity;
+  // the bank: walls, palms and houses along the water, as a darker band low in the reflection
+  float hl = max(length(wR.xz), 1e-4);
+  vec2 hd = wR.xz / hl;
+  float tx = hd.x > 1e-4 ? (uWaterBox.y - vWp.x) / hd.x : hd.x < -1e-4 ? (uWaterBox.x - vWp.x) / hd.x : 1e6;
+  float tz = hd.y > 1e-4 ? (uWaterBox.w - vWp.z) / hd.y : hd.y < -1e-4 ? (uWaterBox.z - vWp.z) / hd.y : 1e6;
+  float bd = max(0.0, min(tx, tz));
+  float rise = bd * wR.y / hl;
+  vec3 bankCol = vec3(0.30, 0.33, 0.30);
+  #if defined( USE_FOG ) && ! defined( FOG_EXP2 )
+    bankCol = mix(fogColor * vec3(0.46, 0.5, 0.47), fogColor, smoothstep(fogNear, fogFar, bd + length(vWp - cameraPosition)));
+  #endif
+  refl = mix(refl, bankCol, (1.0 - smoothstep(uBankH * 0.55, uBankH, rise)) * step(bd, 5000.0));
+  #ifdef WATER_MIRROR
+  if (uMirrorOn > 0.5) {
+    vec4 mp = uMirrorMat * vec4(vWp, 1.0);
+    vec2 muv = mp.xy / mp.w + wN.xz * 0.05;
+    if (muv.x > 0.0 && muv.x < 1.0 && muv.y > 0.0 && muv.y < 1.0) refl = texture2D(uMirror, muv).rgb;
+  }
+  #endif
+  float wF = 0.02 + 0.98 * pow(1.0 - clamp(dot(-wV, wN), 0.0, 1.0), 5.0);
+  float wK = clamp(uReflK * (0.1 + 0.9 * wF), 0.0, 0.85);
+  // the sun's glints stay on top of the reflection
+  vec3 wSpec = reflectedLight.directSpecular;
+  outgoingLight = mix(outgoingLight - wSpec, refl, wK) + wSpec;
+}
+#endif`;

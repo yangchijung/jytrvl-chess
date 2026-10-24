@@ -24,6 +24,10 @@ import { buildPhysics, buildScene } from './world/build';
 import { drawSky } from './world/decor';
 import { TAXI_GROUPS, Traffic, type TaxiNow } from './world/traffic';
 import { People } from './world/people';
+import { detectQuality } from './fx/quality';
+import { setSurfaceQuality, setWet } from './fx/surfaces';
+import { createEnvironment } from './fx/envLight';
+import { WaterMirror } from './fx/waterMirror';
 
 export const STEP = 1 / 60;
 // a clear subtropical afternoon: the haze at the horizon is warm and pale, the sky overhead a deep clean blue
@@ -65,6 +69,10 @@ export interface Game {
   setCar(carId: string, driverId: string): void;
   /** the menu: a slow aerial orbit of the city instead of the chase camera */
   setMenu(on: boolean): void;
+  /** re-render the environment map (reflections) from the current sky, lights and fog; call after changing them */
+  refreshEnvironment(): void;
+  /** how wet the streets are, 0 (dry, the default) … 1: darker asphalt, puddles that reflect the sky */
+  setWet(v: number): void;
   /** read-only, for the minimap: where the car is, which way it points (yaw) and which way the camera looks (view) */
   pose(): { x: number; z: number; yaw: number; view: number };
   level: Level;
@@ -94,6 +102,9 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
   // crushes the asphalt and the shadows to near black; the lights below are balanced so sunlit faces just reach
   // their base colour (taxi yellow stays #FFC72C) and shade stays readable
   renderer.toneMapping = THREE.NoToneMapping;
+  // materials and reflections follow the quality tier (fx/surfaces.ts says what each tier gets)
+  const quality = detectQuality(renderer, !!opts.lowPower);
+  setSurfaceQuality(quality);
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(PALETTE.sky);
   // light haze only: it starts past the next few blocks and ends just inside the camera's far plane (900 m), so
@@ -112,6 +123,7 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
   sc.far = 90;
   sun.shadow.bias = -0.0006;
   sun.shadow.normalBias = 0.03;
+  sun.position.copy(SUN_DIR); // (moved with the car every frame; the direction is what the environment map needs)
   scene.add(sun, sun.target);
   const chase = new ChaseCam(canvas.clientWidth / Math.max(1, canvas.clientHeight));
   scene.add(chase.cam); // the speed streaks ride on the camera
@@ -131,7 +143,11 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
 
   // ---------- the level: colliders and the drawn world ----------
   const { soft, dynamics } = buildPhysics(RAPIER, world, level);
-  const { props, faded, update: updateWorld } = buildScene(scene, level, opts.lang ?? 'zh');
+  const { props, faded, waters, update: updateWorld } = buildScene(scene, level, opts.lang ?? 'zh');
+  // reflections: an environment map from the sky (mid, high), a real mirror on the water (high)
+  const env = quality === 'low' ? null : createEnvironment(renderer, scene, sky, quality === 'high' ? 128 : 64);
+  env?.refresh();
+  const mirror = quality === 'high' && waters.length ? new WaterMirror(waters, level.water?.y ?? waters[0].position.y) : null;
   let worldClock = 0;
   const cones = dynamics.map((d, i) => ({ b: d.b, mesh: props[i] }));
 
@@ -353,6 +369,7 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
     // boards and landmark parts between the lens and the cab dither away (off for the menu's orbit)
     updateOcclusion(chase.cam.position, p.clone().setY(p.y + OCC_CAR_LIFT), !menu);
     sky?.position.set(chase.cam.position.x, 0, chase.cam.position.z);
+    mirror?.update(renderer, scene, chase.cam); // before the counters reset: X-13 measures the main scene
     renderer.info.reset();
     if (composer) composer.render(dt);
     else renderer.render(scene, chase.cam);
@@ -411,6 +428,7 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
       h = canvas.clientHeight;
     renderer.setSize(w, h, false);
     composer?.setSize(w, h);
+    mirror?.setSize(w * renderer.getPixelRatio(), h * renderer.getPixelRatio());
     chase.cam.aspect = w / Math.max(1, h);
     chase.cam.updateProjectionMatrix();
     fx.resize(h * renderer.getPixelRatio(), chase.cam.fov);
@@ -425,6 +443,9 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
     dispose() {
       cancelAnimationFrame(raf);
       input.dispose();
+      mirror?.dispose();
+      env?.dispose();
+      setWet(0);
       renderer.dispose();
       world.free();
     },
@@ -445,6 +466,8 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
       draw(1, Math.max(STEP, Math.min(1, seconds))); // a longer camera step so it catches up after a jump in time
     },
     sight: () => sightCheck(scene, chase.cam, carGroup, faded),
+    refreshEnvironment: () => env?.refresh(),
+    setWet,
     stats: () => ({ drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles }),
     startRun(mode, seed) {
       view.clear();

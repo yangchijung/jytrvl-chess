@@ -43,3 +43,24 @@ export function lookSeed(x: number, z: number): number {
 export function buildingLook(style: number, x: number, z: number): number {
   return encodeLook(style, lookSeed(x, z));
 }
+
+/** the share of towers drawn as a glass curtain wall (the rest are concrete offices); `buildingMaterial` uses r3 < this */
+export const GLASS_TOWER_SHARE = 0.62;
+
+/**
+ * GLSL twin of decodeLook, for shader chunks that sit beside `buildingMaterial` (the glass reflection): the style,
+ * the variant exactly as the facade shader derives it (including the position fallback and the quantisation), and
+ * whether the building is a glass curtain-wall tower. Needs the `aLook` value and the building's foot (vOrg).
+ */
+export const FACADE_DECODE_GLSL = /* glsl */ `
+float facadeHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float facadeStyle(float look) { return floor(look + 0.0005); }
+float facadeVariant(float look, vec3 org) {
+  float v = look - facadeStyle(look);
+  if (v < 0.001) v = facadeHash(floor(org.xz * 2.0 + 0.5) * 0.173 + 5.3);
+  return floor(v * 997.0 + 0.5) / 997.0;
+}
+bool facadeIsGlass(float look, vec3 org) {
+  return int(facadeStyle(look)) == ${LOOK_TOWER} && facadeHash(vec2(facadeVariant(look, org) * 43.7, 8.9)) < ${GLASS_TOWER_SHARE.toFixed(2)};
+}
+`;
