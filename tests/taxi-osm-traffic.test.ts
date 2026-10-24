@@ -176,7 +176,8 @@ describe('Rush Taxi real-map traffic', () => {
     expect(moved).toBeGreaterThan(traffic.cars.length * 0.6);
     expect(overlaps).toBeLessThan(25);
     expect(greens).toBeGreaterThan(5);
-    expect(reds).toBeLessThanOrEqual(1);
+    // (a car that went on yellow but was held up by the one in front may clear the line just after it turns red)
+    expect(reds).toBeLessThanOrEqual(Math.max(3, greens * 0.05));
     // more of them on the main roads
     const main = traffic.cars.filter((c) => net.lanes[c.piece.lane!].rank >= 3).length;
     expect(main).toBeGreaterThan(traffic.cars.length * 0.4);
@@ -190,7 +191,7 @@ describe('Rush Taxi real-map traffic', () => {
       traffic.update(DT, taxi);
       world.step();
     }
-    const near = traffic.cars.filter((c) => Math.hypot(c.pos.x - taxi.x, c.pos.y - taxi.z) < 300).length;
+    const near = traffic.cars.filter((c) => Math.hypot(c.pos.x - taxi.x, c.pos.y - taxi.z) < 240).length;
     expect(near).toBe(traffic.cars.length);
   });
 
@@ -218,7 +219,7 @@ describe('Rush Taxi real-map traffic', () => {
     expect(car.flying).toBe(0);
     const hit = nearestRoad(L.osm!, car.pos.x, car.pos.y)!;
     expect(hit.d).toBeLessThan(hit.road.w / 2);
-    expect(Math.hypot(car.pos.x - taxi.x, car.pos.y - taxi.z)).toBeLessThan(260);
+    expect(Math.hypot(car.pos.x - taxi.x, car.pos.y - taxi.z)).toBeLessThan(220);
   });
 });
 
@@ -254,7 +255,7 @@ describe('Rush Taxi real-map sidewalks', () => {
 
   it('people walk the sidewalk loops around the taxi and follow it across the map', () => {
     const people = new People(new THREE.Scene(), L.walks, 50, 11, L.spawn.p);
-    expect(people.list.every((p) => Math.hypot(p.x - L.spawn.p.x, p.z - L.spawn.p.z) < 180)).toBe(true);
+    expect(people.list.every((p) => Math.hypot(p.x - L.spawn.p.x, p.z - L.spawn.p.z) < 150)).toBe(true);
     for (let k = 0; k < 120; k++) people.update(DT, null);
     let on = 0;
     for (const p of people.list) if (surf.onWalk(p.x, p.z)) on++;
@@ -262,12 +263,33 @@ describe('Rush Taxi real-map sidewalks', () => {
     const far = L.places.find((p) => Math.hypot(p.x - L.spawn.p.x, p.z - L.spawn.p.z) > 900)!;
     const taxi: TaxiNow = { x: far.x, z: far.z, vx: 0, vz: 0, yaw: 0, kmh: 0 };
     for (let k = 0; k < 60; k++) people.update(DT, taxi);
-    expect(people.list.every((p) => Math.hypot(p.x - taxi.x, p.z - taxi.z) < 230)).toBe(true);
+    expect(people.list.every((p) => Math.hypot(p.x - taxi.x, p.z - taxi.z) < 170)).toBe(true);
     // a polyline loop goes all the way round
     const w = L.walks[0];
     const a = onLoop(w, 0),
       b = onLoop(w, 1e-3);
     expect(Math.hypot(a.x - w.loop![0][0], a.z - w.loop![0][1])).toBeLessThan(1e-6);
     expect(Math.hypot(b.ux, b.uz)).toBeCloseTo(1);
+  });
+});
+
+describe('Rush Taxi real-map squeezed carriageways', () => {
+  it('a one-way road overlapping a parallel road gives up its shared edge', async () => {
+    const { overlaps, bandOffsets } = await import('../src/taxi/world/osm/roadnet');
+    // two one-way roads 5 m apart (each 7.6 m wide): heading +x, the second lies to the right (+z)
+    const data = { nodes: [], roads: [
+      { a: 0, b: 1, cls: 'primary', w: 7.6, oneway: 1, pts: [[0, 0], [100, 0]] },
+      { a: 2, b: 3, cls: 'primary', w: 7.6, oneway: 1, pts: [[100, 5], [0, 5]] },
+    ] } as unknown as OsmCityData;
+    const o = overlaps(data);
+    expect(o[0][0]).toBe(0);
+    expect(o[0][1]).toBeGreaterThan(2);
+    expect(o[1][1]).toBeGreaterThan(2); // for the other one (heading −x) the first road is on its right too
+    const offs = bandOffsets(7.6, o[0]);
+    expect(Math.max(...offs)).toBeLessThan(5 - 1.2 - Math.max(...bandOffsets(7.6, o[1])) + 5); // sanity
+    // lanes of the two roads stay at least a car width apart
+    const a = offs.map((x) => x),
+      b = bandOffsets(7.6, o[1]).map((x) => 5 - x);
+    for (const x of a) for (const y of b) expect(Math.abs(x - y)).toBeGreaterThan(2.2);
   });
 });

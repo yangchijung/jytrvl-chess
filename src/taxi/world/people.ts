@@ -108,7 +108,7 @@ export class People {
     for (let i = 0; i < count && walks.length; i++) {
       const walk = walks[Math.floor(this.rnd() * walks.length)];
       this.list.push({ walk, s: this.rnd() * loopLength(walk), dir: this.rnd() < 0.5 ? 1 : -1, speed: 1 + this.rnd() * 0.7, ox: 0, oz: 0, hop: 0, hx: 0, hz: 0, sit: 0, x: 0, z: 0, y: 0, yaw: 0, shirt: new THREE.Color(SHIRTS[i % SHIRTS.length]), skin: new THREE.Color(SKIN[Math.floor(this.rnd() * SKIN.length)]) });
-      if (around) this.place(this.list[i], around, 0, 170);
+      if (around) this.place(this.list[i], around, 0, 140);
     }
     this.update(0, null);
   }
@@ -121,7 +121,7 @@ export class People {
   }
 
   /** put someone on a sidewalk loop that passes between rMin and rMax from c */
-  private place(p: Person, c: { x: number; z: number }, rMin: number, rMax: number) {
+  private place(p: Person, c: { x: number; z: number }, rMin: number, rMax: number, taxi?: TaxiNow) {
     const near = this.walks.filter((w) => {
       const d = Math.hypot(w.cx - c.x, w.cz - c.z);
       return d < rMax + 120 && d > rMin - 200;
@@ -133,6 +133,9 @@ export class People {
       const at = onLoop(w, s);
       const d = Math.hypot(at.x - c.x, at.z - c.z);
       if ((d < rMin || d > rMax) && k < 15) continue;
+      // not popping up right in front of a moving taxi
+      const sp = taxi ? Math.hypot(taxi.vx, taxi.vz) : 0;
+      if (taxi && sp > 2 && ((at.x - c.x) * taxi.vx + (at.z - c.z) * taxi.vz) / (sp * d) > 0.6 && k < 12) continue;
       p.walk = w;
       p.s = s;
       p.ox = p.oz = p.hop = p.sit = p.y = 0;
@@ -148,9 +151,9 @@ export class People {
     let moved = 0;
     for (const p of this.list) {
       // the real map: someone left far behind comes back on a sidewalk around the taxi (a few per step)
-      if (this.local && taxi && moved < 3 && Math.hypot(p.x - taxi.x, p.z - taxi.z) > 220) {
+      if (this.local && taxi && moved < 3 && Math.hypot(p.x - taxi.x, p.z - taxi.z) > 160) {
         moved++;
-        this.place(p, taxi, 90, 180);
+        this.place(p, taxi, 55, 140, taxi);
       }
       if (p.sit > 0) {
         p.sit = Math.max(0, p.sit - dt);

@@ -116,7 +116,7 @@ export class Traffic {
       const collider = world.createCollider(RAPIER.ColliderDesc.cuboid(HALF.x, HALF.y, HALF.z).setDensity(70).setRestitution(0.3).setFriction(0.5), body);
       const npc: Npc = { from: 0, to: 0, piece: null as unknown as Piece, s: 0, speed: CRUISE, body, collider, flying: 0, near: 0, nearCool: 0, pos: new THREE.Vector2(), yaw: 0, color: new THREE.Color(COLORS[i % COLORS.length]) };
       this.cars.push(npc);
-      this.place(npc, real!.around, 12, 230, null);
+      this.place(npc, real!.around, 12, 200, null);
     }
     for (let i = 0; i < count && !this.net; i++) {
       // spread over the network: a different street for each car
@@ -315,10 +315,10 @@ export class Traffic {
     return want;
   }
   /** a car the taxi left far behind (or knocked away) comes back on a street somewhere around the taxi */
-  private recycle(n: Npc, taxi: TaxiNow, rMin = 130) {
+  private recycle(n: Npc, taxi: TaxiNow, rMin = 75) {
     const sp = Math.hypot(taxi.vx, taxi.vz);
     const ahead = sp > 1 ? { x: taxi.vx / sp, z: taxi.vz / sp } : { x: Math.sin(taxi.yaw), z: Math.cos(taxi.yaw) };
-    this.place(n, taxi, rMin, 240, ahead);
+    this.place(n, taxi, rMin, 200, ahead);
   }
 
   /** handles that should not count as a crash (cars already knocked flying) */
@@ -377,7 +377,7 @@ export class Traffic {
         continue;
       }
       // real map: only the streets around the taxi have cars
-      if (this.net && recycled < 2 && Math.hypot(n.pos.x - taxi.x, n.pos.y - taxi.z) > 280) {
+      if (this.net && recycled < 2 && Math.hypot(n.pos.x - taxi.x, n.pos.y - taxi.z) > 230) {
         recycled++;
         this.recycle(n, taxi);
         continue;

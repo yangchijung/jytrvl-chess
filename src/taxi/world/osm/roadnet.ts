@@ -254,13 +254,14 @@ export function buildRoadNet(data: OsmCityData): RoadNet {
   const t0Of = (g: number) => Math.round(hash(g) * 200) / 10;
 
   // ---------- lanes ----------
+  const squeeze = overlaps(data, lens);
   const lanes: Lane[] = [];
   const byNode: number[][] = Array.from({ length: nodeCount }, () => []);
   const arriving: number[][] = Array.from({ length: nodeCount }, () => []);
   roads.forEach((r, ri) => {
     if (r.a === r.b || r.pts.length < 2 || lens[ri] < 0.5) return;
     const oneway = !!r.oneway;
-    const offs = laneOffsets(r.w, oneway);
+    const offs = oneway ? bandOffsets(r.w, squeeze[ri]) : laneOffsets(r.w, oneway);
     const [s0, s1] = back[ri];
     for (const fwd of oneway ? [true] : [true, false]) {
       const line = fwd ? r.pts : [...r.pts].reverse();
@@ -382,6 +383,95 @@ export function chooseTurn(net: RoadNet, lane: number, r: number): Turn | null {
     if (x <= 0) return t;
   }
   return out[out.length - 1];
+}
+
+/**
+ * One-way carriageways that overlap a parallel road beside them. Positions are scaled to 55 % but widths are real,
+ * so the two halves of a dual carriageway (or a main road and its side road) can overlap. For each one-way road:
+ * how much of its width (m) is shared with a parallel road on its left and on its right.
+ */
+export function overlaps(data: OsmCityData, lens = data.roads.map((r) => lineLength(r.pts))): [number, number][] {
+  const CELL = 24;
+  const grid = new Map<string, [number, number][]>();
+  data.roads.forEach((r, ri) => {
+    for (let i = 0; i < r.pts.length - 1; i++) {
+      const [ax, az] = r.pts[i],
+        [bx, bz] = r.pts[i + 1];
+      const L = Math.hypot(bx - ax, bz - az);
+      for (let t = 0; t <= L; t += CELL / 2) {
+        const x = ax + ((bx - ax) * t) / (L || 1),
+          z = az + ((bz - az) * t) / (L || 1);
+        const k = `${Math.floor(x / CELL)},${Math.floor(z / CELL)}`;
+        const list = grid.get(k) ?? grid.set(k, []).get(k)!;
+        if (!list.some(([q, j]) => q === ri && j === i)) list.push([ri, i]);
+      }
+    }
+  });
+  return data.roads.map((r, ri) => {
+    if (!r.oneway || lens[ri] < 8) return [0, 0];
+    // look from a few points along the road
+    let oL = 0,
+      oR = 0;
+    for (const f of [0.3, 0.5, 0.7]) {
+      const at = f * lens[ri];
+      let acc = 0,
+        px = r.pts[0][0],
+        pz = r.pts[0][1],
+        ux = 1,
+        uz = 0;
+      for (let i = 0; i < r.pts.length - 1; i++) {
+        const [ax, az] = r.pts[i],
+          [bx, bz] = r.pts[i + 1];
+        const L = Math.hypot(bx - ax, bz - az);
+        if (acc + L >= at) {
+          const t = L ? (at - acc) / L : 0;
+          px = ax + (bx - ax) * t;
+          pz = az + (bz - az) * t;
+          ux = (bx - ax) / (L || 1);
+          uz = (bz - az) / (L || 1);
+          break;
+        }
+        acc += L;
+      }
+      const gx = Math.floor(px / CELL),
+        gz = Math.floor(pz / CELL);
+      for (let dx = -1; dx <= 1; dx++)
+        for (let dz = -1; dz <= 1; dz++)
+          for (const [oj, si] of grid.get(`${gx + dx},${gz + dz}`) ?? []) {
+            if (oj === ri) continue;
+            const o = data.roads[oj];
+            const [ax, az] = o.pts[si],
+              [bx, bz] = o.pts[si + 1];
+            const L = Math.hypot(bx - ax, bz - az) || 1;
+            const vx = (bx - ax) / L,
+              vz = (bz - az) / L;
+            if (Math.abs(vx * ux + vz * uz) < 0.94) continue; // not parallel
+            const t = ((px - ax) * vx + (pz - az) * vz) / L;
+            if (t < 0 || t > 1) continue; // not beside it
+            const qx = ax + vx * t * L,
+              qz = az + vz * t * L;
+            const side = (qx - px) * -uz + (qz - pz) * ux; // + = on the right
+            const over = (r.w + o.w) / 2 + 0.6 - Math.abs(side);
+            if (over <= 0) continue;
+            if (side > 0) oR = Math.max(oR, over);
+            else oL = Math.max(oL, over);
+          }
+    }
+    return [oL, oR];
+  });
+}
+/** lane offsets of a one-way road whose left and right edges give up oL and oR (each road gives up half) */
+export function bandOffsets(w: number, [oL, oR]: [number, number]) {
+  let lo = -w / 2 + oL / 2,
+    hi = w / 2 - oR / 2;
+  if (hi - lo < 3) {
+    const c = Math.max(-w / 2 + 1.5, Math.min(w / 2 - 1.5, (lo + hi) / 2));
+    lo = c - 1.5;
+    hi = c + 1.5;
+  }
+  const n = laneCount(hi - lo, true);
+  const lw = (hi - lo) / n;
+  return Array.from({ length: n }, (_, k) => lo + (k + 0.5) * lw);
 }
 
 /** how many cars a lane should carry, relative to others: busier on the big roads */
