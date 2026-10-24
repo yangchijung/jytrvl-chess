@@ -9,10 +9,10 @@ export interface PageMeta {
 
 export const PAGES: Record<string, PageMeta> = {
   '/': {
-    title: { zh: 'JY Games｜西洋棋・象棋・暗棋・領地爭奪戰・貪食蛇・瘋狂碰碰車・方塊消除・數獨・色彩塗鴉樂・數學遊樂島・手繪雲霄飛車', en: 'JY Games | Chess, Xiangqi, Banqi, Territory Rush, Snake Arena, Crazy Bumper, Block Puzzle Battle, Sudoku, Color Doodle, Math Island & Sketch Coaster' },
+    title: { zh: 'JY Games｜西洋棋・象棋・暗棋・領地爭奪戰・貪食蛇・瘋狂碰碰車・狂飆小黃・方塊消除・數獨・色彩塗鴉樂・數學遊樂島・手繪雲霄飛車', en: 'JY Games | Chess, Xiangqi, Banqi, Territory Rush, Snake Arena, Crazy Bumper, Rush Taxi, Block Puzzle Battle, Sudoku, Color Doodle, Math Island & Sketch Coaster' },
     description: {
-      zh: '免費線上遊戲平台：棋藝策略（西洋棋、中國象棋、台灣暗棋）、即時競技（領地爭奪戰、貪食蛇競技場、瘋狂碰碰車）與益智創作（方塊消除對戰、經典數獨、色彩塗鴉樂）。三級電腦 AI、線上對戰、互動教學。',
-      en: 'Free online game platform: strategy (Chess, Xiangqi, Banqi), real-time action (Territory Rush, Snake Arena, Crazy Bumper) and puzzles & creativity (Block Puzzle Battle, Classic Sudoku, Color Doodle). Three AI levels, online play and interactive lessons.',
+      zh: '免費線上遊戲平台：棋藝策略（西洋棋、中國象棋、台灣暗棋）、即時競技（領地爭奪戰、貪食蛇競技場、瘋狂碰碰車、狂飆小黃）與益智創作（方塊消除對戰、經典數獨、色彩塗鴉樂）。三級電腦 AI、線上對戰、互動教學。',
+      en: 'Free online game platform: strategy (Chess, Xiangqi, Banqi), real-time action (Territory Rush, Snake Arena, Crazy Bumper, Rush Taxi) and puzzles & creativity (Block Puzzle Battle, Classic Sudoku, Color Doodle). Three AI levels, online play and interactive lessons.',
     },
     index: true,
   },
@@ -161,6 +161,11 @@ export const PAGES: Record<string, PageMeta> = {
   '/bumper': {
     title: { zh: '瘋狂碰碰車｜JY Games', en: 'Crazy Bumper | JY Games' },
     description: { zh: '3D 碰碰車：選一隻動物和一台車，60 秒在嘉年華場地裡互撞、搶道具、撿星星。', en: 'A 3D bumper-car game: pick an animal and a car, bump around a carnival arena for 60 seconds, grab power-ups and collect stars.' },
+    index: true,
+  },
+  '/taxi': {
+    title: { zh: '狂飆小黃｜JY Games', en: 'Rush Taxi | JY Games' },
+    description: { zh: '3D 計程車街機：在以高雄為靈感的港都裡載客、甩尾、衝刺，限時內賺最多車資；也有不計時的練習模式。', en: 'A 3D arcade taxi game: pick up riders in a harbour city inspired by Kaohsiung, drift and dash, and earn the most fares before time runs out; untimed practice too.' },
     index: true,
   },
   '/learn/sudoku': {

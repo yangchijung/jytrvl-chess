@@ -20,7 +20,7 @@ function Logo() {
   );
 }
 
-const GAMES = ['chess', 'xiangqi', 'banqi', 'territory', 'snake', 'bumper', 'blocks', 'sudoku', 'doodle', 'coaster', 'math'] as const;
+const GAMES = ['chess', 'xiangqi', 'banqi', 'territory', 'snake', 'bumper', 'taxi', 'blocks', 'sudoku', 'doodle', 'coaster', 'math'] as const;
 const iconBtn = 'ui-t flex h-11 min-w-11 items-center justify-center rounded-md px-2 hover:bg-[var(--surface-2)]';
 const navLink = ({ isActive }: { isActive: boolean }) =>
   `ui-t flex min-h-11 items-center rounded-md px-3 text-sm font-medium hover:bg-[var(--surface-2)] ${isActive ? 'underline decoration-2 underline-offset-[6px]' : ''}`;

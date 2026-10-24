@@ -9,6 +9,7 @@ import { SudokuPreview } from '../sudoku/preview';
 import { DoodlePreview } from '../doodle/preview';
 import { CoasterPreview } from '../coaster/preview';
 import { BumperPreview } from '../bumper/preview';
+import { TaxiPreview } from '../taxi/preview';
 import { IslandArt } from '../math/art';
 import type { GameId } from '../../shared/types';
 
@@ -63,14 +64,14 @@ export function Home() {
   const { t, to, lang } = useI18n();
   // Sketch Coaster is its own page (/coaster/), opened with a full page load in the same language
   const playHref = (g: AnyGame) => (g === 'coaster' ? `/coaster/?lang=${lang}` : to(`/${g}`));
-  type AnyGame = GameId | 'territory' | 'snake' | 'bumper' | 'blocks' | 'sudoku' | 'doodle' | 'coaster' | 'math';
+  type AnyGame = GameId | 'territory' | 'snake' | 'bumper' | 'taxi' | 'blocks' | 'sudoku' | 'doodle' | 'coaster' | 'math';
   const categories: { key: 'home.cat.board' | 'home.cat.realtime' | 'home.cat.puzzle' | 'home.cat.learn'; games: AnyGame[] }[] = [
     { key: 'home.cat.board', games: ['chess', 'xiangqi', 'banqi'] },
-    { key: 'home.cat.realtime', games: ['territory', 'snake', 'bumper'] },
+    { key: 'home.cat.realtime', games: ['territory', 'snake', 'bumper', 'taxi'] },
     { key: 'home.cat.puzzle', games: ['blocks', 'sudoku', 'doodle', 'coaster'] },
     { key: 'home.cat.learn', games: ['math'] },
   ];
-  const preview = (g: AnyGame) => (g === 'territory' ? <TerritoryPreview /> : g === 'snake' ? <SnakePreview /> : g === 'blocks' ? <BlocksPreview /> : g === 'sudoku' ? <SudokuPreview /> : g === 'doodle' ? <DoodlePreview /> : g === 'coaster' ? <CoasterPreview /> : g === 'bumper' ? <BumperPreview /> : g === 'math' ? <IslandArt /> : <GamePreview game={g} />);
+  const preview = (g: AnyGame) => (g === 'territory' ? <TerritoryPreview /> : g === 'snake' ? <SnakePreview /> : g === 'blocks' ? <BlocksPreview /> : g === 'sudoku' ? <SudokuPreview /> : g === 'doodle' ? <DoodlePreview /> : g === 'coaster' ? <CoasterPreview /> : g === 'bumper' ? <BumperPreview /> : g === 'taxi' ? <TaxiPreview /> : g === 'math' ? <IslandArt /> : <GamePreview game={g} />);
   return (
     <div className="pb-4" data-testid="home">
       <header className="py-6">
@@ -103,7 +104,7 @@ export function Home() {
                       <LinkButton to={playHref(g)} reload={g === 'coaster'} className="min-h-12 px-5" aria-label={t('home.v2.playLabel', { game: name })} data-testid={`play-${g}`}>
                         {t('home.v2.play')}
                       </LinkButton>
-                      {g !== 'coaster' && g !== 'math' && g !== 'bumper' && (
+                      {g !== 'coaster' && g !== 'math' && g !== 'bumper' && g !== 'taxi' && (
                       <Link to={to(`/learn/${g}`)} className="ui-t inline-flex min-h-11 items-center rounded-md px-3 font-medium text-[var(--ui-accent-text)] underline underline-offset-4 hover:bg-[var(--surface-2)]" aria-label={t('home.v2.rulesLabel', { game: name })} data-testid={`rules-${g}`}>
                         {t('home.v2.rules')}
                       </Link>
