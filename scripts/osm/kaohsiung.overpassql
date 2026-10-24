@@ -1,0 +1,20 @@
+[out:json][timeout:300][bbox:22.592,120.276,22.642,120.322];
+(
+  way["highway"];
+  way["railway"];
+  way["waterway"];
+  way["natural"~"water|coastline|beach"];
+  relation["natural"="water"];
+  way["leisure"~"park|garden|pitch|stadium|playground"];
+  relation["leisure"="park"];
+  way["landuse"];
+  way["man_made"~"pier|breakwater"];
+  way["building"];
+  relation["building"];
+  nwr["tourism"];
+  nwr["historic"];
+  nwr["amenity"~"place_of_worship|marketplace|university|college|school|hospital|townhall|theatre|arts_centre|library|ferry_terminal"];
+  nwr["railway"="station"];
+  relation["boundary"="administrative"]["admin_level"~"^(7|8|9)$"];
+);
+out geom;
