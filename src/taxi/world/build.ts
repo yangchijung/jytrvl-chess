@@ -31,6 +31,8 @@ export function buildPhysics(RAPIER: R, world: RAPIER_NS.World, level: Level) {
       const b = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(...s.p));
       soft.add(world.createCollider(RAPIER.ColliderDesc.cuboid(s.size[0] / 2, s.size[1] / 2, s.size[2] / 2).setDensity(40).setRestitution(0.3), b).handle);
       dynamics.push({ b, s });
+    } else if (s.kind === 'box' && s.nocollide) {
+      continue;
     } else if (s.kind === 'box') {
       const flat = s.size[1] <= 0.7 && s.p[1] <= 0; // bridge decks: part of the road
       const c = world.createCollider(RAPIER.ColliderDesc.cuboid(s.size[0] / 2, s.size[1] / 2, s.size[2] / 2).setTranslation(...s.p).setRotation(rotY(s.yaw)).setRestitution(0.2).setFriction(flat ? 1 : 0.4));
@@ -211,31 +213,47 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
   const ms = level.massing;
   const boxes: Inst[] = [...all.filter((s) => s.look === undefined), ...(ms?.slabs ?? []).map((b) => ({ p: [b.x, b.y, b.z] as [number, number, number], size: [b.w, b.h, b.d] as [number, number, number], color: b.color }))];
   const blds: Inst[] = [...all.filter((s) => s.look !== undefined), ...(ms?.masses ?? []).map((m) => ({ p: [m.x, m.y0 + m.h / 2, m.z] as [number, number, number], size: [m.w, m.h, m.d] as [number, number, number], color: m.color, look: m.look }))];
-  if (blds.length) {
+  // the real-map city has tens of thousands of boxes: one instanced mesh per 460 m square (as surfaces.ts does), so
+  // the frustum culls the squares behind and beside the camera; the hand-made levels keep a single mesh
+  const squares = <T extends Inst>(items: T[]): T[][] => {
+    if (!level.osm || items.length < 400) return [items];
+    const S = 460;
+    const map = new Map<string, T[]>();
+    for (const it of items) {
+      const k = `${Math.floor(it.p[0] / S)},${Math.floor(it.p[2] / S)}`;
+      (map.get(k) ?? map.set(k, []).get(k)!).push(it);
+    }
+    return [...map.values()];
+  };
+  const bldMat = blds.length ? addOcclusionFade(buildingMaterial()) : null;
+  for (const part of blds.length ? squares(blds) : []) {
     // buildings: windows, arcades and roofs drawn by the shader from each building's look; no bottom face (never seen)
     const geo = new THREE.BoxGeometry(1, 1, 1);
     const ix = Array.from(geo.index!.array);
     geo.setIndex([...ix.slice(0, 18), ...ix.slice(24)]);
-    geo.setAttribute('aLook', new THREE.InstancedBufferAttribute(new Float32Array(blds.map((s) => buildingLook(s.look ?? 0, s.p[0], s.p[2]))), 1));
-    const inst = new THREE.InstancedMesh(geo, addOcclusionFade(buildingMaterial()), blds.length);
+    geo.setAttribute('aLook', new THREE.InstancedBufferAttribute(new Float32Array(part.map((s) => buildingLook(s.look ?? 0, s.p[0], s.p[2]))), 1));
+    const inst = new THREE.InstancedMesh(geo, bldMat!, part.length);
     inst.name = 'buildings';
     faded.set(inst, 0);
-    blds.forEach((s, i) => {
+    part.forEach((s, i) => {
       m4.compose(new THREE.Vector3(...s.p), q.setFromAxisAngle(up, s.yaw ?? 0), new THREE.Vector3(...s.size));
       inst.setMatrixAt(i, m4);
       inst.setColorAt(i, new THREE.Color(s.color));
     });
+    inst.computeBoundingSphere();
     inst.castShadow = true;
     inst.receiveShadow = true;
     scene.add(inst);
   }
-  if (boxes.length) {
-    const inst = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ flatShading: true }), boxes.length);
-    boxes.forEach((s, i) => {
+  const boxMat = new THREE.MeshLambertMaterial({ flatShading: true });
+  for (const part of boxes.length ? squares(boxes) : []) {
+    const inst = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), boxMat, part.length);
+    part.forEach((s, i) => {
       m4.compose(new THREE.Vector3(...s.p), q.setFromAxisAngle(up, s.yaw ?? 0), new THREE.Vector3(...s.size));
       inst.setMatrixAt(i, m4);
       inst.setColorAt(i, new THREE.Color(s.color));
     });
+    inst.computeBoundingSphere();
     inst.castShadow = true;
     inst.receiveShadow = true;
     scene.add(inst);

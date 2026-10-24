@@ -13,6 +13,7 @@ import type { Shape } from '../greybox';
 import type { Place, Spot } from '../../gameplay/rules';
 import { LOOK_HALL, LOOK_HOUSE, LOOK_TOWER, LOOK_WAREHOUSE } from '../facade';
 import { KAOHSIUNG, RANK, type OsmCityData, type OsmRoad, type XZ } from './data';
+import { fillBlocks } from './fill';
 
 /** the landmark names shown in the game (short, as people say them) */
 export const LANDMARK_NAMES: Record<string, { zh: string; en: string }> = {
@@ -285,6 +286,11 @@ export function osmLevel(data: OsmCityData = KAOHSIUNG): Level {
     }
   }
 
+  // ---------- the empty blocks: frontage rows, interiors and rooftop / wall decor (./fill.ts) ----------
+  const fill = fillBlocks(data);
+  shapes.push(...fill.shapes);
+  const decor = { ...fill.decor, scooters: [], lamps: [], signals: [], palms: [], curbs: [], boats: [] };
+
   const half = Math.max(x1 - x0, z1 - z0) / 2;
   return {
     id: 'city',
@@ -304,7 +310,8 @@ export function osmLevel(data: OsmCityData = KAOHSIUNG): Level {
     graph: { nodes: gNodes, edges: gEdges },
     walks: [],
     avoid: [],
-    decor: null,
+    decor,
+    massing: { masses: [], slabs: [], pitched: fill.pitched, roofs: [] },
     osm: data,
   };
 }
