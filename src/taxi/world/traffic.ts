@@ -267,7 +267,8 @@ export class Traffic {
       while (lo < wsum.length - 1 && wsum[lo] < x) lo++;
       const id = cand[lo] ?? 0;
       const piece = this.lanePiece(id);
-      const s = this.rnd() * piece.len;
+      // not right at a stop line (it could not stop in time)
+      const s = this.rnd() * Math.max(0, piece.len - 14);
       const p = polyAt(piece, s);
       if (tries < 11 && this.cars.some((o) => o !== n && o.route && o.pos.distanceTo(p) < 10)) continue;
       n.route = [piece];
@@ -307,7 +308,8 @@ export class Traffic {
           if (left < 4) waiting = true;
         }
       }
-      break;
+      // only the nearest junction with a light or a give-way counts
+      if (lane.signal || lane.yieldAt) break;
     }
     n.wait = waiting ? (n.wait ?? 0) + dt : n.piece.turn ? 0 : n.wait;
     return want;
@@ -425,8 +427,12 @@ export class Traffic {
         if (o === n || o.flying) continue;
         // on the same piece only the car behind waits (no two cars waiting for each other)
         if (this.net ? o.piece.key === n.piece.key : o.from === n.from && o.to === n.to && o.piece.turn === n.piece.turn) if (o.s <= n.s) continue;
+        // real map: two cars crossing the same junction on different curves — the one further through goes first
+        if (this.net && n.piece.turn && o.piece.turn && o.piece.node === n.piece.node && o.piece.key !== n.piece.key && o.s / o.piece.len <= n.s / n.piece.len) continue;
         const ox = o.pos.x - n.pos.x,
           oz = o.pos.y - n.pos.y;
+        // real map: two cars from different pieces already nose to nose would wait for each other forever; one goes
+        if (this.net && o.piece.key !== n.piece.key && ox * ox + oz * oz < 20 && this.cars.indexOf(n) < this.cars.indexOf(o)) continue;
         const fz = ox * s + oz * c,
           fx = ox * c - oz * s;
         if (fz > 0 && fz < gap + HALF.z * 2 && Math.abs(fx) < 2.4 && Math.cos(o.yaw - n.yaw) > 0.3) gap = fz - HALF.z * 2;

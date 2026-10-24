@@ -12,6 +12,7 @@
 //
 // Plain data and maths only (no Three.js), so unit tests can check it.
 import { RANK, type OsmCityData, type XZ } from './data';
+import { surfaceTests } from './walks';
 
 export interface Turn {
   /** the lane taken next */
@@ -323,6 +324,7 @@ export function buildRoadNet(data: OsmCityData): RoadNet {
 
   // ---------- signal heads: on the far-right corner of each approach ----------
   const heads: SignalHead[] = [];
+  const surf = data.surfaces ? surfaceTests(data) : null;
   const members = new Map<number, number[]>();
   for (let n = 0; n < nodeCount; n++) if (group[n] >= 0) (members.get(group[n]) ?? members.set(group[n], []).get(group[n])!).push(n);
   for (let n = 0; n < nodeCount; n++) {
@@ -346,8 +348,21 @@ export function buildRoadNet(data: OsmCityData): RoadNet {
       let cross = 0;
       for (const m of nodes) for (const o of ends[m]) if (o !== e && Math.abs(o.ux * uz - o.uz * ux) > 0.5) cross = Math.max(cross, o.w / 2);
       const side = r.oneway ? r.w / 2 : r.w / 2;
-      const x = jx + ux * (ext + Math.min(cross, 9) + 1.6) + rx * (side + 1.4);
-      const z = jz + uz * (ext + Math.min(cross, 9) + 1.6) + rz * (side + 1.4);
+      let x = jx + ux * (ext + Math.min(cross, 9) + 1.6) + rx * (side + 1.4);
+      let z = jz + uz * (ext + Math.min(cross, 9) + 1.6) + rz * (side + 1.4);
+      // on the corner's sidewalk: step further right and on until off the asphalt (wider roads beyond)
+      if (surf && (surf.onRoad(x, z) || !surf.onWalk(x, z)))
+        search: for (const fa of [0, 1.5, 3, 4.5, -1.5]) {
+          for (const fr of [0, 1, 2, 3, 4, 5, 6]) {
+            const cx = x + ux * fa + rx * fr,
+              cz = z + uz * fa + rz * fr;
+            if (!surf.onRoad(cx, cz) && surf.onWalk(cx, cz)) {
+              x = cx;
+              z = cz;
+              break search;
+            }
+          }
+        }
       heads.push({ x, z, yaw: Math.atan2(-ux, -uz), phase: phaseOf(g, -ux, -uz), t0: t0Of(g), group: g });
     }
   }
