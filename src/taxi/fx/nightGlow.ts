@@ -147,7 +147,7 @@ export function headlightBeams(rearZ: number) {
     return g;
   };
   for (const s of [-1, 1]) parts.push(quad(4.2, 15, s * 0.7, 2.1 + 7.5, true, '#FFF1D0'));
-  parts.push(quad(2.8, 1.8, 0, rearZ - 0.7, false, '#FF3B30'));
+  parts.push(quad(2.2, 1.2, 0, rearZ - 0.45, false, '#8A1A14')); // dim: the camera looks straight at it
   const geo = new THREE.BufferGeometry();
   // merge by hand (tiny): positions, uv, aBeam, aTint, indices
   const attrs = ['position', 'uv', 'aBeam', 'aTint'] as const;
