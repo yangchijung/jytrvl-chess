@@ -130,7 +130,7 @@ export function TaxiPage() {
         }, {
           lowPower: touchUi,
           lang,
-          track: new URLSearchParams(location.search).get('track') === 'test' ? 'test' : 'city',
+          track: (() => { const t = new URLSearchParams(location.search).get('track'); return t === 'test' ? 'test' : t === 'grid' ? 'grid' : 'city'; })(),
           onEvent: (e) => onEvent.current(e),
           onPause: (p) => {
             setPaused(p);

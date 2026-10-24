@@ -6,6 +6,7 @@ import { GROUND, greybox, type Shape } from './greybox';
 import type { Place, Spot } from '../gameplay/rules';
 import { PLACES, STOPS } from '../gameplay/places';
 import type { Massing } from './massing';
+import type { OsmCityData } from './osm/data';
 
 export type { Shape };
 
@@ -95,6 +96,10 @@ export interface Level {
   decor: Decor | null;
   /** building detail drawn on top of the base boxes: upper volumes, balconies and crowns, pitched roofs, flat roofs */
   massing?: Massing;
+  /** the play area when it is not the square ±bounds (the real-map city) */
+  rect?: { x0: number; z0: number; x1: number; z1: number };
+  /** the real-map city: polygons for the ground, roads, sidewalks, water and blocks (drawn by world/osm/surfaces.ts) */
+  osm?: OsmCityData;
 }
 
 /** the stage 1 grey-box ground (still used for the physics feel tests and the ?track=test page) */

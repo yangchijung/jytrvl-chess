@@ -20,6 +20,7 @@ import { newRun, tick, type Mode, type RunEvent, type RunState } from './gamepla
 import { RunView } from './gameplay/view';
 import { testLevel, type Level } from './world/level';
 import { cityLevel } from './world/city';
+import { osmLevel } from './world/osm/level';
 import { buildPhysics, buildScene } from './world/build';
 import { drawSky } from './world/decor';
 import { TAXI_GROUPS, Traffic, type TaxiNow } from './world/traffic';
@@ -78,9 +79,10 @@ export interface GameAudio {
   effect(e: SfxEvent, strength?: number): void;
 }
 
-export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) => void, opts: { lowPower?: boolean; lang?: 'zh' | 'en'; track?: 'city' | 'test'; onEvent?: (e: RunEvent) => void; onPause?: (paused: boolean) => void; audio?: GameAudio } = {}): Promise<Game> {
+export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) => void, opts: { lowPower?: boolean; lang?: 'zh' | 'en'; track?: 'city' | 'grid' | 'test'; onEvent?: (e: RunEvent) => void; onPause?: (paused: boolean) => void; audio?: GameAudio } = {}): Promise<Game> {
   await RAPIER.init();
-  const level = opts.track === 'test' ? testLevel() : cityLevel();
+  // the real-map Kaohsiung is the city; ?track=grid keeps the stage 3 hand-made grid city, ?track=test the test ground
+  const level = opts.track === 'test' ? testLevel() : opts.track === 'grid' ? cityLevel() : osmLevel();
   const SPAWN = level.spawn;
   const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
   world.timestep = STEP;

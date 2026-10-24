@@ -9,6 +9,7 @@ import type { Level, Prim, Shape } from './level';
 import { buildingMaterial, drawDecor, waterMaterial } from './decor';
 import { pitchTriangles, type Pitch } from './massing';
 import { buildingLook } from './facade';
+import { buildSurfacePhysics, drawSurfaces } from './osm/surfaces';
 import { addOcclusionFade, OCC_NEAR, OCC_NEAR_BOARD } from '../fx/occlusion';
 
 type R = typeof RAPIER_NS;
@@ -18,6 +19,7 @@ export const LOOK = { asphalt: '#525459', grass: '#7AAF4C', sea: '#1D7FC6', rive
 /** colliders for the whole level; returns the handles that never count as a crash and the moving props */
 export function buildPhysics(RAPIER: R, world: RAPIER_NS.World, level: Level) {
   const soft = new Set<number>();
+  if (level.osm) for (const h of buildSurfacePhysics(RAPIER, world, level)) soft.add(h);
   for (const g of level.ground) soft.add(world.createCollider(RAPIER.ColliderDesc.cuboid(g.size[0] / 2, g.size[1] / 2, g.size[2] / 2).setTranslation(...g.p).setFriction(1)).handle);
   if (level.water) {
     const w = level.water;
@@ -138,6 +140,22 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
     const grid = new THREE.GridHelper(S, S / 10, '#5A616B', '#4A5059');
     grid.position.y = 0.02;
     scene.add(ground, grid);
+  } else if (level.osm) {
+    drawSurfaces(scene, level, { river: riverWater.mat, sea: seaWater.mat });
+    // far land round the map: grass to the east and north, the sea to the west and south
+    const r = level.rect!,
+      far = 2500;
+    for (const [x0, x1, z0, z1, mat] of [
+      [r.x1, r.x1 + far, r.z0 - far, r.z1 + far, lambert(LOOK.grass)],
+      [r.x0, r.x1, r.z0 - far, r.z0, lambert(LOOK.grass)],
+      [r.x0 - far, r.x0, r.z0 - far, r.z1 + far, seaWater.mat],
+      [r.x0, r.x1, r.z1, r.z1 + far, seaWater.mat],
+    ] as const) {
+      const g = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, z1 - z0), mat);
+      g.rotation.x = -Math.PI / 2;
+      g.position.set((x0 + x1) / 2, mat === seaWater.mat ? level.water!.y : -0.08, (z0 + z1) / 2);
+      scene.add(g);
+    }
   } else {
     for (const g of level.ground) {
       const m = new THREE.Mesh(new THREE.BoxGeometry(...g.size), lambert(LOOK.asphalt));
@@ -163,7 +181,7 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
     sea.position.set(-B - far / 2, -0.6, 0);
     scene.add(sea);
   }
-  if (level.water) {
+  if (level.water && !level.osm) {
     const w = level.water;
     const water = new THREE.Mesh(new THREE.PlaneGeometry(w.x1 - w.x0, w.z1 - w.z0), riverWater.mat);
     water.rotation.x = -Math.PI / 2;
