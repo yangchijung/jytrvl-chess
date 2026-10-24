@@ -195,8 +195,11 @@ describe('fill of central Kaohsiung', () => {
     const L = osmLevel();
     expect(L.decor).not.toBeNull();
     for (const k of ['tanks', 'sheds', 'acs', 'shopSigns', 'scooters', 'lamps', 'signals', 'palms', 'curbs', 'boats'] as const) expect(Array.isArray(L.decor![k])).toBe(true);
-    expect(L.decor!.tanks.length).toBe(F.decor.tanks.length);
-    expect(L.massing?.pitched.length).toBe(F.pitched.length);
+    // (nothing generated where a landmark model stands: a few percent fewer)
+    expect(L.decor!.tanks.length).toBeLessThanOrEqual(F.decor.tanks.length);
+    expect(L.decor!.tanks.length).toBeGreaterThan(F.decor.tanks.length * 0.95);
+    expect(L.massing!.pitched.length).toBeLessThanOrEqual(F.pitched.length);
+    expect(L.massing!.pitched.length).toBeGreaterThan(F.pitched.length * 0.95);
     expect(L.shapes.length).toBeGreaterThan(F.shapes.length);
   });
 });
