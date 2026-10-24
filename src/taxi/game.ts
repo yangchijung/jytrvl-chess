@@ -25,7 +25,7 @@ import { drawSky } from './world/decor';
 import { TAXI_GROUPS, Traffic, type TaxiNow } from './world/traffic';
 import { People } from './world/people';
 import { detectQuality } from './fx/quality';
-import { setSurfaceQuality, setWet } from './fx/surfaces';
+import { bindEnvironment, setSurfaceQuality, setWet } from './fx/surfaces';
 import { createEnvironment } from './fx/envLight';
 import { WaterMirror } from './fx/waterMirror';
 
@@ -144,9 +144,11 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
   // ---------- the level: colliders and the drawn world ----------
   const { soft, dynamics } = buildPhysics(RAPIER, world, level);
   const { props, faded, waters, update: updateWorld } = buildScene(scene, level, opts.lang ?? 'zh');
-  // reflections: an environment map from the sky (mid, high), a real mirror on the water (high)
+  // reflections: an environment map from the sky for the materials that reflect (mid, high), a real mirror on the
+  // water (high)
   const env = quality === 'low' ? null : createEnvironment(renderer, scene, sky, quality === 'high' ? 128 : 64);
   env?.refresh();
+  bindEnvironment(env?.texture ?? null); // the texture object stays the same across refreshes
   const mirror = quality === 'high' && waters.length ? new WaterMirror(waters, level.water?.y ?? waters[0].position.y) : null;
   let worldClock = 0;
   const cones = dynamics.map((d, i) => ({ b: d.b, mesh: props[i] }));
@@ -444,6 +446,7 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
       cancelAnimationFrame(raf);
       input.dispose();
       mirror?.dispose();
+      bindEnvironment(null);
       env?.dispose();
       setWet(0);
       renderer.dispose();

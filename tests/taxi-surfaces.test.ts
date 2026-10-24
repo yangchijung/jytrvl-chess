@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { parseQuality, qualityFor } from '../src/taxi/fx/quality';
-import { bankRise, NOISE_SIZE, roadMaterial, roadNoiseData, ROAD_LOOK, roadNoise, setSurfaceQuality, setWet, SURF, surfFor, taxiBodyMaterial, taxiGlassMaterial, trafficMaterial, WET, withGlassReflection } from '../src/taxi/fx/surfaces';
-import { farCityRing, keepHemisphereAmbient } from '../src/taxi/fx/envLight';
+import { bankRise, bindEnvironment, NOISE_SIZE, roadMaterial, roadNoiseData, ROAD_LOOK, roadNoise, setSurfaceQuality, setWet, SURF, surfFor, taxiBodyMaterial, taxiGlassMaterial, trafficMaterial, WET, withGlassReflection } from '../src/taxi/fx/surfaces';
+import { farCityRing, keepHemisphereAmbient, lightLevel } from '../src/taxi/fx/envLight';
 import { colored, sedanGeometry } from '../src/taxi/fx/taxiModel';
 import { buildingMaterial, waterMaterial } from '../src/taxi/world/decor';
 import { FACADE_DECODE_GLSL, GLASS_TOWER_SHARE, LOOK_TOWER } from '../src/taxi/world/facade';
@@ -15,6 +15,7 @@ function compile(mat: THREE.Material, lib: keyof typeof THREE.ShaderLib) {
 }
 
 afterEach(() => {
+  bindEnvironment(null);
   setSurfaceQuality('low');
   setWet(0);
 });
@@ -38,6 +39,31 @@ describe('environment map', () => {
     expect(src).not.toContain('defined( STANDARD ) || defined( LAMBERT ) || defined( PHONG )');
     expect(keepHemisphereAmbient()).toBe(true);
     expect(THREE.ShaderChunk.lights_fragment_maps).toBe(src);
+  });
+  it('goes only to the materials that reflect, before and after it exists, and unbinds', () => {
+    setSurfaceQuality('mid');
+    const early = roadMaterial('#525459', 'asphalt') as THREE.MeshLambertMaterial;
+    const plain = new THREE.MeshLambertMaterial();
+    const tex = new THREE.Texture();
+    tex.mapping = THREE.CubeUVReflectionMapping;
+    bindEnvironment(tex);
+    const late = taxiBodyMaterial() as THREE.MeshStandardMaterial;
+    expect(early.envMap).toBe(tex);
+    expect(late.envMap).toBe(tex);
+    expect(plain.envMap).toBeNull();
+    bindEnvironment(null);
+    expect(early.envMap).toBeNull();
+    setSurfaceQuality('low');
+    expect((roadMaterial('#525459', 'asphalt') as THREE.MeshLambertMaterial).envMap).toBeNull();
+  });
+  it('the light level is 1 for the afternoon set-up and falls with the light', () => {
+    const day = [
+      { kind: 'hemi' as const, color: new THREE.Color('#CFE8FF').lerp(new THREE.Color('#8C7B5E'), 0.3), intensity: 1.15 },
+      { kind: 'sun' as const, color: new THREE.Color('#FFEACB'), intensity: 2.6 },
+    ];
+    expect(lightLevel(day)).toBeGreaterThan(0.85);
+    expect(lightLevel(day)).toBeLessThan(1.15);
+    expect(lightLevel([{ ...day[0], intensity: 0.2 }])).toBeLessThan(0.2);
   });
   it('the far city ring is deterministic and stays below the sky dome', () => {
     const a = farCityRing(),

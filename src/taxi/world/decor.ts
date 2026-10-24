@@ -9,7 +9,7 @@ import type { Decor, Level } from './level';
 import { SHOP_WORDS, SIGN_COLORS } from './city';
 import { lightFor } from './traffic';
 import type { Quality } from '../fx/quality';
-import { MIRROR, surfaceQuality, WATER_HEAD, WATER_REFLECT } from '../fx/surfaces';
+import { MIRROR, surfaceQuality, usesEnvironment, WATER_HEAD, WATER_REFLECT } from '../fx/surfaces';
 
 const m4 = new THREE.Matrix4();
 const q = new THREE.Quaternion();
@@ -515,6 +515,7 @@ export function waterMaterial(color: string, opts: { box?: [number, number, numb
       );
   };
   mat.customProgramCacheKey = () => `water-${tier}`;
+  if (tier !== 'low') usesEnvironment(mat);
   return { mat, uTime };
 }
 

@@ -1,13 +1,16 @@
 // Rush Taxi: the environment map. A tiny copy of the sky (the live dome and clouds, sharing their buffers and
-// materials), a ring of far city blocks and the ground, lit by copies of the scene's own lights and hazed by the
-// scene's own fog, is rendered into a PMREM once and set as `scene.environment`. Physical materials (the cabs) and
-// the reflection chunks (glass towers, water, wet roads) sample it. Call `refresh()` only when the sky or the
-// light changes (time of day): it costs six tiny cube renders and a PMREM blur, a few milliseconds.
+// materials), a ring of far city blocks and the ground, hazed by the scene's own fog and shaded by the brightness
+// of the scene's own lights, is rendered by a 6-face cube camera and filtered into a PMREM. The PMREM target is
+// reused, so its texture object never changes: materials bound to it once (bindEnvironment in surfaces.ts) follow
+// every refresh. Call `refresh()` only when the sky or the light changes (time of day): six tiny cube renders and
+// a PMREM blur, a few milliseconds.
 //
-// The hemisphere light stays the scene's ambient term. three r185 also feeds scene.environment into the diffuse
-// light of every Lambert, Phong and Standard material, which would add a second, brighter ambient on top of the
-// tuned afternoon balance (and an extra texture read on every pixel of the city). `keepHemisphereAmbient()` gates
-// that behind ENV_IBL_DIFFUSE, so the environment only brings reflections.
+// It is deliberately NOT scene.environment. In three r185 scene.environment also turns on the environment in every
+// Lambert and Phong program of the city (the facade, decor, people, kerbs...), each compiled bigger, and it adds a
+// second, image-based ambient on top of the hemisphere light. Measured in tablet mode (software WebGL) that made
+// the page take about twice as long to become ready. So the environment goes only to the materials that reflect:
+// the cabs, the glass towers, the water and the (wet) streets. `keepHemisphereAmbient()` makes sure those keep the
+// hemisphere light as their only ambient term.
 import * as THREE from 'three';
 
 const IBL_DIFFUSE_LINE = '#if defined( STANDARD ) || defined( LAMBERT ) || defined( PHONG )';
@@ -44,7 +47,7 @@ export function farCityRing(count = 120, seed = 11) {
 }
 
 export interface Environment {
-  /** the current PMREM (also scene.environment) */
+  /** the PMREM (CubeUV) texture; the same object for the life of the environment */
   readonly texture: THREE.Texture | null;
   /** re-render the environment from the live sky, lights and fog */
   refresh(): void;
@@ -52,15 +55,31 @@ export interface Environment {
 }
 
 const TONES = ['#C9C4B6', '#B7BCC0', '#D8CDB8', '#9FA9B2', '#C7B7A6', '#7F8E9C'].map((c) => new THREE.Color(c));
+const lum = (c: THREE.Color) => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+
+type LightSample = { kind: 'hemi' | 'ambient' | 'sun'; color: THREE.Color; intensity: number };
+const rawLevel = (lights: LightSample[]) => lights.reduce((v, l) => v + l.intensity * lum(l.color) * (l.kind === 'sun' ? 0.45 : 1), 0);
+/** the afternoon set-up in game.ts (hemisphere sky 30 % towards its ground colour, as level() samples it) */
+const AFTERNOON = rawLevel([
+  { kind: 'hemi', color: new THREE.Color('#CFE8FF').lerp(new THREE.Color('#8C7B5E'), 0.3), intensity: 1.15 },
+  { kind: 'sun', color: new THREE.Color('#FFEACB'), intensity: 2.6 },
+]);
+/** how bright the scene's lights make a matte surface, relative to the afternoon set-up (1) */
+export function lightLevel(lights: LightSample[]) {
+  return rawLevel(lights) / AFTERNOON;
+}
 
 export function createEnvironment(renderer: THREE.WebGLRenderer, scene: THREE.Scene, sky: THREE.Object3D | null, size = 64): Environment {
   keepHemisphereAmbient();
   const pmrem = new THREE.PMREMGenerator(renderer);
   const env = new THREE.Scene();
+  const cubeRT = new THREE.WebGLCubeRenderTarget(size, { type: THREE.HalfFloatType, generateMipmaps: false });
+  const cubeCam = new THREE.CubeCamera(1, 1200, cubeRT);
+  env.add(cubeCam);
 
-  // the far city and the ground, drawn only here
+  // the far city and the ground, drawn only here, unlit: their colour is set from the scene's light level
   const blocks = farCityRing();
-  const ringMat = new THREE.MeshLambertMaterial({ flatShading: true });
+  const ringMat = new THREE.MeshBasicMaterial({ vertexColors: false });
   const ring = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0), ringMat, blocks.length);
   const m4 = new THREE.Matrix4();
   const q = new THREE.Quaternion();
@@ -70,7 +89,8 @@ export function createEnvironment(renderer: THREE.WebGLRenderer, scene: THREE.Sc
     ring.setColorAt(i, TONES[Math.floor(b.tone * TONES.length)]);
   });
   ring.frustumCulled = false;
-  const ground = new THREE.Mesh(new THREE.CircleGeometry(1000, 24).rotateX(-Math.PI / 2), new THREE.MeshLambertMaterial({ color: '#5E6066' }));
+  const groundMat = new THREE.MeshBasicMaterial();
+  const ground = new THREE.Mesh(new THREE.CircleGeometry(1000, 24).rotateX(-Math.PI / 2), groundMat);
   ground.position.y = -2;
   env.add(ring, ground);
 
@@ -78,7 +98,6 @@ export function createEnvironment(renderer: THREE.WebGLRenderer, scene: THREE.Sc
   const proxies = new Map<THREE.Mesh, THREE.Mesh>();
   const rel = new THREE.Matrix4();
   const inv = new THREE.Matrix4();
-  let lights: THREE.Light[] = [];
   let rt: THREE.WebGLRenderTarget | null = null;
 
   const syncSky = () => {
@@ -108,27 +127,16 @@ export function createEnvironment(renderer: THREE.WebGLRenderer, scene: THREE.Sc
       p.matrixWorldNeedsUpdate = true;
     });
   };
-  const syncLights = () => {
-    for (const l of lights) env.remove(l);
-    lights = [];
+  const level = () => {
+    const ls: Parameters<typeof lightLevel>[0] = [];
     for (const o of scene.children) {
       const l = o as THREE.Light;
       if (!l.isLight || !l.visible) continue;
-      let c: THREE.Light | null = null;
-      if ((l as THREE.HemisphereLight).isHemisphereLight) c = new THREE.HemisphereLight(l.color, (l as THREE.HemisphereLight).groundColor, l.intensity);
-      else if ((l as THREE.AmbientLight).isAmbientLight) c = new THREE.AmbientLight(l.color, l.intensity);
-      else if ((l as THREE.DirectionalLight).isDirectionalLight) {
-        const d = l as THREE.DirectionalLight;
-        const dl = new THREE.DirectionalLight(d.color, d.intensity);
-        const dir = d.position.clone().sub(d.target.position);
-        dl.position.copy(dir.lengthSq() > 1e-6 ? dir.normalize().multiplyScalar(100) : new THREE.Vector3(0, 100, 0));
-        c = dl;
-      }
-      if (c) {
-        lights.push(c);
-        env.add(c);
-      }
+      if ((l as THREE.HemisphereLight).isHemisphereLight) ls.push({ kind: 'hemi', color: l.color.clone().lerp((l as THREE.HemisphereLight).groundColor, 0.3), intensity: l.intensity });
+      else if ((l as THREE.AmbientLight).isAmbientLight) ls.push({ kind: 'ambient', color: l.color, intensity: l.intensity });
+      else if ((l as THREE.DirectionalLight).isDirectionalLight) ls.push({ kind: 'sun', color: l.color, intensity: l.intensity });
     }
+    return ls.length ? lightLevel(ls) : 1;
   };
 
   return {
@@ -137,23 +145,23 @@ export function createEnvironment(renderer: THREE.WebGLRenderer, scene: THREE.Sc
     },
     refresh() {
       syncSky();
-      syncLights();
+      const k = Math.min(1.3, level());
+      ringMat.color.setScalar(0.92 * k);
+      groundMat.color.set('#5E6066').multiplyScalar(k);
       env.fog = scene.fog;
       env.background = scene.background instanceof THREE.Color ? scene.background : null;
-      const next = pmrem.fromScene(env, 0, 1, 1200, { size });
-      scene.environment = next.texture;
-      rt?.dispose();
-      rt = next;
+      cubeCam.update(renderer, env);
+      rt = pmrem.fromCubemap(cubeRT.texture, rt);
     },
     dispose() {
-      if (scene.environment === rt?.texture) scene.environment = null;
       rt?.dispose();
       rt = null;
+      cubeRT.dispose();
       pmrem.dispose();
       ring.geometry.dispose();
       ringMat.dispose();
       ground.geometry.dispose();
-      (ground.material as THREE.Material).dispose();
+      groundMat.dispose();
     },
   };
 }

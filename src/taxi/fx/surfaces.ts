@@ -15,6 +15,7 @@
 import * as THREE from 'three';
 import type { Quality } from './quality';
 import { FACADE_DECODE_GLSL } from '../world/facade';
+import { keepHemisphereAmbient } from './envLight';
 
 let tier: Quality = 'low';
 /** set once, before the scene is built; callers that never set it keep the 'low' (original) look */
@@ -23,6 +24,31 @@ export function setSurfaceQuality(q: Quality) {
 }
 export function surfaceQuality(): Quality {
   return tier;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// the environment map goes only to the materials that reflect (see envLight.ts for why it is not scene.environment)
+
+type EnvMaterial = THREE.Material & { envMap: THREE.Texture | null };
+const envUsers = new Set<EnvMaterial>();
+let envTex: THREE.Texture | null = null;
+/** mark a material as one that samples the environment map; it gets the current one now and on every bind */
+export function usesEnvironment<M extends THREE.Material>(m: M): M {
+  if (!envUsers.has(m as unknown as EnvMaterial)) m.addEventListener('dispose', () => envUsers.delete(m as unknown as EnvMaterial));
+  envUsers.add(m as unknown as EnvMaterial);
+  if (envTex) (m as unknown as EnvMaterial).envMap = envTex;
+  return m;
+}
+/** hand the environment (envLight's PMREM texture, a stable object) to every reflecting material; null unbinds and
+ * forgets them (a game being disposed) */
+export function bindEnvironment(tex: THREE.Texture | null) {
+  if (tex) keepHemisphereAmbient();
+  for (const m of envUsers) {
+    if (!m.envMap !== !tex) m.needsUpdate = true;
+    m.envMap = tex;
+  }
+  envTex = tex;
+  if (!tex) envUsers.clear();
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -112,23 +138,23 @@ export function taxiBodyMaterial(): THREE.Material {
     tier === 'high'
       ? new THREE.MeshPhysicalMaterial({ vertexColors: true, flatShading: true, roughness: 0.4, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.06 })
       : new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.4, metalness: 0 });
-  return surfShader(m, tier === 'high' ? 0.42 : 0.3, 0, 0.4, 'taxi');
+  return usesEnvironment(surfShader(m, tier === 'high' ? 0.42 : 0.3, 0, 0.4, 'taxi'));
 }
 
 /** the taxi's glass house: tinted, see-through, reflecting the sky */
 export function taxiGlassMaterial(opacity: number): THREE.Material {
   if (tier === 'low') return new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, opacity, depthWrite: false });
   // a little metalness raises the reflectance so the sky reads on the glass even through the transparency
-  return new THREE.MeshStandardMaterial({ vertexColors: true, transparent: true, opacity: Math.min(1, opacity + 0.08), depthWrite: false, roughness: 0.05, metalness: 0.35 });
+  return usesEnvironment(new THREE.MeshStandardMaterial({ vertexColors: true, transparent: true, opacity: Math.min(1, opacity + 0.08), depthWrite: false, roughness: 0.05, metalness: 0.35 }));
 }
 
 let npcMat: { tier: Quality; mat: THREE.Material } | null = null;
 /** one material for every traffic car (body and detail, all instanced): two programs for the whole traffic */
 export function trafficMaterial(): THREE.Material {
-  if (npcMat && npcMat.tier === tier) return npcMat.mat;
+  if (npcMat && npcMat.tier === tier) return tier === 'low' ? npcMat.mat : usesEnvironment(npcMat.mat);
   const mat = tier === 'low' ? new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }) : surfShader(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.4, metalness: 0.1 }), 0.36, 0.12, 0.6, 'npc');
   npcMat = { tier, mat };
-  return mat;
+  return tier === 'low' ? mat : usesEnvironment(mat);
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -174,7 +200,7 @@ export function withGlassReflection<M extends THREE.Material>(mat: M): M {
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vGlass;\nuniform float uGlassRefl;').replace('#include <envmap_fragment>', `${GLASS_TOWER_GLSL}\n#include <envmap_fragment>`);
   };
   mat.customProgramCacheKey = () => `${keyBefore}|${prevSrc}|glass`;
-  return mat;
+  return tier === 'low' ? mat : usesEnvironment(mat);
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -317,7 +343,7 @@ export function roadMaterial(color: string | THREE.Color | null, kind: RoadKind,
     if (shiny) sh.fragmentShader = sh.fragmentShader.replace('#include <specularmap_fragment>', `#include <specularmap_fragment>${ROAD_SPEC}`);
   };
   m.customProgramCacheKey = () => `road-${tier}`;
-  return m;
+  return usesEnvironment(m);
 }
 
 // ---------------------------------------------------------------------------------------------------------------
