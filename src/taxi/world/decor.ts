@@ -31,10 +31,12 @@ const vc = () => new THREE.MeshLambertMaterial({ vertexColors: true, flatShading
 type Item = { x: number; y: number; z: number; yaw?: number; s?: THREE.Vector3; color?: string };
 /** one instanced mesh per 230 m tile, so the parts of the city behind the camera are skipped (frustum culling) */
 const TILE = 230;
+/** the culling squares: 230 m from the origin (grid city), or the real-map city's 2 × 2 data tiles (set by drawDecor) */
+let chunk = { size: TILE, x0: 0, z0: 0 };
 function tiles<T extends { x: number; z: number }>(items: T[]) {
   const map = new Map<string, T[]>();
   for (const it of items) {
-    const k = `${Math.floor(it.x / TILE)},${Math.floor(it.z / TILE)}`;
+    const k = `${Math.floor((it.x - chunk.x0) / chunk.size)},${Math.floor((it.z - chunk.z0) / chunk.size)}`;
     (map.get(k) ?? map.set(k, []).get(k)!).push(it);
   }
   return [...map.values()];
@@ -337,6 +339,8 @@ function signAtlas() {
 
 export function drawDecor(scene: THREE.Scene, level: Level) {
   const d = level.decor as Decor;
+  const osmTile = level.osm?.surfaces.tile;
+  chunk = osmTile ? { size: osmTile[2] * 2, x0: osmTile[3], z0: osmTile[4] } : { size: TILE, x0: 0, z0: 0 };
   const mats: THREE.Material[] = [];
   const add = (o: THREE.Object3D | null) => o && scene.add(o);
 
@@ -401,9 +405,10 @@ export function drawDecor(scene: THREE.Scene, level: Level) {
 
   // ---------- street lamps: pole, an arm over the road, the lamp ----------
   const lampGeo = mergeGeometries([cyl(0.09, 0.12, 6.4, 0, 3.2, 0, '#5D6B78', 8), bx(0.08, 0.08, 1.8, 0, 6.3, 0.85, '#5D6B78'), bx(0.36, 0.14, 0.6, 0, 6.2, 1.75, '#EEEEEE')]);
-  add(instanced(lampGeo, vc(), d.lamps.map((l) => ({ x: l.x, y: 0, z: l.z, yaw: l.yaw }))));
+  // (the real-map city has thousands: no shadows from them, the chunks are too big for the shadow camera to cull)
+  add(instanced(lampGeo, vc(), d.lamps.map((l) => ({ x: l.x, y: 0, z: l.z, yaw: l.yaw })), !level.osm));
   // ---------- kerbs ----------
-  add(instanced(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ flatShading: true }), d.curbs.map((c) => ({ x: c.x, y: 0.07, z: c.z, s: new THREE.Vector3(c.w, 0.14, c.d), color: c.color })), false));
+  add(instanced(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ flatShading: true }), d.curbs.map((c) => ({ x: c.x, y: 0.07, z: c.z, yaw: c.yaw, s: new THREE.Vector3(c.w, 0.14, c.d), color: c.color })), false));
 
   // ---------- traffic lights: pole + housing (instanced) and three lamps per head (colours change) ----------
   const sigGeo = mergeGeometries([cyl(0.1, 0.12, 5.6, 0, 2.8, 0, '#4A4F57', 8), bx(0.62, 0.3, 0.26, 0, 5.15, 0.15, '#23272D')]);
@@ -439,7 +444,7 @@ export function drawDecor(scene: THREE.Scene, level: Level) {
   }
 
   // ---------- Love River cruise boats ----------
-  const boats = d.boats.map((b) => {
+  const boats = d.boats.filter((b) => !b.path).map((b) => {
     const g = mergeGeometries([bx(2.6, 0.9, 7, 0, 0.2, 0, '#FAFAFA'), bx(2.2, 0.08, 4.6, 0, 1.75, -0.4, b.color), ...[-1, 1].flatMap((sx) => [-1, 1].map((sz) => bx(0.08, 1.1, 0.08, sx * 1.0, 1.15, -0.4 + sz * 2.1, '#5D6B78'))), bx(2.62, 0.18, 7.02, 0, 0.55, 0, b.color)]);
     g.rotateY(Math.PI / 2);
     const m = new THREE.Mesh(g, vc());
@@ -448,8 +453,14 @@ export function drawDecor(scene: THREE.Scene, level: Level) {
     return { m, b, x: b.x0 + (b.x1 - b.x0) * (b.speed % 1), dir: 1 };
   });
 
+  // ---------- real-map city: boats along the river, 路名牌, light rail ----------
+  const pathBoats = drawPathBoats(scene, d, level);
+  drawStreetSigns(scene, d);
+  drawRail(scene, d, level);
+
   return {
     update(t: number, dt: number) {
+      pathBoats?.(t, dt);
       // traffic lights follow the same clock as the traffic
       const px = lightFor('x', t),
         pz = lightFor('z', t);
@@ -473,6 +484,195 @@ export function drawDecor(scene: THREE.Scene, level: Level) {
       }
     },
   };
+}
+
+/** Love River boats that follow a polyline (real-map city): low tour boats, so they pass under the bridge decks,
+ * going back and forth along the river's centre line. One instanced mesh for the white parts, one for the paint. */
+function drawPathBoats(scene: THREE.Scene, d: Decor, level: Level) {
+  const list = d.boats.filter((b) => b.path && b.path.length > 1);
+  if (!list.length) return null;
+  const hull = mergeGeometries([bx(2.4, 0.7, 7, 0, 0, 0, '#F4F4F2'), bx(1.9, 0.3, 4.4, 0, 0.45, -0.3, '#7B5E45'), ...[-1, 1].flatMap((sx) => [-1, 1].map((sz) => bx(0.07, 0.75, 0.07, sx * 0.95, 0.72, -0.3 + sz * 2.1, '#5D6B78')))]);
+  const paint = mergeGeometries([new THREE.BoxGeometry(2.1, 0.07, 4.8).translate(0, 1.1, -0.3), new THREE.BoxGeometry(2.42, 0.14, 7.02).translate(0, 0.28, 0)].map((g) => g.toNonIndexed()));
+  const white = new THREE.InstancedMesh(hull, vc(), list.length);
+  const coloured = new THREE.InstancedMesh(paint, new THREE.MeshLambertMaterial({ flatShading: true }), list.length);
+  list.forEach((b, i) => coloured.setColorAt(i, new THREE.Color(b.color)));
+  white.castShadow = coloured.castShadow = true;
+  white.frustumCulled = coloured.frustumCulled = false; // they move: their bounding sphere would go stale
+  scene.add(white, coloured);
+  const runs = list.map((b) => {
+    const pts = b.path!;
+    const acc = [0];
+    for (let k = 1; k < pts.length; k++) acc.push(acc[k - 1] + Math.hypot(pts[k][0] - pts[k - 1][0], pts[k][1] - pts[k - 1][1]));
+    const L = acc[acc.length - 1];
+    return { b, pts, acc, L, s: L * (b.phase ?? 0), dir: 1 };
+  });
+  const wy = level.water?.y ?? -1.4;
+  const pos = new THREE.Vector3();
+  return (t: number, dt: number) => {
+    runs.forEach((r, i) => {
+      r.s += r.dir * r.b.speed * dt;
+      if (r.s > r.L) (r.s = r.L), (r.dir = -1);
+      if (r.s < 0) (r.s = 0), (r.dir = 1);
+      let k = 1;
+      while (k < r.acc.length - 1 && r.acc[k] < r.s) k++;
+      const [ax, az] = r.pts[k - 1];
+      const [bx2, bz2] = r.pts[k];
+      const f = (r.s - r.acc[k - 1]) / (r.acc[k] - r.acc[k - 1] || 1);
+      pos.set(ax + (bx2 - ax) * f, wy + 0.15 + Math.sin(t * 1.3 + i * 2) * 0.05, az + (bz2 - az) * f);
+      const yaw = Math.atan2((bx2 - ax) * r.dir, (bz2 - az) * r.dir);
+      m4.compose(pos, q.setFromAxisAngle(UP, yaw), one);
+      white.setMatrixAt(i, m4);
+      coloured.setMatrixAt(i, m4);
+    });
+    white.instanceMatrix.needsUpdate = true;
+    coloured.instanceMatrix.needsUpdate = true;
+  };
+}
+
+/** the 路名牌 atlas: one cell per street, white zh name above the en name on Taiwan road-sign green; the last
+ * cell is plain green (for the board edges) */
+export const STREET_SIGN = { green: '#00663A', w: 2.8, h: 0.9 } as const;
+function streetSignAtlas(names: { zh: string; en: string }[]) {
+  const cw = 256,
+    ch = 82,
+    cols = 8,
+    rows = Math.ceil((names.length + 1) / cols);
+  const c = document.createElement('canvas');
+  c.width = cw * cols;
+  c.height = ch * rows;
+  const x = c.getContext('2d')!;
+  x.fillStyle = STREET_SIGN.green;
+  x.fillRect(0, 0, c.width, c.height);
+  x.textAlign = 'center';
+  x.textBaseline = 'middle';
+  const fit = (text: string, weight: number, size: number, max: number) => {
+    const font = (s: number) => `${weight} ${s}px "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif`;
+    x.font = font(size);
+    while (x.measureText(text).width > max && size > 10) x.font = font((size -= 2));
+  };
+  names.forEach((n, i) => {
+    const cx = (i % cols) * cw,
+      cy = Math.floor(i / cols) * ch;
+    x.strokeStyle = '#FFFFFF';
+    x.lineWidth = 3;
+    x.strokeRect(cx + 5, cy + 5, cw - 10, ch - 10);
+    x.fillStyle = '#FFFFFF';
+    fit(n.zh, 900, 40, cw - 30);
+    x.fillText(n.zh, cx + cw / 2, cy + 32);
+    fit(n.en, 700, 17, cw - 26);
+    x.fillText(n.en, cx + cw / 2, cy + 62);
+  });
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  return { tex, cols, rows };
+}
+
+/** 路名牌: a pole (instanced) and the boards (one merged mesh on one atlas), both faces readable */
+function drawStreetSigns(scene: THREE.Scene, d: Decor) {
+  const list = d.streetSigns ?? [];
+  if (!list.length) return;
+  const pole = cyl(0.07, 0.08, 5.2, 0, 2.6, 0, '#7D868F', 6);
+  scene.add(instanced(pole, vc(), list.map((s) => ({ x: s.x, y: 0, z: s.z })), false)!);
+  const keys: string[] = [];
+  const names: { zh: string; en: string }[] = [];
+  for (const s of list)
+    for (const b of s.boards) {
+      const k = `${b.zh}|${b.en}`;
+      if (!keys.includes(k)) keys.push(k), names.push({ zh: b.zh, en: b.en });
+    }
+  const { tex, cols, rows } = streetSignAtlas(names);
+  const cell = (i: number) => {
+    const u0 = (i % cols) / cols,
+      v1 = 1 - Math.floor(i / cols) / rows;
+    return { u0, u1: u0 + 1 / cols, v0: v1 - 1 / rows, v1 };
+  };
+  const edge = cell(names.length);
+  const eu = (edge.u0 + edge.u1) / 2,
+    ev = (edge.v0 + edge.v1) / 2;
+  const parts: THREE.BufferGeometry[] = [];
+  const { w, h } = STREET_SIGN;
+  for (const s of list)
+    for (const b of s.boards) {
+      const c = cell(keys.indexOf(`${b.zh}|${b.en}`));
+      // the board's centre sits beside the pole (its near edge at the pole)
+      const fx = Math.sin(b.yaw),
+        fz = Math.cos(b.yaw);
+      const ax = Math.cos(b.yaw),
+        az = -Math.sin(b.yaw); // along the board
+      const cx = s.x + ax * (w / 2 - 0.1),
+        cz = s.z + az * (w / 2 - 0.1);
+      for (const back of [0, 1]) {
+        const g = new THREE.PlaneGeometry(w, h);
+        const uv = g.getAttribute('uv') as THREE.BufferAttribute;
+        for (let k = 0; k < uv.count; k++) uv.setXY(k, uv.getX(k) ? c.u1 : c.u0, uv.getY(k) ? c.v1 : c.v0);
+        g.rotateY(b.yaw + (back ? Math.PI : 0));
+        g.translate(cx + fx * (back ? -0.035 : 0.035), b.y, cz + fz * (back ? -0.035 : 0.035));
+        parts.push(g.toNonIndexed());
+      }
+      // the edge: a thin green box between the faces
+      const e = new THREE.BoxGeometry(w + 0.04, h + 0.04, 0.06);
+      const uv = e.getAttribute('uv') as THREE.BufferAttribute;
+      for (let k = 0; k < uv.count; k++) uv.setXY(k, eu, ev);
+      e.rotateY(b.yaw);
+      e.translate(cx, b.y, cz);
+      parts.push(e.toNonIndexed());
+    }
+  const mesh = new THREE.Mesh(mergeGeometries(parts.map((g) => (g.deleteAttribute('normal'), g))), new THREE.MeshBasicMaterial({ map: tex }));
+  mesh.name = 'street-signs';
+  scene.add(mesh);
+}
+
+/** the light rail: grass or concrete track bed and two rails, one merged mesh per culling square; low posts */
+function drawRail(scene: THREE.Scene, d: Decor, level: Level) {
+  const rail = d.rail;
+  if (!rail?.pieces.length) return;
+  const groups = new Map<string, { pos: number[]; col: number[] }>();
+  const C = (h: string) => new THREE.Color(h);
+  const grass = C('#6E9F45'),
+    walk = C('#B9B2A4'),
+    steel = C('#8C9299');
+  const quad = (g: { pos: number[]; col: number[] }, ax: number, az: number, bx2: number, bz2: number, off: number, wdt: number, y: number, c: THREE.Color) => {
+    const L = Math.hypot(bx2 - ax, bz2 - az) || 1;
+    const nx = -(bz2 - az) / L,
+      nz = (bx2 - ax) / L;
+    const p = [
+      [ax + nx * (off - wdt / 2), az + nz * (off - wdt / 2)],
+      [bx2 + nx * (off - wdt / 2), bz2 + nz * (off - wdt / 2)],
+      [bx2 + nx * (off + wdt / 2), bz2 + nz * (off + wdt / 2)],
+      [ax + nx * (off + wdt / 2), az + nz * (off + wdt / 2)],
+    ];
+    // upward-facing whatever the winding
+    const cr = (p[1][0] - p[0][0]) * (p[2][1] - p[0][1]) - (p[1][1] - p[0][1]) * (p[2][0] - p[0][0]);
+    const order = cr > 0 ? [0, 2, 1, 0, 3, 2] : [0, 1, 2, 0, 2, 3];
+    for (const k of order) g.pos.push(p[k][0], y, p[k][1]), g.col.push(c.r, c.g, c.b);
+  };
+  for (const pc of rail.pieces) {
+    const k = `${Math.floor(((pc.x0 + pc.x1) / 2 - chunk.x0) / chunk.size)},${Math.floor(((pc.z0 + pc.z1) / 2 - chunk.z0) / chunk.size)}`;
+    const g = groups.get(k) ?? groups.set(k, { pos: [], col: [] }).get(k)!;
+    // heights over the layers of osm/surfaces.ts: road 0.015, lane marks 0.03, sidewalk 0.14
+    const bedY = pc.bed === 'walk' ? 0.145 : 0.02;
+    const railY = pc.bed === 'road' ? 0.04 : bedY + 0.03;
+    if (pc.bed !== 'road') quad(g, pc.x0, pc.z0, pc.x1, pc.z1, 0, 3.0, bedY, pc.bed === 'walk' ? walk : grass);
+    for (const off of [-0.72, 0.72]) quad(g, pc.x0, pc.z0, pc.x1, pc.z1, off, 0.11, railY, steel);
+  }
+  const mat = new THREE.MeshLambertMaterial({ vertexColors: true });
+  for (const [, g] of groups) {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(g.pos, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(g.col, 3));
+    geo.computeVertexNormals();
+    geo.computeBoundingSphere();
+    const m = new THREE.Mesh(geo, mat);
+    m.receiveShadow = true;
+    m.name = 'light-rail';
+    scene.add(m);
+  }
+  if (rail.poles.length) {
+    const post = mergeGeometries([cyl(0.08, 0.1, 2.2, 0, 1.1, 0, '#9AA1A8', 6), bx(0.3, 0.12, 0.3, 0, 2.25, 0, '#5D6B78')]);
+    scene.add(instanced(post, vc(), rail.poles.map((p) => ({ x: p.x, y: 0, z: p.z })), false)!);
+  }
+  void level;
 }
 
 /** water that moves: soft bands drifting across the surface (river and sea) */

@@ -63,9 +63,16 @@ export interface Decor {
   /** traffic lights: one head facing the traffic that comes along `axis` */
   signals: { x: number; z: number; yaw: number; axis: 'x' | 'z' }[];
   palms: { x: number; z: number; h: number }[];
-  curbs: Rect[];
-  /** Love River boats: they cruise between x0 and x1 at z */
-  boats: { z: number; x0: number; x1: number; speed: number; color: string }[];
+  /** painted kerb pieces; yaw (optional, real-map city) turns the piece so `w` runs along the road */
+  curbs: (Rect & { yaw?: number })[];
+  /** Love River boats: they cruise between x0 and x1 at z; with `path` (real-map city) they go back and forth
+   * along that polyline instead, starting at `phase` (0..1) of the way */
+  boats: { z: number; x0: number; x1: number; speed: number; color: string; path?: [number, number][]; phase?: number }[];
+  /** 路名牌 (real-map city): a pole at a junction corner with one green board per road (zh above, en below);
+   * board yaw = the face direction (0 = +z), y = the board's centre height */
+  streetSigns?: { x: number; z: number; boards: { zh: string; en: string; yaw: number; y: number }[] }[];
+  /** the light rail (real-map city), drawn only: track pieces on the road, a sidewalk or a grass bed, and low posts */
+  rail?: { pieces: { x0: number; z0: number; x1: number; z1: number; bed: 'road' | 'walk' | 'grass' }[]; poles: { x: number; z: number }[] };
 }
 export interface Tree {
   x: number;

@@ -13,6 +13,7 @@ import type { Shape } from '../greybox';
 import type { Place, Spot } from '../../gameplay/rules';
 import { LOOK_HALL, LOOK_HOUSE, LOOK_TOWER, LOOK_WAREHOUSE } from '../facade';
 import { KAOHSIUNG, RANK, type OsmCityData, type OsmRoad, type XZ } from './data';
+import { addOsmDecor } from './decor';
 
 /** the landmark names shown in the game (short, as people say them) */
 export const LANDMARK_NAMES: Record<string, { zh: string; en: string }> = {
@@ -286,7 +287,7 @@ export function osmLevel(data: OsmCityData = KAOHSIUNG): Level {
   }
 
   const half = Math.max(x1 - x0, z1 - z0) / 2;
-  return {
+  const level: Level = {
     id: 'city',
     bounds: half,
     rect: { x0, z0, x1, z1 },
@@ -307,4 +308,7 @@ export function osmLevel(data: OsmCityData = KAOHSIUNG): Level {
     decor: null,
     osm: data,
   };
+  // street furniture: lamps, kerbs, scooters, palms, boats, 路名牌, light rail (./decor.ts)
+  addOsmDecor(level);
+  return level;
 }
