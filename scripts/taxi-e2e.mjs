@@ -357,19 +357,27 @@ try {
   ok('X-14', 'the city: at least 30 destinations, traffic and people on the streets, the Love River named at the bridges', world.id === 'city' && world.places >= 30 && world.cars >= 20 && world.people >= 40 && world.bridges === 8, JSON.stringify(world));
   const st = await p.evaluate(() => window.__taxi.stats());
   ok('X-13', 'draw calls under 150', st.drawCalls < 150, JSON.stringify(st));
-  // time of day through the test hook: night and sunset on a street with shops, lamps and traffic, then the
-  // menu's overview at night; the extra night meshes (lamp pools, headlight beams) must stay inside the budget
+  // time of day through the test hook. Budget: the same view as X-13 (the car stays put) at sunset and at night;
+  // the extra night meshes (lamp pools, headlight beams) must keep it under 150. Then screenshots of a street with
+  // shops, lamps and traffic (its counts are reported against day at the same spot) and the menu overview at night.
   {
+    const here = async (mood) => {
+      await p.evaluate((m) => window.__taxi.setTime(m), mood);
+      await ff(1 / 60);
+      return p.evaluate(() => ({ ...window.__taxi.timeOfDay(), ...window.__taxi.stats() }));
+    };
+    const budget = { day: await here('day'), sunset: await here('sunset'), night: await here('night') };
     const look = async (mood) => {
       await p.evaluate((m) => window.__taxi.setTime(m), mood);
       await p.evaluate(() => window.__taxi.place({ x: -300, y: 1, z: -95.5 }, Math.PI / 2));
       await ff(1.2, { throttle: 0.35 });
       await settle();
-      return p.evaluate(() => ({ ...window.__taxi.timeOfDay(), ...window.__taxi.stats() }));
+      const s = await p.evaluate(() => window.__taxi.stats());
+      return s.drawCalls;
     };
-    const night = await look('night');
+    const street = { day: await look('day'), night: await look('night') };
     await shot('8-night');
-    const sunset = await look('sunset');
+    street.sunset = await look('sunset');
     await shot('8-sunset');
     await p.evaluate(() => window.__taxi.setTime('night'));
     await p.evaluate(() => window.__taxi.setMenu(true));
@@ -378,7 +386,8 @@ try {
     await p.evaluate(() => window.__taxi.setMenu(false));
     await p.evaluate(() => window.__taxi.setTime('day'));
     await ff(1 / 60);
-    ok('X-28', 'time of day: night has every light on, sunset half on, both under 150 draw calls', night.setting === 'night' && night.lights === 1 && night.drawCalls < 150 && sunset.setting === 'sunset' && sunset.lights > 0.2 && sunset.lights < 0.8 && sunset.drawCalls < 150, JSON.stringify({ night, sunset }));
+    const { day, sunset, night } = budget;
+    ok('X-28', 'time of day: night has every light on, sunset half on; in the X-13 view both stay under 150 draw calls, and on a busy street night adds at most 3 over day', night.setting === 'night' && night.lights === 1 && night.drawCalls < 150 && sunset.setting === 'sunset' && sunset.lights > 0.2 && sunset.lights < 0.8 && sunset.drawCalls < 150 && day.lights === 0 && street.night - street.day <= 3 && street.sunset - street.day <= 3, JSON.stringify({ day, sunset, night, street }));
   }
   // chase camera vs the landmark name boards: drive past the 郵局 board both ways along its street; at every step
   // nothing drawn opaque may sit between the lens and the cab, and no board may fill the lens up close

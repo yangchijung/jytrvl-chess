@@ -32,7 +32,7 @@ function chain<M extends Patchable>(mat: M, tag: string, patch: (sh: THREE.WebGL
  * `mask` is a GLSL float expression of `vColor` (linear RGB), e.g. the near-white lamp heads.
  */
 export function glowVertexColours<M extends Patchable>(mat: M, rules: { mask: string; gain: number; tint?: string }[]): M {
-  const body = rules.map((r) => `totalEmissiveRadiance += ${r.tint ? `vec3(${r.tint})` : 'vColor'} * (${r.mask}) * uNight * ${r.gain.toFixed(3)};`).join('\n');
+  const body = rules.map((r) => `totalEmissiveRadiance += ${r.tint ? `vec3(${r.tint})` : 'vColor.rgb'} * (${r.mask}) * uNight * ${r.gain.toFixed(3)};`).join('\n');
   return chain(mat, `glowvc:${body}`, (sh) => {
     sh.fragmentShader = sh.fragmentShader.replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>\n#ifdef USE_COLOR\n${body}\n#endif`);
   });
@@ -85,7 +85,7 @@ const POOL_FRAG = /* glsl */ `
       // a beam: narrow at the lamps (v = 0), wider and fading out down the road (v = 1)
       float v = vUv.y;
       float w = 0.3 + 0.7 * v;
-      a = (1.0 - smoothstep(0.55, 1.0, abs(p.x) / w)) * pow(1.0 - v, 1.4) * smoothstep(0.0, 0.06, v);
+      a = (1.0 - smoothstep(0.55, 1.0, abs(p.x) / w)) * pow(1.0 - v, 1.2) * smoothstep(0.0, 0.25, v);
     } else
     #endif
     {
@@ -93,7 +93,8 @@ const POOL_FRAG = /* glsl */ `
       a = 1.0 - smoothstep(0.0, 1.0, r);
       a *= a;
     }
-    a *= uNight * uStrength * (1.0 - smoothstep(uFar * 0.6, uFar, vDist));
+    // light on the ground only shows once it is really dark (squared: a quarter strength at dusk)
+    a *= uNight * uNight * uStrength * (1.0 - smoothstep(uFar * 0.6, uFar, vDist));
     gl_FragColor = vec4(col * a, 1.0);
     #include <colorspace_fragment>
   }`;
@@ -118,7 +119,7 @@ function poolMaterial(color: string, strength: number, far: number, beam = false
 export function lightPools(heads: { x: number; z: number }[], radius = 5.5) {
   if (!heads.length) return null;
   const geo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
-  const mesh = new THREE.InstancedMesh(geo, poolMaterial('#FFD9A0', 0.42, 260), heads.length);
+  const mesh = new THREE.InstancedMesh(geo, poolMaterial('#FFD9A0', 0.6, 260), heads.length);
   const m4 = new THREE.Matrix4();
   const s = new THREE.Vector3(radius * 2, 1, radius * 2);
   const q = new THREE.Quaternion();
@@ -147,7 +148,7 @@ export function headlightBeams(rearZ: number) {
     return g;
   };
   for (const s of [-1, 1]) parts.push(quad(4.2, 15, s * 0.7, 2.1 + 7.5, true, '#FFF1D0'));
-  parts.push(quad(2.2, 1.2, 0, rearZ - 0.45, false, '#8A1A14')); // dim: the camera looks straight at it
+  parts.push(quad(2.2, 1.2, 0, rearZ - 0.45, false, '#5C130E')); // dim: the camera looks straight at it
   const geo = new THREE.BufferGeometry();
   // merge by hand (tiny): positions, uv, aBeam, aTint, indices
   const attrs = ['position', 'uv', 'aBeam', 'aTint'] as const;
@@ -164,7 +165,7 @@ export function headlightBeams(rearZ: number) {
   geo.setAttribute('aBeam', new THREE.Float32BufferAttribute(out.aBeam, 1));
   geo.setAttribute('aTint', new THREE.Float32BufferAttribute(out.aTint, 3));
   geo.setIndex(idx);
-  const mesh = new THREE.Mesh(geo, poolMaterial('#FFFFFF', 0.5, 400, true));
+  const mesh = new THREE.Mesh(geo, poolMaterial('#FFFFFF', 0.38, 400, true));
   mesh.renderOrder = 3;
   mesh.name = 'headlights';
   mesh.frustumCulled = false;
