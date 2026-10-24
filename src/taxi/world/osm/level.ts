@@ -17,6 +17,7 @@ import { fillBlocks } from './fill';
 import { buildRoadNet } from './roadnet';
 import { sidewalkLoops, surfaceTests } from './walks';
 import { clearSigns, inFoot, landmarkModels, primFoot } from './landmarks';
+import { addOsmDecor } from './decor';
 
 /** the landmark names shown in the game (short, as people say them) */
 export const LANDMARK_NAMES: Record<string, { zh: string; en: string }> = {
@@ -338,7 +339,7 @@ export function osmLevel(data: OsmCityData = KAOHSIUNG): Level {
   const roadnet = buildRoadNet(data);
 
   const half = Math.max(x1 - x0, z1 - z0) / 2;
-  return {
+  const level: Level = {
     id: 'city',
     bounds: half,
     rect: { x0, z0, x1, z1 },
@@ -363,4 +364,35 @@ export function osmLevel(data: OsmCityData = KAOHSIUNG): Level {
     massing: { masses: [], slabs: [], pitched: fill.pitched, roofs: [] },
     osm: data,
   };
+  // street furniture: lamps, kerbs, scooters, palms, boats, 路名牌, light rail (./decor.ts)
+  addOsmDecor(level);
+  // palms and lamps only where no generated building or landmark stands (fill and landmarks are made apart)
+  const solid = shapes.filter((s): s is Extract<Shape, { kind: 'box' }> => s.kind === 'box' && !s.hidden && s.size[1] > 2.5);
+  // a 20 m grid of the boxes, so the check stays cheap with ~15k buildings
+  const CELL = 20;
+  const grid = new Map<string, Extract<Shape, { kind: 'box' }>[]>();
+  for (const s of solid) {
+    const r = Math.hypot(s.size[0], s.size[2]) / 2 + 0.5;
+    for (let i = Math.floor((s.p[0] - r) / CELL); i <= Math.floor((s.p[0] + r) / CELL); i++)
+      for (let j = Math.floor((s.p[2] - r) / CELL); j <= Math.floor((s.p[2] + r) / CELL); j++) {
+        const k = `${i},${j}`;
+        (grid.get(k) ?? grid.set(k, []).get(k)!).push(s);
+      }
+  }
+  const insideBox = (x: number, z: number) =>
+    (grid.get(`${Math.floor(x / CELL)},${Math.floor(z / CELL)}`) ?? []).some((s) => {
+      const c = Math.cos(s.yaw ?? 0),
+        sn = Math.sin(s.yaw ?? 0);
+      const dx = x - s.p[0],
+        dz = z - s.p[2];
+      // into the box's frame (rotation about +y by yaw maps local x to (cos, −sin))
+      const lx = dx * c - dz * sn,
+        lz = dx * sn + dz * c;
+      return Math.abs(lx) < s.size[0] / 2 + 0.4 && Math.abs(lz) < s.size[2] / 2 + 0.4;
+    });
+  if (level.decor) {
+    level.decor.palms = level.decor.palms.filter((p) => !insideBox(p.x, p.z) && free(p.x, p.z));
+    level.decor.lamps = level.decor.lamps.filter((p) => !insideBox(p.x, p.z));
+  }
+  return level;
 }

@@ -33,18 +33,22 @@ const vc = () => new THREE.MeshLambertMaterial({ vertexColors: true, flatShading
 type Item = { x: number; y: number; z: number; yaw?: number; s?: THREE.Vector3; color?: string };
 /** one instanced mesh per 230 m tile, so the parts of the city behind the camera are skipped (frustum culling) */
 const TILE = 230;
-function tiles<T extends { x: number; z: number }>(items: T[], size = TILE) {
+/** the culling squares: 230 m from the origin (grid city), or the real-map city's 2 × 2 data tiles (set by drawDecor) */
+let chunk = { size: TILE, x0: 0, z0: 0, far: Infinity };
+/** chunks hidden beyond `far` metres from the camera (real-map city: small street furniture is not drawn far off) */
+let farChunks: { mesh: THREE.Object3D; sphere: THREE.Sphere; far: number }[] = [];
+function tiles<T extends { x: number; z: number }>(items: T[], size = chunk.size) {
   const map = new Map<string, T[]>();
   for (const it of items) {
-    const k = `${Math.floor(it.x / size)},${Math.floor(it.z / size)}`;
+    const k = `${Math.floor((it.x - chunk.x0) / size)},${Math.floor((it.z - chunk.z0) / size)}`;
     (map.get(k) ?? map.set(k, []).get(k)!).push(it);
   }
   return [...map.values()];
 }
-function instanced(geo: THREE.BufferGeometry, mat: THREE.Material, items: Item[], shadow = true) {
+function instanced(geo: THREE.BufferGeometry, mat: THREE.Material, items: Item[], shadow = true, far = chunk.far) {
   if (!items.length) return null;
   const group = new THREE.Group();
-  for (const part of items.length > 120 ? tiles(items) : [items]) {
+  for (const part of items.length > (chunk.far < Infinity ? 0 : 120) ? tiles(items) : [items]) {
     const mesh = new THREE.InstancedMesh(geo, mat, part.length);
     part.forEach((it, i) => {
       m4.compose(new THREE.Vector3(it.x, it.y, it.z), q.setFromAxisAngle(UP, it.yaw ?? 0), it.s ?? one);
@@ -54,6 +58,7 @@ function instanced(geo: THREE.BufferGeometry, mat: THREE.Material, items: Item[]
     mesh.computeBoundingSphere();
     mesh.castShadow = shadow;
     mesh.receiveShadow = true;
+    if (far < Infinity) farChunks.push({ mesh, sphere: mesh.boundingSphere!, far });
     group.add(mesh);
   }
   return group;
@@ -351,6 +356,9 @@ function signAtlas() {
 
 export function drawDecor(scene: THREE.Scene, level: Level) {
   const d = level.decor as Decor;
+  const osmTile = level.osm?.surfaces.tile;
+  chunk = osmTile ? { size: osmTile[2], x0: osmTile[3], z0: osmTile[4], far: 300 } : { size: TILE, x0: 0, z0: 0, far: Infinity };
+  farChunks = [];
   const mats: THREE.Material[] = [];
   const add = (o: THREE.Object3D | null) => o && scene.add(o);
 
@@ -416,15 +424,22 @@ export function drawDecor(scene: THREE.Scene, level: Level) {
 
   // ---------- scooters: painted body (per scooter colour) + dark parts ----------
   const paintGeo = mergeGeometries([new THREE.BoxGeometry(0.42, 0.42, 1.0).translate(0, 0.5, -0.1), new THREE.BoxGeometry(0.46, 0.75, 0.16).translate(0, 0.72, 0.5)].map((g) => g.toNonIndexed()));
-  add(instanced(paintGeo, new THREE.MeshLambertMaterial({ flatShading: true }), d.scooters.map((s) => ({ x: s.x, y: 0, z: s.z, yaw: s.yaw, color: s.color })), false));
   const darkGeo = mergeGeometries([bx(0.12, 0.46, 0.46, 0, 0.23, 0.66, '#1E2228'), bx(0.12, 0.46, 0.46, 0, 0.23, -0.6, '#1E2228'), bx(0.36, 0.12, 0.7, 0, 0.78, -0.25, '#2B2F36'), bx(0.62, 0.06, 0.06, 0, 1.12, 0.52, '#2B2F36')]);
-  add(instanced(darkGeo, vc(), d.scooters.map((s) => ({ x: s.x, y: 0, z: s.z, yaw: s.yaw })), false));
+  if (level.osm) {
+    // real-map city: one mesh (one draw call per chunk); the body is white × the scooter's colour, the dark parts stay dark
+    add(instanced(mergeGeometries([colored(paintGeo.clone(), '#FFFFFF'), darkGeo]), vc(), d.scooters.map((s) => ({ x: s.x, y: 0, z: s.z, yaw: s.yaw, color: s.color })), false, chunk.far * 0.6));
+  } else {
+    add(instanced(paintGeo, new THREE.MeshLambertMaterial({ flatShading: true }), d.scooters.map((s) => ({ x: s.x, y: 0, z: s.z, yaw: s.yaw, color: s.color })), false));
+    add(instanced(darkGeo, vc(), d.scooters.map((s) => ({ x: s.x, y: 0, z: s.z, yaw: s.yaw })), false));
+  }
 
   // ---------- street lamps: pole, an arm over the road, the lamp ----------
-  const lampGeo = mergeGeometries([cyl(0.09, 0.12, 6.4, 0, 3.2, 0, '#5D6B78', 8), bx(0.08, 0.08, 1.8, 0, 6.3, 0.85, '#5D6B78'), bx(0.36, 0.14, 0.6, 0, 6.2, 1.75, '#EEEEEE')]);
-  add(instanced(lampGeo, vc(), d.lamps.map((l) => ({ x: l.x, y: 0, z: l.z, yaw: l.yaw }))));
+  const lampGeo = mergeGeometries([cyl(0.09, 0.12, 6.4, 0, 3.2, 0, '#5D6B78', level.osm ? 5 : 8), bx(0.08, 0.08, 1.8, 0, 6.3, 0.85, '#5D6B78'), bx(0.36, 0.14, 0.6, 0, 6.2, 1.75, '#EEEEEE')]);
+  // (the real-map city has thousands: no shadows from them, the chunks are too big for the shadow camera to cull)
+  add(instanced(lampGeo, vc(), d.lamps.map((l) => ({ x: l.x, y: 0, z: l.z, yaw: l.yaw })), !level.osm, chunk.far * 0.8));
   // ---------- kerbs ----------
-  add(instanced(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ flatShading: true }), d.curbs.map((c) => ({ x: c.x, y: 0.07, z: c.z, s: new THREE.Vector3(c.w, 0.14, c.d), color: c.color })), false));
+  // (the real-map city draws its kerbs merged with the light rail: drawGround)
+  if (!level.osm) add(instanced(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ flatShading: true }), d.curbs.map((c) => ({ x: c.x, y: 0.07, z: c.z, s: new THREE.Vector3(c.w, 0.14, c.d), color: c.color })), false));
 
   // ---------- traffic lights ----------
   const signals = drawSignals(scene, d.signals, false);
@@ -440,12 +455,18 @@ export function drawDecor(scene: THREE.Scene, level: Level) {
         return colored(g, k % 2 ? '#2E7D32' : '#43A047');
       }),
     );
-    add(instanced(trunk, vc(), d.palms.map((p) => ({ x: p.x, y: 0, z: p.z, s: new THREE.Vector3(1, p.h, 1) }))));
-    add(instanced(fronds, vc(), d.palms.map((p) => ({ x: p.x, y: p.h, z: p.z, yaw: p.x * 0.7 }))));
+    if (level.osm) {
+      // real-map city: trunk and fronds in one mesh (8 m palm, scaled to each palm's height), no shadows
+      const palm = mergeGeometries([trunk.clone().scale(1, 8, 1), fronds.clone().translate(0, 8, 0)]);
+      add(instanced(palm, vc(), d.palms.map((p) => ({ x: p.x, y: 0, z: p.z, yaw: p.x * 0.7, s: new THREE.Vector3(p.h / 8, p.h / 8, p.h / 8) })), false, chunk.far * 1.2));
+    } else {
+      add(instanced(trunk, vc(), d.palms.map((p) => ({ x: p.x, y: 0, z: p.z, s: new THREE.Vector3(1, p.h, 1) }))));
+      add(instanced(fronds, vc(), d.palms.map((p) => ({ x: p.x, y: p.h, z: p.z, yaw: p.x * 0.7 }))));
+    }
   }
 
   // ---------- Love River cruise boats ----------
-  const boats = d.boats.map((b) => {
+  const boats = d.boats.filter((b) => !b.path).map((b) => {
     const g = mergeGeometries([bx(2.6, 0.9, 7, 0, 0.2, 0, '#FAFAFA'), bx(2.2, 0.08, 4.6, 0, 1.75, -0.4, b.color), ...[-1, 1].flatMap((sx) => [-1, 1].map((sz) => bx(0.08, 1.1, 0.08, sx * 1.0, 1.15, -0.4 + sz * 2.1, '#5D6B78'))), bx(2.62, 0.18, 7.02, 0, 0.55, 0, b.color)]);
     g.rotateY(Math.PI / 2);
     const m = new THREE.Mesh(g, vc());
@@ -454,8 +475,15 @@ export function drawDecor(scene: THREE.Scene, level: Level) {
     return { m, b, x: b.x0 + (b.x1 - b.x0) * (b.speed % 1), dir: 1 };
   });
 
+  // ---------- real-map city: boats along the river, 路名牌, light rail ----------
+  const pathBoats = drawPathBoats(scene, d, level);
+  drawStreetSigns(scene, d);
+  if (level.osm) drawGround(scene, d);
+  hideFarChunks(scene, farChunks);
+
   return {
     update(t: number, dt: number) {
+      pathBoats?.(t, dt);
       // traffic lights follow the same clock as the traffic
       signals.update(t);
       const water = level.water;
@@ -524,6 +552,253 @@ export function drawSignals(scene: THREE.Scene, list: Signal[], lean: boolean) {
       if (changed && lamps.instanceColor) lamps.instanceColor.needsUpdate = true;
     },
   };
+}
+
+/** before each frame: hide the chunks whose nearest point is more than their `far` from the camera */
+function hideFarChunks(scene: THREE.Scene, list: typeof farChunks) {
+  if (!list.length) return;
+  const prev = scene.onBeforeRender;
+  scene.onBeforeRender = function (renderer, sc, camera, ...rest) {
+    prev.call(this, renderer, sc, camera, ...rest);
+    for (const { mesh, sphere, far } of list) mesh.visible = sphere.center.distanceTo(camera.position) - sphere.radius < far;
+  };
+}
+
+/** Love River boats that follow a polyline (real-map city): low tour boats, so they pass under the bridge decks,
+ * going back and forth along the river's centre line. One instanced mesh for the white parts, one for the paint. */
+function drawPathBoats(scene: THREE.Scene, d: Decor, level: Level) {
+  const list = d.boats.filter((b) => b.path && b.path.length > 1);
+  if (!list.length) return null;
+  const hull = mergeGeometries([bx(2.4, 0.7, 7, 0, 0, 0, '#F4F4F2'), bx(1.9, 0.3, 4.4, 0, 0.45, -0.3, '#7B5E45'), ...[-1, 1].flatMap((sx) => [-1, 1].map((sz) => bx(0.07, 0.75, 0.07, sx * 0.95, 0.72, -0.3 + sz * 2.1, '#5D6B78')))]);
+  const paint = mergeGeometries([new THREE.BoxGeometry(2.1, 0.07, 4.8).translate(0, 1.1, -0.3), new THREE.BoxGeometry(2.42, 0.14, 7.02).translate(0, 0.28, 0)].map((g) => g.toNonIndexed()));
+  const white = new THREE.InstancedMesh(hull, vc(), list.length);
+  const coloured = new THREE.InstancedMesh(paint, new THREE.MeshLambertMaterial({ flatShading: true }), list.length);
+  list.forEach((b, i) => coloured.setColorAt(i, new THREE.Color(b.color)));
+  // they move: cull them with a sphere round the whole river instead of their own
+  const box = new THREE.Box3();
+  for (const b of list) for (const [x, z] of b.path!) box.expandByPoint(new THREE.Vector3(x, 0, z));
+  const sphere = box.getBoundingSphere(new THREE.Sphere());
+  sphere.radius += 8;
+  white.boundingSphere = sphere;
+  coloured.boundingSphere = sphere.clone();
+  scene.add(white, coloured);
+  const runs = list.map((b) => {
+    const pts = b.path!;
+    const acc = [0];
+    for (let k = 1; k < pts.length; k++) acc.push(acc[k - 1] + Math.hypot(pts[k][0] - pts[k - 1][0], pts[k][1] - pts[k - 1][1]));
+    const L = acc[acc.length - 1];
+    return { b, pts, acc, L, s: L * (b.phase ?? 0), dir: 1 };
+  });
+  const wy = level.water?.y ?? -1.4;
+  const pos = new THREE.Vector3();
+  return (t: number, dt: number) => {
+    runs.forEach((r, i) => {
+      r.s += r.dir * r.b.speed * dt;
+      if (r.s > r.L) (r.s = r.L), (r.dir = -1);
+      if (r.s < 0) (r.s = 0), (r.dir = 1);
+      let k = 1;
+      while (k < r.acc.length - 1 && r.acc[k] < r.s) k++;
+      const [ax, az] = r.pts[k - 1];
+      const [bx2, bz2] = r.pts[k];
+      const f = (r.s - r.acc[k - 1]) / (r.acc[k] - r.acc[k - 1] || 1);
+      pos.set(ax + (bx2 - ax) * f, wy + 0.15 + Math.sin(t * 1.3 + i * 2) * 0.05, az + (bz2 - az) * f);
+      const yaw = Math.atan2((bx2 - ax) * r.dir, (bz2 - az) * r.dir);
+      m4.compose(pos, q.setFromAxisAngle(UP, yaw), one);
+      white.setMatrixAt(i, m4);
+      coloured.setMatrixAt(i, m4);
+    });
+    white.instanceMatrix.needsUpdate = true;
+    coloured.instanceMatrix.needsUpdate = true;
+  };
+}
+
+/** the 路名牌 atlas: one cell per street, white zh name above the en name on Taiwan road-sign green; the last
+ * cell is plain green (for the board edges) */
+export const STREET_SIGN = { green: '#00663A', w: 2.8, h: 0.9 } as const;
+function streetSignAtlas(names: { zh: string; en: string }[]) {
+  const cw = 256,
+    ch = 82,
+    cols = 8,
+    rows = Math.ceil((names.length + 1) / cols);
+  const c = document.createElement('canvas');
+  c.width = cw * cols;
+  c.height = ch * rows;
+  const x = c.getContext('2d')!;
+  x.fillStyle = STREET_SIGN.green;
+  x.fillRect(0, 0, c.width, c.height);
+  x.textAlign = 'center';
+  x.textBaseline = 'middle';
+  const fit = (text: string, weight: number, size: number, max: number) => {
+    const font = (s: number) => `${weight} ${s}px "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif`;
+    x.font = font(size);
+    while (x.measureText(text).width > max && size > 10) x.font = font((size -= 2));
+  };
+  names.forEach((n, i) => {
+    const cx = (i % cols) * cw,
+      cy = Math.floor(i / cols) * ch;
+    x.strokeStyle = '#FFFFFF';
+    x.lineWidth = 3;
+    x.strokeRect(cx + 5, cy + 5, cw - 10, ch - 10);
+    x.fillStyle = '#FFFFFF';
+    fit(n.zh, 900, 40, cw - 30);
+    x.fillText(n.zh, cx + cw / 2, cy + 32);
+    fit(n.en, 700, 17, cw - 26);
+    x.fillText(n.en, cx + cw / 2, cy + 62);
+  });
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  return { tex, cols, rows };
+}
+
+/** 路名牌: the boards (one merged mesh on one atlas), both faces readable; the poles are in drawGround */
+function drawStreetSigns(scene: THREE.Scene, d: Decor) {
+  const list = d.streetSigns ?? [];
+  if (!list.length) return;
+  // (the poles are drawn with the ground layer: drawGround)
+  const keys: string[] = [];
+  const names: { zh: string; en: string }[] = [];
+  for (const s of list)
+    for (const b of s.boards) {
+      const k = `${b.zh}|${b.en}`;
+      if (!keys.includes(k)) keys.push(k), names.push({ zh: b.zh, en: b.en });
+    }
+  const { tex, cols, rows } = streetSignAtlas(names);
+  const cell = (i: number) => {
+    const u0 = (i % cols) / cols,
+      v1 = 1 - Math.floor(i / cols) / rows;
+    return { u0, u1: u0 + 1 / cols, v0: v1 - 1 / rows, v1 };
+  };
+  const edge = cell(names.length);
+  const eu = (edge.u0 + edge.u1) / 2,
+    ev = (edge.v0 + edge.v1) / 2;
+  const parts: THREE.BufferGeometry[] = [];
+  const { w, h } = STREET_SIGN;
+  for (const s of list)
+    for (const b of s.boards) {
+      const c = cell(keys.indexOf(`${b.zh}|${b.en}`));
+      // the board's centre sits beside the pole (its near edge at the pole)
+      const fx = Math.sin(b.yaw),
+        fz = Math.cos(b.yaw);
+      const ax = Math.cos(b.yaw),
+        az = -Math.sin(b.yaw); // along the board
+      const cx = s.x + ax * (w / 2 - 0.1),
+        cz = s.z + az * (w / 2 - 0.1);
+      for (const back of [0, 1]) {
+        const g = new THREE.PlaneGeometry(w, h);
+        const uv = g.getAttribute('uv') as THREE.BufferAttribute;
+        for (let k = 0; k < uv.count; k++) uv.setXY(k, uv.getX(k) ? c.u1 : c.u0, uv.getY(k) ? c.v1 : c.v0);
+        g.rotateY(b.yaw + (back ? Math.PI : 0));
+        g.translate(cx + fx * (back ? -0.035 : 0.035), b.y, cz + fz * (back ? -0.035 : 0.035));
+        parts.push(g.toNonIndexed());
+      }
+      // the edge: a thin green box between the faces
+      const e = new THREE.BoxGeometry(w + 0.04, h + 0.04, 0.06);
+      const uv = e.getAttribute('uv') as THREE.BufferAttribute;
+      for (let k = 0; k < uv.count; k++) uv.setXY(k, eu, ev);
+      e.rotateY(b.yaw);
+      e.translate(cx, b.y, cz);
+      parts.push(e.toNonIndexed());
+    }
+  const mesh = new THREE.Mesh(mergeGeometries(parts.map((g) => (g.deleteAttribute('normal'), g))), new THREE.MeshBasicMaterial({ map: tex }));
+  mesh.name = 'street-signs';
+  scene.add(mesh);
+}
+
+/**
+ * Low things on the ground, real-map city: the painted kerbs (top and both faces, no ends), the 路名牌 poles, the light rail's grass or
+ * concrete bed and its rails, and the rail's low posts. All of it in one merged mesh with vertex colours per
+ * 2 × 2-chunk square, so the whole layer costs a draw call or two in view.
+ */
+function drawGround(scene: THREE.Scene, d: Decor) {
+  const rail = d.rail;
+  const kerbs = d.curbs;
+  if (!rail?.pieces.length && !kerbs.length && !d.streetSigns?.length) return;
+  const size = chunk.size * 2;
+  const groups = new Map<string, { pos: number[]; col: number[] }>();
+  const group = (x: number, z: number) => {
+    const k = `${Math.floor((x - chunk.x0) / size)},${Math.floor((z - chunk.z0) / size)}`;
+    return groups.get(k) ?? groups.set(k, { pos: [], col: [] }).get(k)!;
+  };
+  const C = (h: string) => new THREE.Color(h);
+  const grass = C('#6E9F45'),
+    walk = C('#B9B2A4'),
+    steel = C('#8C9299'),
+    post = C('#8E969E');
+  type G = { pos: number[]; col: number[] };
+  const tri = (g: G, pts: number[][], c: THREE.Color) => {
+    for (const p of pts) g.pos.push(p[0], p[1], p[2]), g.col.push(c.r, c.g, c.b);
+  };
+  /** a flat strip from a to b, `off` to the side and `wdt` wide, at height y (facing up) */
+  const strip = (g: G, ax: number, az: number, bx2: number, bz2: number, off: number, wdt: number, y: number, c: THREE.Color) => {
+    const L = Math.hypot(bx2 - ax, bz2 - az) || 1;
+    const nx = -(bz2 - az) / L,
+      nz = (bx2 - ax) / L;
+    const p = [
+      [ax + nx * (off - wdt / 2), y, az + nz * (off - wdt / 2)],
+      [bx2 + nx * (off - wdt / 2), y, bz2 + nz * (off - wdt / 2)],
+      [bx2 + nx * (off + wdt / 2), y, bz2 + nz * (off + wdt / 2)],
+      [ax + nx * (off + wdt / 2), y, az + nz * (off + wdt / 2)],
+    ];
+    const cr = (p[1][0] - p[0][0]) * (p[2][2] - p[0][2]) - (p[1][2] - p[0][2]) * (p[2][0] - p[0][0]);
+    tri(g, cr > 0 ? [p[0], p[2], p[1], p[0], p[3], p[2]] : [p[0], p[1], p[2], p[0], p[2], p[3]], c);
+  };
+  /** an upright face from a to b between heights y0 and y1 (drawn double-sided) */
+  const wall = (g: G, ax: number, az: number, bx2: number, bz2: number, y0: number, y1: number, c: THREE.Color) =>
+    tri(g, [[ax, y0, az], [bx2, y0, bz2], [bx2, y1, bz2], [ax, y0, az], [bx2, y1, bz2], [ax, y1, az]], c);
+
+  // kerbs: a 0.16 m high strip along the road edge
+  for (const k of kerbs) {
+    const g = group(k.x, k.z);
+    const yaw = k.yaw ?? 0;
+    const ux = Math.cos(yaw),
+      uz = -Math.sin(yaw); // along the kerb
+    const vx = -uz,
+      vz = ux; // across
+    const ax = k.x - (ux * k.w) / 2,
+      az = k.z - (uz * k.w) / 2,
+      bx2 = k.x + (ux * k.w) / 2,
+      bz2 = k.z + (uz * k.w) / 2;
+    const c = C(k.color);
+    strip(g, ax, az, bx2, bz2, 0, k.d, 0.16, c);
+    for (const sd of [-1, 1]) wall(g, ax + vx * sd * (k.d / 2), az + vz * sd * (k.d / 2), bx2 + vx * sd * (k.d / 2), bz2 + vz * sd * (k.d / 2), 0, 0.16, c);
+  }
+  // light rail
+  for (const pc of rail?.pieces ?? []) {
+    const g = group((pc.x0 + pc.x1) / 2, (pc.z0 + pc.z1) / 2);
+    // heights over the layers of osm/surfaces.ts: road 0.015, lane marks 0.03, sidewalk 0.14
+    const bedY = pc.bed === 'walk' ? 0.145 : 0.02;
+    const railY = pc.bed === 'road' ? 0.04 : bedY + 0.03;
+    if (pc.bed !== 'road') strip(g, pc.x0, pc.z0, pc.x1, pc.z1, 0, 3.0, bedY, pc.bed === 'walk' ? walk : grass);
+    for (const off of [-0.72, 0.72]) strip(g, pc.x0, pc.z0, pc.x1, pc.z1, off, 0.11, railY, steel);
+  }
+  // square posts: the light rail's low ones (2.2 m) and the 路名牌 poles (5.2 m)
+  const posts = [...(rail?.poles ?? []).map((p) => ({ x: p.x, z: p.z, top: 2.2, h: 0.09 })), ...(d.streetSigns ?? []).map((p) => ({ x: p.x, z: p.z, top: 5.2, h: 0.07 }))];
+  for (const p of posts) {
+    const g = group(p.x, p.z);
+    const h = p.h;
+    const c4 = [
+      [p.x - h, p.z - h],
+      [p.x + h, p.z - h],
+      [p.x + h, p.z + h],
+      [p.x - h, p.z + h],
+    ];
+    for (let i = 0; i < 4; i++) wall(g, c4[i][0], c4[i][1], c4[(i + 1) % 4][0], c4[(i + 1) % 4][1], 0, p.top, post);
+    strip(g, p.x - h, p.z, p.x + h, p.z, 0, 2 * h, p.top, post);
+  }
+  const mat = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
+  for (const [, g] of groups) {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(g.pos, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(g.col, 3));
+    geo.computeVertexNormals();
+    geo.computeBoundingSphere();
+    const m = new THREE.Mesh(geo, mat);
+    m.receiveShadow = true;
+    m.name = 'ground-decor';
+    if (chunk.far < Infinity) farChunks.push({ mesh: m, sphere: geo.boundingSphere!, far: chunk.far });
+    scene.add(m);
+  }
 }
 
 /** water that moves: soft bands drifting across the surface (river and sea) */
