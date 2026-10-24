@@ -83,7 +83,7 @@ function groupOf(data: OsmCityData, tile: number) {
     j = Math.floor(tile / cols);
   return Math.floor(j / GROUP) * Math.ceil(cols / GROUP) + Math.floor(i / GROUP);
 }
-function groupOfPoint(data: OsmCityData, x: number, z: number) {
+export function groupOfPoint(data: OsmCityData, x: number, z: number) {
   const [cols, rows, size, x0, z0] = data.surfaces.tile;
   const i = Math.min(cols - 1, Math.max(0, Math.floor((x - x0) / size)));
   const j = Math.min(rows - 1, Math.max(0, Math.floor((z - z0) / size)));

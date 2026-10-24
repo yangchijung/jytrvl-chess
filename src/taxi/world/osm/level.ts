@@ -13,6 +13,7 @@ import type { Shape } from '../greybox';
 import type { Place, Spot } from '../../gameplay/rules';
 import { LOOK_HALL, LOOK_HOUSE, LOOK_TOWER, LOOK_WAREHOUSE } from '../facade';
 import { KAOHSIUNG, RANK, type OsmCityData, type OsmRoad, type XZ } from './data';
+import { clearSigns, landmarkModels } from './landmarks';
 
 /** the landmark names shown in the game (short, as people say them) */
 export const LANDMARK_NAMES: Record<string, { zh: string; en: string }> = {
@@ -285,6 +286,15 @@ export function osmLevel(data: OsmCityData = KAOHSIUNG): Level {
     }
   }
 
+  // ---------- landmark models (./landmarks.ts): they replace the mapped boxes they stand on ----------
+  const lms = landmarkModels(data, [...stops, ...places]);
+  const kept = shapes.filter((s) => !/^b\d+$/.test(s.id) || !lms.drop.has(Number(s.id.slice(1))));
+  shapes.length = 0;
+  shapes.push(...kept, ...lms.shapes);
+  signs.push(...lms.signs);
+  clearSigns(signs, lms);
+  const parkTrees = trees.filter((t) => lms.keepTree(t.x, t.z));
+
   const half = Math.max(x1 - x0, z1 - z0) / 2;
   return {
     id: 'city',
@@ -293,11 +303,11 @@ export function osmLevel(data: OsmCityData = KAOHSIUNG): Level {
     ground: [],
     water: { y: -1.4, floor: -3.2, x0, x1, z0, z1 },
     shapes,
-    prims: [],
+    prims: lms.prims,
     lots: [],
     marks: [],
     signs,
-    trees,
+    trees: parkTrees,
     stops,
     places,
     spawn,
