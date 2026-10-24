@@ -183,15 +183,18 @@ describe('roads', () => {
     expect(Math.abs(d[(NOISE_SIZE - 1) * 4 + 1] - d[1])).toBeLessThan(40);
     expect(t.wrapS).toBe(THREE.RepeatWrapping);
   });
-  it('mid: grain from one read on Lambert; high: varied shine and paint sheen on Phong; wet stays off by default', () => {
+  it('mid: the original Lambert until wet; high: grain, varied shine and paint sheen on Phong; wet off by default', () => {
     setSurfaceQuality('mid');
     expect(WET.value).toBe(0);
     const lm = roadMaterial('#525459', 'asphalt') as THREE.MeshLambertMaterial;
     expect(lm.isMeshLambertMaterial).toBe(true);
     const lsh = compile(lm, 'lambert');
-    expect(lsh.fragmentShader.match(/texture2D\( ?uRoadNoise/g)?.length).toBe(2);
-    expect(lsh.fragmentShader).toContain('#ifdef ROAD_FINE');
-    expect(lm.defines?.ROAD_FINE).toBeUndefined();
+    // dry: no noise read outside the grain define; the wet branch reads it once
+    const dry = lsh.fragmentShader.replace(/#ifdef ROAD_GRAIN[\s\S]*?#endif/, '').replace(/if \(uWet > 0\.001\) \{[\s\S]*?\n\}/, '');
+    expect(dry).not.toContain('texture2D( uRoadNoise');
+    expect(dry).not.toContain('texture2D(uRoadNoise');
+    expect(lsh.fragmentShader).toContain('if (uWet > 0.001)');
+    expect(lm.defines?.ROAD_GRAIN).toBeUndefined();
     expect(lsh.fragmentShader).not.toContain('uShine * (0.55');
     setSurfaceQuality('high');
     const m = roadMaterial('#525459', 'asphalt') as THREE.MeshPhongMaterial;
@@ -199,7 +202,7 @@ describe('roads', () => {
     expect(m.shininess).toBe(ROAD_LOOK.asphalt.shin);
     const sh = compile(m, 'phong');
     expect(sh.fragmentShader).toContain('uShine * (0.55');
-    expect(m.defines?.ROAD_FINE).toBe('');
+    expect(m.defines?.ROAD_GRAIN).toBe('');
     expect(sh.fragmentShader).toContain('rPuddle');
     expect(sh.vertexShader).toContain('vRw = (modelMatrix * rw).xyz');
     expect(sh.uniforms.uWet).toBe(WET);

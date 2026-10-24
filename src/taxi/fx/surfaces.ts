@@ -4,11 +4,12 @@
 //   mid   (tablets; must cost about what low did, so only cheap additions) an environment map (64 px PMREM,
 //         rendered once); the cabs stay Lambert but paint, chrome, glass and plastic reflect it with their own
 //         Fresnel weights (one read per shiny pixel); glass towers and water reflect it on their own pixels only,
-//         the river and sea also a fake bank; roads and pavement get grain and worn patches from one read of a
-//         shared 128 px noise; wet mode works
+//         the river and sea also a fake bank; streets look as on low until wet mode is on (darker asphalt,
+//         puddles mirroring the sky)
 //   high  (desktops) as mid with a 128 px PMREM, clearcoat on the taxi (MeshPhysical), traffic and the taxi glass in
-//         MeshStandard, Phong roads whose shine varies (patches, satin road paint), a second finer grain read, and
-//         a real planar reflection on the water (waterMirror.ts)
+//         MeshStandard, Phong roads and pavement with asphalt grain and worn patches whose shine varies, a satin
+//         sheen on road paint (two reads of a shared 128 px noise), and a real planar reflection on the water
+//         (waterMirror.ts)
 //
 // Parts of a merged car mesh say what they are through a per-vertex `aSurf` value (SURF below), so one material
 // draws paint, trim, chrome, glass and tyres in a single draw call.
@@ -328,15 +329,25 @@ uniform float uGrain;
 uniform float uShine;`;
 
 // the read is turned off the grid (so the 48 m repeat does not line up with the streets)
+// the read is turned off the grid (so the 48 m repeat does not line up with the streets). 'high' (ROAD_GRAIN) always
+// reads the noise; 'mid' reads it only while the streets are wet (a uniform branch), so a dry tablet frame costs
+// what it did before
 const ROAD_COLOR = /* glsl */ `
 vec2 rgp = mat2(0.96, -0.28, 0.28, 0.96) * vRw.xz / ${NOISE_SPAN.toFixed(1)};
-vec4 rN = texture2D(uRoadNoise, rgp);
-float rFine = 0.5;
-#ifdef ROAD_FINE
-rFine = texture2D(uRoadNoise, rgp * 23.0 + 0.37).a;  // millimetre grain up close, mipmapped away further out
+vec4 rN = vec4(0.5);
+float rPuddle = 0.0;
+#ifdef ROAD_GRAIN
+rN = texture2D(uRoadNoise, rgp);
+float rFine = texture2D(uRoadNoise, rgp * 23.0 + 0.37).a;  // millimetre grain up close, mipmapped away further out
+diffuseColor.rgb *= 0.94 + 0.1 * (rN.g - 0.5) + uGrain * (0.06 * (rN.r - 0.5) + 0.06 * (rFine - 0.5));
 #endif
-float rPuddle = smoothstep(0.56, 0.72, rN.b + 0.22 * (rN.g - 0.5)) * uWet;
-diffuseColor.rgb *= (0.94 + 0.1 * (rN.g - 0.5) + uGrain * (0.06 * (rN.r - 0.5) + 0.06 * (rFine - 0.5))) * (1.0 - 0.36 * uWet - 0.22 * rPuddle);`;
+if (uWet > 0.001) {
+  #ifndef ROAD_GRAIN
+  rN = texture2D(uRoadNoise, rgp);
+  #endif
+  rPuddle = smoothstep(0.56, 0.72, rN.b + 0.22 * (rN.g - 0.5)) * uWet;
+  diffuseColor.rgb *= 1.0 - 0.36 * uWet - 0.22 * rPuddle;
+}`;
 
 const ROAD_SPEC = /* glsl */ `
 specularStrength = mix(uShine * (0.55 + 0.9 * rN.g * rN.r), 1.0, max(rPuddle, 0.35 * uWet));`;
@@ -354,9 +365,8 @@ if (uWet > 0.001) {
 
 /**
  * Street surfaces with no textures but one shared 128 px noise: asphalt grain and worn patches with a shine that
- * varies across them, pavement with a finer grain, and road paint with a satin sheen ('high'; 'mid' keeps Lambert
- * and gets the grain and patches from a single noise read). `setWet` darkens them and (mid and high) adds puddles
- * that mirror the environment.
+ * varies across them, pavement with a finer grain, and road paint with a satin sheen ('high'). `setWet` darkens
+ * them and (mid and high) adds puddles that mirror the environment; 'mid' is otherwise the original Lambert.
  * Works for plain and instanced meshes.
  */
 export function roadMaterial(color: string | THREE.Color | null, kind: RoadKind, params: THREE.MeshPhongMaterialParameters = {}): THREE.Material {
@@ -367,12 +377,12 @@ export function roadMaterial(color: string | THREE.Color | null, kind: RoadKind,
     return m;
   }
   const look = ROAD_LOOK[kind];
-  // 'high': Phong, so the shine can vary (worn patches, satin paint); 'mid': Lambert with the grain only
+  // 'high': Phong with grain, so the shine can vary (worn patches, satin paint); 'mid': Lambert, wet mode only
   const shiny = tier === 'high';
   const m = shiny
     ? new THREE.MeshPhongMaterial({ color: base, specular: '#FFFFFF', shininess: look.shin, flatShading: true, ...params })
     : new THREE.MeshLambertMaterial({ color: base, flatShading: true, ...(params as THREE.MeshLambertMaterialParameters) });
-  if (shiny) m.defines = { ROAD_FINE: '' };
+  if (shiny) m.defines = { ROAD_GRAIN: '' };
   const uGrain = { value: look.grain },
     uShine = { value: look.spec };
   m.onBeforeCompile = (sh) => {
