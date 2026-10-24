@@ -7,6 +7,8 @@
 // (the chase camera looking along +z has world −x on its right), so the north-up map frame is mx = −x, my = −z
 // (canvas y grows downwards).
 import type { Level } from '../world/level';
+import type { OsmCityData, Poly, RoadClass, XZ } from '../world/osm/data';
+import { RANK } from '../world/osm/data';
 
 /** metres from the car to the map's edge (the map shows a 2·RANGE m wide disc) */
 export const MINIMAP_RANGE = 150;
@@ -108,4 +110,107 @@ export function clampToEdge(x: number, y: number, radius: number) {
 export function headingOnMap(yaw: number, view: number) {
   const d = view - yaw;
   return Math.atan2(Math.sin(d), Math.cos(d));
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// The real-map city (level.osm): too big for one canvas at a readable scale (2.6 × 3.0 km at ~1 px/m would be about
+// 2700 × 3200 px), so its static map is cut into square tiles that are drawn on demand and kept in a small cache.
+// Tile pixels are world-aligned: pixel (i, j) of a tile = world (x0 + i / k, z0 + j / k). The minimap draws them
+// under the same heading-up transform as the markers.
+
+/** pixels per metre of an OSM map tile: the minimap shows at most ~1.05 device px per metre (156 css px × 2 dpr for
+ * 2 · MINIMAP_RANGE m), so this stays sharp without wasting memory */
+export const OSM_TILE_PX_PER_M = 1.25;
+/** tile edge (m): a 300 m wide turned disc touches at most 3 × 3 of them */
+export const OSM_TILE_M = 256;
+/** how many drawn tiles the cache keeps (each 322 × 322 px, ~0.4 MB): enough for the view plus the way back */
+export const OSM_TILE_CACHE = 20;
+
+
+/** a drawable piece of the OSM map, in back-to-front order */
+export type OsmMapItem =
+  | { t: 'poly'; kind: 'park' | 'water'; poly: Poly; bb: [number, number, number, number] }
+  | { t: 'road'; rank: number; w: number; pts: XZ[]; bb: [number, number, number, number] };
+
+export interface OsmMapModel {
+  /** the area the tiles cover (play area plus MAP_MARGIN): x0, z0, x1, z1 */
+  area: [number, number, number, number];
+  /** the play area (the walls) */
+  rect: [number, number, number, number];
+  cols: number;
+  rows: number;
+  tileM: number;
+  items: OsmMapItem[];
+  /** item indices per tile (row-major), in drawing order */
+  bins: number[][];
+  landmarks: { x: number; z: number }[];
+}
+
+/** how a road class is drawn: main roads wider and lighter, side streets narrower and a little darker */
+export function roadStyle(cls: RoadClass | number) {
+  const rank = typeof cls === 'number' ? cls : RANK[cls];
+  if (rank >= 4) return { color: MAP_COLORS.paper, minPx: 4 };
+  if (rank === 3) return { color: '#F1ECE2', minPx: 3 };
+  return { color: '#E2DDD3', minPx: 2 };
+}
+
+function bbOf(pts: XZ[], pad = 0): [number, number, number, number] {
+  let a = Infinity,
+    b = Infinity,
+    c = -Infinity,
+    d = -Infinity;
+  for (const [x, z] of pts) {
+    if (x < a) a = x;
+    if (z < b) b = z;
+    if (x > c) c = x;
+    if (z > d) d = z;
+  }
+  return [a - pad, b - pad, c + pad, d + pad];
+}
+
+/** the OSM static map as tiles: parks, then water, then roads by rank (side streets first, main roads on top) */
+export function osmMapModel(data: OsmCityData, tileM = OSM_TILE_M): OsmMapModel {
+  const [rx0, rz0, rx1, rz1] = data.bounds;
+  const area: [number, number, number, number] = [rx0 - MAP_MARGIN, rz0 - MAP_MARGIN, rx1 + MAP_MARGIN, rz1 + MAP_MARGIN];
+  const cols = Math.ceil((area[2] - area[0]) / tileM);
+  const rows = Math.ceil((area[3] - area[1]) / tileM);
+  const items: OsmMapItem[] = [];
+  for (const p of data.parks) items.push({ t: 'poly', kind: 'park', poly: p.poly, bb: bbOf(p.poly[0]) });
+  for (const b of data.blocks) if (b.park) items.push({ t: 'poly', kind: 'park', poly: b.poly, bb: bbOf(b.poly[0]) });
+  for (const w of data.water) items.push({ t: 'poly', kind: 'water', poly: w, bb: bbOf(w[0]) });
+  const roads = data.roads.map((r) => ({ rank: RANK[r.cls], w: r.w, pts: r.pts })).sort((a, b) => a.rank - b.rank);
+  for (const r of roads) items.push({ t: 'road', rank: r.rank, w: r.w, pts: r.pts, bb: bbOf(r.pts, r.w / 2 + 2) });
+  const bins: number[][] = Array.from({ length: cols * rows }, () => []);
+  // the 1-pixel overlap each tile draws round its edge (see osmTileOrigin) is covered by a 2 m pad
+  const pad = 2;
+  items.forEach((it, i) => {
+    const c0 = Math.max(0, Math.floor((it.bb[0] - pad - area[0]) / tileM));
+    const c1 = Math.min(cols - 1, Math.floor((it.bb[2] + pad - area[0]) / tileM));
+    const r0 = Math.max(0, Math.floor((it.bb[1] - pad - area[1]) / tileM));
+    const r1 = Math.min(rows - 1, Math.floor((it.bb[3] + pad - area[1]) / tileM));
+    for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) bins[r * cols + c].push(i);
+  });
+  return { area, rect: [rx0, rz0, rx1, rz1], cols, rows, tileM, items, bins, landmarks: data.landmarks.map((l) => ({ x: l.x, z: l.z })) };
+}
+
+/** the world origin and size (m) of tile (c, r), including the 1-pixel overlap on every side that hides seams */
+export function osmTileOrigin(m: OsmMapModel, c: number, r: number, k = OSM_TILE_PX_PER_M) {
+  const px = Math.ceil(m.tileM * k) + 2;
+  return { x: m.area[0] + c * m.tileM - 1 / k, z: m.area[1] + r * m.tileM - 1 / k, size: px / k, px };
+}
+
+/** the tiles (col, row) that a disc of `radius` m round (x, z) touches */
+export function osmTilesAround(m: OsmMapModel, x: number, z: number, radius: number) {
+  const c0 = Math.max(0, Math.floor((x - radius - m.area[0]) / m.tileM));
+  const c1 = Math.min(m.cols - 1, Math.floor((x + radius - m.area[0]) / m.tileM));
+  const r0 = Math.max(0, Math.floor((z - radius - m.area[1]) / m.tileM));
+  const r1 = Math.min(m.rows - 1, Math.floor((z + radius - m.area[1]) / m.tileM));
+  const out: { c: number; r: number }[] = [];
+  for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) out.push({ c, r });
+  return out;
+}
+
+/** which way north is in world (x, z): the grid city's data has +z north, the OSM city has z = south */
+export function northOf(level: Level): { x: number; z: number } {
+  return level.osm ? { x: 0, z: -1 } : { x: 0, z: 1 };
 }

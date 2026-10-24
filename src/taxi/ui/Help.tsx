@@ -13,6 +13,9 @@ const T = {
   touch: { zh: '觸控', en: 'Touch' },
   tilt: { zh: '傾斜轉向', en: 'Tilt to steer' },
   autoGas: { zh: '自動油門', en: 'Auto gas' },
+  // the city map is OpenStreetMap data (ODbL 1.0): the attribution must be shown where the map is used
+  osm: { zh: '地圖資料 © OpenStreetMap 貢獻者', en: 'Map data © OpenStreetMap contributors' },
+  newTab: { zh: '（在新分頁開啟）', en: ' (opens in a new tab)' },
 };
 const ACTIONS: { id: Action; label: L; keys: string[]; pad: Pad[] }[] = [
   { id: 'gas', label: { zh: '油門', en: 'Gas' }, keys: ['W', '↑'], pad: ['RT'] },
@@ -279,6 +282,12 @@ export function Help({ lang, onClose, tilt, autoGas }: { lang: Lang; onClose: ()
           )}
         </figure>
       </div>
+      <p className="tc-credit">
+        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" data-testid="taxi-osm-credit">
+          {tr(T.osm)}
+          <span className="tc-sr">{tr(T.newTab)}</span>
+        </a>
+      </p>
     </div>
   );
 }
