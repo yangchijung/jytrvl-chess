@@ -505,14 +505,20 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
       };
       post.setGrade(false);
       frameNow();
+      // the cab's body is mostly below and around that point (the rear window sits right on it): read a block
+      const bx = Math.max(0, cx - 60),
+        by = Math.max(0, cy - 70),
+        bw = Math.min(size.x - bx, 121),
+        bh = Math.min(size.y - by, 85);
+      const gl = renderer.getContext();
+      const block = new Uint8Array(bw * bh * 4);
+      gl.readPixels(bx, by, bw, bh, gl.RGBA, gl.UNSIGNED_BYTE, block);
       let best: [number, number] = [cx, cy],
         score = -Infinity;
-      for (let dy = -12; dy <= 12; dy += 3)
-        for (let dx = -18; dx <= 18; dx += 3) {
-          const [r, g, b] = pixel(cx + dx, cy + dy);
-          const s = -Math.hypot(r - 255, g - 199, b - 44);
-          if (s > score) (score = s), (best = [cx + dx, cy + dy]);
-        }
+      for (let k = 0; k < bw * bh; k++) {
+        const s = -Math.hypot(block[k * 4] - 255, block[k * 4 + 1] - 199, block[k * 4 + 2] - 44);
+        if (s > score) (score = s), (best = [bx + (k % bw), by + Math.floor(k / bw)]);
+      }
       const plain = pixel(...best);
       post.setGrade(true);
       frameNow();

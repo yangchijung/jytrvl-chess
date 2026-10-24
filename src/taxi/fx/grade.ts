@@ -80,5 +80,5 @@ void main() {
  */
 export function dofAperture(camSpeed: number): number {
   const v = Math.min(30, Math.max(0, Number.isFinite(camSpeed) ? camSpeed : 0));
-  return 0.00002 + v * 0.000003;
+  return 0.000004 + v * 0.0000005;
 }

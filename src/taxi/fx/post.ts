@@ -127,7 +127,7 @@ export function createPost(renderer: THREE.WebGLRenderer, scene: THREE.Scene, ca
   const gtao = new HalfGTAO(scene, cam, probe);
   const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.22, 0.35, 0.93);
   const dof = new ShaderPass({ ...BokehShader, defines: { ...BokehShader.defines, DEPTH_PACKING: 0 } }, 'tColor');
-  dof.uniforms.maxblur.value = 0.006;
+  dof.uniforms.maxblur.value = 0.002; // about 2 px at 1180 px wide: a hint of depth, the city stays readable
   const grade = new ShaderPass(GRADE_SHADER);
   const smaa = new SMAAPass();
   const named: [string, Pass][] = [
