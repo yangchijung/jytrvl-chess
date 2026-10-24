@@ -2,14 +2,88 @@
 // so "up" is always the way the player is looking. It shows the streets, the Love River, the sea and the parks from
 // the level data, the cab as an arrow in the middle, the current target (the destination while carrying, otherwise
 // the nearest waiting person) pinned to the rim when it is off the map, and the other waiting people as dots.
-// The streets are drawn once to an offscreen canvas; each frame (at most ~30 per second) only turns, moves and adds
+// The grid city's streets are drawn once to an offscreen canvas; the real-map city (level.osm) is drawn in 256 m tiles
+// on demand (at most two new ones a frame, the last OSM_TILE_CACHE kept), with the landmarks as small ink dots.
+// For both, each frame (at most ~30 per second) only turns, moves and adds
 // the markers on a plain 2D canvas. No WebGL. It never takes touches (pointer-events: none).
 import { useEffect, useRef } from 'react';
 import type { Game } from '../game';
 import type { Level } from '../world/level';
 import { BAND_COLOR } from '../gameplay/view';
-import { MAP_COLORS, MAP_PX_PER_M, MINIMAP_RANGE, clampToEdge, headingOnMap, mapLayers, staticMapFrame, worldToMap } from './minimapMath';
+import type { Poly } from '../world/osm/data';
+import {
+  MAP_COLORS,
+  MAP_PX_PER_M,
+  MINIMAP_RANGE,
+  OSM_TILE_CACHE,
+  OSM_TILE_PX_PER_M,
+  clampToEdge,
+  headingOnMap,
+  mapLayers,
+  northOf,
+  osmMapModel,
+  osmTileOrigin,
+  osmTilesAround,
+  roadStyle,
+  staticMapFrame,
+  worldToMap,
+  type OsmMapModel,
+} from './minimapMath';
 import './minimap.css';
+
+/** the real-map city's tiles: the model (which items fall in which tile) and the drawn tiles, most recent last */
+const osmMaps = new WeakMap<Level, { model: OsmMapModel; tiles: Map<number, HTMLCanvasElement> }>();
+
+function tracePoly(x: CanvasRenderingContext2D, poly: Poly) {
+  for (const ring of poly) {
+    ring.forEach(([px, pz], i) => (i ? x.lineTo(px, pz) : x.moveTo(px, pz)));
+    x.closePath();
+  }
+}
+
+/** draws one tile: land, parks, water, then the roads as strokes of their real width (never thinner than minPx) */
+function drawTile(m: OsmMapModel, c: number, r: number) {
+  const o = osmTileOrigin(m, c, r);
+  const k = OSM_TILE_PX_PER_M;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = o.px;
+  const x = canvas.getContext('2d');
+  if (!x) return canvas;
+  x.fillStyle = MAP_COLORS.block;
+  x.fillRect(0, 0, o.px, o.px);
+  // world metres from here on
+  x.setTransform(k, 0, 0, k, -o.x * k, -o.z * k);
+  x.lineCap = 'round';
+  x.lineJoin = 'round';
+  for (const i of m.bins[r * m.cols + c]) {
+    const it = m.items[i];
+    if (it.t === 'poly') {
+      x.beginPath();
+      tracePoly(x, it.poly);
+      x.fillStyle = it.kind === 'water' ? MAP_COLORS.water : MAP_COLORS.park;
+      x.fill('evenodd');
+    } else {
+      const st = roadStyle(it.rank);
+      x.beginPath();
+      it.pts.forEach(([px, pz], j) => (j ? x.lineTo(px, pz) : x.moveTo(px, pz)));
+      x.strokeStyle = st.color;
+      x.lineWidth = Math.max(it.w, st.minPx / k);
+      x.stroke();
+    }
+  }
+  // the walls: where the map ends
+  const [rx0, rz0, rx1, rz1] = m.rect;
+  x.strokeStyle = MAP_COLORS.ink;
+  x.lineWidth = 3 / k;
+  x.strokeRect(rx0, rz0, rx1 - rx0, rz1 - rz0);
+  return canvas;
+}
+
+function osmMap(level: Level) {
+  let hit = osmMaps.get(level);
+  if (!hit && level.osm) osmMaps.set(level, (hit = { model: osmMapModel(level.osm), tiles: new Map() }));
+  return hit;
+}
 
 const statics = new WeakMap<Level, { canvas: HTMLCanvasElement; frame: ReturnType<typeof staticMapFrame> }>();
 
@@ -68,9 +142,6 @@ export function Minimap({ game, mode }: { game: () => Game | null; mode: 'arcade
       const key = `${px}|${pose.x.toFixed(1)}|${pose.z.toFixed(1)}|${pose.yaw.toFixed(3)}|${pose.view.toFixed(3)}|${play?.rider?.id ?? '-'}|${play?.waiting.map((p) => p.id).join(',') ?? ''}`;
       if (key === prev) return;
       prev = key;
-      const { canvas: map, frame } = staticMap(g.level);
-      const car = frame.toPx(pose.x, pose.z);
-
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, px, px);
       ctx.save();
@@ -79,14 +150,56 @@ export function Minimap({ game, mode }: { game: () => Game | null; mode: 'arcade
       ctx.clip();
       ctx.translate(R, R);
       ctx.rotate(pose.view);
-      ctx.scale(scale / MAP_PX_PER_M, scale / MAP_PX_PER_M);
-      ctx.drawImage(map, -car.u, -car.v);
+      const om = osmMap(g.level);
+      let missing = false;
+      if (om) {
+        // world-aligned tiles under the heading-up transform: world (x, z) → rotate(view) · scale · (car − p)
+        ctx.scale(-scale, -scale);
+        ctx.translate(-pose.x, -pose.z);
+        ctx.fillStyle = MAP_COLORS.block;
+        ctx.fillRect(pose.x - MINIMAP_RANGE * 1.5, pose.z - MINIMAP_RANGE * 1.5, MINIMAP_RANGE * 3, MINIMAP_RANGE * 3);
+        let made = 0;
+        for (const { c, r } of osmTilesAround(om.model, pose.x, pose.z, MINIMAP_RANGE * Math.SQRT2)) {
+          const id = r * om.model.cols + c;
+          let tile = om.tiles.get(id);
+          if (tile) om.tiles.delete(id); // re-insert below: most recently used last
+          else if (made < 2) (tile = drawTile(om.model, c, r)), made++;
+          if (!tile) {
+            missing = true;
+            continue;
+          }
+          om.tiles.set(id, tile);
+          const o = osmTileOrigin(om.model, c, r);
+          ctx.drawImage(tile, o.x, o.z, o.size, o.size);
+        }
+        while (om.tiles.size > OSM_TILE_CACHE) om.tiles.delete(om.tiles.keys().next().value as number);
+      } else {
+        const { canvas: map, frame } = staticMap(g.level);
+        const car = frame.toPx(pose.x, pose.z);
+        ctx.scale(scale / MAP_PX_PER_M, scale / MAP_PX_PER_M);
+        ctx.drawImage(map, -car.u, -car.v);
+      }
       ctx.restore();
+      // a tile still to draw: draw the next frame even if nothing moved
+      if (missing) prev = '';
 
       const at = (x: number, z: number) => worldToMap(x - pose.x, z - pose.z, pose.view, scale);
       // the target: where the guide arrow points
       const target = play ? (play.rider ? { x: play.rider.dest.x, z: play.rider.dest.z, dest: true, color: MAP_COLORS.dest } : [...play.waiting].sort((a, b) => Math.hypot(a.stop.x - pose.x, a.stop.z - pose.z) - Math.hypot(b.stop.x - pose.x, b.stop.z - pose.z)).map((p) => ({ x: p.stop.x, z: p.stop.z, dest: false, color: BAND_COLOR[p.band], id: p.id }))[0]) : undefined;
       const targetId = target && 'id' in target ? target.id : -1;
+      // the landmarks: small ink dots on paper rings, only when on the map
+      if (om)
+        for (const l of om.model.landmarks) {
+          const o = at(l.x, l.z);
+          if (Math.hypot(o.x, o.y) > R - 4 * dpr) continue;
+          ctx.beginPath();
+          ctx.arc(R + o.x, R + o.y, 2.5 * dpr, 0, Math.PI * 2);
+          ctx.fillStyle = MAP_COLORS.ink;
+          ctx.lineWidth = 1.5 * dpr;
+          ctx.strokeStyle = MAP_COLORS.paper;
+          ctx.fill();
+          ctx.stroke();
+        }
       ctx.lineWidth = 1.5 * dpr;
       ctx.strokeStyle = MAP_COLORS.ink;
       // other waiting people: small dots, only when on the map
@@ -114,8 +227,10 @@ export function Minimap({ game, mode }: { game: () => Game | null; mode: 'arcade
         ctx.stroke();
       }
       // north tick on the rim, with its letter just inside
-      const n = worldToMap(0, 1, pose.view, 1);
+      const north = northOf(g.level);
+      const n = worldToMap(north.x, north.z, pose.view, 1);
       ctx.lineWidth = 3 * dpr;
+      ctx.strokeStyle = MAP_COLORS.ink;
       ctx.beginPath();
       ctx.moveTo(R + n.x * R, R + n.y * R);
       ctx.lineTo(R + n.x * (R - 8 * dpr), R + n.y * (R - 8 * dpr));
