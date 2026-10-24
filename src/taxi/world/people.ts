@@ -102,7 +102,8 @@ export class People {
     this.legs = new THREE.InstancedMesh(new THREE.BoxGeometry(0.45, 0.8, 0.3).translate(0, 0.4, 0), new THREE.MeshLambertMaterial({ color: '#37474F', flatShading: true }), count);
     this.body = new THREE.InstancedMesh(new THREE.BoxGeometry(0.6, 0.72, 0.36).translate(0, 1.16, 0), mat(), count);
     this.head = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.25, 1).translate(0, 1.78, 0), mat(), count);
-    for (const m of [this.legs, this.body, this.head]) m.castShadow = true;
+    // the real map: no shadows (three draw calls fewer in the shadow pass, the budget for the big city)
+    for (const m of [this.legs, this.body, this.head]) m.castShadow = !around;
     scene.add(this.legs, this.body, this.head);
     for (let i = 0; i < count && walks.length; i++) {
       const walk = walks[Math.floor(this.rnd() * walks.length)];

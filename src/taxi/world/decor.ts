@@ -467,7 +467,7 @@ export function drawSignals(scene: THREE.Scene, list: Signal[], lean: boolean) {
       poles.setMatrixAt(i, m4);
     });
     poles.computeBoundingSphere();
-    poles.castShadow = true;
+    poles.castShadow = false; // thin poles: their shadows are not worth a draw call and 10k triangles
     scene.add(poles);
   } else {
     const g = instanced(sigGeo, vc(), items);
