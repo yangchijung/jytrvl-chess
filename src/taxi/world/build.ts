@@ -214,11 +214,11 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
   const ms = level.massing;
   const boxes: Inst[] = [...all.filter((s) => s.look === undefined), ...(ms?.slabs ?? []).map((b) => ({ p: [b.x, b.y, b.z] as [number, number, number], size: [b.w, b.h, b.d] as [number, number, number], color: b.color }))];
   const blds: Inst[] = [...all.filter((s) => s.look !== undefined), ...(ms?.masses ?? []).map((m) => ({ p: [m.x, m.y0 + m.h / 2, m.z] as [number, number, number], size: [m.w, m.h, m.d] as [number, number, number], color: m.color, look: m.look }))];
-  // the real-map city has tens of thousands of buildings: one instanced mesh per 690 m square (3 × 3 data tiles), so
+  // the real-map city has tens of thousands of buildings: one instanced mesh per 920 m square (4 × 4 data tiles), so
   // the frustum culls the squares behind and beside the camera; the hand-made levels keep a single mesh
   const squares = <T extends Inst>(items: T[]): T[][] => {
     if (!level.osm || items.length < 400) return [items];
-    const S = 690;
+    const S = 920;
     const map = new Map<string, T[]>();
     for (const it of items) {
       const k = `${Math.floor(it.p[0] / S)},${Math.floor(it.p[2] / S)}`;
@@ -255,7 +255,7 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
     // a whole square in the sun's 36 m shadow box would draw thousands of boxes into the shadow map: the squares
     // only receive, and a near-field caster (below) throws the shadows of the buildings round the camera
     inst.castShadow = false;
-    // far squares (centre 900 m away, so every building in it at least 410 m) keep only the skyline: buildings of
+    // far squares (centre 1100 m away, so every building in it at least 450 m) keep only the skyline: buildings of
     // 18 m and up; the low rows there are a few pixels deep in the haze
     const tall = part.filter((s) => s.size[1] >= 18);
     const lod = new THREE.LOD();
@@ -265,7 +265,7 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
     lod.addLevel(inst, 0);
     const far = tall.length ? bldMesh(tall) : new THREE.Object3D();
     far.position.set(-c.x, 0, -c.z);
-    lod.addLevel(far, 900);
+    lod.addLevel(far, 1100);
     scene.add(lod);
   }
   if (blds.length && level.osm) scene.add(nearField(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial(), blds.map((s) => ({ x: s.p[0], y: s.p[1], z: s.p[2], yaw: s.yaw, s: new THREE.Vector3(...s.size) })), 130, { shadowOnly: true }));

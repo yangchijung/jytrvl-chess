@@ -32,10 +32,10 @@ const vc = () => new THREE.MeshLambertMaterial({ vertexColors: true, flatShading
 type Item = { x: number; y: number; z: number; yaw?: number; s?: THREE.Vector3; color?: string };
 /** one instanced mesh per 230 m tile, so the parts of the city behind the camera are skipped (frustum culling) */
 const TILE = 230;
-function tiles<T extends { x: number; z: number }>(items: T[]) {
+function tiles<T extends { x: number; z: number }>(items: T[], size = TILE) {
   const map = new Map<string, T[]>();
   for (const it of items) {
-    const k = `${Math.floor(it.x / TILE)},${Math.floor(it.z / TILE)}`;
+    const k = `${Math.floor(it.x / size)},${Math.floor(it.z / size)}`;
     (map.get(k) ?? map.set(k, []).get(k)!).push(it);
   }
   return [...map.values()];
@@ -375,8 +375,9 @@ export function drawDecor(scene: THREE.Scene, level: Level) {
         .replace('#include <map_fragment>', '#ifdef USE_MAP\nfloat ink = texture2D(map, vMapUv).r;\ndiffuseColor.rgb = mix(vBg, vFg, ink);\n#endif');
     };
     mats.push(mat);
-    // one merged mesh per 230 m tile, dropped past 300 m, so the far tiles cost nothing
-    for (const tile of d.shopSigns.length > 120 ? tiles(d.shopSigns) : [d.shopSigns]) {
+    // one merged mesh per 460 m square, dropped past 480 m from its centre (signs 155 m or more away), so the far
+    // squares cost nothing
+    for (const tile of d.shopSigns.length > 120 ? tiles(d.shopSigns, TILE * 2) : [d.shopSigns]) {
     const parts: THREE.BufferGeometry[] = [];
     for (const s of tile) {
       const [bg, fg] = SIGN_COLORS[s.color];
@@ -408,7 +409,7 @@ export function drawDecor(scene: THREE.Scene, level: Level) {
     const geo = mergeGeometries(parts.map((g) => (g.index ? g.toNonIndexed() : g)));
     const mesh = new THREE.Mesh(geo, mat);
     mesh.name = 'shopSigns';
-    scene.add(farCull(mesh, 300));
+    scene.add(farCull(mesh, 480));
     }
   }
 

@@ -446,7 +446,8 @@ export function fillBlocks(data: OsmCityData, opt: FillOptions = {}): FillResult
     const ring = poly[0];
     if (ring.length < 3) return;
     const area = ringArea(ring);
-    if (Math.abs(area) < 60) return;
+    // traffic islands and kerb corners stay open
+    if (Math.abs(area) < 250) return;
     const zone = zoneOf(blk);
     const downtown = blk.district === '前金區' || blk.district === '新興區' || blk.district === '苓雅區';
     const paint = PAINT[zone];
