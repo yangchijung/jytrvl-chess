@@ -486,7 +486,7 @@ export function waterMaterial(color: string, opts: { box?: [number, number, numb
   // Phong for a sun glint; the ripple tilts the normal a little so the glint breaks into sparkles
   const mat = new THREE.MeshPhongMaterial({ color, specular: '#CFE6F2', shininess: 70 });
   const uTime = { value: 0 };
-  const tier = opts.tier ?? surfaceQuality();
+  const tier = new URLSearchParams(typeof location !== 'undefined' ? location.search : '').get('rx')?.includes('water') ? 'low' : (opts.tier ?? surfaceQuality()); // TEMP rx
   const box = opts.box ?? [-1e5, 1e5, -1e5, 1e5];
   const refl = { uWaterBox: { value: new THREE.Vector4(...box) }, uBankH: { value: opts.bankH ?? 12 }, uReflK: { value: 0.8 } };
   if (tier === 'high') mat.defines = { WATER_MIRROR: '' };

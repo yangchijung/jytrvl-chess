@@ -153,18 +153,23 @@ describe('roads', () => {
     expect(Math.abs(d[(NOISE_SIZE - 1) * 4 + 1] - d[1])).toBeLessThan(40);
     expect(t.wrapS).toBe(THREE.RepeatWrapping);
   });
-  it('mid and high: grain, varied shine and paint sheen in the shader; wet stays off by default', () => {
+  it('mid: grain from one read on Lambert; high: varied shine and paint sheen on Phong; wet stays off by default', () => {
     setSurfaceQuality('mid');
     expect(WET.value).toBe(0);
+    const lm = roadMaterial('#525459', 'asphalt') as THREE.MeshLambertMaterial;
+    expect(lm.isMeshLambertMaterial).toBe(true);
+    const lsh = compile(lm, 'lambert');
+    expect(lsh.fragmentShader.match(/texture2D\( ?uRoadNoise/g)?.length).toBe(2);
+    expect(lsh.fragmentShader).toContain('#ifdef ROAD_FINE');
+    expect(lm.defines?.ROAD_FINE).toBeUndefined();
+    expect(lsh.fragmentShader).not.toContain('uShine * (0.55');
+    setSurfaceQuality('high');
     const m = roadMaterial('#525459', 'asphalt') as THREE.MeshPhongMaterial;
     expect(m.isMeshPhongMaterial).toBe(true);
     expect(m.shininess).toBe(ROAD_LOOK.asphalt.shin);
     const sh = compile(m, 'phong');
     expect(sh.fragmentShader).toContain('uShine * (0.55');
-    expect(sh.fragmentShader.match(/texture2D\( ?uRoadNoise/g)?.length).toBe(2); // one read, plus the fine one behind ROAD_FINE
-    expect(m.defines?.ROAD_FINE).toBeUndefined();
-    setSurfaceQuality('high');
-    expect((roadMaterial('#525459', 'asphalt') as THREE.MeshPhongMaterial).defines?.ROAD_FINE).toBe('');
+    expect(m.defines?.ROAD_FINE).toBe('');
     expect(sh.fragmentShader).toContain('rPuddle');
     expect(sh.vertexShader).toContain('vRw = (modelMatrix * rw).xyz');
     expect(sh.uniforms.uWet).toBe(WET);

@@ -1,11 +1,14 @@
 // Rush Taxi: materials that look like what they are made of. Everything here keys off one quality tier:
 //
 //   low   today's look: Lambert cabs, Lambert roads, Phong water with ripples and glints, no environment map
-//   mid   environment map (scene.environment, 64 px PMREM); the taxi in glossy paint, chrome, glass and rubber
-//         (MeshStandard, one material); traffic in one shared MeshStandard; glass towers and water reflect the environment, the
-//         river and sea also reflect a fake bank; roads and pavement get grain, varied shine and a paint sheen
-//   high  as mid with a 128 px PMREM, clearcoat on the taxi (MeshPhysical), a finer road grain and a real planar
-//         reflection on the water (see waterMirror.ts)
+//   mid   (tablets; must cost about what low did, so only cheap additions) an environment map (scene.environment,
+//         64 px PMREM, rendered once); the taxi in glossy paint, chrome, glass and rubber (one MeshStandard); all
+//         traffic in one shared MeshStandard; glass towers and water reflect the environment (on their own pixels
+//         only), the river and sea also a fake bank; roads and pavement get grain and worn patches from one read of
+//         a shared 128 px noise; wet mode works
+//   high  (desktops) as mid with a 128 px PMREM, clearcoat on the taxi (MeshPhysical), Phong roads whose shine
+//         varies (patches, satin road paint), a second finer grain read, and a real planar reflection on the water
+//         (waterMirror.ts)
 //
 // Parts of a merged car mesh say what they are through a per-vertex `aSurf` value (SURF below), so one material
 // draws paint, trim, chrome, glass and tyres in a single draw call.
@@ -281,8 +284,9 @@ if (uWet > 0.001) {
 
 /**
  * Street surfaces with no textures but one shared 128 px noise: asphalt grain and worn patches with a shine that
- * varies across them, pavement with a finer grain, and road paint with a satin sheen. 'mid' reads the noise once,
- * 'high' twice (a finer grain). `setWet` darkens them and (mid and high) adds puddles that mirror the environment.
+ * varies across them, pavement with a finer grain, and road paint with a satin sheen ('high'; 'mid' keeps Lambert
+ * and gets the grain and patches from a single noise read). `setWet` darkens them and (mid and high) adds puddles
+ * that mirror the environment.
  * Works for plain and instanced meshes.
  */
 export function roadMaterial(color: string | THREE.Color | null, kind: RoadKind, params: THREE.MeshPhongMaterialParameters = {}): THREE.Material {
@@ -293,8 +297,12 @@ export function roadMaterial(color: string | THREE.Color | null, kind: RoadKind,
     return m;
   }
   const look = ROAD_LOOK[kind];
-  const m = new THREE.MeshPhongMaterial({ color: base, specular: '#FFFFFF', shininess: look.shin, flatShading: true, ...params });
-  if (tier === 'high') m.defines = { ROAD_FINE: '' };
+  // 'high': Phong, so the shine can vary (worn patches, satin paint); 'mid': Lambert with the grain only
+  const shiny = tier === 'high';
+  const m = shiny
+    ? new THREE.MeshPhongMaterial({ color: base, specular: '#FFFFFF', shininess: look.shin, flatShading: true, ...params })
+    : new THREE.MeshLambertMaterial({ color: base, flatShading: true, ...(params as THREE.MeshLambertMaterialParameters) });
+  if (shiny) m.defines = { ROAD_FINE: '' };
   const uGrain = { value: look.grain },
     uShine = { value: look.spec };
   m.onBeforeCompile = (sh) => {
@@ -308,8 +316,8 @@ export function roadMaterial(color: string | THREE.Color | null, kind: RoadKind,
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', `#include <common>${ROAD_FRAG_HEAD}`)
       .replace('#include <color_fragment>', `#include <color_fragment>${ROAD_COLOR}`)
-      .replace('#include <specularmap_fragment>', `#include <specularmap_fragment>${ROAD_SPEC}`)
       .replace('#include <envmap_fragment>', `${ROAD_ENV}\n#include <envmap_fragment>`);
+    if (shiny) sh.fragmentShader = sh.fragmentShader.replace('#include <specularmap_fragment>', `#include <specularmap_fragment>${ROAD_SPEC}`);
   };
   m.customProgramCacheKey = () => `road-${tier}`;
   return m;
