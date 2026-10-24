@@ -182,7 +182,7 @@ async function driveTo(target, { max = 30, stopAt = 2.5, until, top = 75 } = {})
 }
 
 try {
-  await p.goto(PAGE(TRACK), { waitUntil: 'networkidle0' });
+  await p.goto(PAGE(TRACK), { waitUntil: 'networkidle0', timeout: 180000 });
   await p.waitForFunction(() => document.querySelector('[data-testid=taxi]')?.dataset.state === 'ready', { timeout: 180000 });
   // the live loop is stopped (paused) so only our hand steps move the game
   await p.evaluate(() => window.__taxi.setPaused(true));
@@ -553,7 +553,7 @@ try {
   if (!TRACK) {
     await p.close();
     p = await newPage();
-    await p.goto(PAGE('grid'), { waitUntil: 'networkidle0' });
+    await p.goto(PAGE('grid'), { waitUntil: 'networkidle0', timeout: 180000 });
     await p.waitForFunction(() => document.querySelector('[data-testid=taxi]')?.dataset.state === 'ready', { timeout: 180000 });
     await p.evaluate(() => window.__taxi.setPaused(true));
     await ff(0.5);
