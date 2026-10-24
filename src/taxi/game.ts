@@ -343,9 +343,10 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
     sun.position.copy(sun.target.position).addScaledVector(SUN_DIR, 45);
     view.update(run, p, performance.now() / 1000);
     if (menu) {
-      // the menu's background: a slow aerial orbit over the Love River
+      // the menu's background: a slow aerial orbit over the Love River (radius and height keep the draw calls in the
+      // tablet budget: 290 m / 150 m saw the whole grid city, 165 calls and 377k triangles)
       orbit += dt * 0.045;
-      chase.cam.position.set(Math.cos(orbit) * 290, 150, Math.sin(orbit) * 290);
+      chase.cam.position.set(Math.cos(orbit) * 130, 170, Math.sin(orbit) * 130);
       chase.cam.lookAt(0, 0, 0);
       if (Math.abs(chase.cam.fov - 55) > 0.1) {
         chase.cam.fov = 55;
