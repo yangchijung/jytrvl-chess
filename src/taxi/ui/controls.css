@@ -19,6 +19,19 @@
 .tc-status { min-width: 0; color: #fffaf2; background: #23303f; border-radius: 10px; padding: 6px 12px; font-size: 1.1rem; font-weight: 800; }
 .tc-status:empty { display: none; }
 
+/* 畫質: one segmented row (a radio group); the chosen segment is ink-filled with a check mark */
+.tc-quality { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center; padding: 4px 4px 4px 18px; border-radius: 18px; border: 4px solid #23303f; background: #fffaf2; color: #23303f; }
+.tc-quality-title { display: inline-flex; align-items: center; gap: 8px; font-size: 1.25rem; font-weight: 800; white-space: nowrap; }
+.tc-quality-now { color: #fffaf2; background: #23303f; border-radius: 8px; padding: 2px 8px; font-size: 1rem; }
+.tc-segments { display: flex; border: 3px solid #23303f; border-radius: 14px; overflow: hidden; }
+.tc-segment { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 56px; min-width: 80px; padding: 6px 14px; box-sizing: border-box; border: 0; background: #fffaf2; color: #23303f; font: inherit; font-size: 1.2rem; font-weight: 800; cursor: pointer; touch-action: manipulation; transition: background-color 140ms ease-out, color 140ms ease-out; }
+.tc-segment + .tc-segment { border-left: 3px solid #23303f; }
+.tc-segment-check { display: none; flex: none; }
+.tc-segment[aria-checked='true'] { background: #23303f; color: #fffaf2; }
+.tc-segment[aria-checked='true'] .tc-segment-check { display: block; }
+.tc-segment:active { background: #ffc72c; color: #23303f; }
+.tc-segment:focus-visible { outline: 3px solid #1565c0; outline-offset: -6px; }
+
 /* help panel */
 .tc-help { position: relative; width: min(920px, 100%); max-height: 100%; overflow-y: auto; box-sizing: border-box; padding: 16px 20px 20px; border-radius: 22px; border: 5px solid #23303f; background: #fffaf2; color: #23303f; touch-action: pan-y; }
 .tc-help-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
@@ -54,6 +67,7 @@
   .tc-pausemenu .taxi-mode svg { width: 40px; height: 40px; }
   .tc-pausemenu .taxi-volume input { width: 140px; }
   .tc-btn, .tc-switch { padding: 6px 14px; font-size: 1.1rem; }
+  .tc-segment { min-height: 48px; min-width: 64px; padding: 4px 10px; font-size: 1.05rem; }
   .tc-help { padding: 8px 14px 10px; }
   /* no room for a title row: the title stays for screen readers, the close button sits in the top-right corner */
   .tc-help-top { position: absolute; top: 8px; right: 8px; margin: 0; }
@@ -66,4 +80,4 @@
   .tc-pad-face, .tc-pad-stick { width: 32px; }
   .tc-touchmap { width: 280px; }
 }
-@media (prefers-reduced-motion: reduce) { .tc-track, .tc-thumb { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .tc-track, .tc-thumb, .tc-segment { transition: none; } }

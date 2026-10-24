@@ -10,7 +10,7 @@ export const GRADE = {
   /** added to dark pixels (scaled by (1 − luma)²): warm, never blue shadows */
   shadowTint: [0.01, 0.004, -0.008] as const,
   saturation: 1.06,
-  /** within this RGB distance of the taxi yellow the grade is off; it is fully on past `protectTo` */
+  /** within this chromaticity distance of the taxi yellow the grade is off; it is fully on past `protectTo` */
   protectFrom: 0.1,
   protectTo: 0.28,
   /** how much the corners darken (0 = none) */
@@ -34,8 +34,10 @@ export function gradeColour(c: readonly [number, number, number]): [number, numb
   });
   const gl = g[0] * LUMA[0] + g[1] * LUMA[1] + g[2] * LUMA[2];
   g = g.map((v) => clamp01(gl + (v - gl) * GRADE.saturation));
-  const d = Math.hypot(c[0] - TAXI_YELLOW[0], c[1] - TAXI_YELLOW[1], c[2] - TAXI_YELLOW[2]);
-  const protect = 1 - smooth(GRADE.protectFrom, GRADE.protectTo, d);
+  // by chromaticity (the colour divided by its brightest channel), so the cab in sun and in shade both count
+  const m = Math.max(c[0], c[1], c[2], 1e-3);
+  const d = Math.hypot(c[0] / m - TAXI_YELLOW[0], c[1] / m - TAXI_YELLOW[1], c[2] / m - TAXI_YELLOW[2]);
+  const protect = (1 - smooth(GRADE.protectFrom, GRADE.protectTo, d)) * smooth(0.15, 0.35, m);
   return [0, 1, 2].map((i) => g[i] + (c[i] - g[i]) * protect) as [number, number, number];
 }
 
@@ -63,7 +65,8 @@ void main() {
   vec3 g = c + (s - c) * ${f(GRADE.contrast)} + vec3(${GRADE.shadowTint.map(f).join(', ')}) * k;
   float gl = dot(g, LW);
   g = clamp(vec3(gl) + (g - vec3(gl)) * ${f(GRADE.saturation)}, 0.0, 1.0);
-  float protect = 1.0 - smoothstep(${f(GRADE.protectFrom)}, ${f(GRADE.protectTo)}, distance(c, vec3(${TAXI_YELLOW.map(f).join(', ')})));
+  float m = max(max(c.r, c.g), max(c.b, 0.001));
+  float protect = (1.0 - smoothstep(${f(GRADE.protectFrom)}, ${f(GRADE.protectTo)}, distance(c / m, vec3(${TAXI_YELLOW.map(f).join(', ')})))) * smoothstep(0.15, 0.35, m);
   vec3 outc = mix(g, c, protect);
   float a = min(uAspect, 2.0);
   float r = length(vec2((vUv.x - 0.5) * a, vUv.y - 0.5)) / length(vec2(a * 0.5, 0.5));

@@ -17,6 +17,8 @@ import { loadChoice, saveChoice, type GarageChoice } from './ui/garageChoice';
 import { Help } from './ui/Help';
 import { Minimap } from './ui/Minimap';
 import { Settings, useControlSettings } from './ui/Settings';
+import { QualityPicker } from './ui/QualityPicker';
+import { loadQualityPref, saveQualityPref, type QualityPref } from './fx/quality';
 import { useTouchGuard } from './ui/useTouchGuard';
 import './taxi.css';
 import './ui/controls.css';
@@ -108,6 +110,14 @@ export function TaxiPage() {
     else if (e.t === 'tip') music.effect('coin');
   };
   const [, force] = useState(0);
+  const [qualityPref, setQualityPref] = useState<QualityPref>(loadQualityPref);
+  const qualityRef = useRef(qualityPref);
+  const chooseQuality = (p: QualityPref) => {
+    qualityRef.current = p;
+    setQualityPref(p);
+    saveQualityPref(p);
+    game.current?.setQuality(p);
+  };
   const touchUi = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
 
   useEffect(() => {
@@ -129,6 +139,7 @@ export function TaxiPage() {
           }
         }, {
           lowPower: touchUi,
+          quality: qualityRef.current,
           lang,
           track: new URLSearchParams(location.search).get('track') === 'test' ? 'test' : 'city',
           onEvent: (e) => onEvent.current(e),
@@ -442,6 +453,7 @@ export function TaxiPage() {
             ))}
           </div>
           {!help && <Settings lang={lang} c={controls} onHelp={() => setHelp(true)} />}
+          {!help && <QualityPicker lang={lang} pref={qualityPref} tier={game.current?.quality().tier ?? null} onChange={chooseQuality} />}
         </div>
       )}
       {screen === 'over' && result && (
