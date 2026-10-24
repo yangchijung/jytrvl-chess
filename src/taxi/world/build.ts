@@ -252,6 +252,9 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
       scene.add(inst);
       continue;
     }
+    // a whole square in the sun's 36 m shadow box would draw thousands of boxes into the shadow map: the squares
+    // only receive, and a near-field caster (below) throws the shadows of the buildings round the camera
+    inst.castShadow = false;
     // far squares (centre 900 m away, so every building in it at least 410 m) keep only the skyline: buildings of
     // 18 m and up; the low rows there are a few pixels deep in the haze
     const tall = part.filter((s) => s.size[1] >= 18);
@@ -265,6 +268,7 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
     lod.addLevel(far, 900);
     scene.add(lod);
   }
+  if (blds.length && level.osm) scene.add(nearField(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial(), blds.map((s) => ({ x: s.p[0], y: s.p[1], z: s.p[2], yaw: s.yaw, s: new THREE.Vector3(...s.size) })), 130, { shadowOnly: true }));
   const boxMat = new THREE.MeshLambertMaterial({ flatShading: true });
   if (boxes.length && level.osm) {
     // balconies, canopies and rails are small and many: only those within 380 m of the camera, one draw call

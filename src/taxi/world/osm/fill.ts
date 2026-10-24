@@ -473,7 +473,6 @@ export function fillBlocks(data: OsmCityData, opt: FillOptions = {}): FillResult
     }
     edges.sort((p, q) => q.L - p.L);
     const ccw = area > 0;
-    let frontDepth = 0;
     edges.forEach((e, ei) => {
       const tx = (e.b[0] - e.a[0]) / e.L,
         tz = (e.b[1] - e.a[1]) / e.L;
@@ -487,7 +486,6 @@ export function fillBlocks(data: OsmCityData, opt: FillOptions = {}): FillResult
       if (!rank) return;
       const row = rowFor(zone, rank, downtown);
       const depth0 = row.depth[0] + r(ei, 1) * (row.depth[1] - row.depth[0]);
-      frontDepth = Math.max(frontDepth, depth0);
       const SET = 0.4; // back from the sidewalk
       let u = 0.3;
       let li = 0;

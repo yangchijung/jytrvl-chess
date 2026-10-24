@@ -38,7 +38,12 @@ export function nearGrid(xs: Float32Array, zs: Float32Array) {
   return grid;
 }
 
-export function nearField(geo: THREE.BufferGeometry, mat: THREE.Material, items: NearItem[], radius: number, opts: { shadow?: boolean; margin?: number } = {}) {
+/**
+ * @param radius   items within this distance of the camera are drawn
+ * @param opts.shadowOnly  draw nothing in the colour pass, only into the sun's shadow map (a near-field shadow caster
+ *                 for meshes that are too big to cast shadows themselves)
+ */
+export function nearField(geo: THREE.BufferGeometry, mat: THREE.Material, items: NearItem[], radius: number, opts: { shadow?: boolean; margin?: number; shadowOnly?: boolean } = {}) {
   const n = items.length;
   const margin = opts.margin ?? 30;
   const xs = new Float32Array(n),
@@ -66,15 +71,16 @@ export function nearField(geo: THREE.BufferGeometry, mat: THREE.Material, items:
   if (cols) mesh.setColorAt(0, c);
   mesh.count = 0;
   mesh.frustumCulled = false;
-  mesh.castShadow = opts.shadow ?? false;
-  mesh.receiveShadow = true;
+  mesh.castShadow = opts.shadowOnly || (opts.shadow ?? false);
+  mesh.receiveShadow = !opts.shadowOnly;
   let cx = Infinity,
     cz = Infinity,
+    active = 0,
     pending = -1;
-  mesh.onBeforeRender = (_r, _s, camera) => {
-    // the buffers written last frame were uploaded before this draw: switch to their count now
+  /** called before each draw: the buffers written on the previous call have been uploaded by now */
+  const refresh = (camera: THREE.Camera) => {
     if (pending >= 0) {
-      mesh.count = pending;
+      active = pending;
       pending = -1;
     }
     const x = camera.position.x,
@@ -92,8 +98,22 @@ export function nearField(geo: THREE.BufferGeometry, mat: THREE.Material, items:
     mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     // until the upload, draw no more than the instances that are already valid on the GPU
-    mesh.count = Math.min(mesh.count, idx.length);
+    active = Math.min(active, idx.length);
     pending = idx.length;
   };
+  if (opts.shadowOnly) {
+    mesh.onBeforeShadow = (_r, _o, camera) => {
+      refresh(camera);
+      mesh.count = active;
+    };
+    // no colour-pass draw at all (a zero count issues no draw call)
+    mesh.onBeforeRender = () => {
+      mesh.count = 0;
+    };
+  } else
+    mesh.onBeforeRender = (_r, _s, camera) => {
+      refresh(camera);
+      mesh.count = active;
+    };
   return mesh;
 }
