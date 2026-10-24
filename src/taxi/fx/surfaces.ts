@@ -1,14 +1,14 @@
 // Rush Taxi: materials that look like what they are made of. Everything here keys off one quality tier:
 //
 //   low   today's look: Lambert cabs, Lambert roads, Phong water with ripples and glints, no environment map
-//   mid   (tablets; must cost about what low did, so only cheap additions) an environment map (scene.environment,
-//         64 px PMREM, rendered once); the taxi in glossy paint, chrome, glass and rubber (one MeshStandard); all
-//         traffic in one shared MeshStandard; glass towers and water reflect the environment (on their own pixels
-//         only), the river and sea also a fake bank; roads and pavement get grain and worn patches from one read of
-//         a shared 128 px noise; wet mode works
-//   high  (desktops) as mid with a 128 px PMREM, clearcoat on the taxi (MeshPhysical), Phong roads whose shine
-//         varies (patches, satin road paint), a second finer grain read, and a real planar reflection on the water
-//         (waterMirror.ts)
+//   mid   (tablets; must cost about what low did, so only cheap additions) an environment map (64 px PMREM,
+//         rendered once); the cabs stay Lambert but paint, chrome, glass and plastic reflect it with their own
+//         Fresnel weights (one read per shiny pixel); glass towers and water reflect it on their own pixels only,
+//         the river and sea also a fake bank; roads and pavement get grain and worn patches from one read of a
+//         shared 128 px noise; wet mode works
+//   high  (desktops) as mid with a 128 px PMREM, clearcoat on the taxi (MeshPhysical), traffic and the taxi glass in
+//         MeshStandard, Phong roads whose shine varies (patches, satin road paint), a second finer grain read, and
+//         a real planar reflection on the water (waterMirror.ts)
 //
 // Parts of a merged car mesh say what they are through a per-vertex `aSurf` value (SURF below), so one material
 // draws paint, trim, chrome, glass and tyres in a single draw call.
@@ -129,30 +129,77 @@ function surfShader(mat: THREE.MeshStandardMaterial, paintRough: number, paintMe
   return mat;
 }
 
-/** the taxi's body and wheels: clearcoat paint on high, glossy paint on mid, the original Lambert on low */
+/**
+ * The tablet car shader: Lambert lighting as before, plus one environment read where the part is shiny, weighted by
+ * a Fresnel term per surface (reflectance head-on, at grazing, blur, metal). About a tenth of a PBR material's work,
+ * which matters because the cab fills a good part of the screen.
+ */
+// [head-on, grazing, blur, metal]; paint's grazing value comes from uPaintEnv
+const LAMBERT_SURF: Record<Surf, [number, number, number, number]> = {
+  [SURF.paint]: [0.04, -1, 0.1, 0],
+  [SURF.plastic]: [0.03, 0.22, 0.45, 0],
+  [SURF.rubber]: [0, 0, 0, 0],
+  [SURF.chrome]: [0.7, 0.95, 0.12, 1],
+  [SURF.glass]: [0.1, 0.85, 0.03, 0],
+  [SURF.lamp]: [0.05, 0.45, 0.08, 0],
+  [SURF.cloth]: [0, 0, 0, 0],
+};
+const v4 = (k: Surf) => `vec4(${LAMBERT_SURF[k].map((n, i) => (n < 0 && i === 1 ? 'uPaintEnv' : f(n))).join(', ')})`;
+const CAR_LAMBERT = /* glsl */ `
+#if defined( USE_ENVMAP ) && defined( ENVMAP_TYPE_CUBE_UV ) && defined( ENV_WORLDPOS )
+{
+  float sk = floor(vSurf + 0.5);
+  vec4 sp = sk < 0.5 ? ${v4(SURF.paint)} : sk < 1.5 ? ${v4(SURF.plastic)} : sk < 2.5 ? ${v4(SURF.rubber)} : sk < 3.5 ? ${v4(SURF.chrome)} : sk < 4.5 ? ${v4(SURF.glass)} : sk < 5.5 ? ${v4(SURF.lamp)} : ${v4(SURF.cloth)};
+  if (sp.y > 0.0) {
+    vec3 cV = normalize(vWorldPosition - cameraPosition);
+    vec3 cN = inverseTransformDirection(normal, viewMatrix);
+    vec3 cEnv = textureCubeUV(envMap, envMapRotation * reflect(cV, cN), sp.z).rgb * envMapIntensity;
+    float cK = mix(sp.x, sp.y, pow(1.0 - clamp(dot(-cV, cN), 0.0, 1.0), 5.0));
+    outgoingLight = mix(outgoingLight, mix(cEnv, cEnv * diffuseColor.rgb, sp.w), cK);
+  }
+}
+#endif`;
+
+function surfLambert(params: THREE.MeshLambertMaterialParameters, paintEnv: number) {
+  const m = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, ...params });
+  const uPaintEnv = { value: paintEnv };
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.uPaintEnv = uPaintEnv;
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float aSurf;\nvarying float vSurf;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvSurf = aSurf;');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying float vSurf;\nuniform float uPaintEnv;')
+      .replace('#include <envmap_fragment>', `${CAR_LAMBERT}\n#include <envmap_fragment>`);
+  };
+  m.customProgramCacheKey = () => 'surf-lambert';
+  return usesEnvironment(m);
+}
+
+/** the taxi's body and wheels: clearcoat paint on high, Lambert with reflections on mid, the original on low */
 export function taxiBodyMaterial(): THREE.Material {
   if (tier === 'low') return new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
-  // the clearcoat (a second specular lobe on every pixel of the cab) is for desktops; tablets get the same paint,
-  // chrome and glass without it
-  const m =
-    tier === 'high'
-      ? new THREE.MeshPhysicalMaterial({ vertexColors: true, flatShading: true, roughness: 0.4, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.06 })
-      : new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.4, metalness: 0 });
-  return usesEnvironment(surfShader(m, tier === 'high' ? 0.42 : 0.3, 0, 0.4, 'taxi'));
+  if (tier === 'mid') return surfLambert({}, 0.45);
+  const m = new THREE.MeshPhysicalMaterial({ vertexColors: true, flatShading: true, roughness: 0.4, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.06 });
+  return usesEnvironment(surfShader(m, 0.42, 0, 0.4, 'taxi'));
 }
 
 /** the taxi's glass house: tinted, see-through, reflecting the sky */
 export function taxiGlassMaterial(opacity: number): THREE.Material {
   if (tier === 'low') return new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, opacity, depthWrite: false });
+  if (tier === 'mid') return surfLambert({ transparent: true, opacity: Math.min(1, opacity + 0.08), depthWrite: false, flatShading: false }, 0.45);
   // a little metalness raises the reflectance so the sky reads on the glass even through the transparency
   return usesEnvironment(new THREE.MeshStandardMaterial({ vertexColors: true, transparent: true, opacity: Math.min(1, opacity + 0.08), depthWrite: false, roughness: 0.05, metalness: 0.35 }));
 }
 
 let npcMat: { tier: Quality; mat: THREE.Material } | null = null;
-/** one material for every traffic car (body and detail, all instanced): two programs for the whole traffic */
+/** one material for every traffic car (body and detail, all instanced): one program for the whole traffic */
 export function trafficMaterial(): THREE.Material {
   if (npcMat && npcMat.tier === tier) return tier === 'low' ? npcMat.mat : usesEnvironment(npcMat.mat);
-  const mat = tier === 'low' ? new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }) : surfShader(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.4, metalness: 0.1 }), 0.36, 0.12, 0.6, 'npc');
+  const mat =
+    tier === 'low'
+      ? new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true })
+      : tier === 'mid'
+        ? surfLambert({}, 0.55)
+        : surfShader(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.4, metalness: 0.1 }), 0.36, 0.12, 0.6, 'npc');
   npcMat = { tier, mat };
   return tier === 'low' ? mat : usesEnvironment(mat);
 }

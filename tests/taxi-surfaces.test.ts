@@ -91,13 +91,20 @@ describe('car surfaces', () => {
     expect(sedan.paint.getAttribute('aSurf')).toBeTruthy();
     expect(Array.from(sedan.detail.getAttribute('aSurf').array)).toContain(SURF.glass);
   });
-  it('low keeps Lambert; mid gives the taxi glossy paint, high a clearcoat; the traffic shares one standard material', () => {
+  it('low keeps Lambert; mid adds Fresnel-weighted reflections to Lambert; high is PBR with a clearcoat on the taxi', () => {
     expect(taxiBodyMaterial()).toBeInstanceOf(THREE.MeshLambertMaterial);
     expect(trafficMaterial()).toBeInstanceOf(THREE.MeshLambertMaterial);
     setSurfaceQuality('mid');
-    const gloss = taxiBodyMaterial() as THREE.MeshPhysicalMaterial;
-    expect(gloss.isMeshStandardMaterial && !gloss.isMeshPhysicalMaterial).toBe(true);
-    expect(compile(gloss, 'standard').fragmentShader).toContain('radiance *= envK');
+    const mid = taxiBodyMaterial() as THREE.MeshLambertMaterial;
+    expect(mid.isMeshLambertMaterial).toBe(true);
+    const msh = compile(mid, 'lambert');
+    expect(msh.fragmentShader).toContain('textureCubeUV(envMap');
+    expect(msh.fragmentShader).toContain('vec4(0.040, uPaintEnv');
+    expect(msh.vertexShader).toContain('vSurf = aSurf');
+    const npcMid = trafficMaterial();
+    expect(npcMid).toBe(trafficMaterial());
+    expect((npcMid as THREE.MeshLambertMaterial).isMeshLambertMaterial).toBe(true);
+    expect(npcMid.customProgramCacheKey()).toBe(mid.customProgramCacheKey()); // one program for every car on mid
     setSurfaceQuality('high');
     const body = taxiBodyMaterial() as THREE.MeshPhysicalMaterial;
     expect(body.isMeshPhysicalMaterial).toBe(true);
@@ -106,11 +113,8 @@ describe('car surfaces', () => {
     expect(sh.fragmentShader).toContain('material.clearcoat *= step(floor(vSurf + 0.5), 0.5)');
     expect(sh.fragmentShader).toContain('roughnessFactor = uPaintRough');
     expect(sh.fragmentShader).toContain('radiance *= envK');
-    expect(sh.vertexShader).toContain('vSurf = aSurf');
     expect((taxiGlassMaterial(0.62) as THREE.MeshStandardMaterial).isMeshStandardMaterial).toBe(true);
-    setSurfaceQuality('mid');
     const npc = trafficMaterial();
-    expect(npc).toBe(trafficMaterial());
     expect((npc as THREE.MeshStandardMaterial).isMeshStandardMaterial).toBe(true);
     expect((npc as THREE.MeshPhysicalMaterial).isMeshPhysicalMaterial).toBeFalsy();
   });
