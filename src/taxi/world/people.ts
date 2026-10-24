@@ -104,6 +104,8 @@ export class People {
     this.head = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.25, 1).translate(0, 1.78, 0), mat(), count);
     // the real map: no shadows (three draw calls fewer in the shadow pass, the budget for the big city)
     for (const m of [this.legs, this.body, this.head]) m.castShadow = !around;
+    // people move all over the map: a bounding sphere computed once would hide them later
+    for (const m of [this.legs, this.body, this.head]) m.frustumCulled = false;
     scene.add(this.legs, this.body, this.head);
     for (let i = 0; i < count && walks.length; i++) {
       const walk = walks[Math.floor(this.rnd() * walks.length)];

@@ -109,6 +109,8 @@ export class Traffic {
     this.bodyMesh = new THREE.InstancedMesh(geo.paint, mat({ vertexColors: true }), count);
     this.cabinMesh = new THREE.InstancedMesh(geo.detail, mat({ vertexColors: true }), count);
     this.bodyMesh.castShadow = this.cabinMesh.castShadow = true;
+    // the cars move all over the map: a bounding sphere computed once would hide them later
+    this.bodyMesh.frustumCulled = this.cabinMesh.frustumCulled = false;
     scene.add(this.bodyMesh, this.cabinMesh);
     const used = new Set<number>();
     for (let i = 0; i < count && this.net; i++) {
