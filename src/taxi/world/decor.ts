@@ -5,10 +5,11 @@
 // clouds and moving water. Everything is instanced or merged so the whole city stays at a few dozen draw calls.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import type { Decor, Level } from './level';
+import type { Decor, Level, Signal } from './level';
 import { SHOP_WORDS, SIGN_COLORS } from './city';
 import { lightFor } from './traffic';
 import { nearField } from './nearfield';
+import { phaseLight } from './osm/roadnet';
 
 const m4 = new THREE.Matrix4();
 const q = new THREE.Quaternion();
@@ -425,23 +426,8 @@ export function drawDecor(scene: THREE.Scene, level: Level) {
   // ---------- kerbs ----------
   add(instanced(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ flatShading: true }), d.curbs.map((c) => ({ x: c.x, y: 0.07, z: c.z, s: new THREE.Vector3(c.w, 0.14, c.d), color: c.color })), false));
 
-  // ---------- traffic lights: pole + housing (instanced) and three lamps per head (colours change) ----------
-  const sigGeo = mergeGeometries([cyl(0.1, 0.12, 5.6, 0, 2.8, 0, '#4A4F57', 8), bx(0.62, 0.3, 0.26, 0, 5.15, 0.15, '#23272D')]);
-  add(instanced(sigGeo, vc(), d.signals.map((s) => ({ x: s.x, y: 0, z: s.z, yaw: s.yaw }))));
-  const lamps = new THREE.InstancedMesh(new THREE.BoxGeometry(0.16, 0.16, 0.05), new THREE.MeshBasicMaterial(), d.signals.length * 3);
-  d.signals.forEach((s, i) => {
-    for (let k = 0; k < 3; k++) {
-      // red, yellow, green from left to right as seen by the drivers
-      const local = new THREE.Vector3((k - 1) * 0.19, 5.15, 0.29).applyAxisAngle(UP, s.yaw);
-      m4.compose(new THREE.Vector3(s.x + local.x, local.y, s.z + local.z), q.setFromAxisAngle(UP, s.yaw), one);
-      lamps.setMatrixAt(i * 3 + k, m4);
-      lamps.setColorAt(i * 3 + k, new THREE.Color('#333'));
-    }
-  });
-  if (d.signals.length) scene.add(lamps);
-  const LIT = [new THREE.Color('#FF3B30'), new THREE.Color('#FFC107'), new THREE.Color('#34C759')];
-  const OFF = [new THREE.Color('#4A1E1E'), new THREE.Color('#4A3D16'), new THREE.Color('#173A22')];
-  let lastPhase = '';
+  // ---------- traffic lights ----------
+  const signals = drawSignals(scene, d.signals, false);
 
   // ---------- palms ----------
   if (d.palms.length) {
@@ -471,18 +457,7 @@ export function drawDecor(scene: THREE.Scene, level: Level) {
   return {
     update(t: number, dt: number) {
       // traffic lights follow the same clock as the traffic
-      const px = lightFor('x', t),
-        pz = lightFor('z', t);
-      const phase = px + pz;
-      if (phase !== lastPhase && d.signals.length) {
-        lastPhase = phase;
-        d.signals.forEach((s, i) => {
-          const st = s.axis === 'x' ? px : pz;
-          const lit = st === 'red' ? 0 : st === 'yellow' ? 1 : 2;
-          for (let k = 0; k < 3; k++) lamps.setColorAt(i * 3 + k, k === lit ? LIT[k] : OFF[k]);
-        });
-        if (lamps.instanceColor) lamps.instanceColor.needsUpdate = true;
-      }
+      signals.update(t);
       const water = level.water;
       for (const b of boats) {
         b.x += b.dir * b.b.speed * dt;
@@ -491,6 +466,62 @@ export function drawDecor(scene: THREE.Scene, level: Level) {
         b.m.position.set(b.x, (water?.y ?? -1.4) + 0.2 + Math.sin(t * 1.3 + b.b.z) * 0.06, b.b.z);
         b.m.rotation.y = b.dir > 0 ? 0 : Math.PI;
       }
+    },
+  };
+}
+
+/**
+ * Traffic lights: pole + housing (instanced) and three lamps per head whose colours follow the traffic clock.
+ * Grid city: tiled like the other street furniture. Real map (`lean`): one instanced mesh each for the poles and the
+ * lamps, with fewer triangles, so the few hundred heads cost two draw calls.
+ */
+export function drawSignals(scene: THREE.Scene, list: Signal[], lean: boolean) {
+  const sigGeo = lean
+    ? mergeGeometries([colored(new THREE.CylinderGeometry(0.1, 0.12, 5.6, 6, 1, true).translate(0, 2.8, 0), '#4A4F57'), bx(0.62, 0.3, 0.26, 0, 5.15, 0.15, '#23272D')])
+    : mergeGeometries([cyl(0.1, 0.12, 5.6, 0, 2.8, 0, '#4A4F57', 8), bx(0.62, 0.3, 0.26, 0, 5.15, 0.15, '#23272D')]);
+  const items = list.map((s) => ({ x: s.x, y: 0, z: s.z, yaw: s.yaw }));
+  if (lean && list.length) {
+    const poles = new THREE.InstancedMesh(sigGeo, vc(), list.length);
+    items.forEach((it, i) => {
+      m4.compose(new THREE.Vector3(it.x, it.y, it.z), q.setFromAxisAngle(UP, it.yaw), one);
+      poles.setMatrixAt(i, m4);
+    });
+    poles.computeBoundingSphere();
+    poles.castShadow = false; // thin poles: their shadows are not worth a draw call and 10k triangles
+    scene.add(poles);
+  } else {
+    const g = instanced(sigGeo, vc(), items);
+    if (g) scene.add(g);
+  }
+  // the lamps: small boxes, or for the real map flat discs facing the drivers
+  const lampGeo = lean ? new THREE.PlaneGeometry(0.17, 0.17) : new THREE.BoxGeometry(0.16, 0.16, 0.05);
+  const lamps = new THREE.InstancedMesh(lampGeo, new THREE.MeshBasicMaterial(), list.length * 3);
+  list.forEach((s, i) => {
+    for (let k = 0; k < 3; k++) {
+      // red, yellow, green from left to right as seen by the drivers
+      const local = new THREE.Vector3((k - 1) * 0.19, 5.15, 0.29).applyAxisAngle(UP, s.yaw);
+      m4.compose(new THREE.Vector3(s.x + local.x, local.y, s.z + local.z), q.setFromAxisAngle(UP, s.yaw), one);
+      lamps.setMatrixAt(i * 3 + k, m4);
+      lamps.setColorAt(i * 3 + k, new THREE.Color('#333'));
+    }
+  });
+  lamps.computeBoundingSphere();
+  if (list.length) scene.add(lamps);
+  const LIT = [new THREE.Color('#FF3B30'), new THREE.Color('#FFC107'), new THREE.Color('#34C759')];
+  const OFF = [new THREE.Color('#4A1E1E'), new THREE.Color('#4A3D16'), new THREE.Color('#173A22')];
+  const shown = new Int8Array(list.length).fill(-1);
+  return {
+    update(t: number) {
+      let changed = false;
+      list.forEach((s, i) => {
+        const st = s.phase !== undefined ? phaseLight(s.phase, t + (s.t0 ?? 0)) : lightFor(s.axis, t);
+        const lit = st === 'red' ? 0 : st === 'yellow' ? 1 : 2;
+        if (lit === shown[i]) return;
+        shown[i] = lit;
+        changed = true;
+        for (let k = 0; k < 3; k++) lamps.setColorAt(i * 3 + k, k === lit ? LIT[k] : OFF[k]);
+      });
+      if (changed && lamps.instanceColor) lamps.instanceColor.needsUpdate = true;
     },
   };
 }

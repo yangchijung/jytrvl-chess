@@ -1,6 +1,8 @@
 // Rush Taxi — people on the pavements. They stroll around the blocks; when the taxi comes at them they hop out of
 // the way, and if it still brushes one they only sit down with a bump and get back up. Nobody is ever hurt: they
 // have no physics body at all (a family game). Drawn as three instanced meshes (legs, shirts, heads).
+// On the real map the loops are the sidewalks round the blocks (polylines), and people live near the taxi only:
+// someone it left far behind comes back on a sidewalk somewhere around it.
 import * as THREE from 'three';
 import type { Walk } from './level';
 import type { TaxiNow } from './traffic';
@@ -29,8 +31,46 @@ interface Person {
 }
 export type PeopleEvent = { t: 'hop' } | { t: 'bump' };
 
-/** a point on the square loop of half size h around (cx, cz), and the walking direction there */
-function onLoop(w: Walk, s: number) {
+/** distances along a polyline loop (cached per walk) */
+const CUM = new WeakMap<Walk, Float64Array>();
+function loopCum(w: Walk) {
+  let c = CUM.get(w);
+  if (!c) {
+    const P = w.loop!;
+    c = new Float64Array(P.length + 1);
+    for (let i = 0; i < P.length; i++) {
+      const a = P[i],
+        b = P[(i + 1) % P.length];
+      c[i + 1] = c[i] + Math.hypot(b[0] - a[0], b[1] - a[1]);
+    }
+    CUM.set(w, c);
+  }
+  return c;
+}
+/** the length of a walk's loop */
+export function loopLength(w: Walk) {
+  return w.loop ? loopCum(w)[w.loop.length] : w.h * 8;
+}
+/** a point on the square loop of half size h around (cx, cz) (or on the polyline loop), and the walking direction there */
+export function onLoop(w: Walk, s: number) {
+  if (w.loop) {
+    const c = loopCum(w),
+      P = w.loop;
+    const L = c[P.length] || 1;
+    const d = ((s % L) + L) % L;
+    let lo = 0,
+      hi = P.length - 1;
+    while (lo < hi) {
+      const m = (lo + hi + 1) >> 1;
+      if (c[m] <= d) lo = m;
+      else hi = m - 1;
+    }
+    const a = P[lo],
+      b = P[(lo + 1) % P.length];
+    const seg = c[lo + 1] - c[lo] || 1;
+    const t = (d - c[lo]) / seg;
+    return { x: a[0] + (b[0] - a[0]) * t, z: a[1] + (b[1] - a[1]) * t, ux: (b[0] - a[0]) / seg, uz: (b[1] - a[1]) / seg };
+  }
   const L = w.h * 8;
   let d = ((s % L) + L) % L;
   const side = Math.floor(d / (w.h * 2));
@@ -50,17 +90,27 @@ export class People {
   private head: THREE.InstancedMesh;
   private seed: number;
 
-  constructor(scene: THREE.Scene, walks: Walk[], count: number, seed = 11) {
+  private walks: Walk[];
+  /** the real map: people stay around the taxi (start around this point) */
+  private local: boolean;
+
+  constructor(scene: THREE.Scene, walks: Walk[], count: number, seed = 11, around?: { x: number; z: number }) {
     this.seed = seed;
+    this.walks = walks;
+    this.local = !!around;
     const mat = () => new THREE.MeshLambertMaterial({ flatShading: true });
     this.legs = new THREE.InstancedMesh(new THREE.BoxGeometry(0.45, 0.8, 0.3).translate(0, 0.4, 0), new THREE.MeshLambertMaterial({ color: '#37474F', flatShading: true }), count);
     this.body = new THREE.InstancedMesh(new THREE.BoxGeometry(0.6, 0.72, 0.36).translate(0, 1.16, 0), mat(), count);
     this.head = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.25, 1).translate(0, 1.78, 0), mat(), count);
-    for (const m of [this.legs, this.body, this.head]) m.castShadow = true;
+    // the real map: no shadows (three draw calls fewer in the shadow pass, the budget for the big city)
+    for (const m of [this.legs, this.body, this.head]) m.castShadow = !around;
+    // people move all over the map: a bounding sphere computed once would hide them later
+    for (const m of [this.legs, this.body, this.head]) m.frustumCulled = false;
     scene.add(this.legs, this.body, this.head);
     for (let i = 0; i < count && walks.length; i++) {
       const walk = walks[Math.floor(this.rnd() * walks.length)];
-      this.list.push({ walk, s: this.rnd() * walk.h * 8, dir: this.rnd() < 0.5 ? 1 : -1, speed: 1 + this.rnd() * 0.7, ox: 0, oz: 0, hop: 0, hx: 0, hz: 0, sit: 0, x: 0, z: 0, y: 0, yaw: 0, shirt: new THREE.Color(SHIRTS[i % SHIRTS.length]), skin: new THREE.Color(SKIN[Math.floor(this.rnd() * SKIN.length)]) });
+      this.list.push({ walk, s: this.rnd() * loopLength(walk), dir: this.rnd() < 0.5 ? 1 : -1, speed: 1 + this.rnd() * 0.7, ox: 0, oz: 0, hop: 0, hx: 0, hz: 0, sit: 0, x: 0, z: 0, y: 0, yaw: 0, shirt: new THREE.Color(SHIRTS[i % SHIRTS.length]), skin: new THREE.Color(SKIN[Math.floor(this.rnd() * SKIN.length)]) });
+      if (around) this.place(this.list[i], around, 0, 140);
     }
     this.update(0, null);
   }
@@ -72,10 +122,41 @@ export class People {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   }
 
+  /** put someone on a sidewalk loop that passes between rMin and rMax from c */
+  private place(p: Person, c: { x: number; z: number }, rMin: number, rMax: number, taxi?: TaxiNow) {
+    const near = this.walks.filter((w) => {
+      const d = Math.hypot(w.cx - c.x, w.cz - c.z);
+      return d < rMax + 120 && d > rMin - 200;
+    });
+    const pool = near.length ? near : this.walks;
+    for (let k = 0; k < 16; k++) {
+      const w = pool[Math.floor(this.rnd() * pool.length)];
+      const s = this.rnd() * loopLength(w);
+      const at = onLoop(w, s);
+      const d = Math.hypot(at.x - c.x, at.z - c.z);
+      if ((d < rMin || d > rMax) && k < 15) continue;
+      // not popping up right in front of a moving taxi
+      const sp = taxi ? Math.hypot(taxi.vx, taxi.vz) : 0;
+      if (taxi && sp > 2 && ((at.x - c.x) * taxi.vx + (at.z - c.z) * taxi.vz) / (sp * d) > 0.6 && k < 12) continue;
+      p.walk = w;
+      p.s = s;
+      p.ox = p.oz = p.hop = p.sit = p.y = 0;
+      p.x = at.x;
+      p.z = at.z;
+      return;
+    }
+  }
+
   update(dt: number, taxi: TaxiNow | null): PeopleEvent[] {
     const ev: PeopleEvent[] = [];
     const sp = taxi ? Math.hypot(taxi.vx, taxi.vz) : 0;
+    let moved = 0;
     for (const p of this.list) {
+      // the real map: someone left far behind comes back on a sidewalk around the taxi (a few per step)
+      if (this.local && taxi && moved < 3 && Math.hypot(p.x - taxi.x, p.z - taxi.z) > 160) {
+        moved++;
+        this.place(p, taxi, 55, 140, taxi);
+      }
       if (p.sit > 0) {
         p.sit = Math.max(0, p.sit - dt);
         continue;

@@ -142,8 +142,9 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
   const car = new Car(RAPIER, world, SPAWN.p, SPAWN.yaw, tuning);
   car.collider.setCollisionGroups(TAXI_GROUPS);
   const view = new RunView(scene, opts.lang ?? 'zh');
-  const traffic = level.graph ? new Traffic(RAPIER, world, scene, level.graph, opts.lowPower ? 22 : 30) : null;
-  const people = level.walks.length ? new People(scene, level.walks, opts.lowPower ? 50 : 80) : null;
+  // the real map: traffic on its lanes and people on its sidewalks, both kept around the taxi
+  const traffic = level.graph ? new Traffic(RAPIER, world, scene, level.graph, opts.lowPower ? 22 : 30, 7, level.roadnet ? { net: level.roadnet, around: SPAWN.p } : undefined) : null;
+  const people = level.walks.length ? new People(scene, level.walks, opts.lowPower ? 50 : 80, 11, level.osm ? SPAWN.p : undefined) : null;
   /** the last spot where the car stood on flat ground, to come back to after a splash in the river */
   const safe = { p: { ...SPAWN.p }, yaw: SPAWN.yaw, t: 0 };
   let wet = 0;
