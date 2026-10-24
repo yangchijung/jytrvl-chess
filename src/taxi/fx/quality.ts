@@ -127,3 +127,15 @@ export function saveQualityPref(p: QualityPref) {
     /* storage blocked: the choice lasts for this visit only */
   }
 }
+
+/** the tier named by a `?q=` value, or null when it names none (same as qualityFromUrl, for a bare value) */
+export function parseQuality(v: string | null | undefined): Quality | null {
+  const s = (v ?? '').trim().toLowerCase();
+  return (QUALITIES as readonly string[]).includes(s) ? (s as Quality) : null;
+}
+
+/** phones (a touch screen whose short side is under 600 px) 'low', other touch screens 'mid', the rest 'high' */
+export function qualityFor(isTouch: boolean, shortSide: number): Quality {
+  if (!isTouch) return 'high';
+  return shortSide < 600 ? 'low' : 'mid';
+}

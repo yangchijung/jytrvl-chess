@@ -24,6 +24,9 @@ import { TAXI_GROUPS, Traffic, type TaxiNow } from './world/traffic';
 import { People } from './world/people';
 import { cycleT, lightingAt, type Lighting, type TimeSetting } from './fx/timeOfDay';
 import { headlightBeams, uNight } from './fx/nightGlow';
+import { bindEnvironment, setSurfaceQuality, setWet } from './fx/surfaces';
+import { createEnvironment } from './fx/envLight';
+import { WaterMirror } from './fx/waterMirror';
 
 export const STEP = 1 / 60;
 // the sky, fog, sun and fill come from fx/timeOfDay.ts (day = a clear subtropical afternoon, sunset, night)
@@ -73,6 +76,10 @@ export interface Game {
   setTime(s: TimeSetting): void;
   /** read-only (tests): the current setting, the point of the day cycle and how far the city lights are on */
   timeOfDay(): { setting: TimeSetting; t: number; lights: number };
+  /** re-render the environment map (reflections) from the current sky, lights and fog; call after changing them */
+  refreshEnvironment(): void;
+  /** how wet the streets are, 0 (dry, the default) … 1: darker asphalt, puddles that reflect the sky */
+  setWet(v: number): void;
   /** read-only, for the minimap: where the car is, which way it points (yaw) and which way the camera looks (view) */
   pose(): { x: number; z: number; yaw: number; view: number };
   level: Level;
@@ -110,6 +117,9 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
   // crushes the asphalt and the shadows to near black; the lights below are balanced so sunlit faces just reach
   // their base colour (taxi yellow stays #FFC72C) and shade stays readable
   renderer.toneMapping = THREE.NoToneMapping;
+  // materials and reflections follow the quality tier (fx/surfaces.ts says what each tier gets)
+  const quality = pick.tier;
+  setSurfaceQuality(quality);
   const scene = new THREE.Scene();
   const city = level.id === 'city';
   const bg = new THREE.Color(PALETTE.sky);
@@ -133,6 +143,7 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
   sc.far = 90;
   sun.shadow.bias = -0.0006;
   sun.shadow.normalBias = 0.03;
+  sun.position.copy(sunDir); // (moved with the car every frame; the direction is what the environment map needs)
   scene.add(sun, sun.target);
   const chase = new ChaseCam(canvas.clientWidth / Math.max(1, canvas.clientHeight));
   scene.add(chase.cam); // the speed streaks ride on the camera
@@ -150,7 +161,13 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
 
   // ---------- the level: colliders and the drawn world ----------
   const { soft, dynamics } = buildPhysics(RAPIER, world, level);
-  const { props, faded, update: updateWorld } = buildScene(scene, level, opts.lang ?? 'zh');
+  const { props, faded, waters, update: updateWorld } = buildScene(scene, level, opts.lang ?? 'zh');
+  // reflections: an environment map from the sky for the materials that reflect (mid, high), a real mirror on the
+  // water (high)
+  const env = quality === 'low' ? null : createEnvironment(renderer, scene, sky, quality === 'high' ? 128 : 64);
+  env?.refresh();
+  bindEnvironment(env?.texture ?? null); // the texture object stays the same across refreshes
+  const mirror = quality === 'high' && waters.length ? new WaterMirror(waters, level.water?.y ?? waters[0].position.y) : null;
   let worldClock = 0;
   const cones = dynamics.map((d, i) => ({ b: d.b, mesh: props[i] }));
 
@@ -204,7 +221,13 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
     if (Math.abs(t - todT) < 0.0004) return;
     todT = t;
     applyLight(lightingAt(t));
+    // reflections follow the sky: re-capture the environment map when the light has changed visibly
+    if (env && Math.abs(t - envT) > 0.01) {
+      envT = t;
+      env.refresh();
+    }
   };
+  let envT = -1;
   updateTime(0);
 
   // ---------- loop: fixed step + interpolation ----------
@@ -410,6 +433,7 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
     // boards and landmark parts between the lens and the cab dither away (off for the menu's orbit)
     updateOcclusion(chase.cam.position, p.clone().setY(p.y + OCC_CAR_LIFT), !menu);
     sky?.position.set(chase.cam.position.x, 0, chase.cam.position.z);
+    mirror?.update(renderer, scene, chase.cam); // before the counters reset: X-13 measures the main scene
     renderer.info.reset();
     // depth of field only on the menu orbit and the results, never while driving
     if (dt > 0) camSpeed += (chase.cam.position.distanceTo(camLast) / dt - camSpeed) * Math.min(1, dt * 4);
@@ -480,6 +504,7 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
       h = canvas.clientHeight;
     renderer.setSize(w, h, false);
     post.setSize(w, h);
+    mirror?.setSize(w * renderer.getPixelRatio(), h * renderer.getPixelRatio());
     chase.cam.aspect = w / Math.max(1, h);
     chase.cam.updateProjectionMatrix();
     fx.resize(h * renderer.getPixelRatio(), chase.cam.fov);
@@ -509,6 +534,10 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
       cancelAnimationFrame(raf);
       input.dispose();
       post.dispose();
+      mirror?.dispose();
+      bindEnvironment(null);
+      env?.dispose();
+      setWet(0);
       renderer.dispose();
       world.free();
     },
@@ -570,6 +599,8 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
       frameNow();
       return { at: best, plain, graded: pixel(...best) };
     },
+    refreshEnvironment: () => env?.refresh(),
+    setWet,
     startRun(mode, seed) {
       view.clear();
       car.reset(SPAWN.p, SPAWN.yaw);

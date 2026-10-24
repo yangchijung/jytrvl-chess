@@ -9,6 +9,8 @@ import type { Decor, Level } from './level';
 import { SHOP_WORDS, SIGN_COLORS } from './city';
 import { lightFor } from './traffic';
 import { brightenBasic, glowVertexColours, lightPools, uNight } from '../fx/nightGlow';
+import type { Quality } from '../fx/quality';
+import { MIRROR, surfaceQuality, usesEnvironment, WATER_HEAD, WATER_REFLECT } from '../fx/surfaces';
 
 const m4 = new THREE.Matrix4();
 const q = new THREE.Quaternion();
@@ -510,13 +512,25 @@ export function drawDecor(scene: THREE.Scene, level: Level) {
   };
 }
 
-/** water that moves: soft bands drifting across the surface (river and sea) */
-export function waterMaterial(color: string) {
+/**
+ * water that moves: soft bands drifting across the surface (river and sea). On 'mid' and 'high' it also reflects
+ * (surfaces.ts): the environment map plus a fake bank from `box` (the water's extent, x0 x1 z0 z1) and `bankH` (how
+ * tall the bank looks); 'high' adds the planar mirror. 'low' is the original look.
+ */
+export function waterMaterial(color: string, opts: { box?: [number, number, number, number]; bankH?: number; tier?: Quality } = {}) {
   // Phong for a sun glint; the ripple tilts the normal a little so the glint breaks into sparkles
   const mat = new THREE.MeshPhongMaterial({ color, specular: '#CFE6F2', shininess: 70 });
   const uTime = { value: 0 };
+  const tier = opts.tier ?? surfaceQuality();
+  const box = opts.box ?? [-1e5, 1e5, -1e5, 1e5];
+  const refl = { uWaterBox: { value: new THREE.Vector4(...box) }, uBankH: { value: opts.bankH ?? 12 }, uReflK: { value: 0.6 } };
+  if (tier === 'high') mat.defines = { WATER_MIRROR: '' };
   mat.onBeforeCompile = (sh) => {
     sh.uniforms.uTime = uTime;
+    if (tier !== 'low') {
+      Object.assign(sh.uniforms, refl, tier === 'high' ? MIRROR : {});
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>${WATER_HEAD}`).replace('#include <envmap_fragment>', `${WATER_REFLECT}\n#include <envmap_fragment>`);
+    }
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWp;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvWp = (modelMatrix * vec4(position, 1.0)).xyz;');
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vWp; uniform float uTime;')
@@ -535,6 +549,8 @@ export function waterMaterial(color: string) {
       normal = normalize(normal + (viewMatrix * vec4(rip.x, 0.0, rip.y, 0.0)).xyz);`,
       );
   };
+  mat.customProgramCacheKey = () => `water-${tier}`;
+  if (tier !== 'low') usesEnvironment(mat);
   return { mat, uTime };
 }
 
