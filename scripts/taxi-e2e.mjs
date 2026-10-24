@@ -1,7 +1,9 @@
 // Rush Taxi stage 2 — the arcade loop in a real page (iPad landscape 1180×820, software WebGL, so the game is stepped
 // by hand with the __taxi.ff hook: deterministic and independent of the renderer's speed).
 // Requires (outside the project): npm i @sparticuz/chromium puppeteer-core
-// Usage: node taxi-e2e.mjs <baseUrl> [outDir] [--video]
+// Usage: node taxi-e2e.mjs <baseUrl> [outDir] [--video] [--track=grid]
+// The real-map city (OpenStreetMap Kaohsiung) is the default; the end of the run repeats the key checks (G-xx) on the
+// old hand-made grid city (?track=grid). --track=grid runs the whole suite on the grid city instead.
 import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer-core';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -9,6 +11,8 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 const BASE = process.argv[2] ?? 'http://127.0.0.1:8788';
 const OUT = process.argv[3] ?? 'docs/test-results/screens/taxi';
 const VIDEO = process.argv.includes('--video');
+const TRACK = process.argv.find((a) => a.startsWith('--track='))?.slice(8) ?? '';
+const PAGE = (track) => `${BASE}/taxi${track ? `?track=${track}` : ''}`;
 mkdirSync(`${OUT}/frames`, { recursive: true });
 const results = [];
 const ok = (id, name, pass, info = '') => {
@@ -21,10 +25,14 @@ const browser = await puppeteer.launch({
   headless: true,
 });
 const errors = [];
-const p = await browser.newPage();
-await p.setViewport({ width: 1180, height: 820, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
-p.on('pageerror', (e) => errors.push(String(e)));
-p.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+const newPage = async () => {
+  const pg = await browser.newPage();
+  await pg.setViewport({ width: 1180, height: 820, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+  pg.on('pageerror', (e) => errors.push(String(e)));
+  pg.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+  return pg;
+};
+let p = await newPage();
 let frame = 0;
 const shot = async (name) => p.screenshot({ path: `${OUT}/${name}.png` });
 const rec = async () => VIDEO && p.screenshot({ path: `${OUT}/frames/f${String(frame++).padStart(4, '0')}.jpg`, type: 'jpeg', quality: 80 });
@@ -68,6 +76,62 @@ const route = (target) =>
     }
     return [...path.map((n) => ({ x: n.x, z: n.z })), { x: tx, z: tz }];
   }, target.x, target.z);
+
+/** in the page: helpers for the real-map city (level.osm): the nearest point on a road's centre line, and a pose on a
+ * road (right-hand lane, facing along it) */
+const osmHelpers = () =>
+  p.evaluate(() => {
+    window.__e2e = {
+      near(x, z, ok = () => true) {
+        let best = null;
+        window.__taxi.level.osm.roads.forEach((r) => {
+          if (!ok(r)) return;
+          for (let s = 0; s < r.pts.length - 1; s++) {
+            const [ax, az] = r.pts[s],
+              [bx, bz] = r.pts[s + 1];
+            const vx = bx - ax,
+              vz = bz - az,
+              L2 = vx * vx + vz * vz || 1;
+            const t = Math.max(0, Math.min(1, ((x - ax) * vx + (z - az) * vz) / L2));
+            const d = Math.hypot(x - ax - vx * t, z - az - vz * t);
+            if (!best || d < best.d) best = { r, s, t, d, L: Math.sqrt(L2), dx: vx / Math.sqrt(L2), dz: vz / Math.sqrt(L2), x: ax + vx * t, z: az + vz * t };
+          }
+        });
+        return best;
+      },
+      /** the nearest long straight segment of a main road (not a bridge) to (x, z): a start 12 m in, facing along it */
+      straight(x, z, minLen) {
+        let best = null;
+        for (const r of window.__taxi.level.osm.roads) {
+          if (r.bridge || !/^(primary|secondary|trunk|tertiary)$/.test(r.cls)) continue;
+          for (let s = 0; s < r.pts.length - 1; s++) {
+            const [ax, az] = r.pts[s],
+              [bx, bz] = r.pts[s + 1];
+            const L = Math.hypot(bx - ax, bz - az);
+            if (L < minLen) continue;
+            const d = Math.hypot(ax - x, az - z);
+            if (!best || d < best.d) {
+              const dx = (bx - ax) / L,
+                dz = (bz - az) / L;
+              const lane = r.oneway ? 0 : r.w / 4;
+              best = { d, x: ax + dx * 12 - dz * lane, z: az + dz * 12 + dx * lane, yaw: Math.atan2(dx, dz), L };
+            }
+          }
+        }
+        return best;
+      },
+    };
+  });
+/** a long straight street to drive on: grid city z = −90 from the west edge; real-map city the nearest main road */
+const toStraight = (minLen = 140) =>
+  p.evaluate((minLen) => {
+    const g = window.__taxi;
+    if (!g.level.osm) return g.place({ x: -300, y: 1, z: -95.5 }, Math.PI / 2), 'grid';
+    const pos = g.car.body.translation();
+    const s = window.__e2e.straight(pos.x, pos.z, minLen);
+    g.place({ x: s.x, y: 1, z: s.z }, s.yaw);
+    return s;
+  }, minLen);
 
 /** a simple driver: follows the streets to (x, z), slows for corners, stops at the end. Runs `max` seconds of game
  * time in 1/30 s frames. */
@@ -117,13 +181,18 @@ async function driveTo(target, { max = 30, stopAt = 2.5, until, top = 75 } = {})
 }
 
 try {
-  await p.goto(`${BASE}/taxi`, { waitUntil: 'networkidle0' });
-  await p.waitForFunction(() => document.querySelector('[data-testid=taxi]')?.dataset.state === 'ready', { timeout: 60000 });
+  await p.goto(PAGE(TRACK), { waitUntil: 'networkidle0' });
+  await p.waitForFunction(() => document.querySelector('[data-testid=taxi]')?.dataset.state === 'ready', { timeout: 180000 });
   // the live loop is stopped (paused) so only our hand steps move the game
   await p.evaluate(() => window.__taxi.setPaused(true));
+  const OSM = await p.evaluate(() => !!window.__taxi.level.osm);
+  if (OSM) await osmHelpers();
   await ff(0.5);
   await settle();
   await shot('1-menu');
+  // the menu's aerial orbit sees the most of the city: the heaviest view at load
+  const menuSt = await p.evaluate(() => window.__taxi.stats());
+  ok('P-01', 'menu orbit view: draw calls under 150, triangles at most 320k', menuSt.drawCalls < 150 && menuSt.triangles <= 320000, JSON.stringify(menuSt));
   const menuWords = await p.$eval('[data-testid=taxi-menu]', (e) => (e.innerText.match(/[一-鿿]/g) ?? []).length);
   ok('X-01', 'the menu: two big picture buttons (arcade, practice) with two-character names', !!(await p.$('[data-testid=taxi-start-arcade]')) && !!(await p.$('[data-testid=taxi-start-practice]')) && menuWords <= 4, `chinese chars: ${menuWords}`);
 
@@ -152,6 +221,74 @@ try {
   let r = await run();
   ok('X-02', 'arcade starts with 50 s on the clock, 0 money, five people waiting, the arrow (yellow) pointing to the nearest one', r.time > 49.5 && r.money === 0 && r.waiting.length === 5 && (await p.$eval('[data-testid=taxi-arrow]', (e) => e.dataset.to)) === 'pickup' && (await p.$eval('[data-testid=taxi-time]', (e) => e.dataset.value)) === '50', JSON.stringify({ time: r.time, waiting: r.waiting.length }));
   await shot('2-start');
+  const spawnSt = await p.evaluate(() => window.__taxi.stats());
+  ok('P-02', 'spawn view: draw calls under 150, triangles at most 320k', spawnSt.drawCalls < 150 && spawnSt.triangles <= 320000, JSON.stringify(spawnSt));
+  // real-map city: the road name under the speed and the district name at the foot of the minimap (2 s, polite)
+  if (OSM) {
+    await new Promise((res) => setTimeout(res, 700));
+    const where = () =>
+      p.evaluate(() => {
+        const box = (e) => e && e.getBoundingClientRect();
+        const road = document.querySelector('[data-testid=taxi-road]');
+        const dist = document.querySelector('[data-testid=taxi-district]');
+        const speed = box(document.querySelector('.taxi-speed'));
+        const map = box(document.querySelector('[data-testid=taxi-minimap]'));
+        const d = box(dist);
+        const controls = [...document.querySelectorAll('.taxi-gas, .taxi-brake, .taxi-drift, .taxi-rush, .taxi-stick-base, .taxi-time, .taxi-home, .taxi-reset, .taxi-pause, .taxi-rider, .taxi-arrow')].filter((e) => { const b = e.getBoundingClientRect(); return d && b.width && !(b.right <= d.left || b.left >= d.right || b.bottom <= d.top || b.top >= d.bottom); }).map((e) => e.className);
+        return {
+          road: road?.textContent ?? null,
+          roadUnderSpeed: !!(road && speed && box(road).top >= speed.bottom - 1),
+          district: dist?.dataset.zh ?? null,
+          text: dist?.textContent ?? null,
+          live: dist?.parentElement?.getAttribute('aria-live') ?? null,
+          inMap: !!(d && map && d.left >= map.left - 1 && d.right <= map.right + 1 && d.bottom <= map.bottom + 1),
+          controls,
+        };
+      });
+    const w0 = await where();
+    await p.screenshot({ path: `${OUT}/2c-minimap-crop.png`, clip: { x: 0, y: 140, width: 260, height: 180 } });
+    await new Promise((res) => setTimeout(res, 2400));
+    const w1 = await where();
+    // drive into another district: put the cab on a road in the first landmark's district that is not this one
+    const other = await p.evaluate((cur) => {
+      const L = window.__taxi.level;
+      for (const lm of L.osm.landmarks) {
+        const h = window.__e2e.near(lm.x, lm.z, (r) => !r.bridge);
+        if (!h || h.d > 120) continue;
+        const pl = { x: h.x, z: h.z };
+        // the district polygons decide; the page's own lookup shows the result
+        window.__taxi.place({ x: pl.x, y: 1, z: pl.z }, Math.atan2(h.dx, h.dz));
+        return { id: lm.id, cur };
+      }
+      return null;
+    }, w0.district);
+    let w2 = null;
+    for (let k = 0; k < 6 && other; k++) {
+      await ff(1 / 30);
+      await new Promise((res) => setTimeout(res, 400));
+      w2 = await where();
+      if (w2.district && w2.district !== w0.district) break;
+    }
+    // try the other landmarks until one is in another district
+    if (w2 && w2.district === w0.district) {
+      const n = await p.evaluate(() => window.__taxi.level.osm.landmarks.length);
+      for (let i = 1; i < n && w2.district === w0.district; i++) {
+        await p.evaluate((i) => {
+          const lm = window.__taxi.level.osm.landmarks[i];
+          const h = window.__e2e.near(lm.x, lm.z, (r) => !r.bridge);
+          if (h && h.d < 120) window.__taxi.place({ x: h.x, y: 1, z: h.z }, Math.atan2(h.dx, h.dz));
+        }, i);
+        await ff(1 / 30);
+        await new Promise((res) => setTimeout(res, 600));
+        w2 = await where();
+      }
+    }
+    await shot('2d-district');
+    ok('X-27', 'real-map city: the road name under the speed; the district name (polite live region) at the foot of the minimap, gone after ~2 s, shown again in another district', w0.road && w0.roadUnderSpeed && w0.district && w0.text && w0.live === 'polite' && w0.inMap && w0.controls.length === 0 && !w1.district && w2?.district && w2.district !== w0.district, JSON.stringify({ w0, w1, w2 }));
+    // back to the spawn for the drive to the first passenger
+    await p.evaluate(() => { const s = window.__taxi.level.spawn; window.__taxi.place(s.p, s.yaw); });
+    await ff(1 / 30);
+  }
   // the minimap: visible during an arcade run, never takes touches, and clear of the pedals, the stick, the clock and
   // the top buttons, on the iPad and on a phone held sideways (844 × 390)
   const mapCheck = () =>
@@ -195,9 +332,10 @@ try {
   ok('X-04', 'carrying: the arrow turns green to the destination, the passenger timer bar shows', (await p.$eval('[data-testid=taxi-arrow]', (e) => e.dataset.to)) === 'dest' && !!(await p.$('[data-testid=taxi-rider]')));
   // stunt: a drift with the passenger aboard builds the combo and pays tips
   const money0 = r.money;
-  // on a long straight street (city: z = −90 from the west edge; test ground: the plaza) so the slide has room
+  // on a long straight street (grid city: z = −90 from the west edge; real map: the nearest long main road; test
+  // ground: the plaza) so the slide has room
   const city = await p.evaluate(() => window.__taxi.level.id === 'city');
-  if (city) await p.evaluate(() => window.__taxi.place({ x: -300, y: 1, z: -95.5 }, Math.PI / 2));
+  if (city) await toStraight();
   await ff(1.5, { throttle: 1 });
   await ff(1.3, { throttle: 1, steer: city ? 0.5 : 1, drift: true });
   await settle();
@@ -227,6 +365,29 @@ try {
   // deliver: put the car 45 m before the destination, facing it, and drive in
   const dest = r.rider.dest;
   await p.evaluate((d) => {
+    if (window.__taxi.level.osm) {
+      // real map: 45 m back along the destination's road (the other way when the road is shorter), same side
+      const h = window.__e2e.near(d.x, d.z, (r) => !r.bridge);
+      const lat = (d.x - h.x) * -h.dz + (d.z - h.z) * h.dx;
+      const walk = (dir) => {
+        const pts = h.r.pts;
+        let x = h.x, z = h.z, left = 45, i = dir < 0 ? h.s : h.s + 1;
+        while (left > 0 && i >= 0 && i < pts.length) {
+          const [px, pz] = pts[i];
+          const L = Math.hypot(px - x, pz - z);
+          if (L >= left) return { x: x + ((px - x) * left) / L, z: z + ((pz - z) * left) / L };
+          (left -= L), (x = px), (z = pz), (i += dir);
+        }
+        return left < 15 ? { x, z } : null;
+      };
+      const from = walk(-1) ?? walk(1) ?? { x: h.x - h.dx * 45, z: h.z - h.dz * 45 };
+      // the same lateral offset as the stop, so the cab is in the stop's lane
+      const n2 = window.__e2e.near(from.x, from.z, (r) => r === h.r);
+      const fx = from.x - n2.dz * lat,
+        fz = from.z + n2.dx * lat;
+      window.__taxi.place({ x: fx, y: 1, z: fz }, Math.atan2(d.x - fx, d.z - fz));
+      return;
+    }
     // start 45 m back along the destination's street (city: streets every 60 m), never across the river
     const alongX = Math.abs(d.x / 60 - Math.round(d.x / 60)) < 0.01;
     for (const dir of [1, -1]) {
@@ -239,7 +400,7 @@ try {
   }, dest);
   const time0 = r.time;
   const money1 = r.money;
-  const dropped = await driveTo(dest, { max: 15, stopAt: 2, until: async () => (await run()).rides === 1 });
+  const dropped = await driveTo(dest, { max: OSM ? 25 : 15, stopAt: 2, until: async () => (await run()).rides === 1 });
   await settle();
   r = await run();
   const dropPop = await p.$eval('[data-testid=taxi-pops]', (e) => e.innerText).catch(() => '');
@@ -258,6 +419,8 @@ try {
   await p.click('[data-testid=taxi-help-open]');
   await new Promise((res) => setTimeout(res, 150));
   const help = await p.$eval('[data-testid=taxi-help]', (e) => ({ rows: e.querySelectorAll('tbody tr').length, keys: e.querySelectorAll('kbd').length, map: !!e.querySelector('.tc-touchmap'), visible: e.getBoundingClientRect().height > 100 })).catch(() => null);
+  const credit = await p.$eval('[data-testid=taxi-osm-credit]', (a) => ({ href: a.href, target: a.target, rel: a.rel, text: a.textContent, h: a.getBoundingClientRect().height })).catch(() => null);
+  ok('X-28', 'help: the OpenStreetMap credit links to the copyright page in a new tab (ODbL), 44 px tall', credit && credit.href === 'https://www.openstreetmap.org/copyright' && credit.target === '_blank' && /noopener/.test(credit.rel) && /OpenStreetMap/.test(credit.text) && credit.h >= 44, JSON.stringify(credit));
   await shot('6b-help');
   await p.keyboard.press('Escape'); // closes the panel, not the pause menu
   await new Promise((res) => setTimeout(res, 150));
@@ -293,7 +456,7 @@ try {
   await shot('6c-settings');
   await p.$eval('[data-testid=taxi-resume]', (b) => b.click());
   // auto gas: real frames with no input → the car speeds up by itself
-  await p.evaluate(() => window.__taxi.place({ x: -300, y: 1, z: -95.5 }, Math.PI / 2));
+  await toStraight();
   const k0 = await p.evaluate(() => window.__taxi.car.kmh());
   const read = await p.evaluate(() => ({ auto: window.__taxi.input.autoGas, tilt: window.__taxi.input.tilt }));
   await new Promise((res) => setTimeout(res, 1500));
@@ -340,8 +503,12 @@ try {
   // touch controls
   const small = await p.$$eval('.taxi-gas, .taxi-brake, .taxi-drift, .taxi-rush', (e) => e.map((x) => Math.min(x.getBoundingClientRect().width, x.getBoundingClientRect().height)));
   ok('X-12', 'touch: gas and brake buttons at least 72 px', small.length === 4 && small[0] >= 72 && small[1] >= 72, JSON.stringify(small));
-  const world = await p.evaluate(() => ({ id: window.__taxi.level.id, places: window.__taxi.level.places.length, cars: window.__taxi.traffic?.cars.length ?? 0, people: window.__taxi.people?.list.length ?? 0, bridges: window.__taxi.level.signs.filter((s) => s.decor).length }));
-  ok('X-14', 'the city: at least 30 destinations, traffic and people on the streets, the Love River named at the bridges', world.id === 'city' && world.places >= 30 && world.cars >= 20 && world.people >= 40 && world.bridges === 8, JSON.stringify(world));
+  const world = await p.evaluate(() => {
+    const L = window.__taxi.level;
+    return { id: L.id, osm: !!L.osm, places: L.places.length, cars: window.__taxi.traffic?.cars.length ?? 0, people: window.__taxi.people?.list.length ?? 0, bridges: L.signs.filter((s) => s.decor).length, bridgeRoads: L.osm?.roads.filter((r) => r.bridge).length ?? 0, rails: L.shapes.filter((s) => /^br\d/.test(s.id)).length, districts: L.osm?.districts.length ?? 0, stops: L.stops.length };
+  });
+  if (world.osm) ok('X-14', 'the real-map city: at least 30 landmark destinations, 8 districts, traffic, stops along the streets, railed bridges', world.id === 'city' && world.places >= 30 && world.districts === 8 && world.cars >= 20 && world.stops >= 100 && world.bridgeRoads > 0 && world.rails >= world.bridgeRoads * 2, JSON.stringify(world));
+  else ok('X-14', 'the city: at least 30 destinations, traffic and people on the streets, the Love River named at the bridges', world.id === 'city' && world.places >= 30 && world.cars >= 20 && world.people >= 40 && world.bridges === 8, JSON.stringify(world));
   const st = await p.evaluate(() => window.__taxi.stats());
   ok('X-13', 'draw calls under 150', st.drawCalls < 150, JSON.stringify(st));
   // chase camera vs the landmark name boards: drive past the 郵局 board both ways along its street; at every step
@@ -351,12 +518,24 @@ try {
     for (const dirSign of [1, -1]) {
       const at = await p.evaluate((dirSign) => {
         const g = window.__taxi;
+        if (g.level.osm) {
+          // real map: the first landmark board on a long enough straight road piece; drive along the road past it
+          for (const pl of g.level.places) {
+            const s = g.level.signs.find((x) => x.id === pl.id);
+            const h = s && window.__e2e.near(pl.x, pl.z, (r) => !r.bridge);
+            if (!h || h.L < 60 || h.t * h.L < 25 || (1 - h.t) * h.L < 25) continue;
+            const ax = h.dx * dirSign,
+              az = h.dz * dirSign;
+            g.place({ x: pl.x - ax * 22, y: 1, z: pl.z - az * 22 }, Math.atan2(ax, az));
+            return { sx: s.x, sz: s.z, id: pl.id };
+          }
+        }
         const s = g.level.signs.find((x) => x.id === 'post');
         const pl = g.level.places.find((x) => x.id === 'post');
         const ax = Math.sin(s.yaw) * dirSign,
           az = Math.cos(s.yaw) * dirSign;
         g.place({ x: pl.x - ax * 22, y: 1, z: pl.z - az * 22 }, Math.atan2(ax, az));
-        return { sx: s.x, sz: s.z };
+        return { sx: s.x, sz: s.z, id: 'post' };
       }, dirSign);
       let worst = { blocked: 0, nearHits: 0, blockers: [] },
         closest = Infinity;
@@ -373,9 +552,38 @@ try {
         if (d < closest) closest = d;
         if (k === 9) await shot(`7-board-pass-${dirSign > 0 ? 'a' : 'b'}`);
       }
-      pass.push({ dir: dirSign, ...worst, carToBoard: +closest.toFixed(1) });
+      pass.push({ dir: dirSign, board: at.id, ...worst, carToBoard: +closest.toFixed(1) });
     }
     ok('X-26', 'chase camera: no board, landmark or wall hides the cab when driving past a name board', pass.every((x) => x.blocked === 0 && x.nearHits === 0 && x.carToBoard < 25), JSON.stringify(pass));
+  }
+  // ---------------- the old grid city (?track=grid): the key checks ----------------
+  if (!TRACK) {
+    await p.close();
+    p = await newPage();
+    await p.goto(PAGE('grid'), { waitUntil: 'networkidle0' });
+    await p.waitForFunction(() => document.querySelector('[data-testid=taxi]')?.dataset.state === 'ready', { timeout: 180000 });
+    await p.evaluate(() => window.__taxi.setPaused(true));
+    await ff(0.5);
+    const gMenu = await p.evaluate(() => ({ osm: !!window.__taxi.level.osm, id: window.__taxi.level.id, places: window.__taxi.level.places.length, bridges: window.__taxi.level.signs.filter((s) => s.decor).length, ...window.__taxi.stats() }));
+    ok('G-01', 'grid city: loads as the hand-made city (no OSM data), 8 bridge boards, menu under 150 draw calls', !gMenu.osm && gMenu.id === 'city' && gMenu.places >= 30 && gMenu.bridges === 8 && gMenu.drawCalls < 150, JSON.stringify(gMenu));
+    await p.click('[data-testid=taxi-start-arcade]');
+    await p.waitForSelector('[data-testid=taxi-garage]');
+    await p.click('[data-testid=taxi-go]');
+    await p.evaluate(() => window.__taxi.setPaused(true));
+    await ff(1 / 30);
+    await settle();
+    r = await run();
+    await new Promise((res) => setTimeout(res, 400));
+    const gMap = await mapCheck();
+    const gSt = await p.evaluate(() => window.__taxi.stats());
+    ok('G-02', 'grid city: arcade starts (50 s, five waiting), the minimap is drawn and clear of the controls, no district or road label, under 150 draw calls', r.time > 49.5 && r.waiting.length === 5 && mapOk(gMap) && !(await p.$('[data-testid=taxi-district]')) && !(await p.$('[data-testid=taxi-road]')) && gSt.drawCalls < 150, JSON.stringify({ map: gMap, st: gSt }));
+    await shot('g1-start');
+    const gsp = await p.evaluate(() => window.__taxi.level.spawn.p);
+    const gNear = r.waiting.reduce((a, b) => (Math.hypot(a.x - gsp.x, a.z - gsp.z) < Math.hypot(b.x - gsp.x, b.z - gsp.z) ? a : b));
+    const gPicked = await driveTo(gNear, { max: 30, until: async () => !!(await run()).rider });
+    r = await run();
+    ok('G-03', 'grid city: the simple driver picks up the nearest passenger within 30 s', gPicked && r.first !== null && r.first < 30, `picked at ${r.first?.toFixed(1)} s`);
+    await shot('g2-pickup');
   }
   ok('ALL', 'no page errors', errors.length === 0, errors.slice(0, 4).join(' | '));
 } catch (e) {
