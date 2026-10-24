@@ -12,10 +12,8 @@ import { buildTaxi } from './fx/taxiModel';
 import { Effects } from './fx/effects';
 import type { EngineState, SfxEvent } from './audio/sfx';
 import { carById, driverById, tuningFor } from './vehicle/roster';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
-import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { createPost, type Post } from './fx/post';
+import { FrameBudget, detectQuality, pickQuality, pixelRatioFor, stepDown, type Quality, type QualityPref } from './fx/quality';
 import { newRun, tick, type Mode, type RunEvent, type RunState } from './gameplay/rules';
 import { RunView } from './gameplay/view';
 import { testLevel, type Level } from './world/level';
@@ -54,7 +52,14 @@ export interface Game {
   place(p: { x: number; y: number; z: number }, yaw: number): void;
   /** test hook: run the simulation for `seconds` of game time right now (rendering one frame after) */
   ff(seconds: number, c?: Partial<Controls>): void;
-  stats(): { drawCalls: number; triangles: number };
+  /** the main scene's draw calls and triangles; `post` = the composer's own full-screen passes, counted apart */
+  stats(): { drawCalls: number; triangles: number; post: { calls: number; triangles: number } };
+  /** the quality tier in use, the player's choice, and the post passes that ran in the last frame */
+  quality(): { tier: Quality; pref: QualityPref; adaptive: boolean; composer: boolean; passes: string[]; pixelRatio: number; antialias: boolean; steps: Quality[] };
+  /** the pause menu's 畫質 choice (applied at once; the canvas's MSAA stays as it was created) */
+  setQuality(pref: QualityPref): void;
+  /** test hook: the cab's colour on screen with and without the colour grade (display values 0..255) */
+  cabColour(): { at: [number, number]; plain: number[]; graded: number[] } | null;
   /** test hook: is anything opaque between the camera and the taxi, or a board right in front of the lens? */
   sight(): ReturnType<typeof sightCheck>;
   /** start an arcade run (50 s) or free practice; null ends it (free driving) */
@@ -78,7 +83,7 @@ export interface GameAudio {
   effect(e: SfxEvent, strength?: number): void;
 }
 
-export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) => void, opts: { lowPower?: boolean; lang?: 'zh' | 'en'; track?: 'city' | 'test'; onEvent?: (e: RunEvent) => void; onPause?: (paused: boolean) => void; audio?: GameAudio } = {}): Promise<Game> {
+export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) => void, opts: { lowPower?: boolean; quality?: QualityPref; lang?: 'zh' | 'en'; track?: 'city' | 'test'; onEvent?: (e: RunEvent) => void; onPause?: (paused: boolean) => void; audio?: GameAudio } = {}): Promise<Game> {
   await RAPIER.init();
   const level = opts.track === 'test' ? testLevel() : cityLevel();
   const SPAWN = level.spawn;
@@ -86,8 +91,16 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
   world.timestep = STEP;
 
   // ---------- renderer and scene ----------
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: !opts.lowPower, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, opts.lowPower ? 1.5 : 2));
+  // the quality tier (fx/quality.ts): the canvas MSAA is fixed when the context is made, so it follows the first
+  // tier: on for mid (tablets: cheaper than an FXAA pass on tile GPUs) and high (SMAA does the scene, MSAA only the
+  // final blit), off for low
+  const search = typeof location === 'undefined' ? '' : location.search;
+  let pref: QualityPref = opts.quality ?? 'auto';
+  const first = pickQuality(pref, detectQuality(null, !!opts.lowPower), search);
+  const antialias = first.tier !== 'low';
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias, powerPreference: 'high-performance' });
+  let pick = pickQuality(pref, detectQuality(renderer, !!opts.lowPower), search);
+  renderer.setPixelRatio(pixelRatioFor(pick.tier, window.devicePixelRatio));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
   // no tone mapping on purpose: ACES and AgX shift the taxi yellow towards orange, and the neutral curve's toe
@@ -116,14 +129,12 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
   const chase = new ChaseCam(canvas.clientWidth / Math.max(1, canvas.clientHeight));
   scene.add(chase.cam); // the speed streaks ride on the camera
   const fx = new Effects(scene, chase.cam);
-  // a light bloom on bright things (lamps, signs, sparks) on desktops; phones and tablets skip it for speed
-  let composer: EffectComposer | null = null;
-  if (!opts.lowPower) {
-    composer = new EffectComposer(renderer);
-    composer.addPass(new RenderPass(scene, chase.cam));
-    composer.addPass(new UnrealBloomPass(new THREE.Vector2(256, 256), 0.22, 0.35, 0.93));
-    composer.addPass(new OutputPass());
-  }
+  // post-processing per tier (fx/post.ts): GTAO, bloom, grade and SMAA on desktops; none on tablets and phones
+  let post: Post = createPost(renderer, scene, chase.cam, pick.tier);
+  const budget = new FrameBudget();
+  const steps: Quality[] = [];
+  const camLast = new THREE.Vector3();
+  let camSpeed = 0;
   renderer.info.autoReset = false;
   let hitCool = 0;
   let pendingHit = 0;
@@ -354,8 +365,11 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
     updateOcclusion(chase.cam.position, p.clone().setY(p.y + OCC_CAR_LIFT), !menu);
     sky?.position.set(chase.cam.position.x, 0, chase.cam.position.z);
     renderer.info.reset();
-    if (composer) composer.render(dt);
-    else renderer.render(scene, chase.cam);
+    // depth of field only on the menu orbit and the results, never while driving
+    if (dt > 0) camSpeed += (chase.cam.position.distanceTo(camLast) / dt - camSpeed) * Math.min(1, dt * 4);
+    camLast.copy(chase.cam.position);
+    const still = menu || run?.phase === 'over';
+    post.render(dt, { dof: still, focus: menu ? chase.cam.position.length() : chase.cam.position.distanceTo(p), camSpeed: menu ? camSpeed : 0 });
     // the guide arrow: to the destination while carrying, otherwise to the nearest waiting passenger
     let arrow: HudState['arrow'] = null;
     if (run && run.phase === 'play') {
@@ -376,7 +390,8 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
 
   const frame = (now: number) => {
     raf = requestAnimationFrame(frame);
-    const dt = Math.min(0.1, (now - last) / 1000);
+    const rawMs = now - last;
+    const dt = Math.min(0.1, rawMs / 1000);
     last = now;
     frames++;
     if (now - fpsT > 500) {
@@ -392,6 +407,14 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
       opts.onPause?.(paused);
     }
     if (paused) return;
+    // 自動: a 5 s average over 20 ms per frame steps the tier down once (never back up)
+    if (pick.adaptive && budget.sample(rawMs)) {
+      const down = stepDown(pick.tier);
+      if (down) {
+        steps.push(down);
+        applyTier(down, true);
+      }
+    }
     lastControls = c;
     acc += dt;
     let n = 0;
@@ -410,12 +433,26 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
     const w = canvas.clientWidth,
       h = canvas.clientHeight;
     renderer.setSize(w, h, false);
-    composer?.setSize(w, h);
+    post.setSize(w, h);
     chase.cam.aspect = w / Math.max(1, h);
     chase.cam.updateProjectionMatrix();
     fx.resize(h * renderer.getPixelRatio(), chase.cam.fov);
   };
   resize();
+  function applyTier(t: Quality, adaptive: boolean) {
+    pick = { tier: t, adaptive };
+    renderer.setPixelRatio(pixelRatioFor(t, window.devicePixelRatio));
+    post.dispose();
+    post = createPost(renderer, scene, chase.cam, t);
+    budget.reset();
+    resize();
+  }
+  const pixel = (x: number, y: number) => {
+    const gl = renderer.getContext();
+    const px = new Uint8Array(4);
+    gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    return [px[0], px[1], px[2]];
+  };
 
   return {
     input,
@@ -425,6 +462,7 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
     dispose() {
       cancelAnimationFrame(raf);
       input.dispose();
+      post.dispose();
       renderer.dispose();
       world.free();
     },
@@ -445,7 +483,41 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
       draw(1, Math.max(STEP, Math.min(1, seconds))); // a longer camera step so it catches up after a jump in time
     },
     sight: () => sightCheck(scene, chase.cam, carGroup, faded),
-    stats: () => ({ drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles }),
+    stats: () => ({ drawCalls: post.scene.calls, triangles: post.scene.triangles, post: { ...post.post } }),
+    quality: () => ({ tier: post.tier, pref, adaptive: pick.adaptive, composer: !!post.composer, passes: post.passes(), pixelRatio: renderer.getPixelRatio(), antialias, steps: [...steps] }),
+    setQuality(p) {
+      pref = p;
+      const next = pickQuality(p, detectQuality(renderer, !!opts.lowPower), search);
+      if (next.tier !== post.tier) applyTier(next.tier, next.adaptive);
+      else pick = next;
+    },
+    cabColour() {
+      // the cab's body on screen: of a small grid around the projected car centre, the most taxi-yellow pixel of the
+      // ungraded frame, then the same pixel with the grade on
+      const c = carGroup.position.clone().setY(carGroup.position.y + 0.45).project(chase.cam);
+      const size = renderer.getDrawingBufferSize(new THREE.Vector2());
+      const cx = Math.round(((c.x + 1) / 2) * size.x),
+        cy = Math.round(((c.y + 1) / 2) * size.y);
+      if (cx < 8 || cy < 8 || cx > size.x - 8 || cy > size.y - 8) return null;
+      const frameNow = () => {
+        renderer.info.reset();
+        post.render(STEP, { dof: false, focus: 10, camSpeed: 0 });
+      };
+      post.setGrade(false);
+      frameNow();
+      let best: [number, number] = [cx, cy],
+        score = -Infinity;
+      for (let dy = -12; dy <= 12; dy += 3)
+        for (let dx = -18; dx <= 18; dx += 3) {
+          const [r, g, b] = pixel(cx + dx, cy + dy);
+          const s = -Math.hypot(r - 255, g - 199, b - 44);
+          if (s > score) (score = s), (best = [cx + dx, cy + dy]);
+        }
+      const plain = pixel(...best);
+      post.setGrade(true);
+      frameNow();
+      return { at: best, plain, graded: pixel(...best) };
+    },
     startRun(mode, seed) {
       view.clear();
       car.reset(SPAWN.p, SPAWN.yaw);
