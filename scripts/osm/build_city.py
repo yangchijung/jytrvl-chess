@@ -396,6 +396,77 @@ def main(src, dst):
                 if ls.geom_type == 'LineString' and ls.length > 5:
                     rail.append(coords(ls.simplify(0.6)))
 
+    # ---------------- surfaces: road area, sidewalks, land, blocks ----------------
+    # The asphalt is the union of every road's ribbon (round ends fill the junctions). The sidewalks are a band
+    # around it. The land is the play area minus the water, with the bridge decks added back. Blocks are what is
+    # left between the sidewalks; buildings go there.
+    def walk_w(r):
+        return 2.5 if RANK.get(r['cls'], 1) <= 2 else 3.5
+
+    road_poly = unary_union([LineString(r['pts']).buffer(r['w'] / 2, join_style='round') for r in roads]).simplify(0.3)
+    outer = unary_union([LineString(r['pts']).buffer(r['w'] / 2 + walk_w(r), join_style='mitre') for r in roads]).simplify(0.3)
+    decks = unary_union([LineString(r['pts']).buffer(r['w'] / 2 + 1.0, cap_style='flat') for r in roads if r.get('bridge')])
+    land = CLIP.difference(water_u).union(decks.intersection(CLIP)).buffer(0)
+    walk_poly = outer.difference(road_poly).intersection(land).buffer(0)
+    road_poly = road_poly.intersection(land).buffer(0)
+    block_polys = [p for p in polys(land.difference(outer).buffer(-0.2).buffer(0.2)) if p.area > 80]
+
+    TILE = 230.0
+    cols = math.ceil((X1 - X0) / TILE)
+    rows = math.ceil((Z1 - Z0) / TILE)
+
+    def tiled(g, tol=0.25):
+        out = []
+        for j in range(rows):
+            for i in range(cols):
+                cell = box(X0 + i * TILE, Z0 + j * TILE, X0 + (i + 1) * TILE, Z0 + (j + 1) * TILE)
+                for p in polys(g.intersection(cell).buffer(0).simplify(tol)):
+                    if p.area > 1:
+                        out.append([j * cols + i, poly_out(p)])
+        return out
+
+    def tile_of(x, z):
+        i = min(cols - 1, max(0, int((x - X0) // TILE)))
+        j = min(rows - 1, max(0, int((z - Z0) // TILE)))
+        return j * cols + i
+
+    district_polys = [(d['zh'], unary_union([Polygon(p[0], p[1:]) for p in d['poly']])) for d in districts]
+    landuse_polys = [(l['kind'], Polygon(l['poly'][0], l['poly'][1:]).buffer(0)) for l in landuse]
+    blocks = []
+    for p in block_polys:
+        c = p.representative_point()
+        dz = next((n for n, g in district_polys if g.contains(c)), None)
+        best, kind = 0, None
+        for k, g in landuse_polys:
+            if g.intersects(p):
+                a = g.intersection(p).area
+                if a > best:
+                    best, kind = a, k
+        b = {'poly': poly_out(p.simplify(0.3)), 'tile': tile_of(c.x, c.y)}
+        if dz:
+            b['district'] = dz
+        if kind and best > 0.3 * p.area:
+            b['use'] = kind
+        if any(g.intersects(p) and g.intersection(p).area > 0.5 * p.area for g in [Polygon(q['poly'][0], q['poly'][1:]).buffer(0) for q in parks]):
+            b['park'] = 1
+        blocks.append(b)
+    for b in buildings:
+        c = Polygon(b['poly']).representative_point()
+        b['tile'] = tile_of(c.x, c.y)
+        # an oriented box for the collider (and a cheap shape for far tiles)
+        mrr = Polygon(b['poly']).minimum_rotated_rectangle
+        q = list(mrr.exterior.coords)
+        e1 = (q[1][0] - q[0][0], q[1][1] - q[0][1])
+        e2 = (q[2][0] - q[1][0], q[2][1] - q[1][1])
+        b['obb'] = [r1(mrr.centroid.x), r1(mrr.centroid.y), r1(math.hypot(*e1)), r1(math.hypot(*e2)), round(math.atan2(e1[1], e1[0]), 3)]
+
+    surfaces = {
+        'tile': [cols, rows, TILE, r1(X0), r1(Z0)],
+        'road': tiled(road_poly),
+        'walk': tiled(walk_poly),
+        'land': tiled(land, 0.5),
+    }
+
     out = {
         'about': 'Central Kaohsiung for Rush Taxi, from OpenStreetMap (data © OpenStreetMap contributors, ODbL 1.0; see LICENSE.md). '
                  'Game metres: x = east, z = south; positions scaled by `scale` from the real map, widths and heights are not.',
@@ -411,11 +482,13 @@ def main(src, dst):
         'districts': districts,
         'landmarks': landmarks,
         'rail': rail,
+        'blocks': blocks,
+        'surfaces': surfaces,
     }
     s = json.dumps(out, ensure_ascii=False, separators=(',', ':'))
     open(dst, 'w').write(s)
     print(f'nodes {len(nodes)} roads {len(roads)} water {len(out["water"])} parks {len(parks)} landuse {len(landuse)} '
-          f'buildings {len(buildings)} districts {len(districts)} landmarks {len(landmarks)} rail {len(rail)} '
+          f'buildings {len(buildings)} blocks {len(blocks)} road/walk/land tiles {len(surfaces["road"])}/{len(surfaces["walk"])}/{len(surfaces["land"])} districts {len(districts)} landmarks {len(landmarks)} rail {len(rail)} '
           f'size {len(s) / 1e6:.2f} MB bounds {out["bounds"]}')
     missing = sorted(set(v[0] for v in LANDMARKS.values()) - got)
     if missing:
