@@ -13,6 +13,8 @@ import type { Shape } from '../greybox';
 import type { Place, Spot } from '../../gameplay/rules';
 import { LOOK_HALL, LOOK_HOUSE, LOOK_TOWER, LOOK_WAREHOUSE } from '../facade';
 import { KAOHSIUNG, RANK, type OsmCityData, type OsmRoad, type XZ } from './data';
+import { buildRoadNet } from './roadnet';
+import { sidewalkLoops, surfaceTests } from './walks';
 
 /** the landmark names shown in the game (short, as people say them) */
 export const LANDMARK_NAMES: Record<string, { zh: string; en: string }> = {
@@ -198,6 +200,27 @@ export function osmLevel(data: OsmCityData = KAOHSIUNG): Level {
   shapes.push(wall('wn', (x0 + x1) / 2, z0 - T / 2, x1 - x0 + 2 * T, T), wall('ws', (x0 + x1) / 2, z1 + T / 2, x1 - x0 + 2 * T, T), wall('ww', x0 - T / 2, (z0 + z1) / 2, T, z1 - z0), wall('we', x1 + T / 2, (z0 + z1) / 2, T, z1 - z0));
 
   // ---------- passenger stops: on the kerb of every street piece long enough (both kerbs on two-way roads) ----------
+  // The waiting point (cx, cz) must be on a sidewalk, not in a junction's asphalt or over the water: nudge it along
+  // the street and across the sidewalk until it is, or leave that stop out.
+  const surf = surfaceTests(data);
+  const kerbSpot = (r: OsmRoad, at: number, side: number, id: string): Spot | null => {
+    const L = polyLength(r.pts);
+    for (const da of [0, 6, -6, 12, -12, 18, -18]) {
+      const s = at + da;
+      if (s < 4 || s > L - 4) continue;
+      const p = along(r.pts, s);
+      const rx = -p.dz * side,
+        rz = p.dx * side;
+      for (const kerb of [1.4, 1.0, 1.9, 2.4]) {
+        const cx = p.x + rx * (r.w / 2 + kerb),
+          cz = p.z + rz * (r.w / 2 + kerb);
+        if (!surf.onWalk(cx, cz) || surf.onRoad(cx, cz)) continue;
+        const lane = r.w / 2 - 1.8;
+        return { id, x: p.x + rx * lane, z: p.z + rz * lane, cx, cz };
+      }
+    }
+    return null;
+  };
   const stops: Spot[] = [];
   data.roads.forEach((r, ri) => {
     if (r.bridge || r.cls.endsWith('_link')) return;
@@ -205,14 +228,11 @@ export function osmLevel(data: OsmCityData = KAOHSIUNG): Level {
     if (L < 45) return;
     const n = Math.max(1, Math.floor(L / 120));
     for (let k = 0; k < n; k++) {
-      const p = along(r.pts, (L * (k + 0.5)) / n);
       // right-hand kerb (drive on the right): the right of direction (dx, dz) in x-east/z-south is (−dz, dx)
       const sides = r.oneway ? [1] : [1, -1];
       for (const side of sides) {
-        const rx = -p.dz * side,
-          rz = p.dx * side;
-        const lane = r.w / 2 - 1.8;
-        stops.push({ id: `s${ri}_${k}_${side}`, x: p.x + rx * lane, z: p.z + rz * lane, cx: p.x + rx * (r.w / 2 + 1.4), cz: p.z + rz * (r.w / 2 + 1.4) });
+        const spot = kerbSpot(r, (L * (k + 0.5)) / n, side, `s${ri}_${k}_${side}`);
+        if (spot) stops.push(spot);
       }
     }
   });
@@ -231,7 +251,17 @@ export function osmLevel(data: OsmCityData = KAOHSIUNG): Level {
       uz = sz / sl;
     const w = hit.road.w;
     const name = LANDMARK_NAMES[lm.id] ?? { zh: lm.zh, en: lm.en || lm.zh };
-    places.push({ id: lm.id, name, x: hit.x + ux * (w / 2 - 1.8), z: hit.z + uz * (w / 2 - 1.8), cx: hit.x + ux * (w / 2 + 1.4), cz: hit.z + uz * (w / 2 + 1.4) });
+    let place: Place = { id: lm.id, name, x: hit.x + ux * (w / 2 - 1.8), z: hit.z + uz * (w / 2 - 1.8), cx: hit.x + ux * (w / 2 + 1.4), cz: hit.z + uz * (w / 2 + 1.4) };
+    // the drop-off kerb on a sidewalk too, when one is near (the board stays put)
+    if (!surf.onWalk(place.cx!, place.cz!) || surf.onRoad(place.cx!, place.cz!)) {
+      const side = ux * -hit.dz + uz * hit.dx > 0 ? 1 : -1;
+      let at = 0;
+      for (let i = 0; i < hit.seg; i++) at += Math.hypot(hit.road.pts[i + 1][0] - hit.road.pts[i][0], hit.road.pts[i + 1][1] - hit.road.pts[i][1]);
+      at += Math.hypot(hit.x - hit.road.pts[hit.seg][0], hit.z - hit.road.pts[hit.seg][1]);
+      const k = kerbSpot(hit.road, at, side, lm.id);
+      if (k) place = { ...place, x: k.x, z: k.z, cx: k.cx, cz: k.cz };
+    }
+    places.push(place);
     // board on the kerb, facing the road (yaw 0 = facing +z)
     const bx = hit.x + ux * (w / 2 + 3.2),
       bz = hit.z + uz * (w / 2 + 3.2);
@@ -285,6 +315,9 @@ export function osmLevel(data: OsmCityData = KAOHSIUNG): Level {
     }
   }
 
+  // ---------- traffic: lanes, turns and traffic lights on the real streets ----------
+  const roadnet = buildRoadNet(data);
+
   const half = Math.max(x1 - x0, z1 - z0) / 2;
   return {
     id: 'city',
@@ -302,7 +335,10 @@ export function osmLevel(data: OsmCityData = KAOHSIUNG): Level {
     places,
     spawn,
     graph: { nodes: gNodes, edges: gEdges },
-    walks: [],
+    roadnet,
+    signals: roadnet.heads.map((h) => ({ x: h.x, z: h.z, yaw: h.yaw, axis: Math.abs(Math.sin(h.yaw)) > Math.abs(Math.cos(h.yaw)) ? ('x' as const) : ('z' as const), phase: h.phase, t0: h.t0 })),
+    // people: sidewalk loops round the blocks
+    walks: sidewalkLoops(data).map((w) => ({ cx: w.cx, cz: w.cz, h: 0, loop: w.loop })),
     avoid: [],
     decor: null,
     osm: data,

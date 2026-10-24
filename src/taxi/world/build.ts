@@ -6,7 +6,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import type RAPIER_NS from '@dimforge/rapier3d-compat';
 import { wedgePoints } from './greybox';
 import type { Level, Prim, Shape } from './level';
-import { buildingMaterial, drawDecor, waterMaterial } from './decor';
+import { buildingMaterial, drawDecor, drawSignals, waterMaterial } from './decor';
 import { pitchTriangles, type Pitch } from './massing';
 import { buildingLook } from './facade';
 import { buildSurfacePhysics, drawSurfaces } from './osm/surfaces';
@@ -326,6 +326,8 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
       return mesh;
     });
   const decor = level.decor ? drawDecor(scene, level) : null;
+  // the real map's traffic lights (two draw calls for all of them)
+  const signals = level.signals?.length ? drawSignals(scene, level.signals, true) : null;
   return {
     props,
     faded,
@@ -334,6 +336,7 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
       seaWater.uTime.value = t;
       riverWater.uTime.value = t;
       decor?.update(t, dt);
+      signals?.update(t);
     },
   };
 }

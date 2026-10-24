@@ -1,5 +1,9 @@
 // Rush Taxi — city traffic. Cars drive on the right-hand lane of the road graph (Taiwan drives on the right), turn
-// at random at each crossing and slow down behind whatever is ahead of them, the taxi included. They are kinematic
+// at random at each crossing and slow down behind whatever is ahead of them, the taxi included.
+// On the real map (a RoadNet, ./osm/roadnet.ts) they follow the lanes of the real streets instead: one-way streets
+// one way only, a lane picked by the road's width, smooth curves through junctions with a liking for straight on
+// and for bigger roads, more cars on the main roads, real traffic lights, and giving way at busy side-street
+// crossings. There the cars live near the taxi only: one that falls far behind comes back somewhere around it. They are kinematic
 // (they push, nothing pushes them) until the taxi runs into one: then it turns into a light dynamic body and gets
 // knocked flying, and a few seconds later it comes back somewhere out of sight. Passing one closely at speed
 // without touching is a near miss (a tip with a passenger aboard).
@@ -7,6 +11,7 @@ import * as THREE from 'three';
 import type RAPIER_NS from '@dimforge/rapier3d-compat';
 import type { RoadGraph } from './level';
 import { sedanGeometry } from '../fx/taxiModel';
+import { chooseTurn, laneDensity, phaseLight, type RoadNet } from './osm/roadnet';
 
 type R = typeof RAPIER_NS;
 /** collision groups (membership << 16 | filter): the taxi is group 2; a knocked car stops colliding with it, so the
@@ -16,9 +21,7 @@ const FLYING_GROUPS = (0x0004 << 16) | (0xffff & ~0x0002);
 const LANE = 3.5;
 /** traffic lights, shared by every crossing (a 20 s cycle): streets along x go first, then those along z */
 export function lightFor(axis: 'x' | 'z', t: number): 'green' | 'yellow' | 'red' {
-  const p = ((t % 20) + 20) % 20;
-  if (axis === 'x') return p < 8 ? 'green' : p < 10 ? 'yellow' : 'red';
-  return p < 10 ? 'red' : p < 18 ? 'green' : 'yellow';
+  return phaseLight(axis === 'x' ? 0 : 1, t);
 }
 const HALF = { x: 1.0, y: 0.75, z: 2.1 };
 const CRUISE = 11; // m/s (about 40 km/h)
@@ -26,12 +29,22 @@ const TURN = 6;
 const COLORS = ['#E53935', '#1E88E5', '#43A047', '#F5F5F5', '#8E24AA', '#FB8C00', '#546E7A', '#00897B', '#6D4C41'];
 
 interface Piece {
-  /** quadratic Bézier from a through c to b */
+  /** quadratic Bézier from a through c to b (grid city); on the real map a and b are the polyline's ends */
   a: THREE.Vector2;
   c: THREE.Vector2;
   b: THREE.Vector2;
   len: number;
   turn: boolean;
+  /** real map: the polyline (x, z pairs) and the distance at each point */
+  pts?: Float32Array;
+  cum?: Float32Array;
+  /** real map: the lane (a lane piece), or the lane it leads into (a turn) */
+  lane?: number;
+  /** real map: which piece this is (cars on the same piece queue behind each other) */
+  key?: number;
+  /** real map, turns: the junction node, and the road the car came from */
+  node?: number;
+  from?: number;
 }
 interface Npc {
   from: number;
@@ -47,6 +60,10 @@ interface Npc {
   pos: THREE.Vector2;
   yaw: number;
   color: THREE.Color;
+  /** real map: the pieces ahead, the current one first */
+  route?: Piece[];
+  /** real map: seconds spent giving way at the current junction */
+  wait?: number;
 }
 export interface TaxiNow {
   x: number;
@@ -67,6 +84,9 @@ export class Traffic {
   private bodyMesh: THREE.InstancedMesh;
   private cabinMesh: THREE.InstancedMesh;
   private m4 = new THREE.Matrix4();
+  private net: RoadNet | null;
+  private mids: [number, number][] = [];
+  private pieces = new Map<number, Piece>();
 
   constructor(
     private RAPIER: R,
@@ -75,8 +95,12 @@ export class Traffic {
     private graph: RoadGraph,
     count: number,
     seed = 7,
+    /** the real map: drive its lanes instead of the graph, spawning around `around` */
+    real?: { net: RoadNet; around: { x: number; z: number } },
   ) {
     this.seed = seed;
+    this.net = real?.net ?? null;
+    if (this.net) this.mids = this.net.lanes.map((l) => l.pts[Math.floor(l.pts.length / 2)]);
     this.adj = graph.nodes.map(() => []);
     for (const [a, b] of graph.edges) this.adj[a].push(b), this.adj[b].push(a);
     const mat = (o: THREE.MeshLambertMaterialParameters = {}) => new THREE.MeshLambertMaterial({ flatShading: true, ...o });
@@ -87,7 +111,14 @@ export class Traffic {
     this.bodyMesh.castShadow = this.cabinMesh.castShadow = true;
     scene.add(this.bodyMesh, this.cabinMesh);
     const used = new Set<number>();
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < count && this.net; i++) {
+      const body = world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(0, HALF.y + 0.1, 0));
+      const collider = world.createCollider(RAPIER.ColliderDesc.cuboid(HALF.x, HALF.y, HALF.z).setDensity(70).setRestitution(0.3).setFriction(0.5), body);
+      const npc: Npc = { from: 0, to: 0, piece: null as unknown as Piece, s: 0, speed: CRUISE, body, collider, flying: 0, near: 0, nearCool: 0, pos: new THREE.Vector2(), yaw: 0, color: new THREE.Color(COLORS[i % COLORS.length]) };
+      this.cars.push(npc);
+      this.place(npc, real!.around, 12, 230, null);
+    }
+    for (let i = 0; i < count && !this.net; i++) {
       // spread over the network: a different street for each car
       let e = Math.floor(this.rnd() * graph.edges.length);
       for (let k = 0; k < 50 && used.has(e); k++) e = Math.floor(this.rnd() * graph.edges.length);
@@ -140,6 +171,13 @@ export class Traffic {
     return { a: i.end, c: ctrl, b: o.start, len: Math.max(1, len * 0.92), turn: true };
   }
   private at(p: Piece, s: number) {
+    if (p.pts) {
+      const pos = polyAt(p, s);
+      // heading from a short chord, so the car turns smoothly over the polyline's corners
+      const f = polyAt(p, Math.min(p.len, s + 1.5)),
+        b = polyAt(p, Math.max(0, s - 1.5));
+      return { pos, yaw: Math.atan2(f.x - b.x, f.y - b.y) };
+    }
     const t = Math.max(0, Math.min(1, s / p.len));
     const u = 1 - t;
     const pos = new THREE.Vector2(u * u * p.a.x + 2 * u * t * p.c.x + t * t * p.b.x, u * u * p.a.y + 2 * u * t * p.c.y + t * t * p.b.y);
@@ -162,6 +200,125 @@ export class Traffic {
     n.from = n.to;
     n.to = c;
   }
+  // ---------- the real map ----------
+  private lanePiece(id: number): Piece {
+    let p = this.pieces.get(id * 2);
+    if (!p) {
+      const l = this.net!.lanes[id];
+      p = polyPiece(l.pts, false, id * 2);
+      p.lane = id;
+      this.pieces.set(id * 2, p);
+    }
+    return p;
+  }
+  private turnPieceOf(fromLane: number, ti: number): Piece {
+    const key = -1 - (fromLane * 16 + ti);
+    let p = this.pieces.get(key);
+    if (!p) {
+      const l = this.net!.lanes[fromLane];
+      const t = l.out[ti];
+      p = polyPiece(t.pts, true, key);
+      p.lane = t.lane;
+      p.node = l.to;
+      p.from = l.road;
+      this.pieces.set(key, p);
+    }
+    return p;
+  }
+  /** make sure the route reaches far enough ahead (for the lights) */
+  private plan(n: Npc) {
+    const r = n.route!;
+    let ahead = -n.s;
+    for (const p of r) ahead += p.len;
+    while (ahead < 70 && r.length < 14) {
+      const last = r[r.length - 1];
+      let next: Piece;
+      if (last.turn) next = this.lanePiece(last.lane!);
+      else {
+        const t = chooseTurn(this.net!, last.lane!, this.rnd());
+        if (!t) break; // a dead end
+        next = this.turnPieceOf(last.lane!, this.net!.lanes[last.lane!].out.indexOf(t));
+      }
+      r.push(next);
+      ahead += next.len;
+    }
+  }
+  /** put a car on a lane somewhere between rMin and rMax from `c` (busier roads more often), clear of other cars */
+  private place(n: Npc, c: { x: number; z: number }, rMin: number, rMax: number, ahead: { x: number; z: number } | null): void {
+    const net = this.net!;
+    const cand: number[] = [];
+    const wsum: number[] = [];
+    let sum = 0;
+    net.lanes.forEach((l, i) => {
+      const [x, z] = this.mids[i];
+      const d = Math.hypot(x - c.x, z - c.z);
+      if (d < rMin || d > rMax || !l.out.length || l.len < 4) return;
+      let w = laneDensity(l.rank) * l.len;
+      // out of sight: not right in front of the taxi
+      if (ahead && ((x - c.x) * ahead.x + (z - c.z) * ahead.z) / d > 0.5 && d < 200) w *= 0.15;
+      sum += w;
+      cand.push(i);
+      wsum.push(sum);
+    });
+    if (!cand.length && rMax < 1e9) return this.place(n, c, 0, 1e9, null);
+    for (let tries = 0; tries < 12; tries++) {
+      const x = this.rnd() * sum;
+      let lo = 0;
+      while (lo < wsum.length - 1 && wsum[lo] < x) lo++;
+      const id = cand[lo] ?? 0;
+      const piece = this.lanePiece(id);
+      const s = this.rnd() * piece.len;
+      const p = polyAt(piece, s);
+      if (tries < 11 && this.cars.some((o) => o !== n && o.route && o.pos.distanceTo(p) < 10)) continue;
+      n.route = [piece];
+      n.piece = piece;
+      n.s = s;
+      n.wait = 0;
+      n.speed = CRUISE * 0.6;
+      this.plan(n);
+      this.pose(n);
+      n.body.setTranslation({ x: n.pos.x, y: HALF.y + 0.1, z: n.pos.y }, true);
+      n.body.setRotation(rotY(n.yaw), true);
+      n.body.setNextKinematicTranslation({ x: n.pos.x, y: HALF.y + 0.1, z: n.pos.y });
+      n.body.setNextKinematicRotation(rotY(n.yaw));
+      return;
+    }
+  }
+  /** the speed the lights and give-way rules allow (real map) */
+  private realLimit(n: Npc, want: number, busy: Map<number, number[]>, dt: number) {
+    const net = this.net!;
+    let dist = -n.s;
+    let waiting = false;
+    for (const p of n.route!) {
+      dist += p.len;
+      if (dist > 60) break;
+      if (p.turn) continue;
+      const lane = net.lanes[p.lane!];
+      const left = dist;
+      const stop = left < 2.8 ? 0 : (left - 2.6) * 0.9;
+      if (lane.signal) {
+        const light = phaseLight(lane.signal.phase, this.time + lane.signal.t0);
+        if (light === 'red' || (light === 'yellow' && left > 7)) want = Math.min(want, stop);
+      } else if (lane.yieldAt && left < 14) {
+        // give way while another car is crossing this junction from another road; never for long
+        const inside = busy.get(lane.to);
+        if (inside && inside.some((r) => r !== lane.road) && (n.wait ?? 0) < 3) {
+          want = Math.min(want, stop);
+          if (left < 4) waiting = true;
+        }
+      }
+      break;
+    }
+    n.wait = waiting ? (n.wait ?? 0) + dt : n.piece.turn ? 0 : n.wait;
+    return want;
+  }
+  /** a car the taxi left far behind (or knocked away) comes back on a street somewhere around the taxi */
+  private recycle(n: Npc, taxi: TaxiNow, rMin = 130) {
+    const sp = Math.hypot(taxi.vx, taxi.vz);
+    const ahead = sp > 1 ? { x: taxi.vx / sp, z: taxi.vz / sp } : { x: Math.sin(taxi.yaw), z: Math.cos(taxi.yaw) };
+    this.place(n, taxi, rMin, 240, ahead);
+  }
+
   /** handles that should not count as a crash (cars already knocked flying) */
   isFlying(handle: number) {
     return this.cars.some((c) => c.flying > 0 && c.collider.handle === handle);
@@ -173,6 +330,14 @@ export class Traffic {
   private respawn(n: Npc, taxi: TaxiNow) {
     this.world.removeCollider(n.collider, false);
     this.world.removeRigidBody(n.body);
+    if (this.net) {
+      n.flying = 0;
+      n.near = 0;
+      n.body = this.world.createRigidBody(this.RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(0, HALF.y + 0.1, 0));
+      n.collider = this.world.createCollider(this.RAPIER.ColliderDesc.cuboid(HALF.x, HALF.y, HALF.z).setDensity(70).setRestitution(0.3).setFriction(0.5), n.body);
+      this.recycle(n, taxi, 90);
+      return;
+    }
     const far = this.graph.edges.filter(([a, b]) => [a, b].every((i) => Math.hypot(this.graph.nodes[i].x - taxi.x, this.graph.nodes[i].z - taxi.z) > 90));
     const [a, b] = far[Math.floor(this.rnd() * far.length)] ?? this.graph.edges[0];
     n.from = a;
@@ -192,11 +357,27 @@ export class Traffic {
     const ev: TrafficEvent[] = [];
     const taxiSpeed = Math.hypot(taxi.vx, taxi.vz);
     this.time += dt;
+    // real map: who is inside each junction right now (the road they came from), for giving way
+    const busy = new Map<number, number[]>();
+    let recycled = 0;
+    if (this.net)
+      for (const n of this.cars) {
+        if (n.flying || !n.piece.turn) continue;
+        const l = busy.get(n.piece.node!);
+        if (l) l.push(n.piece.from!);
+        else busy.set(n.piece.node!, [n.piece.from!]);
+      }
     for (const n of this.cars) {
       if (n.flying > 0) {
         n.flying += dt;
         const t = n.body.translation();
         if (n.flying > 7 || (n.flying > 3 && Math.hypot(t.x - taxi.x, t.z - taxi.z) > 40) || t.y < -4) this.respawn(n, taxi);
+        continue;
+      }
+      // real map: only the streets around the taxi have cars
+      if (this.net && recycled < 2 && Math.hypot(n.pos.x - taxi.x, n.pos.y - taxi.z) > 280) {
+        recycled++;
+        this.recycle(n, taxi);
         continue;
       }
       // the taxi in this car's frame: x to its left, z ahead
@@ -243,7 +424,7 @@ export class Traffic {
       for (const o of this.cars) {
         if (o === n || o.flying) continue;
         // on the same piece only the car behind waits (no two cars waiting for each other)
-        if (o.from === n.from && o.to === n.to && o.piece.turn === n.piece.turn && o.s <= n.s) continue;
+        if (this.net ? o.piece.key === n.piece.key : o.from === n.from && o.to === n.to && o.piece.turn === n.piece.turn) if (o.s <= n.s) continue;
         const ox = o.pos.x - n.pos.x,
           oz = o.pos.y - n.pos.y;
         const fz = ox * s + oz * c,
@@ -252,7 +433,8 @@ export class Traffic {
       }
       let want = gap < 3 ? 0 : gap < 14 ? Math.min(n.piece.turn ? TURN : CRUISE, (gap - 3) * 1.1) : n.piece.turn ? TURN : CRUISE;
       // red light ahead (crossings with three or more streets): stop at the stop line; on yellow, go if too close
-      if (!n.piece.turn && this.adj[n.to].length >= 3) {
+      if (this.net) want = this.realLimit(n, want, busy, dt);
+      else if (!n.piece.turn && this.adj[n.to].length >= 3) {
         const A = this.graph.nodes[n.from],
           B = this.graph.nodes[n.to];
         const light = lightFor(Math.abs(B.x - A.x) > Math.abs(B.z - A.z) ? 'x' : 'z', this.time);
@@ -261,9 +443,27 @@ export class Traffic {
       }
       n.speed += Math.max(-12 * dt, Math.min(4 * dt, want - n.speed));
       n.s += n.speed * dt;
+      let stuck = false;
       while (n.s >= n.piece.len) {
+        if (!this.net) {
+          n.s -= n.piece.len;
+          this.next(n);
+          continue;
+        }
+        // real map: on to the next piece of the route; a dead end on a one-way street sends the car elsewhere
+        if (n.route!.length < 2) this.plan(n);
+        if (n.route!.length < 2) {
+          stuck = true;
+          break;
+        }
         n.s -= n.piece.len;
-        this.next(n);
+        n.route!.shift();
+        n.piece = n.route![0];
+        this.plan(n);
+      }
+      if (stuck) {
+        this.recycle(n, taxi);
+        continue;
       }
       this.pose(n);
       n.body.setNextKinematicTranslation({ x: n.pos.x, y: HALF.y + 0.1, z: n.pos.y });
@@ -291,6 +491,32 @@ export class Traffic {
     for (const m of [this.bodyMesh, this.cabinMesh]) m.instanceMatrix.needsUpdate = true;
     if (this.bodyMesh.instanceColor) this.bodyMesh.instanceColor.needsUpdate = true;
   }
+}
+
+/** a polyline piece (real map) */
+function polyPiece(pts: [number, number][], turn: boolean, key: number): Piece {
+  const P = new Float32Array(pts.length * 2);
+  const C = new Float32Array(pts.length);
+  pts.forEach(([x, z], i) => {
+    P[i * 2] = x;
+    P[i * 2 + 1] = z;
+    if (i) C[i] = C[i - 1] + Math.hypot(x - pts[i - 1][0], z - pts[i - 1][1]);
+  });
+  const len = Math.max(0.05, C[pts.length - 1]);
+  const a = new THREE.Vector2(pts[0][0], pts[0][1]),
+    b = new THREE.Vector2(pts[pts.length - 1][0], pts[pts.length - 1][1]);
+  return { a, b, c: a.clone().add(b).multiplyScalar(0.5), len, turn, pts: P, cum: C, key };
+}
+function polyAt(p: Piece, s: number) {
+  const C = p.cum!,
+    P = p.pts!;
+  const n = C.length;
+  if (s <= 0) return new THREE.Vector2(P[0], P[1]);
+  let i = 1;
+  while (i < n - 1 && C[i] < s) i++;
+  const L = C[i] - C[i - 1];
+  const t = L > 0 ? Math.min(1, (s - C[i - 1]) / L) : 1;
+  return new THREE.Vector2(P[i * 2 - 2] + (P[i * 2] - P[i * 2 - 2]) * t, P[i * 2 - 1] + (P[i * 2 + 1] - P[i * 2 - 1]) * t);
 }
 
 function rotY(yaw: number) {

@@ -7,6 +7,7 @@ import type { Place, Spot } from '../gameplay/rules';
 import { PLACES, STOPS } from '../gameplay/places';
 import type { Massing } from './massing';
 import type { OsmCityData } from './osm/data';
+import type { RoadNet } from './osm/roadnet';
 
 export type { Shape };
 
@@ -46,6 +47,20 @@ export interface Walk {
   cx: number;
   cz: number;
   h: number;
+  /** the real map: the loop as a closed polyline instead (x, z points); cx, cz are then its centre and h unused */
+  loop?: [number, number][];
+}
+/** a traffic light head. Grid city: it shows the light of the streets along `axis`. Real map: `phase` and `t0`
+ * say which of its junction's two phases it shows (0 = the main street, 1 = the cross street) and its junction's
+ * clock offset; `axis` is then only the nearer of the two map axes. */
+export interface Signal {
+  x: number;
+  z: number;
+  /** the head faces this way (radians, 0 = +z) */
+  yaw: number;
+  axis: 'x' | 'z';
+  phase?: 0 | 1;
+  t0?: number;
 }
 /** street furniture and building details (drawn only, apart from the palm trunks) */
 export interface Decor {
@@ -61,7 +76,7 @@ export interface Decor {
   /** street lamps on the kerb; yaw = towards the road */
   lamps: { x: number; z: number; yaw: number }[];
   /** traffic lights: one head facing the traffic that comes along `axis` */
-  signals: { x: number; z: number; yaw: number; axis: 'x' | 'z' }[];
+  signals: Signal[];
   palms: { x: number; z: number; h: number }[];
   curbs: Rect[];
   /** Love River boats: they cruise between x0 and x1 at z */
@@ -100,6 +115,10 @@ export interface Level {
   rect?: { x0: number; z0: number; x1: number; z1: number };
   /** the real-map city: polygons for the ground, roads, sidewalks, water and blocks (drawn by world/osm/surfaces.ts) */
   osm?: OsmCityData;
+  /** the real-map city: directed lanes, turns and traffic light groups for the traffic (world/osm/roadnet.ts) */
+  roadnet?: RoadNet;
+  /** the real-map city: traffic light heads (drawn by drawSignals when there is no `decor` to carry them) */
+  signals?: Signal[];
 }
 
 /** the stage 1 grey-box ground (still used for the physics feel tests and the ?track=test page) */
