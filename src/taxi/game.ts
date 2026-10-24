@@ -145,7 +145,7 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
   const { soft, dynamics } = buildPhysics(RAPIER, world, level);
   const { props, faded, waters, update: updateWorld } = buildScene(scene, level, opts.lang ?? 'zh');
   // reflections: an environment map from the sky (mid, high), a real mirror on the water (high)
-  const env = quality === 'low' || new URLSearchParams(location.search).get('rx')?.includes('env') ? null : createEnvironment(renderer, scene, sky, quality === 'high' ? 128 : 64);
+  const env = quality === 'low' ? null : createEnvironment(renderer, scene, sky, quality === 'high' ? 128 : 64);
   env?.refresh();
   const mirror = quality === 'high' && waters.length ? new WaterMirror(waters, level.water?.y ?? waters[0].position.y) : null;
   let worldClock = 0;

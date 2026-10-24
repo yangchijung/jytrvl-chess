@@ -17,8 +17,6 @@ import type { Quality } from './quality';
 import { FACADE_DECODE_GLSL } from '../world/facade';
 
 let tier: Quality = 'low';
-// TEMP perf probe: ?rx=road,glass,water,car,env disables parts
-export const RX = new Set((typeof location !== 'undefined' ? new URLSearchParams(location.search).get('rx') ?? '' : '').split(','));
 /** set once, before the scene is built; callers that never set it keep the 'low' (original) look */
 export function setSurfaceQuality(q: Quality) {
   tier = q;
@@ -107,7 +105,7 @@ function surfShader(mat: THREE.MeshStandardMaterial, paintRough: number, paintMe
 
 /** the taxi's body and wheels: clearcoat paint on high, glossy paint on mid, the original Lambert on low */
 export function taxiBodyMaterial(): THREE.Material {
-  if (tier === 'low' || RX.has('car')) return new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+  if (tier === 'low') return new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
   // the clearcoat (a second specular lobe on every pixel of the cab) is for desktops; tablets get the same paint,
   // chrome and glass without it
   const m =
@@ -166,7 +164,6 @@ vGlass = 0.0;
 
 /** adds environment reflections to the glass towers of a material made by buildingMaterial(), after its own hook */
 export function withGlassReflection<M extends THREE.Material>(mat: M): M {
-  if (RX.has('glass')) return mat;
   const prev = mat.onBeforeCompile;
   const prevSrc = prev.toString();
   const keyBefore = mat.customProgramCacheKey();
@@ -291,7 +288,7 @@ if (uWet > 0.001) {
  */
 export function roadMaterial(color: string | THREE.Color | null, kind: RoadKind, params: THREE.MeshPhongMaterialParameters = {}): THREE.Material {
   const base = color === null ? new THREE.Color('#FFFFFF') : new THREE.Color(color);
-  if (tier === 'low' || RX.has('road')) {
+  if (tier === 'low') {
     const m = new THREE.MeshLambertMaterial({ color: base, flatShading: true, ...(params as THREE.MeshLambertMaterialParameters) });
     roadBase.set(m, base.clone());
     return m;
