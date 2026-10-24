@@ -38,6 +38,10 @@ export function glowVertexColours<M extends Patchable>(mat: M, rules: { mask: st
   });
 }
 
+/** the cab's paint after dark: a little of its own colour added back, so under the cool night fill the yellow stays
+ * taxi yellow instead of turning olive (mask: the yellow and orange body colours, linear r > 0.5, g > 0.25, b < 0.2) */
+export const CAB_PAINT_FILL = [{ mask: 'step(0.5, vColor.r) * step(0.25, vColor.g) * step(vColor.b, 0.2)', gain: 0.28 }];
+
 /** the traffic sedans' lamps (taxiModel's sedanGeometry): head lamps #FFF4D6 (linear ≈ 1, 0.91, 0.67) and tail
  * lamps #C62828 (≈ 0.56, 0.02, 0.02); no other part of the car is that bright or that red */
 export const CAR_LIGHT_GLOW = [
