@@ -7,6 +7,7 @@ import type RAPIER_NS from '@dimforge/rapier3d-compat';
 import { wedgePoints } from './greybox';
 import type { Level, Prim, Shape } from './level';
 import { buildingMaterial, drawDecor, waterMaterial } from './decor';
+import { addFakeAO } from '../fx/fakeAO';
 import { pitchTriangles, type Pitch } from './massing';
 import { buildingLook } from './facade';
 import { addOcclusionFade, OCC_NEAR, OCC_NEAR_BOARD } from '../fx/occlusion';
@@ -173,10 +174,11 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
   }
 
   // ---------- flat patches: block lots and road marks (instanced quads) ----------
-  const quads = (rects: Level['lots'], y: number) => {
+  const quads = (rects: Level['lots'], y: number, ao = false) => {
     if (!rects.length) return;
     const geo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
-    const mesh = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial(), rects.length);
+    const mat = new THREE.MeshLambertMaterial();
+    const mesh = new THREE.InstancedMesh(geo, ao ? addFakeAO(mat, 'edge') : mat, rects.length);
     rects.forEach((r, i) => {
       m4.compose(new THREE.Vector3(r.x, y, r.z), q.identity(), new THREE.Vector3(r.w, 1, r.d));
       mesh.setMatrixAt(i, m4);
@@ -185,7 +187,7 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
     mesh.receiveShadow = true;
     scene.add(mesh);
   };
-  quads(level.lots, 0.03);
+  quads(level.lots, 0.03, true);
   quads(level.marks, 0.045);
 
   // ---------- plain boxes (buildings, rails, walls, decks) in one instanced mesh ----------
@@ -200,7 +202,7 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
     const ix = Array.from(geo.index!.array);
     geo.setIndex([...ix.slice(0, 18), ...ix.slice(24)]);
     geo.setAttribute('aLook', new THREE.InstancedBufferAttribute(new Float32Array(blds.map((s) => buildingLook(s.look ?? 0, s.p[0], s.p[2]))), 1));
-    const inst = new THREE.InstancedMesh(geo, addOcclusionFade(buildingMaterial()), blds.length);
+    const inst = new THREE.InstancedMesh(geo, addOcclusionFade(addFakeAO(buildingMaterial(), 'base')), blds.length);
     inst.name = 'buildings';
     faded.set(inst, 0);
     blds.forEach((s, i) => {
@@ -213,7 +215,7 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
     scene.add(inst);
   }
   if (boxes.length) {
-    const inst = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ flatShading: true }), boxes.length);
+    const inst = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), addFakeAO(new THREE.MeshLambertMaterial({ flatShading: true }), 'base'), boxes.length);
     boxes.forEach((s, i) => {
       m4.compose(new THREE.Vector3(...s.p), q.setFromAxisAngle(up, s.yaw ?? 0), new THREE.Vector3(...s.size));
       inst.setMatrixAt(i, m4);
@@ -249,7 +251,7 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
   // (the harbour's pitched shed roofs share this mesh: no extra draw call)
   const merged = [...level.prims.map(primGeometry), ...(ms?.pitched ?? []).map(pitchGeometry)];
   if (merged.length) {
-    const mesh = new THREE.Mesh(mergeGeometries(merged), addOcclusionFade(new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }), { near: OCC_NEAR }));
+    const mesh = new THREE.Mesh(mergeGeometries(merged), addOcclusionFade(addFakeAO(new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }), 'base'), { near: OCC_NEAR }));
     mesh.name = 'landmarks';
     faded.set(mesh, OCC_NEAR);
     mesh.castShadow = true;

@@ -289,7 +289,14 @@ try {
     tiltOk = on.startsWith('true') && !!cal && centre?.beta === 6;
     tiltInfo = JSON.stringify({ on, cal: !!cal, centre });
   }
-  ok('X-22', 'settings: auto gas is a real switch (role=switch, ≥64 px), saved per browser, not driving the car while paused; tilt toggle + 校正 when supported', sw.role === 'switch' && sw.on === 'false' && sw.h >= 64 && swOn === 'true' && saved === true && pausedGas === false && tiltOk, JSON.stringify({ sw, swOn, saved, pausedGas }) + ' ' + tiltInfo);
+  // 畫質: a segmented radio group 自動 / 流暢 / 標準 / 精緻, each at least 44 px, saved per browser
+  const qseg = await p.$$eval('[data-testid=taxi-quality] [role=radio]', (e) => e.map((x) => ({ t: x.textContent, on: x.getAttribute('aria-checked'), h: Math.round(x.getBoundingClientRect().height), w: Math.round(x.getBoundingClientRect().width) })));
+  await p.click('[data-testid=taxi-quality-low]');
+  const qLow = await p.evaluate(() => ({ saved: localStorage.getItem('jy.taxi.quality'), tier: window.__taxi.quality().tier }));
+  await p.click('[data-testid=taxi-quality-auto]');
+  const qAuto = await p.evaluate(() => ({ saved: localStorage.getItem('jy.taxi.quality'), tier: window.__taxi.quality().tier, now: document.querySelector('[data-testid=taxi-quality-now]')?.textContent }));
+  const qOk = qseg.length === 4 && qseg.map((x) => x.t).join('') === '自動流暢標準精緻' && qseg.every((x) => x.h >= 44 && x.w >= 44) && qLow.saved === 'low' && qLow.tier === 'low' && qAuto.saved === 'auto' && qAuto.tier === 'mid' && /標準/.test(qAuto.now ?? '');
+  ok('X-22', 'settings: auto gas is a real switch (role=switch, ≥64 px), saved per browser, not driving the car while paused; tilt toggle + 校正 when supported; 畫質 segments (≥44 px) saved and applied', sw.role === 'switch' && sw.on === 'false' && sw.h >= 64 && swOn === 'true' && saved === true && pausedGas === false && tiltOk && qOk, JSON.stringify({ sw, swOn, saved, pausedGas, qseg, qLow, qAuto }) + ' ' + tiltInfo);
   await shot('6c-settings');
   // 時段 in the same row: a radio group of four ≥44 px segments; 夜晚 lights the city and is remembered
   {
@@ -423,6 +430,53 @@ try {
     ok('X-26', 'chase camera: no board, landmark or wall hides the cab when driving past a name board', pass.every((x) => x.blocked === 0 && x.nearHits === 0 && x.carToBoard < 25), JSON.stringify(pass));
   }
   ok('ALL', 'no page errors', errors.length === 0, errors.slice(0, 4).join(' | '));
+
+  // ---------------- quality tiers: a fresh page per tier, the same practice start ----------------
+  const tierPage = async (q) => {
+    const tp = await browser.newPage();
+    const errs = [];
+    tp.on('pageerror', (e) => errs.push(String(e)));
+    tp.on('console', (m) => m.type() === 'error' && errs.push(m.text()));
+    await tp.setViewport({ width: 1180, height: 820, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+    await tp.goto(`${BASE}/taxi?q=${q}`, { waitUntil: 'networkidle0' });
+    await tp.waitForFunction(() => document.querySelector('[data-testid=taxi]')?.dataset.state === 'ready', { timeout: 60000 });
+    await tp.evaluate(() => window.__taxi.setPaused(true));
+    await tp.evaluate(() => window.__taxi.ff(0.5));
+    const menu = await tp.evaluate(() => ({ q: window.__taxi.quality(), st: window.__taxi.stats() }));
+    await tp.screenshot({ path: `${OUT}/8-${q}-menu.png` });
+    await tp.click('[data-testid=taxi-start-practice]');
+    await tp.waitForSelector('[data-testid=taxi-go]');
+    await tp.click('[data-testid=taxi-go]');
+    await tp.evaluate(() => window.__taxi.setPaused(true));
+    await tp.evaluate(() => window.__taxi.ff(1.2, { throttle: 0.6 }));
+    await tp.evaluate(() => window.__taxi.ff(0.3));
+    await new Promise((res) => setTimeout(res, 150));
+    await tp.screenshot({ path: `${OUT}/8-${q}-drive.png` });
+    const drive = await tp.evaluate(() => ({ q: window.__taxi.quality(), st: window.__taxi.stats() }));
+    // relative frame cost in software rendering: 12 drawn frames, each finished on the GPU before the next
+    const ms = await tp.evaluate(() => {
+      const gl = [...document.querySelectorAll('canvas')].map((c) => c.getContext('webgl2')).find(Boolean);
+      const px = new Uint8Array(4);
+      const one = () => {
+        window.__taxi.ff(1 / 60);
+        gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+      };
+      one();
+      const t = performance.now();
+      for (let k = 0; k < 12; k++) one();
+      return +((performance.now() - t) / 12).toFixed(1);
+    });
+    const cab = await tp.evaluate(() => window.__taxi.cabColour());
+    await tp.close();
+    return { menu, drive, ms, cab, errs };
+  };
+  const hi = await tierPage('high');
+  const hp = hi.drive.q.passes;
+  const cabOk = hi.cab && hi.cab.plain[0] > 150 && hi.cab.plain[0] > hi.cab.plain[2] + 90 && hi.cab.graded.every((v, i) => Math.abs(v - hi.cab.plain[i]) <= 6);
+  ok('X-27', '?q=high: GTAO, bloom, grade, SMAA run with no errors; depth of field on the menu only; scene draw calls under 150 (composer passes counted apart); the cab stays taxi yellow', hi.drive.q.tier === 'high' && ['gtao', 'bloom', 'grade', 'smaa'].every((n) => hp.includes(n)) && !hp.includes('dof') && hi.menu.q.passes.includes('dof') && hi.drive.st.drawCalls < 150 && hi.drive.st.post.calls > 0 && cabOk && hi.errs.length === 0, JSON.stringify({ passes: hp, menuPasses: hi.menu.q.passes, stats: hi.drive.st, pr: hi.drive.q.pixelRatio, ms: hi.ms, cab: hi.cab, errs: hi.errs.slice(0, 3) }));
+  const lo = await tierPage('low');
+  const mid = await tierPage('mid');
+  ok('X-28', '?q=low: no composer, no post passes, pixel ratio at most 1.5', lo.drive.q.tier === 'low' && !lo.drive.q.composer && lo.drive.q.passes.length === 0 && lo.drive.st.post.calls === 0 && lo.drive.q.pixelRatio <= 1.5 && lo.errs.length === 0 && mid.errs.length === 0, JSON.stringify({ low: { q: lo.drive.q, stats: lo.drive.st, ms: lo.ms }, mid: { q: mid.drive.q, stats: mid.drive.st, ms: mid.ms }, high: { ms: hi.ms }, errs: [...lo.errs, ...mid.errs].slice(0, 3) }));
 } catch (e) {
   ok('ERR', 'script error', false, e.stack);
 } finally {
