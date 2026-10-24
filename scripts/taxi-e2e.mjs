@@ -381,7 +381,7 @@ try {
       const hits = (sel) => [...document.querySelectorAll(sel)].filter((e) => { const b = e.getBoundingClientRect(); return b.width && !(b.right <= r.left || b.left >= r.right || b.bottom <= r.top || b.top >= r.bottom); }).map((e) => e.className);
       return { found: true, w: Math.round(r.width), top: Math.round(r.top), bottom: Math.round(r.bottom), pe: getComputedStyle(m).pointerEvents, hidden: m.getAttribute('aria-hidden'), drawn: m.querySelector('canvas')?.dataset.drawn === '1', overlaps: hits('.taxi-gas, .taxi-brake, .taxi-drift, .taxi-rush, .taxi-stick-base, .taxi-time, .taxi-home, .taxi-reset, .taxi-pause, .taxi-rider, .taxi-arrow') };
     });
-  await new Promise((res) => setTimeout(res, 200));
+  await p.waitForFunction(() => document.querySelector('[data-testid=taxi-minimap] canvas')?.dataset.drawn === '1', { timeout: 20000 }).catch(() => null);
   const mapPad = await mapCheck();
   await p.setViewport({ width: 844, height: 390, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
   await new Promise((res) => setTimeout(res, 300));
@@ -655,7 +655,8 @@ try {
     await ff(1 / 30);
     await settle();
     r = await run();
-    await new Promise((res) => setTimeout(res, 400));
+    // the minimap draws on its own animation frames: wait for the first picture (a busy machine can take a while)
+    await p.waitForFunction(() => document.querySelector('[data-testid=taxi-minimap] canvas')?.dataset.drawn === '1', { timeout: 20000 }).catch(() => null);
     const gMap = await mapCheck();
     const gSt = await p.evaluate(() => window.__taxi.stats());
     ok('G-02', 'grid city: arcade starts (50 s, five waiting), the minimap is drawn and clear of the controls, no district or road label, under 150 draw calls', r.time > 49.5 && r.waiting.length === 5 && mapOk(gMap) && !(await p.$('[data-testid=taxi-district]')) && !(await p.$('[data-testid=taxi-road]')) && gSt.drawCalls < 150, JSON.stringify({ map: gMap, st: gSt }));
