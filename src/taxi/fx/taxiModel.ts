@@ -4,6 +4,7 @@
 // and sways with the car: leans out in corners, sinks back on the gas, rocks on landings. Few draw calls: one
 // merged mesh with vertex colours for the paint and trim, one for the glass, one for the lights.
 import * as THREE from 'three';
+import { CAB_PAINT_FILL, glowVertexColours } from './nightGlow';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { CARS, DRIVERS, type CarLook, type DriverLook } from '../vehicle/roster';
 import { SURF, surfFor, taxiBodyMaterial, taxiGlassMaterial, type Surf } from './surfaces';
@@ -163,7 +164,7 @@ export function buildTaxi(wheelRadius: number, look: CarLook = CARS[0].look, who
   // roof sign base
   parts.push(box(0.5, 0.05, 0.2, 0, roofY + 0.07, roofZ, C.trim));
   // clearcoat paint, chrome, rubber and the cabin told apart per vertex (one material, one draw call); the wheels share it
-  const bodyMat = taxiBodyMaterial();
+  const bodyMat = glowVertexColours(taxiBodyMaterial(), CAB_PAINT_FILL);
   const paint = new THREE.Mesh(mergeGeometries(parts), bodyMat);
   paint.castShadow = true;
   paint.receiveShadow = true;
