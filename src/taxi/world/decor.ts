@@ -488,7 +488,7 @@ export function waterMaterial(color: string, opts: { box?: [number, number, numb
   const uTime = { value: 0 };
   const tier = opts.tier ?? surfaceQuality();
   const box = opts.box ?? [-1e5, 1e5, -1e5, 1e5];
-  const refl = { uWaterBox: { value: new THREE.Vector4(...box) }, uBankH: { value: opts.bankH ?? 12 }, uReflK: { value: 0.8 } };
+  const refl = { uWaterBox: { value: new THREE.Vector4(...box) }, uBankH: { value: opts.bankH ?? 12 }, uReflK: { value: 0.6 } };
   if (tier === 'high') mat.defines = { WATER_MIRROR: '' };
   mat.onBeforeCompile = (sh) => {
     sh.uniforms.uTime = uTime;

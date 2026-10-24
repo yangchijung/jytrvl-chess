@@ -137,7 +137,7 @@ function surfShader(mat: THREE.MeshStandardMaterial, paintRough: number, paintMe
  */
 // [head-on, grazing, blur, metal]; paint's grazing value comes from uPaintEnv
 const LAMBERT_SURF: Record<Surf, [number, number, number, number]> = {
-  [SURF.paint]: [0.04, -1, 0.1, 0],
+  [SURF.paint]: [0.015, -1, 0.1, 0], // low head-on, so the yellow keeps its saturation
   [SURF.plastic]: [0.03, 0.22, 0.45, 0],
   [SURF.rubber]: [0, 0, 0, 0],
   [SURF.chrome]: [0.7, 0.95, 0.12, 1],
@@ -178,9 +178,9 @@ function surfLambert(params: THREE.MeshLambertMaterialParameters, paintEnv: numb
 /** the taxi's body and wheels: clearcoat paint on high, Lambert with reflections on mid, the original on low */
 export function taxiBodyMaterial(): THREE.Material {
   if (tier === 'low') return new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
-  if (tier === 'mid') return surfLambert({}, 0.45);
+  if (tier === 'mid') return surfLambert({}, 0.4);
   const m = new THREE.MeshPhysicalMaterial({ vertexColors: true, flatShading: true, roughness: 0.4, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.06 });
-  return usesEnvironment(surfShader(m, 0.42, 0, 0.4, 'taxi'));
+  return usesEnvironment(surfShader(m, 0.42, 0, 0.3, 'taxi'));
 }
 
 /** the taxi's glass house: tinted, see-through, reflecting the sky */
@@ -452,7 +452,7 @@ export const WATER_REFLECT = /* glsl */ `
   float rise = bd * wR.y / hl;
   vec3 bankCol = vec3(0.30, 0.33, 0.30);
   #if defined( USE_FOG ) && ! defined( FOG_EXP2 )
-    bankCol = mix(fogColor * vec3(0.46, 0.5, 0.47), fogColor, smoothstep(fogNear, fogFar, bd + length(vWp - cameraPosition)));
+    bankCol = mix(fogColor * vec3(0.34, 0.38, 0.36), fogColor, smoothstep(fogNear, fogFar, bd + length(vWp - cameraPosition)));
   #endif
   refl = mix(refl, bankCol, (1.0 - smoothstep(uBankH * 0.55, uBankH, rise)) * step(bd, 5000.0));
   #ifdef WATER_MIRROR
@@ -463,7 +463,7 @@ export const WATER_REFLECT = /* glsl */ `
   }
   #endif
   float wF = 0.02 + 0.98 * pow(1.0 - clamp(dot(-wV, wN), 0.0, 1.0), 5.0);
-  float wK = clamp(uReflK * (0.1 + 0.9 * wF), 0.0, 0.85);
+  float wK = clamp(uReflK * (0.06 + 0.94 * wF), 0.0, 0.7);
   // the sun's glints stay on top of the reflection
   vec3 wSpec = reflectedLight.directSpecular;
   outgoingLight = mix(outgoingLight - wSpec, refl, wK) + wSpec;

@@ -99,7 +99,7 @@ describe('car surfaces', () => {
     expect(mid.isMeshLambertMaterial).toBe(true);
     const msh = compile(mid, 'lambert');
     expect(msh.fragmentShader).toContain('textureCubeUV(envMap');
-    expect(msh.fragmentShader).toContain('vec4(0.040, uPaintEnv');
+    expect(msh.fragmentShader).toContain('vec4(0.015, uPaintEnv');
     expect(msh.vertexShader).toContain('vSurf = aSurf');
     const npcMid = trafficMaterial();
     expect(npcMid).toBe(trafficMaterial());
