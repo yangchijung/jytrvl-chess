@@ -10,7 +10,7 @@ import { buildingMaterial, drawDecor, drawSignals, waterMaterial } from './decor
 import { pitchTriangles, type Pitch } from './massing';
 import { buildingLook } from './facade';
 import { nearField } from './nearfield';
-import { buildSurfacePhysics, drawSurfaces } from './osm/surfaces';
+import { buildSurfacePhysics, drawSurfaces, groupOfPoint } from './osm/surfaces';
 import { addOcclusionFade, OCC_NEAR, OCC_NEAR_BOARD } from '../fx/occlusion';
 
 type R = typeof RAPIER_NS;
@@ -48,18 +48,41 @@ export function buildPhysics(RAPIER: R, world: RAPIER_NS.World, level: Level) {
   return { soft, dynamics };
 }
 
+/** a pitched roof (Prim 'gab'), centred at the origin: same attributes and indexing as the other primitives */
+function roofGeometry(L: number, W: number, H: number, hip = 0) {
+  const x = L / 2,
+    z = W / 2,
+    y0 = -H / 2,
+    y1 = H / 2,
+    r = Math.max(0, x - Math.min(hip, x));
+  const a = [-x, y0, -z], b = [x, y0, -z], c = [x, y0, z], d = [-x, y0, z], e = [-r, y1, 0], f = [r, y1, 0];
+  const tris = [a, e, f, a, f, b, c, f, e, c, e, d, b, f, c, d, e, a];
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(tris.flat(), 3));
+  g.computeVertexNormals();
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(tris.length * 2), 2));
+  g.setIndex(Array.from({ length: tris.length }, (_, i) => i));
+  return g;
+}
+
 function primGeometry(p: Prim) {
   let g: THREE.BufferGeometry;
+  // square prisms: `r` is the half side, so the corner radius is r·√2 and the corners turn onto the diagonals
+  const sq = (n?: number) => (n === 4 ? Math.SQRT2 : 1);
   if (p.t === 'box') g = new THREE.BoxGeometry(p.sx, p.sy, p.sz);
-  else if (p.t === 'cyl') g = new THREE.CylinderGeometry(p.r, p.r, p.h, 18);
+  else if (p.t === 'cyl') g = new THREE.CylinderGeometry((p.rt ?? p.r) * sq(p.seg), p.r * sq(p.seg), p.h, p.seg ?? 18);
   else if (p.t === 'cone') {
-    g = new THREE.ConeGeometry(p.r, Math.abs(p.h), 18);
+    g = new THREE.ConeGeometry(p.r * sq(p.seg), Math.abs(p.h), p.seg ?? 18);
     if (p.h < 0) g.rotateX(Math.PI);
-  } else if (p.t === 'sph') g = new THREE.SphereGeometry(p.r, 16, 12);
+  } else if (p.t === 'sph') g = new THREE.SphereGeometry(p.r, p.seg ?? 16, p.seg ? Math.max(4, Math.round(p.seg * 0.75)) : 12);
+  else if (p.t === 'gab') g = roofGeometry(p.L, p.W, p.H, p.hip);
   else {
     g = new THREE.TorusGeometry(p.R, p.tube, 8, 40);
     g.rotateY(p.yaw);
   }
+  if ((p.t === 'cyl' || p.t === 'cone') && p.seg === 4) g.rotateY(Math.PI / 4);
+  if ((p.t === 'cyl' || p.t === 'cone') && p.sx) g.scale(p.sx, 1, 1);
+  if (p.t !== 'tor' && p.t !== 'sph' && p.yaw) g.rotateY(p.yaw);
   g.translate(p.x, p.y, p.z);
   const c = new THREE.Color(p.color);
   const n = g.getAttribute('position').count;
@@ -308,14 +331,26 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
   }
   // ---------- landmarks: one merged mesh with vertex colours ----------
   // (the harbour's pitched shed roofs share this mesh: no extra draw call)
+  // (the real-map city splits them per drawn square, like the ground, so the view and the shadow pass cull them)
   const merged = [...level.prims.map(primGeometry), ...(ms?.pitched ?? []).map(pitchGeometry)];
   if (merged.length) {
-    const mesh = new THREE.Mesh(mergeGeometries(merged), addOcclusionFade(new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }), { near: OCC_NEAR }));
-    mesh.name = 'landmarks';
-    faded.set(mesh, OCC_NEAR);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    scene.add(mesh);
+    const lmMat = addOcclusionFade(new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }), { near: OCC_NEAR });
+    const sets = new Map<number, THREE.BufferGeometry[]>();
+    merged.forEach((g, i) => {
+      const p = level.prims[i];
+      const k = level.osm && p ? groupOfPoint(level.osm, p.x, p.z) : 0;
+      const set = sets.get(k);
+      if (set) set.push(g);
+      else sets.set(k, [g]);
+    });
+    for (const [, parts] of sets) {
+      const mesh = new THREE.Mesh(mergeGeometries(parts), lmMat);
+      mesh.name = 'landmarks';
+      faded.set(mesh, OCC_NEAR);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      scene.add(mesh);
+    }
   }
   // ---------- name boards: one atlas, one merged mesh (front and back faces both read correctly) ----------
   if (level.signs.length) {

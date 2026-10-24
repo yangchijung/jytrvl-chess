@@ -11,13 +11,21 @@ import type { RoadNet } from './osm/roadnet';
 
 export type { Shape };
 
-/** a drawn-only primitive in world metres (landmarks); y is the centre height */
+/**
+ * a drawn-only primitive in world metres (landmarks); y is the centre height. Optional extras (used by the real-map
+ * landmark models, world/osm/landmarks.ts): `yaw` turns the shape about y (same sense as Shape yaw); `seg` is the
+ * number of sides of a cylinder/cone/sphere (6 = hexagonal prism; 4 = square, then `r` is the half side, not the
+ * corner radius); `rt` is a cylinder's top radius (a taper; default `r`); `sx` stretches it along its own x.
+ * `gab` is a pitched roof: base L (x) × W (z) at y − H/2, ridge at y + H/2, ridge shortened by `hip` at each end
+ * (0 = gable ends, W/2 = a full hip roof).
+ */
 export type Prim =
-  | { t: 'box'; x: number; y: number; z: number; sx: number; sy: number; sz: number; color: string }
-  | { t: 'cyl'; x: number; y: number; z: number; r: number; h: number; color: string }
-  | { t: 'cone'; x: number; y: number; z: number; r: number; h: number; color: string }
-  | { t: 'sph'; x: number; y: number; z: number; r: number; color: string }
-  | { t: 'tor'; x: number; y: number; z: number; R: number; tube: number; color: string; yaw: number };
+  | { t: 'box'; x: number; y: number; z: number; sx: number; sy: number; sz: number; color: string; yaw?: number }
+  | { t: 'cyl'; x: number; y: number; z: number; r: number; h: number; color: string; yaw?: number; seg?: number; rt?: number; sx?: number }
+  | { t: 'cone'; x: number; y: number; z: number; r: number; h: number; color: string; yaw?: number; seg?: number; sx?: number }
+  | { t: 'sph'; x: number; y: number; z: number; r: number; color: string; seg?: number }
+  | { t: 'tor'; x: number; y: number; z: number; R: number; tube: number; color: string; yaw: number }
+  | { t: 'gab'; x: number; y: number; z: number; L: number; W: number; H: number; color: string; yaw?: number; hip?: number };
 
 export interface Rect {
   x: number;

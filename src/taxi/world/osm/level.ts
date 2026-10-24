@@ -16,6 +16,7 @@ import { KAOHSIUNG, RANK, type OsmCityData, type OsmRoad, type XZ } from './data
 import { fillBlocks } from './fill';
 import { buildRoadNet } from './roadnet';
 import { sidewalkLoops, surfaceTests } from './walks';
+import { clearSigns, inFoot, landmarkModels, primFoot } from './landmarks';
 
 /** the landmark names shown in the game (short, as people say them) */
 export const LANDMARK_NAMES: Record<string, { zh: string; en: string }> = {
@@ -316,9 +317,22 @@ export function osmLevel(data: OsmCityData = KAOHSIUNG): Level {
     }
   }
 
+  // ---------- landmark models (./landmarks.ts): they replace the mapped boxes they stand on ----------
+  const lms = landmarkModels(data, [...stops, ...places]);
+  const kept = shapes.filter((s) => !/^b\d+$/.test(s.id) || !lms.drop.has(Number(s.id.slice(1))));
+  shapes.length = 0;
+  shapes.push(...kept, ...lms.shapes);
+  signs.push(...lms.signs);
+  clearSigns(signs, lms);
+  const parkTrees = trees.filter((t) => lms.keepTree(t.x, t.z));
   // ---------- the empty blocks: frontage rows, interiors and rooftop / wall decor (./fill.ts) ----------
+  // (nothing generated where a landmark model now stands)
+  const feet = lms.prims.map(primFoot);
+  const free = (x: number, z: number) => !feet.some((f) => f.y0 < 3 && inFoot(f, x, z, 1.5));
   const fill = fillBlocks(data);
-  shapes.push(...fill.shapes);
+  shapes.push(...fill.shapes.filter((s) => free(s.p[0], s.p[2])));
+  fill.pitched = fill.pitched.filter((p) => free(p.x, p.z));
+  for (const k of ['tanks', 'sheds', 'acs', 'shopSigns'] as const) (fill.decor[k] as { x: number; z: number }[]) = (fill.decor[k] as { x: number; z: number }[]).filter((d) => free(d.x, d.z));
   const decor = { ...fill.decor, scooters: [], lamps: [], signals: [], palms: [], curbs: [], boats: [] };
   // ---------- traffic: lanes, turns and traffic lights on the real streets ----------
   const roadnet = buildRoadNet(data);
@@ -331,11 +345,11 @@ export function osmLevel(data: OsmCityData = KAOHSIUNG): Level {
     ground: [],
     water: { y: -1.4, floor: -3.2, x0, x1, z0, z1 },
     shapes,
-    prims: [],
+    prims: lms.prims,
     lots: [],
     marks: [],
     signs,
-    trees,
+    trees: parkTrees,
     stops,
     places,
     spawn,
