@@ -33,12 +33,12 @@ const C = {
   offwhite: '#E6E2D8',
   stone: '#BDB6A8',
   concrete: '#A9ADB0',
-  glass: '#4D6577',
+  glass: '#5E7D93',
   glassLight: '#7FA3B8',
-  glassDark: '#34495A',
+  glassDark: '#4A6274',
   band: '#B9C3CA',
-  steel: '#7D8A96',
-  steelDark: '#3E4852',
+  steel: '#9AA6B1',
+  steelDark: '#56616C',
   red: '#B3302A',
   redDark: '#8E2420',
   tile: '#C0502E',
@@ -350,6 +350,8 @@ export interface Rect {
   L: number;
   W: number;
   ang: number;
+  /** only fits with a narrow margin to the road: no porch or canopy sticking out at the front */
+  tight?: boolean;
 }
 /** the smallest rectangle round a ring, its long side first */
 export function rectOfRing(ring: Ring): Rect {
@@ -403,7 +405,7 @@ export function rectRing(r: Rect, m = 0): Ring {
   });
 }
 /** shrinks a rectangle (from the side that is in the way) until it keeps `clear` metres off every road and is all land */
-export function fitRect(site: Site, r: Rect, clear: number, minL = 4, minW = 4): Rect | null {
+export function fitRect(site: Site, r: Rect, clear: number, minL = 4, minW = 4, avoid: Ring[] = []): Rect | null {
   let { cx, cz, L, W } = r;
   const c = Math.cos(r.ang),
     s = Math.sin(r.ang);
@@ -420,7 +422,7 @@ export function fitRect(site: Site, r: Rect, clear: number, minL = 4, minW = 4):
           v = -W / 2 + (W * j) / nv;
         const x = cx + u * c - v * s,
           z = cz + u * s + v * c;
-        const bad = site.onLand(x, z) ? clear - site.roadGap(x, z) : clear + 5;
+        const bad = site.onLand(x, z) && !avoid.some((t) => pointInRing(x, z, t)) ? clear - site.roadGap(x, z) : clear + 5;
         if (bad > worst) {
           worst = bad;
           wu = u;
@@ -433,7 +435,7 @@ export function fitRect(site: Site, r: Rect, clear: number, minL = 4, minW = 4):
     const badAt = (u: number, v: number) => {
       const x = cx + u * c - v * s,
         z = cz + u * s + v * c;
-      return site.onLand(x, z) ? clear - site.roadGap(x, z) : clear + 5;
+      return site.onLand(x, z) && !avoid.some((t) => pointInRing(x, z, t)) ? clear - site.roadGap(x, z) : clear + 5;
     };
     const gu = (worst - badAt(wu - Math.sign(wu) * d, wv)) / (d / L),
       gv = (worst - badAt(wu, wv - Math.sign(wv) * d)) / (d / W);
@@ -627,7 +629,7 @@ function place(ctx: Ctx, lm: OsmLandmark, def: { L: number; W: number }, o: { ca
   } else {
     let x = lm.x,
       z = lm.z;
-    if (!site.onLand(x, z) || site.roadGap(x, z) < clear + 2) {
+    if (!site.onLand(x, z) || site.roadGap(x, z) < clear + 2 || ctx.taken.some((t) => pointInRing(x, z, t))) {
       const sp = findSpot(site, x, z, Math.min(def.L, def.W) / 2, clear, ctx.taken);
       if (!sp) return null;
       [x, z] = sp;
@@ -645,8 +647,10 @@ function place(ctx: Ctx, lm: OsmLandmark, def: { L: number; W: number }, o: { ca
       }
     }
   }
-  const fit = fitRect(site, r, clear, Math.min(r.L, 6), Math.min(r.W, 5));
-  return fit ? faceRoad(site, fit, o.keepLong) : null;
+  // small buildings squeezed between streets get a narrower margin before giving up
+  const wide = fitRect(site, r, clear, Math.min(r.L, 6), Math.min(r.W, 5), ctx.taken);
+  const fit = wide ?? fitRect(site, r, Math.min(clear, 2), Math.min(r.L, 5), Math.min(r.W, 4), ctx.taken);
+  return fit ? { ...faceRoad(site, fit, o.keepLong), tight: !wide } : null;
 }
 
 // ---------- 85 Sky Tower: a wide podium, two legs that rise as separate towers and join, one tower and the spire ----------
@@ -742,6 +746,7 @@ const musiccenter: Builder = (ctx, lm, m) => {
     void cx;
     void cz;
     m.replaces.push(bi);
+    m.covers.push(b.poly);
     kits.push(k);
   }
   return kits.length ? kits : null;
@@ -757,10 +762,28 @@ const pier2: Builder = (ctx, lm, m) => {
   const kits: Kit[] = [];
   let n = 1;
   for (const { b, i } of list) {
-    const [cx, cz, L0, W0, ang] = b.obb;
-    const L = L0 >= W0 ? L0 : W0,
-      W = L0 >= W0 ? W0 : L0;
-    const k = new Kit(`${m.id}-${i}`, cx, cz, L0 >= W0 ? ang : ang + Math.PI / 2);
+    const [cx0, cz0, L0, W0, ang0] = b.obb;
+    let r: Rect = { cx: cx0, cz: cz0, L: L0 >= W0 ? L0 : W0, W: L0 >= W0 ? W0 : L0, ang: L0 >= W0 ? ang0 : ang0 + Math.PI / 2 };
+    // a kerb where people wait sometimes falls inside a mapped footprint: trim that side back
+    for (const sp of ctx.spots) {
+      const c = Math.cos(r.ang),
+        sn = Math.sin(r.ang);
+      const du = (sp.x - r.cx) * c + (sp.z - r.cz) * sn,
+        dv = -(sp.x - r.cx) * sn + (sp.z - r.cz) * c;
+      if (Math.abs(du) > r.L / 2 + 1 || Math.abs(dv) > r.W / 2 + 1) continue;
+      const cutU = r.L / 2 + 1 - Math.abs(du),
+        cutV = r.W / 2 + 1 - Math.abs(dv);
+      if (cutV <= cutU) {
+        const sh = (Math.sign(dv) || 1) * -cutV / 2;
+        r = { ...r, W: r.W - cutV, cx: r.cx - sh * sn, cz: r.cz + sh * c };
+      } else {
+        const sh = (Math.sign(du) || 1) * -cutU / 2;
+        r = { ...r, L: r.L - cutU, cx: r.cx + sh * c, cz: r.cz + sh * sn };
+      }
+    }
+    if (r.L < 6 || r.W < 4) continue;
+    const { cx, cz, L, W } = r;
+    const k = new Kit(`${m.id}-${i}`, cx, cz, r.ang);
     const wall = WAREHOUSE_WALLS[Math.floor(hash(cx, cz) * WAREHOUSE_WALLS.length)];
     const H = 7 + Math.round(hash(cz, cx) * 2);
     k.box(0, 0, 0, L, W, H, wall, { solid: true });
@@ -775,8 +798,8 @@ const pier2: Builder = (ctx, lm, m) => {
     const label = named ? `C${named[1]}` : `C${n++}`;
     const gh = Math.min(3.4, H - 3);
     paint(k, label, 0, W / 2, side, H - gh - 0.8, gh);
-    // the gable end towards the street gets the number too when it faces the road better
     m.replaces.push(i);
+    m.covers.push(b.poly);
     kits.push(k);
   }
   return kits;
@@ -854,18 +877,20 @@ const mainstation: Builder = (ctx, lm, m) => {
   const [ccx, ccz] = k0.at(cu, 0);
   const k = new Kit(m.id, ccx, ccz, R0.ang);
   const y = 15;
-  k.box(0, 0, y, CL, CW, 1.4, C.white);
-  k.box(0, 0, y + 1.4, CL - 4, CW - 4, 0.3, '#8DB46A');
+  k.box(0, 0, y, CL, CW, 1.6, C.white);
+  k.box(0, 0, y - 0.6, CL + 0.4, CW + 0.4, 0.8, C.band);
+  // roof gardens in strips between the skylights
+  for (const gu of [-0.3, 0.05, 0.38]) k.box(gu * CL, 0, y + 1.6, CL * 0.16, CW * 0.7, 0.4, '#8DB46A');
   // funnel columns where the canopy dips down, only where they stand clear of the streets
-  for (const fu of [-0.36, 0, 0.36])
-    for (const fv of [-0.27, 0.27]) {
+  for (const fu of [-0.42, -0.14, 0.14, 0.42])
+    for (const fv of [-0.3, 0, 0.3]) {
       const u = fu * CL,
         v = fv * CW;
       const [x, z] = k.at(u, v);
       if (ctx.site.roadGap(x, z) < 3 || !ctx.site.onLand(x, z)) continue;
       k.cone(u, v, 8, 6.5, y - 8, C.white, { down: true, seg: 12 });
       k.cyl(u, v, 0, 0.9, 8.5, C.white, { seg: 8, solid: true });
-      k.sph(u, v, y + 1.6, 3.2, C.glassLight, 8);
+      k.sph(u, v, y + 1.6, 3.4, C.glassLight, 8);
     }
   // the station hall under the canopy
   const hall: Rect | null = fitRect(ctx.site, { cx: ccx, cz: ccz, L: Math.min(46, CL * 0.4), W: Math.min(24, CW * 0.4), ang: R0.ang }, 2, 12, 8);
@@ -1182,6 +1207,31 @@ const centralpark: Builder = (ctx, lm, m) => {
     z = r.cz;
   }
   const avoid = [...ctx.taken];
+  // the park's own pond is mapped as water: then a pavilion and trees on its bank instead of a second pond
+  const pond = ring && ctx.data.water.find((w) => { const r = rectOfRing(w[0]); return pointInRing(r.cx, r.cz, ring); });
+  if (pond && ring) {
+    const pr = rectOfRing(pond[0]);
+    const sp2 = findSpot(ctx.site, pr.cx, pr.cz, 6, 8, avoid, 80);
+    if (sp2 && pointInRing(sp2[0], sp2[1], ring)) {
+      const k = new Kit(m.id, sp2[0], sp2[1], pr.ang);
+      k.box(0, 0, 0, 9, 9, 0.6, C.stone);
+      for (const a of [-1, 1]) for (const b of [-1, 1]) k.cyl(a * 3.4, b * 3.4, 0.6, 0.3, 3.4, C.red, { seg: 6, solid: true });
+      k.cyl(0, 0, 4, 5.6, 0.5, C.redDark, { seg: 6 });
+      k.cone(0, 0, 4.5, 5.6, 3, C.tile, { seg: 6 });
+      k.sph(0, 0, 7.7, 0.4, C.gold, 6);
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2 + 0.5;
+        const u = Math.cos(a) * 10,
+          v = Math.sin(a) * 10;
+        const [tx, tz] = k.at(u, v);
+        if (!ctx.site.onLand(tx, tz)) continue;
+        k.cyl(u, v, 0, 0.35, 4, C.trunk, { seg: 6 });
+        k.sph(u, v, 5.6, 2.6, C.leaf, 6);
+      }
+      m.covers.push(rectRing({ cx: sp2[0], cz: sp2[1], L: 10, W: 10, ang: pr.ang }));
+      return [k];
+    }
+  }
   const sp = findSpot(ctx.site, x, z, 17, 8, avoid, 80);
   if (!sp || (ring && !pointInRing(sp[0], sp[1], ring))) return null;
   const k = new Kit(m.id, sp[0], sp[1], 0.4);
@@ -1228,7 +1278,10 @@ const generic: Builder = (ctx, lm, m) => {
   const k = new Kit(m.id, r.cx, r.cz, r.ang);
   const L = r.L,
     W = r.W;
-  if (kind === 'museum') hallWithPortico(k, L, W, Math.min(12, 6 + W * 0.25), lm.id === 'oldcouncil' ? '#C9B79A' : C.offwhite, lm.id === 'labormuseum' ? C.brick : '#7A6E62');
+  if (kind === 'museum' && r.tight) {
+    k.box(0, 0, 0, L, W, 9, C.offwhite, { solid: true });
+    k.roof(0, 0, 9, L + 0.6, W + 0.6, Math.min(3.5, W * 0.25), '#7A6E62', 1);
+  } else if (kind === 'museum') hallWithPortico(k, L, W, Math.min(12, 6 + W * 0.25), lm.id === 'oldcouncil' ? '#C9B79A' : C.offwhite, lm.id === 'labormuseum' ? C.brick : '#7A6E62');
   else if (kind === 'market') {
     k.box(0, 0, 0, L, W, 5.5, '#C8C1B4', { solid: true });
     k.roof(0, 0, 5.5, L + 1.6, W + 2, Math.min(4, W * 0.18), C.roofSheet, 0);
@@ -1246,8 +1299,10 @@ const generic: Builder = (ctx, lm, m) => {
   } else if (kind === 'oldstation' || kind === 'station') {
     k.box(0, 0, 0, L, W, 5, lm.id === 'sankuaicuo' ? C.brick : C.offwhite, { solid: true });
     k.roof(0, 0, 5, L + 1.4, W + 1.6, 3.4, '#4E4A46', 1.6);
-    k.box(0, W / 2 + 1.4, 3.2, L * 0.7, 2.8, 0.3, '#4E4A46');
-    for (const s of [-1, 1]) k.cyl(s * L * 0.3, W / 2 + 2.4, 0, 0.18, 3.2, C.white, { seg: 6 });
+    if (!r.tight) {
+      k.box(0, W / 2 + 1.4, 3.2, L * 0.7, 2.8, 0.3, '#4E4A46');
+      for (const s of [-1, 1]) k.cyl(s * L * 0.3, W / 2 + 2.4, 0, 0.18, 3.2, C.white, { seg: 6 });
+    } else k.box(0, W / 2 + 0.05, 0, Math.min(2.4, L / 3), 0.1, 2.6, C.door);
   } else if (kind === 'exhibition') {
     k.box(0, 0, 0, L, W, 12, C.glassLight, { solid: true });
     // the wave-shaped roof
@@ -1345,14 +1400,11 @@ export function landmarkModels(data: OsmCityData = KAOHSIUNG, spots: Spot[] = []
   };
   for (const lm of list) {
     const m: Model = { id: lm.id, prims: [], shapes: [], covers: [], replaces: [], signs: [] };
-    const t0 = performance.now();
     finish(m, (BUILDERS[lm.id] ?? generic)(ctx, lm, m));
-    if ((globalThis as any).__lmDebug) console.log('T', lm.id, (performance.now() - t0).toFixed(0));
   }
   const dome: Model = { id: 'formosa', prims: [], shapes: [], covers: [], replaces: [], signs: [] };
   finish(dome, formosaDome(ctx, dome));
 
-  const tq = performance.now();
   // ---------- the mapped buildings the models stand on ----------
   const covers = [...models.values()].flatMap((m) => m.covers);
   const drop = new Set<number>([...models.values()].flatMap((m) => m.replaces));
@@ -1374,7 +1426,6 @@ export function landmarkModels(data: OsmCityData = KAOHSIUNG, spots: Spot[] = []
     if (mine.some((r) => pointInRing(cx, cz, r)) || inside / pts.length > 0.15) drop.add(i);
   });
   const all = [...models.values()];
-  if ((globalThis as any).__lmDebug) console.log('T drop', (performance.now() - tq).toFixed(0));
   return {
     prims: all.flatMap((m) => m.prims),
     shapes: all.flatMap((m) => m.shapes),

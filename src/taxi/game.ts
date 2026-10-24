@@ -352,6 +352,9 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
         chase.cam.updateProjectionMatrix();
       }
     }
+    // test hook (screenshots of the landmarks): a fixed camera [x, y, z, look-at x, y, z]
+    const peek = (globalThis as { __taxiPeek?: number[] }).__taxiPeek;
+    if (peek) (chase.cam.position.set(peek[0], peek[1], peek[2]), chase.cam.lookAt(peek[3], peek[4], peek[5]));
     // boards and landmark parts between the lens and the cab dither away (off for the menu's orbit)
     updateOcclusion(chase.cam.position, p.clone().setY(p.y + OCC_CAR_LIFT), !menu);
     sky?.position.set(chase.cam.position.x, 0, chase.cam.position.z);
