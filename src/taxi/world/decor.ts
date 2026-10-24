@@ -347,7 +347,6 @@ export function drawDecor(scene: THREE.Scene, level: Level) {
   farChunks = [];
   const mats: THREE.Material[] = [];
   const add = (o: THREE.Object3D | null) => o && scene.add(o);
-  const __before = scene.children.length; // TEMP-MEASURE
 
   // ---------- rooftops ----------
   const tankGeo = mergeGeometries([cyl(0.62, 0.62, 1.3, 0, 1.45, 0, '#C9CED6', 12), cyl(0.64, 0.64, 0.08, 0, 2.12, 0, '#AEB4BC', 12), ...[-1, 1].flatMap((sx) => [-1, 1].map((sz) => bx(0.08, 0.8, 0.08, sx * 0.45, 0.4, sz * 0.45, '#5D6B78')))]);
@@ -404,14 +403,19 @@ export function drawDecor(scene: THREE.Scene, level: Level) {
 
   // ---------- scooters: painted body (per scooter colour) + dark parts ----------
   const paintGeo = mergeGeometries([new THREE.BoxGeometry(0.42, 0.42, 1.0).translate(0, 0.5, -0.1), new THREE.BoxGeometry(0.46, 0.75, 0.16).translate(0, 0.72, 0.5)].map((g) => g.toNonIndexed()));
-  add(instanced(paintGeo, new THREE.MeshLambertMaterial({ flatShading: true }), d.scooters.map((s) => ({ x: s.x, y: 0, z: s.z, yaw: s.yaw, color: s.color })), false, chunk.far * 0.6));
   const darkGeo = mergeGeometries([bx(0.12, 0.46, 0.46, 0, 0.23, 0.66, '#1E2228'), bx(0.12, 0.46, 0.46, 0, 0.23, -0.6, '#1E2228'), bx(0.36, 0.12, 0.7, 0, 0.78, -0.25, '#2B2F36'), bx(0.62, 0.06, 0.06, 0, 1.12, 0.52, '#2B2F36')]);
-  add(instanced(darkGeo, vc(), d.scooters.map((s) => ({ x: s.x, y: 0, z: s.z, yaw: s.yaw })), false, chunk.far * 0.6));
+  if (level.osm) {
+    // real-map city: one mesh (one draw call per chunk); the body is white × the scooter's colour, the dark parts stay dark
+    add(instanced(mergeGeometries([colored(paintGeo.clone(), '#FFFFFF'), darkGeo]), vc(), d.scooters.map((s) => ({ x: s.x, y: 0, z: s.z, yaw: s.yaw, color: s.color })), false, chunk.far * 0.6));
+  } else {
+    add(instanced(paintGeo, new THREE.MeshLambertMaterial({ flatShading: true }), d.scooters.map((s) => ({ x: s.x, y: 0, z: s.z, yaw: s.yaw, color: s.color })), false));
+    add(instanced(darkGeo, vc(), d.scooters.map((s) => ({ x: s.x, y: 0, z: s.z, yaw: s.yaw })), false));
+  }
 
   // ---------- street lamps: pole, an arm over the road, the lamp ----------
-  const lampGeo = mergeGeometries([cyl(0.09, 0.12, 6.4, 0, 3.2, 0, '#5D6B78', 8), bx(0.08, 0.08, 1.8, 0, 6.3, 0.85, '#5D6B78'), bx(0.36, 0.14, 0.6, 0, 6.2, 1.75, '#EEEEEE')]);
+  const lampGeo = mergeGeometries([cyl(0.09, 0.12, 6.4, 0, 3.2, 0, '#5D6B78', level.osm ? 5 : 8), bx(0.08, 0.08, 1.8, 0, 6.3, 0.85, '#5D6B78'), bx(0.36, 0.14, 0.6, 0, 6.2, 1.75, '#EEEEEE')]);
   // (the real-map city has thousands: no shadows from them, the chunks are too big for the shadow camera to cull)
-  add(instanced(lampGeo, vc(), d.lamps.map((l) => ({ x: l.x, y: 0, z: l.z, yaw: l.yaw })), !level.osm));
+  add(instanced(lampGeo, vc(), d.lamps.map((l) => ({ x: l.x, y: 0, z: l.z, yaw: l.yaw })), !level.osm, chunk.far * 0.8));
   // ---------- kerbs ----------
   // (the real-map city draws its kerbs merged with the light rail: drawGround)
   if (!level.osm) add(instanced(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ flatShading: true }), d.curbs.map((c) => ({ x: c.x, y: 0.07, z: c.z, s: new THREE.Vector3(c.w, 0.14, c.d), color: c.color })), false));
@@ -445,8 +449,14 @@ export function drawDecor(scene: THREE.Scene, level: Level) {
         return colored(g, k % 2 ? '#2E7D32' : '#43A047');
       }),
     );
-    add(instanced(trunk, vc(), d.palms.map((p) => ({ x: p.x, y: 0, z: p.z, s: new THREE.Vector3(1, p.h, 1) })), !level.osm, chunk.far * 1.5));
-    add(instanced(fronds, vc(), d.palms.map((p) => ({ x: p.x, y: p.h, z: p.z, yaw: p.x * 0.7 })), !level.osm, chunk.far * 1.5));
+    if (level.osm) {
+      // real-map city: trunk and fronds in one mesh (8 m palm, scaled to each palm's height), no shadows
+      const palm = mergeGeometries([trunk.clone().scale(1, 8, 1), fronds.clone().translate(0, 8, 0)]);
+      add(instanced(palm, vc(), d.palms.map((p) => ({ x: p.x, y: 0, z: p.z, yaw: p.x * 0.7, s: new THREE.Vector3(p.h / 8, p.h / 8, p.h / 8) })), false, chunk.far * 1.2));
+    } else {
+      add(instanced(trunk, vc(), d.palms.map((p) => ({ x: p.x, y: 0, z: p.z, s: new THREE.Vector3(1, p.h, 1) }))));
+      add(instanced(fronds, vc(), d.palms.map((p) => ({ x: p.x, y: p.h, z: p.z, yaw: p.x * 0.7 }))));
+    }
   }
 
   // ---------- Love River cruise boats ----------
@@ -464,7 +474,6 @@ export function drawDecor(scene: THREE.Scene, level: Level) {
   drawStreetSigns(scene, d);
   if (level.osm) drawGround(scene, d);
   hideFarChunks(scene, farChunks);
-  (globalThis as any).__decorObjs = scene.children.slice(__before); // TEMP-MEASURE
 
   return {
     update(t: number, dt: number) {
@@ -591,12 +600,11 @@ function streetSignAtlas(names: { zh: string; en: string }[]) {
   return { tex, cols, rows };
 }
 
-/** 路名牌: a pole (instanced) and the boards (one merged mesh on one atlas), both faces readable */
+/** 路名牌: the boards (one merged mesh on one atlas), both faces readable; the poles are in drawGround */
 function drawStreetSigns(scene: THREE.Scene, d: Decor) {
   const list = d.streetSigns ?? [];
   if (!list.length) return;
-  const pole = cyl(0.07, 0.08, 5.2, 0, 2.6, 0, '#7D868F', 6);
-  scene.add(instanced(pole, vc(), list.map((s) => ({ x: s.x, y: 0, z: s.z })), false)!);
+  // (the poles are drawn with the ground layer: drawGround)
   const keys: string[] = [];
   const names: { zh: string; en: string }[] = [];
   for (const s of list)
@@ -647,14 +655,14 @@ function drawStreetSigns(scene: THREE.Scene, d: Decor) {
 }
 
 /**
- * Low things on the ground, real-map city: the painted kerbs (top and both faces, no ends), the light rail's grass or
+ * Low things on the ground, real-map city: the painted kerbs (top and both faces, no ends), the 路名牌 poles, the light rail's grass or
  * concrete bed and its rails, and the rail's low posts. All of it in one merged mesh with vertex colours per
  * 2 × 2-chunk square, so the whole layer costs a draw call or two in view.
  */
 function drawGround(scene: THREE.Scene, d: Decor) {
   const rail = d.rail;
   const kerbs = d.curbs;
-  if (!rail?.pieces.length && !kerbs.length) return;
+  if (!rail?.pieces.length && !kerbs.length && !d.streetSigns?.length) return;
   const size = chunk.size * 2;
   const groups = new Map<string, { pos: number[]; col: number[] }>();
   const group = (x: number, z: number) => {
@@ -713,18 +721,19 @@ function drawGround(scene: THREE.Scene, d: Decor) {
     if (pc.bed !== 'road') strip(g, pc.x0, pc.z0, pc.x1, pc.z1, 0, 3.0, bedY, pc.bed === 'walk' ? walk : grass);
     for (const off of [-0.72, 0.72]) strip(g, pc.x0, pc.z0, pc.x1, pc.z1, off, 0.11, railY, steel);
   }
-  // the rail's low posts: square, 2.2 m
-  for (const p of rail?.poles ?? []) {
+  // square posts: the light rail's low ones (2.2 m) and the 路名牌 poles (5.2 m)
+  const posts = [...(rail?.poles ?? []).map((p) => ({ x: p.x, z: p.z, top: 2.2, h: 0.09 })), ...(d.streetSigns ?? []).map((p) => ({ x: p.x, z: p.z, top: 5.2, h: 0.07 }))];
+  for (const p of posts) {
     const g = group(p.x, p.z);
-    const h = 0.09;
+    const h = p.h;
     const c4 = [
       [p.x - h, p.z - h],
       [p.x + h, p.z - h],
       [p.x + h, p.z + h],
       [p.x - h, p.z + h],
     ];
-    for (let i = 0; i < 4; i++) wall(g, c4[i][0], c4[i][1], c4[(i + 1) % 4][0], c4[(i + 1) % 4][1], 0, 2.2, post);
-    strip(g, p.x - h, p.z, p.x + h, p.z, 0, 2 * h, 2.2, post);
+    for (let i = 0; i < 4; i++) wall(g, c4[i][0], c4[i][1], c4[(i + 1) % 4][0], c4[(i + 1) % 4][1], 0, p.top, post);
+    strip(g, p.x - h, p.z, p.x + h, p.z, 0, 2 * h, p.top, post);
   }
   const mat = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
   for (const [, g] of groups) {
