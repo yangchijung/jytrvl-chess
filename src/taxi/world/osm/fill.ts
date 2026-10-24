@@ -159,7 +159,13 @@ export function obbInFlat(b: Obb, poly: Float64Array[]) {
     vx = -b.s * b.hw,
     vz = b.c * b.hw;
   const outer = poly[0];
-  if (!pointInFlat(b.x - ax - vx, b.z - az - vz, outer) || !pointInFlat(b.x + ax - vx, b.z + az - vz, outer) || !pointInFlat(b.x + ax + vx, b.z + az + vz, outer) || !pointInFlat(b.x - ax + vx, b.z - az + vz, outer)) return false;
+  if (
+    !pointInFlat(b.x - ax - vx, b.z - az - vz, outer) ||
+    !pointInFlat(b.x + ax - vx, b.z + az - vz, outer) ||
+    !pointInFlat(b.x + ax + vx, b.z + az + vz, outer) ||
+    !pointInFlat(b.x - ax + vx, b.z - az + vz, outer)
+  )
+    return false;
   const R = b.hl + b.hw;
   for (const f of poly) {
     const n = f.length;
@@ -196,21 +202,25 @@ export function distToRing(x: number, z: number, ring: Ring) {
 class BoxGrid {
   private cells = new Map<number, Obb[]>();
   constructor(private cell = 24) {}
-  private keys(b: Obb) {
+  private span(b: Obb) {
     const r = b.hl + b.hw;
-    const out: number[] = [];
-    const i0 = Math.floor((b.x - r) / this.cell),
-      i1 = Math.floor((b.x + r) / this.cell),
-      j0 = Math.floor((b.z - r) / this.cell),
-      j1 = Math.floor((b.z + r) / this.cell);
-    for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) out.push((i + 1000) * 4096 + (j + 1000));
-    return out;
+    return [Math.floor((b.x - r) / this.cell), Math.floor((b.x + r) / this.cell), Math.floor((b.z - r) / this.cell), Math.floor((b.z + r) / this.cell)];
   }
   add(b: Obb) {
-    for (const k of this.keys(b)) (this.cells.get(k) ?? this.cells.set(k, []).get(k)!).push(b);
+    const [i0, i1, j0, j1] = this.span(b);
+    for (let i = i0; i <= i1; i++)
+      for (let j = j0; j <= j1; j++) {
+        const k = (i + 1000) * 4096 + (j + 1000);
+        (this.cells.get(k) ?? this.cells.set(k, []).get(k)!).push(b);
+      }
   }
   hits(b: Obb, pad = 0) {
-    for (const k of this.keys(b)) for (const o of this.cells.get(k) ?? []) if (obbOverlap(b, o, pad)) return true;
+    const [i0, i1, j0, j1] = this.span(b);
+    for (let i = i0; i <= i1; i++)
+      for (let j = j0; j <= j1; j++) {
+        const list = this.cells.get((i + 1000) * 4096 + (j + 1000));
+        if (list) for (let n = 0; n < list.length; n++) if (obbOverlap(b, list[n], pad)) return true;
+      }
     return false;
   }
 }
@@ -285,10 +295,11 @@ class RoadIndex {
           i1 = Math.floor(Math.max(a[0], b[0]) / this.cell),
           j0 = Math.floor(Math.min(a[1], b[1]) / this.cell),
           j1 = Math.floor(Math.max(a[1], b[1]) / this.cell);
-        for (let x = i0; x <= i1; x++) for (let z = j0; z <= j1; z++) {
-          const k = (x + 1000) * 4096 + (z + 1000);
-          (this.cells.get(k) ?? this.cells.set(k, []).get(k)!).push(seg);
-        }
+        for (let x = i0; x <= i1; x++)
+          for (let z = j0; z <= j1; z++) {
+            const k = (x + 1000) * 4096 + (z + 1000);
+            (this.cells.get(k) ?? this.cells.set(k, []).get(k)!).push(seg);
+          }
       }
     }
   }
@@ -358,6 +369,14 @@ function rowFor(zone: Zone, rank: number, downtown: boolean): Row {
 
 // ---------------------------------------------------------------- the fill
 
+/** lot shapes tried in turn: full, shallower, shallowest, narrower (depth factor, width factor) */
+const TRIES = [
+  [1, 1],
+  [0.7, 1],
+  [0.5, 1],
+  [1, 0.6],
+] as const;
+
 export interface FillOptions {
   /** caps for the decor lists, to keep the triangle count (tanks are the most expensive) */
   maxTanks?: number;
@@ -371,7 +390,14 @@ export function mappedBoxes(data: OsmCityData): Obb[] {
   for (const b of data.buildings) {
     const [x, z, L, W, ang] = b.obb;
     if (L < 2 || W < 2) continue;
-    out.push({ x, z, hl: L / 2, hw: W / 2, c: Math.cos(ang), s: Math.sin(ang) });
+    out.push({
+      x,
+      z,
+      hl: L / 2,
+      hw: W / 2,
+      c: Math.cos(ang),
+      s: Math.sin(ang),
+    });
   }
   return out;
 }
@@ -382,7 +408,12 @@ export function fillBlocks(data: OsmCityData, opt: FillOptions = {}): FillResult
   const maxAcs = opt.maxAcs ?? 5000;
   const shapes: Shape[] = [];
   const pitched: Pitch[] = [];
-  const decor: FillResult['decor'] = { tanks: [], sheds: [], acs: [], shopSigns: [] };
+  const decor: FillResult['decor'] = {
+    tanks: [],
+    sheds: [],
+    acs: [],
+    shopSigns: [],
+  };
   const footprints: FillResult['footprints'] = [];
   const grid = new BoxGrid();
   for (const m of mappedBoxes(data)) grid.add(m);
@@ -395,7 +426,14 @@ export function fillBlocks(data: OsmCityData, opt: FillOptions = {}): FillResult
   let n = 0;
 
   const box = (id: string, b: Obb, y0: number, h: number, color: string, look: number | undefined, variant: number, nocollide = false): BoxShape => {
-    const s: BoxShape = { kind: 'box', id, p: [b.x, y0 + h / 2, b.z], size: [b.hl * 2, h, b.hw * 2], yaw: -Math.atan2(b.s, b.c), color };
+    const s: BoxShape = {
+      kind: 'box',
+      id,
+      p: [b.x, y0 + h / 2, b.z],
+      size: [b.hl * 2, h, b.hw * 2],
+      yaw: -Math.atan2(b.s, b.c),
+      color,
+    };
     if (look !== undefined) s.look = encodeLook(look, variant);
     if (nocollide) s.nocollide = true;
     shapes.push(s);
@@ -461,13 +499,20 @@ export function fillBlocks(data: OsmCityData, opt: FillOptions = {}): FillResult
         if (w < 3.2) break;
         // try the full depth, then shallower lots (corners, narrow blocks)
         let done: Obb | null = null;
-        for (const [f, wf] of [[1, 1], [0.7, 1], [0.5, 1], [1, 0.6]]) {
+        for (const [f, wf] of TRIES) {
           const d = depth0 * f,
             ww = w * wf;
           if (d < 5 || ww < 3.2) continue;
           {
             const cu = u + ww / 2;
-            const b: Obb = { x: e.a[0] + tx * cu + nx * (SET + d / 2), z: e.a[1] + tz * cu + nz * (SET + d / 2), hl: ww / 2, hw: d / 2, c: tx, s: tz };
+            const b: Obb = {
+              x: e.a[0] + tx * cu + nx * (SET + d / 2),
+              z: e.a[1] + tz * cu + nz * (SET + d / 2),
+              hl: ww / 2,
+              hw: d / 2,
+              c: tx,
+              s: tz,
+            };
             if (fits(b)) {
               done = b;
               break;
@@ -514,7 +559,14 @@ export function fillBlocks(data: OsmCityData, opt: FillOptions = {}): FillResult
         for (let v = v0 + 4; v + cd < v1 - 2; v += cd + gap) {
           const cu = u + cw / 2,
             cv = v + cd / 2;
-          const b: Obb = { x: cu * tx - cv * tz, z: cu * tz + cv * tx, hl: cw / 2, hw: cd / 2, c: tx, s: tz };
+          const b: Obb = {
+            x: cu * tx - cv * tz,
+            z: cu * tz + cv * tx,
+            hl: cw / 2,
+            hw: cd / 2,
+            c: tx,
+            s: tz,
+          };
           if (!pointInFlat(b.x, b.z, ringF) || distToRing(b.x, b.z, ring) > band || !fits(b)) continue;
           commit(b, false);
           building(b, null, rowFor(zone, 1, downtown), 1, 5000 + Math.round(u * 7 + v * 3), false);
@@ -537,7 +589,14 @@ export function fillBlocks(data: OsmCityData, opt: FillOptions = {}): FillResult
           const nx = ccw ? -tz : tz,
             nz = ccw ? tx : -tx;
           for (let u = len / 2 + 0.3; u <= e.L - len / 2 - 0.3; u += 2) {
-            const b: Obb = { x: e.a[0] + tx * u + nx * (0.3 + d / 2), z: e.a[1] + tz * u + nz * (0.3 + d / 2), hl: len / 2, hw: d / 2, c: tx, s: tz };
+            const b: Obb = {
+              x: e.a[0] + tx * u + nx * (0.3 + d / 2),
+              z: e.a[1] + tz * u + nz * (0.3 + d / 2),
+              hl: len / 2,
+              hw: d / 2,
+              c: tx,
+              s: tz,
+            };
             if (!fits(b)) continue;
             commit(b, true);
             building(b, { nx: -nx, nz: -nz }, rowFor(zone, 1, downtown), 1, 9000, true);
@@ -565,7 +624,18 @@ export function fillBlocks(data: OsmCityData, opt: FillOptions = {}): FillResult
         if (ax && t < 0.75) {
           const w = ax === 'x' ? b.hl * 2 : b.hw * 2,
             d = ax === 'x' ? b.hw * 2 : b.hl * 2;
-          pitched.push({ x: b.x, z: b.z, w, d, y: H, rise: t < 0.4 ? 1.5 + r(k, 14) : 2.2 + r(k, 14) * 0.6, axis: ax, teeth: t < 0.4 ? 0 : Math.max(3, Math.round(b.hl / 3)), wall: color, roof: SHEET[Math.floor(r(k, 15) * SHEET.length)] });
+          pitched.push({
+            x: b.x,
+            z: b.z,
+            w,
+            d,
+            y: H,
+            rise: t < 0.4 ? 1.5 + r(k, 14) : 2.2 + r(k, 14) * 0.6,
+            axis: ax,
+            teeth: t < 0.4 ? 0 : Math.max(3, Math.round(b.hl / 3)),
+            wall: color,
+            roof: SHEET[Math.floor(r(k, 15) * SHEET.length)],
+          });
         } else if (r(k, 16) < 0.3) decor.sheds.push(shedOn(b, H, k));
         return;
       }
@@ -579,7 +649,14 @@ export function fillBlocks(data: OsmCityData, opt: FillOptions = {}): FillResult
           const tw = Math.max(10, b.hl * 2 * (0.55 + r(k, 23) * 0.2)),
             td = Math.max(9, b.hw * 2 - 4);
           const back = (b.hw * 2 - td) / 2; // set back from the street face
-          const t: Obb = { x: b.x - face.nx * back * 0.8 + tx * (r(k, 24) - 0.5) * (b.hl * 2 - tw), z: b.z - face.nz * back * 0.8 + tz * (r(k, 24) - 0.5) * (b.hl * 2 - tw), hl: tw / 2, hw: td / 2, c: tx, s: tz };
+          const t: Obb = {
+            x: b.x - face.nx * back * 0.8 + tx * (r(k, 24) - 0.5) * (b.hl * 2 - tw),
+            z: b.z - face.nz * back * 0.8 + tz * (r(k, 24) - 0.5) * (b.hl * 2 - tw),
+            hl: tw / 2,
+            hw: td / 2,
+            c: tx,
+            s: tz,
+          };
           const T = storeys(LOOK_TOWER, 10 + Math.floor(r(k, 25) * 16));
           box(`${id}t`, t, podH - 0.3, T - podH + 0.3, color, LOOK_TOWER, r(k, 26), true);
           // a mechanical penthouse on top
@@ -607,7 +684,12 @@ export function fillBlocks(data: OsmCityData, opt: FillOptions = {}): FillResult
       if (setback && face) {
         // the top floor steps back from the street, leaving a terrace in front
         const sf = 1.6 + r(k, 33) * 1.6;
-        const up: Obb = { ...b, x: b.x - face.nx * sf / 2, z: b.z - face.nz * sf / 2, hw: b.hw - sf / 2 };
+        const up: Obb = {
+          ...b,
+          x: b.x - (face.nx * sf) / 2,
+          z: b.z - (face.nz * sf) / 2,
+          hw: b.hw - sf / 2,
+        };
         top = storeys(LOOK_HOUSE, N);
         box(`${id}u`, up, H - 0.5, top - H + 0.5, color, LOOK_HOUSE, r(k, 32), true);
         roofBox = up;
@@ -617,17 +699,51 @@ export function fillBlocks(data: OsmCityData, opt: FillOptions = {}): FillResult
         if (balc) {
           // concrete balconies with a solid parapet, one per upper floor
           for (let f = 1; f < bn; f++) {
-            const s: Obb = { x: fx + face.nx * 0.5, z: fz + face.nz * 0.5, hl: Math.max(1, b.hl - 0.4), hw: 0.5, c: tx, s: tz };
+            const s: Obb = {
+              x: fx + face.nx * 0.5,
+              z: fz + face.nz * 0.5,
+              hl: Math.max(1, b.hl - 0.4),
+              hw: 0.5,
+              c: tx,
+              s: tz,
+            };
             box(`${id}b${f}`, s, storeys(LOOK_HOUSE, f) - 0.5, 1.1, BALCONY, undefined, 0, true);
           }
         }
         // shophouses: an arcade canopy over the pavement at the shop level
-        if (zone === 'shop' && r(k, 35) < 0.55) box(`${id}c`, { x: fx + face.nx * 0.7, z: fz + face.nz * 0.7, hl: b.hl - 0.15, hw: 0.7, c: tx, s: tz }, 3.6, 0.3, CANOPY, undefined, 0, true);
+        if (zone === 'shop' && r(k, 35) < 0.55)
+          box(
+            `${id}c`,
+            {
+              x: fx + face.nx * 0.7,
+              z: fz + face.nz * 0.7,
+              hl: b.hl - 0.15,
+              hw: 0.7,
+              c: tx,
+              s: tz,
+            },
+            3.6,
+            0.3,
+            CANOPY,
+            undefined,
+            0,
+            true,
+          );
         // vertical shop signs on the shopping streets
         const signP = zone === 'shop' ? 0.7 : rank >= 3 ? 0.5 : rank >= 2 ? 0.3 : 0.12;
         if (!balc && H >= 7 && r(k, 36) < signP) {
           const t = (r(k, 37) - 0.5) * Math.max(0, b.hl * 2 - 2);
-          signC.push({ r: r(k, 38), p: { x: fx + tx * t + face.nx * 0.65, y: 5.2 + r(k, 39) * 1.2, z: fz + tz * t + face.nz * 0.65, yaw: Math.atan2(tx, tz), word: Math.floor(r(k, 40) * SHOP_WORDS.length), color: Math.floor(r(k, 41) * SIGN_COLORS.length) } });
+          signC.push({
+            r: r(k, 38),
+            p: {
+              x: fx + tx * t + face.nx * 0.65,
+              y: 5.2 + r(k, 39) * 1.2,
+              z: fz + tz * t + face.nz * 0.65,
+              yaw: Math.atan2(tx, tz),
+              word: Math.floor(r(k, 40) * SHOP_WORDS.length),
+              color: Math.floor(r(k, 41) * SIGN_COLORS.length),
+            },
+          });
         }
         if (!balc) acsOn(face, fx, fz, tx, tz, b.hl * 2, H, k, bn - 1);
       }
@@ -640,7 +756,15 @@ export function fillBlocks(data: OsmCityData, opt: FillOptions = {}): FillResult
       for (let i = 0; i < count; i++) {
         const fl = Math.floor(r(k, 51, i) * floors);
         const t = (r(k, 52, i) - 0.5) * (len - 1.6);
-        acC.push({ r: r(k, 53, i), p: { x: fx + tx * t + face.nx * 0.24, y: 3.6 + fl * 3 + 0.5, z: fz + tz * t + face.nz * 0.24, yaw: Math.atan2(face.nx, face.nz) } });
+        acC.push({
+          r: r(k, 53, i),
+          p: {
+            x: fx + tx * t + face.nx * 0.24,
+            y: 3.6 + fl * 3 + 0.5,
+            z: fz + tz * t + face.nz * 0.24,
+            yaw: Math.atan2(face.nx, face.nz),
+          },
+        });
       }
     }
 
@@ -648,11 +772,27 @@ export function fillBlocks(data: OsmCityData, opt: FillOptions = {}): FillResult
       // the decor draws sheds axis-aligned: a square small enough to stay on a rotated roof
       const s = Math.min(b.hl, b.hw) * 2 * 0.5;
       const off = (r(k, 60) - 0.5) * Math.max(0, b.hl * 2 - s * 1.5);
-      return { x: b.x + b.c * off, y, z: b.z + b.s * off, w: s, d: s, h: 2.4, color: SHED[Math.floor(r(k, 61) * SHED.length)] };
+      return {
+        x: b.x + b.c * off,
+        y,
+        z: b.z + b.s * off,
+        w: s,
+        d: s,
+        h: 2.4,
+        color: SHED[Math.floor(r(k, 61) * SHED.length)],
+      };
     }
 
     function roofDecor(b: Obb, y: number, k: number, sheds: boolean) {
-      if (Math.min(b.hl, b.hw) * 2 >= 3.2) tankC.push({ r: r(k, 62), p: { x: b.x + b.c * (r(k, 63) - 0.5) * Math.max(0, b.hl * 2 - 2.6), y, z: b.z + b.s * (r(k, 63) - 0.5) * Math.max(0, b.hl * 2 - 2.6) } });
+      if (Math.min(b.hl, b.hw) * 2 >= 3.2)
+        tankC.push({
+          r: r(k, 62),
+          p: {
+            x: b.x + b.c * (r(k, 63) - 0.5) * Math.max(0, b.hl * 2 - 2.6),
+            y,
+            z: b.z + b.s * (r(k, 63) - 0.5) * Math.max(0, b.hl * 2 - 2.6),
+          },
+        });
       if (sheds && Math.min(b.hl, b.hw) * 2 >= 4 && r(k, 64) < 0.3) decor.sheds.push(shedOn(b, y, k));
     }
   });

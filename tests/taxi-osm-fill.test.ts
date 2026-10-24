@@ -6,8 +6,22 @@ import { osmLevel } from '../src/taxi/world/osm/level';
 import type { Shape } from '../src/taxi/world/greybox';
 
 type BoxShape = Extract<Shape, { kind: 'box' }>;
-const sq = (x: number, z: number, h: number, ang = 0): Obb => ({ x, z, hl: h, hw: h, c: Math.cos(ang), s: Math.sin(ang) });
-const toObb = (s: BoxShape): Obb => ({ x: s.p[0], z: s.p[2], hl: s.size[0] / 2, hw: s.size[2] / 2, c: Math.cos(-(s.yaw ?? 0)), s: Math.sin(-(s.yaw ?? 0)) });
+const sq = (x: number, z: number, h: number, ang = 0): Obb => ({
+  x,
+  z,
+  hl: h,
+  hw: h,
+  c: Math.cos(ang),
+  s: Math.sin(ang),
+});
+const toObb = (s: BoxShape): Obb => ({
+  x: s.p[0],
+  z: s.p[2],
+  hl: s.size[0] / 2,
+  hw: s.size[2] / 2,
+  c: Math.cos(-(s.yaw ?? 0)),
+  s: Math.sin(-(s.yaw ?? 0)),
+});
 
 describe('fill geometry helpers', () => {
   it('separates and overlaps oriented boxes', () => {
@@ -77,7 +91,10 @@ describe('fill of central Kaohsiung', () => {
     const looks = new Set(F.shapes.filter((s): s is BoxShape => s.kind === 'box' && s.look !== undefined).map((s) => Math.floor(s.look!)));
     expect([...looks].sort()).toEqual([0, 1, 2, 3]);
     // old town is narrow 透天厝 frontage: median lot width 4–7 m
-    const old = F.footprints.filter((f) => f.front && zoneOf(KAOHSIUNG.blocks[f.block]) === 'old').map((f) => f.b.hl * 2).sort((a, b) => a - b);
+    const old = F.footprints
+      .filter((f) => f.front && zoneOf(KAOHSIUNG.blocks[f.block]) === 'old')
+      .map((f) => f.b.hl * 2)
+      .sort((a, b) => a - b);
     const med = old[old.length >> 1];
     expect(med).toBeGreaterThanOrEqual(4);
     expect(med).toBeLessThanOrEqual(7);
@@ -147,8 +164,7 @@ describe('fill of central Kaohsiung', () => {
       const i = Math.floor(f.b.x / 30),
         j = Math.floor(f.b.z / 30);
       for (let a = i - 2; a <= i + 2; a++)
-        for (let c = j - 2; c <= j + 2; c++)
-          for (const o of cell.get(`${a},${c}`) ?? []) if (o.b !== f.b && obbOverlap(f.b, { ...o.b, hl: o.b.hl - 0.01, hw: o.b.hw - 0.01 })) hits++;
+        for (let c = j - 2; c <= j + 2; c++) for (const o of cell.get(`${a},${c}`) ?? []) if (o.b !== f.b && obbOverlap(f.b, { ...o.b, hl: o.b.hl - 0.01, hw: o.b.hw - 0.01 })) hits++;
     }
     expect(hits).toBe(0);
   });

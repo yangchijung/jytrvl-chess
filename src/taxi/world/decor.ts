@@ -39,7 +39,9 @@ function tiles<T extends { x: number; z: number }>(items: T[]) {
   }
   return [...map.values()];
 }
-function instanced(geo: THREE.BufferGeometry, mat: THREE.Material, items: Item[], shadow = true) {
+/** `far`: small detail is dropped beyond this distance from the tile's centre (a THREE.LOD per tile), which saves
+ *  draw calls and triangles where it would be a pixel or two under the haze anyway */
+function instanced(geo: THREE.BufferGeometry, mat: THREE.Material, items: Item[], shadow = true, far = Infinity) {
   if (!items.length) return null;
   const group = new THREE.Group();
   for (const part of items.length > 120 ? tiles(items) : [items]) {
@@ -52,9 +54,21 @@ function instanced(geo: THREE.BufferGeometry, mat: THREE.Material, items: Item[]
     mesh.computeBoundingSphere();
     mesh.castShadow = shadow;
     mesh.receiveShadow = true;
-    group.add(mesh);
+    group.add(far < Infinity ? farCull(mesh, far) : mesh);
   }
   return group;
+}
+
+/** wraps a mesh (world-space vertices or instances) in a LOD that shows nothing past `far` from its centre */
+function farCull(mesh: THREE.Mesh, far: number) {
+  if (!mesh.geometry.boundingSphere) mesh.geometry.computeBoundingSphere();
+  const c = ((mesh as THREE.InstancedMesh).boundingSphere ?? mesh.geometry.boundingSphere)!.center;
+  const lod = new THREE.LOD();
+  lod.position.set(c.x, 0, c.z);
+  mesh.position.set(-c.x, 0, -c.z);
+  lod.addLevel(mesh, 0);
+  lod.addLevel(new THREE.Object3D(), far);
+  return lod;
 }
 
 /**
@@ -342,17 +356,28 @@ export function drawDecor(scene: THREE.Scene, level: Level) {
 
   // ---------- rooftops ----------
   const tankGeo = mergeGeometries([cyl(0.62, 0.62, 1.3, 0, 1.45, 0, '#C9CED6', 12), cyl(0.64, 0.64, 0.08, 0, 2.12, 0, '#AEB4BC', 12), ...[-1, 1].flatMap((sx) => [-1, 1].map((sz) => bx(0.08, 0.8, 0.08, sx * 0.45, 0.4, sz * 0.45, '#5D6B78')))]);
-  add(instanced(tankGeo, vc(), d.tanks));
-  add(instanced(new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0), new THREE.MeshLambertMaterial({ flatShading: true }), d.sheds.map((s) => ({ x: s.x, y: s.y, z: s.z, s: new THREE.Vector3(s.w, s.h, s.d), color: s.color }))));
+  add(instanced(tankGeo, vc(), d.tanks, true, 330));
+  add(instanced(new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0), new THREE.MeshLambertMaterial({ flatShading: true }), d.sheds.map((s) => ({ x: s.x, y: s.y, z: s.z, s: new THREE.Vector3(s.w, s.h, s.d), color: s.color })), true, 330));
   // ---------- walls: air conditioners (a dark fan on the front) ----------
   const acGeo = mergeGeometries([bx(0.8, 0.55, 0.42, 0, 0, 0, '#D5D8DC'), colored(new THREE.CircleGeometry(0.2, 10).translate(0.12, 0, 0.215), '#4A4F57')]);
-  add(instanced(acGeo, vc(), d.acs, false));
+  add(instanced(acGeo, vc(), d.acs, false, 240));
 
   // ---------- vertical shop signboards: coloured board, word in the contrasting colour (both faces) ----------
   if (d.shopSigns.length) {
     const { t, cols, rows } = signAtlas();
+    const mat = new THREE.MeshBasicMaterial({ map: t });
+    // board colour and ink colour come per vertex; the atlas only says where the ink is
+    mat.onBeforeCompile = (sh) => {
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec3 aFg; attribute vec3 aBg; varying vec3 vFg; varying vec3 vBg;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvFg = aFg; vBg = aBg;');
+      sh.fragmentShader = sh.fragmentShader
+        .replace('#include <common>', '#include <common>\nvarying vec3 vFg; varying vec3 vBg;')
+        .replace('#include <map_fragment>', '#ifdef USE_MAP\nfloat ink = texture2D(map, vMapUv).r;\ndiffuseColor.rgb = mix(vBg, vFg, ink);\n#endif');
+    };
+    mats.push(mat);
+    // one merged mesh per 230 m tile, dropped past 300 m, so the far tiles cost nothing
+    for (const tile of d.shopSigns.length > 120 ? tiles(d.shopSigns) : [d.shopSigns]) {
     const parts: THREE.BufferGeometry[] = [];
-    for (const s of d.shopSigns) {
+    for (const s of tile) {
       const [bg, fg] = SIGN_COLORS[s.color];
       const u0 = (s.word % cols) / cols,
         u1 = u0 + 1 / cols;
@@ -380,17 +405,8 @@ export function drawDecor(scene: THREE.Scene, level: Level) {
       parts.push(f.toNonIndexed());
     }
     const geo = mergeGeometries(parts.map((g) => (g.index ? g.toNonIndexed() : g)));
-    const mat = new THREE.MeshBasicMaterial({ map: t });
-    // board colour and ink colour come per vertex; the atlas only says where the ink is
-    mat.onBeforeCompile = (sh) => {
-      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec3 aFg; attribute vec3 aBg; varying vec3 vFg; varying vec3 vBg;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvFg = aFg; vBg = aBg;');
-      sh.fragmentShader = sh.fragmentShader
-        .replace('#include <common>', '#include <common>\nvarying vec3 vFg; varying vec3 vBg;')
-        .replace('#include <map_fragment>', '#ifdef USE_MAP\nfloat ink = texture2D(map, vMapUv).r;\ndiffuseColor.rgb = mix(vBg, vFg, ink);\n#endif');
-    };
-    mats.push(mat);
-    const mesh = new THREE.Mesh(geo, mat);
-    scene.add(mesh);
+    scene.add(farCull(new THREE.Mesh(geo, mat), 300));
+    }
   }
 
   // ---------- scooters: painted body (per scooter colour) + dark parts ----------
