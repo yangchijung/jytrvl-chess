@@ -1,5 +1,6 @@
-// Rush Taxi — control settings in the pause menu: 自動油門 (auto gas, so small children only steer) and 傾斜轉向
-// (steer by tilting the iPad) with 校正 (take the way it is held now as straight ahead). Saved per browser.
+// Rush Taxi — settings in the pause menu: 自動油門 (auto gas, so small children only steer), 傾斜轉向 (steer by
+// tilting the iPad) with 校正 (take the way it is held now as straight ahead), and 時段 (time of day: 白天 / 黃昏 /
+// 夜晚 / 自動). Saved per browser.
 // useControlSettings owns the TiltInput and writes autoGas / tilt into the game's Input only while a run is played.
 import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import type { Lang } from '../../i18n';
@@ -7,6 +8,7 @@ import type { Game } from '../game';
 import { loadSettings, saveSettings, type TaxiSettings } from '../core/settings';
 import { TiltInput, type TiltStatus } from '../core/tilt';
 import { ActionIcon } from './Help';
+import { TIME_SETTINGS, type TimeSetting } from '../fx/timeOfDay';
 
 type L = { zh: string; en: string };
 const T = {
@@ -16,6 +18,13 @@ const T = {
   calibrated: { zh: '已校正', en: 'Centered' },
   denied: { zh: '未允許使用感應器', en: 'Motion sensor not allowed' },
   help: { zh: '操作說明', en: 'Controls' },
+  time: { zh: '時段', en: 'Time of day' },
+};
+const TIME_LABEL: Record<TimeSetting, L> = {
+  day: { zh: '白天', en: 'Day' },
+  sunset: { zh: '黃昏', en: 'Sunset' },
+  night: { zh: '夜晚', en: 'Night' },
+  auto: { zh: '自動', en: 'Auto' },
 };
 
 export interface ControlSettings {
@@ -26,6 +35,7 @@ export interface ControlSettings {
   /** call from a tap: iOS asks for permission there */
   setTilt: (on: boolean) => Promise<void>;
   calibrate: () => boolean;
+  setTime: (t: TimeSetting) => void;
 }
 
 /** `playing` = a run is on screen and not paused: only then may auto gas and tilt reach the car */
@@ -57,6 +67,11 @@ export function useControlSettings(game: RefObject<Game | null>, ready: boolean,
     g.input.autoGas = settings.autoGas && playing;
     if (!playing || !settings.tilt || tiltStatus !== 'on') g.input.tilt = null; // otherwise the next sensor event fills it in
   }, [game, ready, playing, settings.autoGas, settings.tilt, tiltStatus]);
+
+  // the time of day reaches the game as soon as it is up (the menu's overview shows it too)
+  useEffect(() => {
+    if (ready) game.current?.setTime(settings.time);
+  }, [game, ready, settings.time]);
 
   // tilt was left on last time: listen again. iOS needs a tap for the permission, so the first tap does it.
   useEffect(() => {
@@ -102,7 +117,8 @@ export function useControlSettings(game: RefObject<Game | null>, ready: boolean,
     if (c) update({ tiltCentre: c });
     return !!c;
   }, [update]);
-  return { settings, tiltSupported, tiltStatus, setAutoGas, setTilt, calibrate };
+  const setTime = useCallback((t: TimeSetting) => update({ time: t }), [update]);
+  return { settings, tiltSupported, tiltStatus, setAutoGas, setTilt, calibrate, setTime };
 }
 
 function Switch({ on, onChange, label, icon, testid }: { on: boolean; onChange: (on: boolean) => void; label: string; icon: ReactNode; testid: string }) {
@@ -137,6 +153,47 @@ export const HelpIcon = () => (
   </svg>
 );
 
+/** 時段: a segmented control (a radio group; arrow keys move the choice, the chosen one is filled dark) */
+function TimeChoice({ lang, value, onChange }: { lang: Lang; value: TimeSetting; onChange: (t: TimeSetting) => void }) {
+  const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  const move = (i: number) => {
+    const k = (i + TIME_SETTINGS.length) % TIME_SETTINGS.length;
+    onChange(TIME_SETTINGS[k]);
+    refs.current[k]?.focus();
+  };
+  const at = TIME_SETTINGS.indexOf(value);
+  return (
+    <div className="tc-seg-wrap">
+      <span className="tc-seg-title" id="tc-time-label">
+        {T.time[lang]}
+      </span>
+      <div className="tc-seg" role="radiogroup" aria-labelledby="tc-time-label" data-testid="taxi-time-of-day">
+        {TIME_SETTINGS.map((t, i) => (
+          <button
+            key={t}
+            ref={(el) => {
+              refs.current[i] = el;
+            }}
+            type="button"
+            role="radio"
+            aria-checked={t === value}
+            tabIndex={t === value ? 0 : -1}
+            className="tc-seg-btn"
+            data-testid={`taxi-time-${t}`}
+            onClick={() => onChange(t)}
+            onKeyDown={(e) => {
+              if (e.key === 'ArrowRight' || e.key === 'ArrowDown') (e.preventDefault(), move(at + 1));
+              else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') (e.preventDefault(), move(at - 1));
+            }}
+          >
+            {TIME_LABEL[t][lang]}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** the settings row of the pause menu; the help button sits first so the row reads "how to play, then options" */
 export function Settings({ lang, c, onHelp }: { lang: Lang; c: ControlSettings; onHelp: () => void }) {
   const tr = (l: L) => l[lang];
@@ -168,6 +225,7 @@ export function Settings({ lang, c, onHelp }: { lang: Lang; c: ControlSettings; 
           </span>
         </>
       )}
+      <TimeChoice lang={lang} value={c.settings.time} onChange={c.setTime} />
     </div>
   );
 }

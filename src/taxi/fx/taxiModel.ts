@@ -4,18 +4,22 @@
 // and sways with the car: leans out in corners, sinks back on the gas, rocks on landings. Few draw calls: one
 // merged mesh with vertex colours for the paint and trim, one for the glass, one for the lights.
 import * as THREE from 'three';
+import { CAB_PAINT_FILL, glowVertexColours } from './nightGlow';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { CARS, DRIVERS, type CarLook, type DriverLook } from '../vehicle/roster';
+import { SURF, surfFor, taxiBodyMaterial, taxiGlassMaterial, type Surf } from './surfaces';
 
 const C = { paint: '#FFC72C', trim: '#262A30', grille: '#1B1E23', chrome: '#C9CED6', glass: '#2C4258', head: '#FFF4D6', tail: '#E53935', plate: '#F5F5F5', skin: '#F1C9A5', shirt: '#F5F5F5', hair: '#2B2B2B', vest: '#1E5AA8' };
 
-export function colored(g: THREE.BufferGeometry, color: string) {
+/** a part in one colour; `surf` says what it is made of (by default looked up from the colour, see surfaces.ts) */
+export function colored(g: THREE.BufferGeometry, color: string, surf: Surf = surfFor(color)) {
   const c = new THREE.Color(color);
   const g2 = g.index ? g.toNonIndexed() : g;
   const n = g2.getAttribute('position').count;
   const col = new Float32Array(n * 3);
   for (let i = 0; i < n; i++) col.set([c.r, c.g, c.b], i * 3);
   g2.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  g2.setAttribute('aSurf', new THREE.BufferAttribute(new Float32Array(n).fill(surf), 1));
   g2.deleteAttribute('uv');
   return g2;
 }
@@ -137,13 +141,14 @@ export function buildTaxi(wheelRadius: number, look: CarLook = CARS[0].look, who
     parts.push(box(0.16, 0.1, 0.22, s * 0.98, 0.42, 0.82, C.paint));
     parts.push(box(0.1, 0.04, 0.03, s * 0.93, 0.42, 0.88, C.trim));
     // door handles
-    parts.push(box(0.03, 0.03, 0.14, s * 0.91, 0.24, 0.12, C.trim));
-    parts.push(box(0.03, 0.03, 0.14, s * 0.91, 0.24, -0.9, C.trim));
+    parts.push(box(0.03, 0.03, 0.14, s * 0.91, 0.24, 0.12, C.chrome));
+    parts.push(box(0.03, 0.03, 0.14, s * 0.91, 0.24, -0.9, C.chrome));
   }
   // bumpers, grille, plates
   parts.push(box(1.84, 0.2, 0.12, 0, -0.16, 2.06, C.trim));
   parts.push(box(1.84, 0.2, 0.12, 0, -0.16, look.rearEnd - 0.03, C.trim));
   parts.push(box(0.86, 0.14, 0.04, 0, 0.06, 2.07, C.grille));
+  parts.push(box(0.88, 0.025, 0.05, 0, 0.135, 2.075, C.chrome)); // chrome bar along the top of the grille
   parts.push(box(0.44, 0.13, 0.02, 0, -0.16, 2.125, C.plate));
   parts.push(box(0.44, 0.13, 0.02, 0, 0.0, look.rearEnd - 0.085, C.plate));
   if (look.rearEnd < -1.95) parts.push(box(1.5, 0.012, 0.012, 0, 0.3, look.rearEnd + 0.42, C.trim)); // trunk lid seam
@@ -158,7 +163,9 @@ export function buildTaxi(wheelRadius: number, look: CarLook = CARS[0].look, who
   parts.push(box(1.4, 0.4, 0.14, 0, 0.58, Math.max(-1.08, gRb + 0.25), '#4A4F57'));
   // roof sign base
   parts.push(box(0.5, 0.05, 0.2, 0, roofY + 0.07, roofZ, C.trim));
-  const paint = new THREE.Mesh(mergeGeometries(parts), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }));
+  // clearcoat paint, chrome, rubber and the cabin told apart per vertex (one material, one draw call); the wheels share it
+  const bodyMat = glowVertexColours(taxiBodyMaterial(), CAB_PAINT_FILL);
+  const paint = new THREE.Mesh(mergeGeometries(parts), bodyMat);
   paint.castShadow = true;
   paint.receiveShadow = true;
 
@@ -175,7 +182,7 @@ export function buildTaxi(wheelRadius: number, look: CarLook = CARS[0].look, who
     [],
     0.02,
   );
-  const glassMesh = new THREE.Mesh(glass, new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.62, depthWrite: false }));
+  const glassMesh = new THREE.Mesh(glass, taxiGlassMaterial(0.62));
 
   // ---------- lights ----------
   const headMat = new THREE.MeshBasicMaterial({ color: C.head });
@@ -246,7 +253,7 @@ export function buildTaxi(wheelRadius: number, look: CarLook = CARS[0].look, who
   const wparts = [];
   const tyre = new THREE.CylinderGeometry(R, R, 0.26, 18);
   tyre.rotateZ(Math.PI / 2);
-  wparts.push(colored(tyre, C.trim));
+  wparts.push(colored(tyre, C.trim, SURF.rubber));
   for (const s of [-1, 1]) {
     const rim = new THREE.CylinderGeometry(R * 0.62, R * 0.62, 0.02, 12);
     rim.rotateZ(Math.PI / 2);
@@ -265,7 +272,7 @@ export function buildTaxi(wheelRadius: number, look: CarLook = CARS[0].look, who
     }
   }
   const wheelGeo = mergeGeometries(wparts);
-  const wheelMat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+  const wheelMat = bodyMat;
   const wheels = [0, 1, 2, 3].map(() => {
     const w = new THREE.Mesh(wheelGeo, wheelMat);
     w.castShadow = true;
