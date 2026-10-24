@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { parseQuality, qualityFor } from '../src/taxi/fx/quality';
-import { bankRise, roadMaterial, ROAD_LOOK, roadNoise, setSurfaceQuality, setWet, SURF, surfFor, taxiBodyMaterial, taxiGlassMaterial, trafficMaterial, WET, withGlassReflection } from '../src/taxi/fx/surfaces';
+import { bankRise, NOISE_SIZE, roadMaterial, roadNoiseData, ROAD_LOOK, roadNoise, setSurfaceQuality, setWet, SURF, surfFor, taxiBodyMaterial, taxiGlassMaterial, trafficMaterial, WET, withGlassReflection } from '../src/taxi/fx/surfaces';
 import { farCityRing, keepHemisphereAmbient } from '../src/taxi/fx/envLight';
 import { colored, sedanGeometry } from '../src/taxi/fx/taxiModel';
 import { buildingMaterial, waterMaterial } from '../src/taxi/world/decor';
@@ -65,18 +65,24 @@ describe('car surfaces', () => {
     expect(sedan.paint.getAttribute('aSurf')).toBeTruthy();
     expect(Array.from(sedan.detail.getAttribute('aSurf').array)).toContain(SURF.glass);
   });
-  it('low keeps Lambert; mid gives the taxi clearcoat and the traffic one shared standard material', () => {
+  it('low keeps Lambert; mid gives the taxi glossy paint, high a clearcoat; the traffic shares one standard material', () => {
     expect(taxiBodyMaterial()).toBeInstanceOf(THREE.MeshLambertMaterial);
     expect(trafficMaterial()).toBeInstanceOf(THREE.MeshLambertMaterial);
     setSurfaceQuality('mid');
+    const gloss = taxiBodyMaterial() as THREE.MeshPhysicalMaterial;
+    expect(gloss.isMeshStandardMaterial && !gloss.isMeshPhysicalMaterial).toBe(true);
+    expect(compile(gloss, 'standard').fragmentShader).toContain('radiance *= envK');
+    setSurfaceQuality('high');
     const body = taxiBodyMaterial() as THREE.MeshPhysicalMaterial;
     expect(body.isMeshPhysicalMaterial).toBe(true);
     expect(body.clearcoat).toBe(1);
     const sh = compile(body, 'physical');
     expect(sh.fragmentShader).toContain('material.clearcoat *= step(floor(vSurf + 0.5), 0.5)');
     expect(sh.fragmentShader).toContain('roughnessFactor = uPaintRough');
+    expect(sh.fragmentShader).toContain('radiance *= envK');
     expect(sh.vertexShader).toContain('vSurf = aSurf');
     expect((taxiGlassMaterial(0.62) as THREE.MeshStandardMaterial).isMeshStandardMaterial).toBe(true);
+    setSurfaceQuality('mid');
     const npc = trafficMaterial();
     expect(npc).toBe(trafficMaterial());
     expect((npc as THREE.MeshStandardMaterial).isMeshStandardMaterial).toBe(true);
@@ -92,10 +98,13 @@ describe('glass towers', () => {
     const mat = withGlassReflection(buildingMaterial());
     expect(mat.customProgramCacheKey()).not.toBe(plain.customProgramCacheKey());
     const sh = compile(mat, 'lambert');
-    expect(sh.fragmentShader).toContain('facadeIsGlass(vLook, vOrg)');
+    // the tower decision is per building, made once per vertex; the fragment only reflects on glass
+    expect(sh.vertexShader).toContain('vGlass = facadeIsGlass(aLook,');
+    expect(sh.vertexShader.indexOf('vGlass = facadeIsGlass')).toBeLessThan(sh.vertexShader.indexOf('#include <project_vertex>'));
+    expect(sh.fragmentShader).toContain('if (vGlass > 0.5');
     // the facade shader's own work is untouched and still comes first
     expect(sh.fragmentShader.indexOf('glass tower: tinted curtain wall')).toBeGreaterThan(0);
-    expect(sh.fragmentShader.indexOf('facadeIsGlass(vLook, vOrg) &&')).toBeGreaterThan(sh.fragmentShader.indexOf('glass tower: tinted curtain wall'));
+    expect(sh.fragmentShader.indexOf('if (vGlass > 0.5')).toBeGreaterThan(sh.fragmentShader.indexOf('glass tower: tinted curtain wall'));
     expect(sh.uniforms.uGlassRefl).toBeTruthy();
   });
 });
@@ -133,7 +142,15 @@ describe('roads', () => {
   it('one tiny shared noise texture', () => {
     const t = roadNoise();
     expect(t).toBe(roadNoise());
-    expect(t.image.width).toBe(64);
+    expect(t.image.width).toBe(NOISE_SIZE);
+    // three scales in one read: the patch and blob channels are smooth (neighbours close), the grain is not
+    const d = roadNoiseData();
+    const step = (c: number) => Math.max(...Array.from({ length: NOISE_SIZE - 1 }, (_, x) => Math.abs(d[x * 4 + c] - d[(x + 1) * 4 + c])));
+    expect(step(1)).toBeLessThan(40);
+    expect(step(2)).toBeLessThan(25);
+    expect(step(0)).toBeGreaterThan(100);
+    // and it tiles: the last column runs smoothly into the first
+    expect(Math.abs(d[(NOISE_SIZE - 1) * 4 + 1] - d[1])).toBeLessThan(40);
     expect(t.wrapS).toBe(THREE.RepeatWrapping);
   });
   it('mid and high: grain, varied shine and paint sheen in the shader; wet stays off by default', () => {
@@ -143,7 +160,11 @@ describe('roads', () => {
     expect(m.isMeshPhongMaterial).toBe(true);
     expect(m.shininess).toBe(ROAD_LOOK.asphalt.shin);
     const sh = compile(m, 'phong');
-    expect(sh.fragmentShader).toContain('specularStrength = uShine');
+    expect(sh.fragmentShader).toContain('uShine * (0.55');
+    expect(sh.fragmentShader.match(/texture2D\( ?uRoadNoise/g)?.length).toBe(2); // one read, plus the fine one behind ROAD_FINE
+    expect(m.defines?.ROAD_FINE).toBeUndefined();
+    setSurfaceQuality('high');
+    expect((roadMaterial('#525459', 'asphalt') as THREE.MeshPhongMaterial).defines?.ROAD_FINE).toBe('');
     expect(sh.fragmentShader).toContain('rPuddle');
     expect(sh.vertexShader).toContain('vRw = (modelMatrix * rw).xyz');
     expect(sh.uniforms.uWet).toBe(WET);

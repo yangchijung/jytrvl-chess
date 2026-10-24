@@ -1,10 +1,11 @@
 // Rush Taxi: materials that look like what they are made of. Everything here keys off one quality tier:
 //
 //   low   today's look: Lambert cabs, Lambert roads, Phong water with ripples and glints, no environment map
-//   mid   environment map (scene.environment, 64 px PMREM); the taxi in clearcoat paint, chrome, glass and rubber
-//         (MeshPhysical); traffic in one shared MeshStandard; glass towers and water reflect the environment, the
+//   mid   environment map (scene.environment, 64 px PMREM); the taxi in glossy paint, chrome, glass and rubber
+//         (MeshStandard, one material); traffic in one shared MeshStandard; glass towers and water reflect the environment, the
 //         river and sea also reflect a fake bank; roads and pavement get grain, varied shine and a paint sheen
-//   high  as mid with a 128 px PMREM, plus a real planar reflection on the water (see waterMirror.ts)
+//   high  as mid with a 128 px PMREM, clearcoat on the taxi (MeshPhysical), a finer road grain and a real planar
+//         reflection on the water (see waterMirror.ts)
 //
 // Parts of a merged car mesh say what they are through a per-vertex `aSurf` value (SURF below), so one material
 // draws paint, trim, chrome, glass and tyres in a single draw call.
@@ -13,6 +14,8 @@ import type { Quality } from './quality';
 import { FACADE_DECODE_GLSL } from '../world/facade';
 
 let tier: Quality = 'low';
+// TEMP perf probe: ?rx=road,glass,water,car,env disables parts
+export const RX = new Set((typeof location !== 'undefined' ? new URLSearchParams(location.search).get('rx') ?? '' : '').split(','));
 /** set once, before the scene is built; callers that never set it keep the 'low' (original) look */
 export function setSurfaceQuality(q: Quality) {
   tier = q;
@@ -60,27 +63,38 @@ export const SURF_PBR: Record<Surf, [number, number]> = {
 
 const f = (n: number) => n.toFixed(3);
 const CAR_FRAG = /* glsl */ `
+float surfK = floor(vSurf + 0.5);
+if (surfK < 0.5) { roughnessFactor = uPaintRough; metalnessFactor = uPaintMetal; }
+else if (surfK < 1.5) { roughnessFactor = ${f(SURF_PBR[1][0])}; metalnessFactor = ${f(SURF_PBR[1][1])}; }
+else if (surfK < 2.5) { roughnessFactor = ${f(SURF_PBR[2][0])}; metalnessFactor = ${f(SURF_PBR[2][1])}; }
+else if (surfK < 3.5) { roughnessFactor = ${f(SURF_PBR[3][0])}; metalnessFactor = ${f(SURF_PBR[3][1])}; }
+else if (surfK < 4.5) { roughnessFactor = ${f(SURF_PBR[4][0])}; metalnessFactor = ${f(SURF_PBR[4][1])}; }
+else if (surfK < 5.5) { roughnessFactor = ${f(SURF_PBR[5][0])}; metalnessFactor = ${f(SURF_PBR[5][1])}; }
+else { roughnessFactor = ${f(SURF_PBR[6][0])}; metalnessFactor = ${f(SURF_PBR[6][1])}; }`;
+
+// the sky in the paint is kept down (uPaintEnv) so the cab stays taxi yellow; chrome and glass take it all
+const CAR_ENV = /* glsl */ `
 {
-  float sk = floor(vSurf + 0.5);
-  if (sk < 0.5) { roughnessFactor = uPaintRough; metalnessFactor = uPaintMetal; }
-  else if (sk < 1.5) { roughnessFactor = ${f(SURF_PBR[1][0])}; metalnessFactor = ${f(SURF_PBR[1][1])}; }
-  else if (sk < 2.5) { roughnessFactor = ${f(SURF_PBR[2][0])}; metalnessFactor = ${f(SURF_PBR[2][1])}; }
-  else if (sk < 3.5) { roughnessFactor = ${f(SURF_PBR[3][0])}; metalnessFactor = ${f(SURF_PBR[3][1])}; }
-  else if (sk < 4.5) { roughnessFactor = ${f(SURF_PBR[4][0])}; metalnessFactor = ${f(SURF_PBR[4][1])}; }
-  else if (sk < 5.5) { roughnessFactor = ${f(SURF_PBR[5][0])}; metalnessFactor = ${f(SURF_PBR[5][1])}; }
-  else { roughnessFactor = ${f(SURF_PBR[6][0])}; metalnessFactor = ${f(SURF_PBR[6][1])}; }
+  float envK = surfK < 0.5 ? uPaintEnv : 1.0;
+  radiance *= envK;
+  #ifdef USE_CLEARCOAT
+  clearcoatRadiance *= envK;
+  #endif
 }`;
 
-function surfShader(mat: THREE.MeshStandardMaterial, paintRough: number, paintMetal: number, key: string) {
+function surfShader(mat: THREE.MeshStandardMaterial, paintRough: number, paintMetal: number, paintEnv: number, key: string) {
   const uPaintRough = { value: paintRough };
   const uPaintMetal = { value: paintMetal };
+  const uPaintEnv = { value: paintEnv };
   mat.onBeforeCompile = (sh) => {
     sh.uniforms.uPaintRough = uPaintRough;
     sh.uniforms.uPaintMetal = uPaintMetal;
+    sh.uniforms.uPaintEnv = uPaintEnv;
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float aSurf;\nvarying float vSurf;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvSurf = aSurf;');
     sh.fragmentShader = sh.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying float vSurf;\nuniform float uPaintRough;\nuniform float uPaintMetal;')
+      .replace('#include <common>', '#include <common>\nvarying float vSurf;\nuniform float uPaintRough;\nuniform float uPaintMetal;\nuniform float uPaintEnv;')
       .replace('#include <metalnessmap_fragment>', `#include <metalnessmap_fragment>${CAR_FRAG}`)
+      .replace('#include <lights_fragment_maps>', `#include <lights_fragment_maps>${CAR_ENV}`)
       // the clearcoat is on the paint only
       .replace('#include <lights_physical_fragment>', '#include <lights_physical_fragment>\n#ifdef USE_CLEARCOAT\nmaterial.clearcoat *= step(floor(vSurf + 0.5), 0.5);\n#endif');
   };
@@ -88,11 +102,16 @@ function surfShader(mat: THREE.MeshStandardMaterial, paintRough: number, paintMe
   return mat;
 }
 
-/** the taxi's body and wheels: clearcoat paint on mid and high, the original Lambert on low */
+/** the taxi's body and wheels: clearcoat paint on high, glossy paint on mid, the original Lambert on low */
 export function taxiBodyMaterial(): THREE.Material {
-  if (tier === 'low') return new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
-  const m = new THREE.MeshPhysicalMaterial({ vertexColors: true, flatShading: true, roughness: 0.4, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.06 });
-  return surfShader(m, 0.42, 0, 'taxi');
+  if (tier === 'low' || RX.has('car')) return new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+  // the clearcoat (a second specular lobe on every pixel of the cab) is for desktops; tablets get the same paint,
+  // chrome and glass without it
+  const m =
+    tier === 'high'
+      ? new THREE.MeshPhysicalMaterial({ vertexColors: true, flatShading: true, roughness: 0.4, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.06 })
+      : new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.4, metalness: 0 });
+  return surfShader(m, tier === 'high' ? 0.42 : 0.3, 0, 0.4, 'taxi');
 }
 
 /** the taxi's glass house: tinted, see-through, reflecting the sky */
@@ -106,7 +125,7 @@ let npcMat: { tier: Quality; mat: THREE.Material } | null = null;
 /** one material for every traffic car (body and detail, all instanced): two programs for the whole traffic */
 export function trafficMaterial(): THREE.Material {
   if (npcMat && npcMat.tier === tier) return npcMat.mat;
-  const mat = tier === 'low' ? new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }) : surfShader(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.4, metalness: 0.1 }), 0.36, 0.12, 'npc');
+  const mat = tier === 'low' ? new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }) : surfShader(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.4, metalness: 0.1 }), 0.36, 0.12, 0.6, 'npc');
   npcMat = { tier, mat };
   return mat;
 }
@@ -116,10 +135,14 @@ export function trafficMaterial(): THREE.Material {
 
 export const GLASS_REFL = { value: 0.8 };
 
-/** the environment chunk for the glass curtain walls; needs buildingMaterial's varyings (vW, vNW, vLook, vOrg, vRoof) */
+/**
+ * The environment chunk for the glass curtain walls; needs buildingMaterial's varyings (vW, vNW, vOrg, vRoof). Whether
+ * a building is a glass tower is the same for the whole instance, so the vertex shader decides it (vGlass) and the
+ * fragment shader only pays for the reflection on glass.
+ */
 export const GLASS_TOWER_GLSL = /* glsl */ `
 #if defined( USE_ENVMAP ) && defined( ENVMAP_TYPE_CUBE_UV )
-if (abs(vNW.y) < 0.5 && facadeIsGlass(vLook, vOrg) && vW.y - vOrg.y > 4.4 && vRoof - vW.y > 0.9) {
+if (vGlass > 0.5 && abs(vNW.y) < 0.5 && vW.y - vOrg.y > 4.4 && vRoof - vW.y > 0.9) {
   vec3 gV = normalize(vW - cameraPosition);
   vec3 gN = normalize(vNW);
   vec3 gEnv = textureCubeUV(envMap, envMapRotation * reflect(gV, gN), 0.06).rgb * envMapIntensity;
@@ -130,15 +153,25 @@ if (abs(vNW.y) < 0.5 && facadeIsGlass(vLook, vOrg) && vW.y - vOrg.y > 4.4 && vRo
 #endif
 `;
 
+const GLASS_VERT = /* glsl */ `
+#ifdef USE_INSTANCING
+vGlass = facadeIsGlass(aLook, (modelMatrix * instanceMatrix * vec4(0.0, -0.5, 0.0, 1.0)).xyz) ? 1.0 : 0.0;
+#else
+vGlass = 0.0;
+#endif
+`;
+
 /** adds environment reflections to the glass towers of a material made by buildingMaterial(), after its own hook */
 export function withGlassReflection<M extends THREE.Material>(mat: M): M {
+  if (RX.has('glass')) return mat;
   const prev = mat.onBeforeCompile;
   const prevSrc = prev.toString();
   const keyBefore = mat.customProgramCacheKey();
   mat.onBeforeCompile = (sh, r) => {
     prev.call(mat, sh, r);
     sh.uniforms.uGlassRefl = GLASS_REFL;
-    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>\nuniform float uGlassRefl;${FACADE_DECODE_GLSL}`).replace('#include <envmap_fragment>', `${GLASS_TOWER_GLSL}\n#include <envmap_fragment>`);
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', `#include <common>\nvarying float vGlass;${FACADE_DECODE_GLSL}`).replace('#include <project_vertex>', `${GLASS_VERT}\n#include <project_vertex>`);
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vGlass;\nuniform float uGlassRefl;').replace('#include <envmap_fragment>', `${GLASS_TOWER_GLSL}\n#include <envmap_fragment>`);
   };
   mat.customProgramCacheKey = () => `${keyBefore}|${prevSrc}|glass`;
   return mat;
@@ -157,15 +190,20 @@ export function setWet(v: number) {
   for (const [m, base] of roadBase) m.color.copy(base).multiplyScalar(1 - 0.35 * WET.value);
 }
 
-/** one tiny tiling noise texture shared by every road material: r and g value noise at two seeds, b blobs */
+/**
+ * One tiny tiling noise texture shared by every road material, 128 px over 48 m, with three scales baked into its
+ * channels so 'mid' needs a single read: r aggregate (a texel, 0.375 m), g worn patches (3 m), b puddle blobs (8 m).
+ */
+export const NOISE_SIZE = 128;
+export const NOISE_SPAN = 48;
 let noiseTex: THREE.DataTexture | null = null;
-export function roadNoise() {
-  if (noiseTex) return noiseTex;
-  const N = 64;
+export function roadNoiseData(seed = 1234567) {
+  const N = NOISE_SIZE;
   const data = new Uint8Array(N * N * 4);
-  let s = 1234567;
+  let s = seed >>> 0;
   const rnd = () => ((s = (Math.imul(s, 1103515245) + 12345) >>> 0) >>> 8) / 16777216;
   const grid = (cells: number) => Array.from({ length: cells * cells }, rnd);
+  // smooth value noise that tiles with the texture
   const smooth = (g: number[], cells: number, x: number, y: number) => {
     const fx = (x / N) * cells,
       fy = (y / N) * cells;
@@ -178,16 +216,21 @@ export function roadNoise() {
     const at = (i: number, j: number) => g[(j % cells) * cells + (i % cells)];
     return (at(x0, y0) * (1 - sx) + at(x0 + 1, y0) * sx) * (1 - sy) + (at(x0, y0 + 1) * (1 - sx) + at(x0 + 1, y0 + 1) * sx) * sy;
   };
-  const blobs = grid(6);
+  const patches = grid(16),
+    blobs = grid(6);
   for (let y = 0; y < N; y++)
     for (let x = 0; x < N; x++) {
       const i = (y * N + x) * 4;
       data[i] = Math.round(rnd() * 255);
-      data[i + 1] = Math.round(rnd() * 255);
+      data[i + 1] = Math.round(smooth(patches, 16, x, y) * 255);
       data[i + 2] = Math.round(smooth(blobs, 6, x, y) * 255);
-      data[i + 3] = 255;
+      data[i + 3] = Math.round(rnd() * 255); // a second grain for the fine read on 'high'
     }
-  noiseTex = new THREE.DataTexture(data, N, N, THREE.RGBAFormat);
+  return data;
+}
+export function roadNoise() {
+  if (noiseTex) return noiseTex;
+  noiseTex = new THREE.DataTexture(roadNoiseData(), NOISE_SIZE, NOISE_SIZE, THREE.RGBAFormat);
   noiseTex.wrapS = noiseTex.wrapT = THREE.RepeatWrapping;
   noiseTex.magFilter = THREE.LinearFilter;
   noiseTex.minFilter = THREE.LinearMipmapLinearFilter;
@@ -211,18 +254,19 @@ uniform float uWet;
 uniform float uGrain;
 uniform float uShine;`;
 
+// the read is turned off the grid (so the 48 m repeat does not line up with the streets)
 const ROAD_COLOR = /* glsl */ `
-vec2 rgp = vRw.xz;
-float rPatch = texture2D(uRoadNoise, rgp / 190.0).g;          // worn and patched areas, a few metres across
-float rAgg = texture2D(uRoadNoise, rgp / 15.0).r;             // aggregate, a quarter metre
-float rGrain = texture2D(uRoadNoise, rgp / 1.6 + 0.37).g;    // fine grain (mipmapped away in the distance)
-float rPuddle = smoothstep(0.56, 0.72, texture2D(uRoadNoise, rgp / 330.0).b + 0.22 * (rPatch - 0.5)) * uWet;
-diffuseColor.rgb *= 0.94 + 0.1 * (rPatch - 0.5) + uGrain * (0.05 * (rAgg - 0.5) + 0.07 * (rGrain - 0.5));
-diffuseColor.rgb *= 1.0 - 0.36 * uWet - 0.22 * rPuddle;`;
+vec2 rgp = mat2(0.96, -0.28, 0.28, 0.96) * vRw.xz / ${NOISE_SPAN.toFixed(1)};
+vec4 rN = texture2D(uRoadNoise, rgp);
+float rFine = 0.5;
+#ifdef ROAD_FINE
+rFine = texture2D(uRoadNoise, rgp * 23.0 + 0.37).a;  // millimetre grain up close, mipmapped away further out
+#endif
+float rPuddle = smoothstep(0.56, 0.72, rN.b + 0.22 * (rN.g - 0.5)) * uWet;
+diffuseColor.rgb *= (0.94 + 0.1 * (rN.g - 0.5) + uGrain * (0.06 * (rN.r - 0.5) + 0.06 * (rFine - 0.5))) * (1.0 - 0.36 * uWet - 0.22 * rPuddle);`;
 
 const ROAD_SPEC = /* glsl */ `
-specularStrength = uShine * (0.55 + 0.9 * rPatch * rAgg);
-specularStrength = mix(specularStrength, 1.0, max(rPuddle, 0.35 * uWet));`;
+specularStrength = mix(uShine * (0.55 + 0.9 * rN.g * rN.r), 1.0, max(rPuddle, 0.35 * uWet));`;
 
 const ROAD_ENV = /* glsl */ `
 #if defined( USE_ENVMAP ) && defined( ENVMAP_TYPE_CUBE_UV )
@@ -231,24 +275,26 @@ if (uWet > 0.001) {
   vec3 rR = reflect(rV, vec3(0.0, 1.0, 0.0));
   vec3 rEnv = textureCubeUV(envMap, envMapRotation * rR, mix(0.3, 0.02, rPuddle)).rgb * envMapIntensity;
   float rF = 0.04 + 0.96 * pow(1.0 - abs(rV.y), 5.0);
-  outgoingLight = mix(outgoingLight, rEnv, clamp(rF * (0.35 * uWet + 0.65 * rPuddle) + 0.25 * rPuddle, 0.0, 0.9));
+  outgoingLight = mix(outgoingLight, rEnv, clamp(rF * (0.25 * uWet + 0.65 * rPuddle) + 0.25 * rPuddle, 0.0, 0.9));
 }
 #endif`;
 
 /**
- * Street surfaces with no textures but one shared 64 px noise: asphalt grain and worn patches with a shine that
- * varies across them, pavement with a finer grain, and road paint with a satin sheen. `setWet` darkens them and
- * (mid and high) adds puddles that mirror the environment. Works for plain and instanced meshes.
+ * Street surfaces with no textures but one shared 128 px noise: asphalt grain and worn patches with a shine that
+ * varies across them, pavement with a finer grain, and road paint with a satin sheen. 'mid' reads the noise once,
+ * 'high' twice (a finer grain). `setWet` darkens them and (mid and high) adds puddles that mirror the environment.
+ * Works for plain and instanced meshes.
  */
 export function roadMaterial(color: string | THREE.Color | null, kind: RoadKind, params: THREE.MeshPhongMaterialParameters = {}): THREE.Material {
   const base = color === null ? new THREE.Color('#FFFFFF') : new THREE.Color(color);
-  if (tier === 'low') {
+  if (tier === 'low' || RX.has('road')) {
     const m = new THREE.MeshLambertMaterial({ color: base, flatShading: true, ...(params as THREE.MeshLambertMaterialParameters) });
     roadBase.set(m, base.clone());
     return m;
   }
   const look = ROAD_LOOK[kind];
   const m = new THREE.MeshPhongMaterial({ color: base, specular: '#FFFFFF', shininess: look.shin, flatShading: true, ...params });
+  if (tier === 'high') m.defines = { ROAD_FINE: '' };
   const uGrain = { value: look.grain },
     uShine = { value: look.spec };
   m.onBeforeCompile = (sh) => {
@@ -265,7 +311,7 @@ export function roadMaterial(color: string | THREE.Color | null, kind: RoadKind,
       .replace('#include <specularmap_fragment>', `#include <specularmap_fragment>${ROAD_SPEC}`)
       .replace('#include <envmap_fragment>', `${ROAD_ENV}\n#include <envmap_fragment>`);
   };
-  m.customProgramCacheKey = () => 'road';
+  m.customProgramCacheKey = () => `road-${tier}`;
   return m;
 }
 
