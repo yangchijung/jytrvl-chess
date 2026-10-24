@@ -23,7 +23,7 @@ import type { Pitch } from '../massing';
 import { storeys } from '../massing';
 import { encodeLook, LOOK_HALL, LOOK_HOUSE, LOOK_TOWER, LOOK_WAREHOUSE } from '../facade';
 import { SHOP_WORDS, SIGN_COLORS } from '../city';
-import { RANK, type OsmBlock, type OsmCityData, type Ring, type XZ } from './data';
+import { RANK, type OsmBlock, type OsmCityData, type Poly, type Ring, type XZ } from './data';
 
 type BoxShape = Extract<Shape, { kind: 'box' }>;
 
@@ -215,6 +215,61 @@ class BoxGrid {
   }
 }
 
+/** the sidewalk, road and water polygons: a box must not touch any (the block polygons and the tiled surfaces can
+ *  disagree by a few centimetres where the tiles were clipped) */
+class SurfIndex {
+  private segs = new Map<number, number[]>();
+  private polys = new Map<number, Float64Array[][]>();
+  private cell = 16;
+  private key = (i: number, j: number) => (i + 1000) * 4096 + (j + 1000);
+  constructor(polys: Poly[]) {
+    const C = this.cell;
+    for (const poly of polys) {
+      const fl = poly.map(flatRing);
+      let x0 = Infinity,
+        x1 = -Infinity,
+        z0 = Infinity,
+        z1 = -Infinity;
+      for (const f of fl) {
+        const n = f.length;
+        for (let i = 0, j = n - 2; i < n; j = i, i += 2) {
+          const ax = f[j],
+            az = f[j + 1],
+            bx = f[i],
+            bz = f[i + 1];
+          x0 = Math.min(x0, bx);
+          x1 = Math.max(x1, bx);
+          z0 = Math.min(z0, bz);
+          z1 = Math.max(z1, bz);
+          for (let a = Math.floor(Math.min(ax, bx) / C); a <= Math.floor(Math.max(ax, bx) / C); a++)
+            for (let b = Math.floor(Math.min(az, bz) / C); b <= Math.floor(Math.max(az, bz) / C); b++) {
+              const k = this.key(a, b);
+              (this.segs.get(k) ?? this.segs.set(k, []).get(k)!).push(ax, az, bx, bz);
+            }
+        }
+      }
+      // small polygons (sidewalk pieces) also by area, for a box that would sit wholly inside one
+      if ((x1 - x0) * (z1 - z0) < 200000)
+        for (let a = Math.floor(x0 / C); a <= Math.floor(x1 / C); a++)
+          for (let b = Math.floor(z0 / C); b <= Math.floor(z1 / C); b++) {
+            const k = this.key(a, b);
+            (this.polys.get(k) ?? this.polys.set(k, []).get(k)!).push(fl);
+          }
+    }
+  }
+  hits(b: Obb) {
+    const C = this.cell,
+      R = b.hl + b.hw;
+    for (let a = Math.floor((b.x - R) / C); a <= Math.floor((b.x + R) / C); a++)
+      for (let c = Math.floor((b.z - R) / C); c <= Math.floor((b.z + R) / C); c++) {
+        const sg = this.segs.get(this.key(a, c));
+        if (sg) for (let i = 0; i < sg.length; i += 4) if (segHitsObb(sg[i], sg[i + 1], sg[i + 2], sg[i + 3], b)) return true;
+      }
+    for (const fl of this.polys.get(this.key(Math.floor(b.x / C), Math.floor(b.z / C))) ?? []) if (pointInFlat(b.x, b.z, fl[0]) && !fl.slice(1).some((h) => pointInFlat(b.x, b.z, h))) return true;
+    return false;
+  }
+}
+
 /** nearest road rank from a point, via a segment grid */
 class RoadIndex {
   private cells = new Map<number, { a: XZ; b: XZ; rank: number; w: number }[]>();
@@ -332,6 +387,7 @@ export function fillBlocks(data: OsmCityData, opt: FillOptions = {}): FillResult
   const grid = new BoxGrid();
   for (const m of mappedBoxes(data)) grid.add(m);
   const roads = new RoadIndex(data);
+  const surf = new SurfIndex([...data.surfaces.walk.map(([, p]) => p), ...data.surfaces.road.map(([, p]) => p), ...data.water]);
   // candidate decor, thinned to the caps at the end (so the caps do not favour the first blocks)
   const tankC: { p: Decor['tanks'][number]; r: number }[] = [];
   const signC: { p: Decor['shopSigns'][number]; r: number }[] = [];
@@ -362,7 +418,7 @@ export function fillBlocks(data: OsmCityData, opt: FillOptions = {}): FillResult
     /** try to place a box: inside the block, clear of everything placed */
     const polyF = poly.map(flatRing);
     const ringF = polyF[0];
-    const fits = (b: Obb) => pointInFlat(b.x, b.z, ringF) && !grid.hits(b, 0.05) && obbInFlat(b, polyF);
+    const fits = (b: Obb) => pointInFlat(b.x, b.z, ringF) && !grid.hits(b, 0.05) && obbInFlat(b, polyF) && !surf.hits(b);
     const commit = (b: Obb, front: boolean) => {
       grid.add(b);
       footprints.push({ b, block: bi, front });
@@ -466,26 +522,28 @@ export function fillBlocks(data: OsmCityData, opt: FillOptions = {}): FillResult
     }
 
     // ---------- every block of any size gets at least one building ----------
-    if (!placed && longest) {
-      const tx = (longest.b[0] - longest.a[0]) / longest.L,
-        tz = (longest.b[1] - longest.a[1]) / longest.L;
-      let cx = 0,
-        cz = 0;
-      for (const [x, z] of ring) {
-        cx += x / ring.length;
-        cz += z / ring.length;
-      }
-      search: for (const sz of [12, 9, 7, 5, 4]) {
-        for (let dr = 0; dr <= 24; dr += 2)
-          for (let a = 0; a < (dr ? 8 : 1); a++) {
-            const x = cx + Math.cos((a * Math.PI) / 4) * dr,
-              z = cz + Math.sin((a * Math.PI) / 4) * dr;
-            const b: Obb = { x, z, hl: sz / 2, hw: Math.min(sz, 10) / 2, c: tx, s: tz };
+    if (!placed) {
+      // slivers (strips beside a rail line, wedge corners): a narrow row of sheet-metal shops along an edge
+      search: for (const [d, len] of [
+        [8, 10],
+        [6, 8],
+        [4.5, 6],
+        [3.2, 5],
+        [2.6, 4],
+      ]) {
+        for (const e of edges) {
+          const tx = (e.b[0] - e.a[0]) / e.L,
+            tz = (e.b[1] - e.a[1]) / e.L;
+          const nx = ccw ? -tz : tz,
+            nz = ccw ? tx : -tx;
+          for (let u = len / 2 + 0.3; u <= e.L - len / 2 - 0.3; u += 2) {
+            const b: Obb = { x: e.a[0] + tx * u + nx * (0.3 + d / 2), z: e.a[1] + tz * u + nz * (0.3 + d / 2), hl: len / 2, hw: d / 2, c: tx, s: tz };
             if (!fits(b)) continue;
             commit(b, true);
-            building(b, null, rowFor(zone, 1, downtown), 1, 9000, true);
+            building(b, { nx: -nx, nz: -nz }, rowFor(zone, 1, downtown), 1, 9000, true);
             break search;
           }
+        }
       }
     }
 
@@ -539,7 +597,7 @@ export function fillBlocks(data: OsmCityData, opt: FillOptions = {}): FillResult
       // houses (透天厝 / walk-ups / shophouses)
       const nMin = zone === 'down' ? 4 : 3,
         nMax = zone === 'down' ? 7 : zone === 'shop' ? 6 : 5;
-      const N = front ? nMin + Math.floor(r(k, 30) * (nMax - nMin + 1)) : 2 + Math.floor(r(k, 30) * 3);
+      const N = b.hw * 2 < 5 ? 1 : front ? nMin + Math.floor(r(k, 30) * (nMax - nMin + 1)) : 2 + Math.floor(r(k, 30) * 3);
       const setback = front && face && N >= 4 && r(k, 31) < 0.4;
       const bn = setback ? N - 1 : N;
       const H = storeys(LOOK_HOUSE, bn);
