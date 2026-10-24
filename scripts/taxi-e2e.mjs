@@ -47,6 +47,49 @@ const route = (target) =>
     const g = window.__taxi.level.graph;
     const pos = window.__taxi.car.body.translation();
     if (!g) return [{ x: tx, z: tz }];
+    if (window.__taxi.level.osm) {
+      // real map: graph nodes sit only where roads bend or meet, so the nearest node can be far down the road. Start
+      // from both ends of the car's road piece (the one behind costs a U-turn) and finish at the better end of the
+      // target's road piece, then the target itself.
+      const segD = (x, z, a, b) => {
+        const A = g.nodes[a], B = g.nodes[b];
+        const vx = B.x - A.x, vz = B.z - A.z, L2 = vx * vx + vz * vz || 1;
+        const t = Math.max(0, Math.min(1, ((x - A.x) * vx + (z - A.z) * vz) / L2));
+        return Math.hypot(x - A.x - vx * t, z - A.z - vz * t);
+      };
+      const nearEdge = (x, z) => g.edges.reduce((b, e) => (segD(x, z, e[0], e[1]) < segD(x, z, b[0], b[1]) ? e : b), g.edges[0]);
+      const adj = g.nodes.map(() => []);
+      for (const [a, b] of g.edges) adj[a].push(b), adj[b].push(a);
+      const f = window.__taxi.car.forward();
+      const se = nearEdge(pos.x, pos.z),
+        te = nearEdge(tx, tz);
+      const dist = g.nodes.map(() => Infinity),
+        prev = g.nodes.map(() => -1);
+      const open = new Set();
+      for (const n of se) {
+        const N = g.nodes[n];
+        const behind = (N.x - pos.x) * f.x + (N.z - pos.z) * f.z < 0;
+        dist[n] = Math.hypot(N.x - pos.x, N.z - pos.z) + (behind ? 60 : 0);
+        open.add(n);
+      }
+      const done = new Set();
+      while (open.size && !(done.has(te[0]) && done.has(te[1]))) {
+        const u = [...open].reduce((a, b) => (dist[a] < dist[b] ? a : b));
+        open.delete(u);
+        done.add(u);
+        for (const v of adj[u]) {
+          const d = dist[u] + Math.hypot(g.nodes[u].x - g.nodes[v].x, g.nodes[u].z - g.nodes[v].z);
+          if (d < dist[v]) (dist[v] = d), (prev[v] = u), open.add(v);
+        }
+      }
+      const cost = (n) => dist[n] + Math.hypot(g.nodes[n].x - tx, g.nodes[n].z - tz);
+      const end = cost(te[0]) <= cost(te[1]) ? te[0] : te[1];
+      const path = [];
+      for (let u = end; u !== -1; u = prev[u]) path.unshift(g.nodes[u]);
+      // the car and the target on the same road piece, target ahead: straight there
+      if (se === te && path.length === 1 && (tx - pos.x) * f.x + (tz - pos.z) * f.z > 0) path.length = 0;
+      return [...path.map((n) => ({ x: n.x, z: n.z })), { x: tx, z: tz }];
+    }
     const near = (x, z) => g.nodes.reduce((b, n, i) => (Math.hypot(n.x - x, n.z - z) < Math.hypot(g.nodes[b].x - x, g.nodes[b].z - z) ? i : b), 0);
     const adj = g.nodes.map(() => []);
     for (const [a, b] of g.edges) adj[a].push(b), adj[b].push(a);
@@ -136,10 +179,56 @@ const toStraight = (minLen = 140) =>
 
 /** a simple driver: follows the streets to (x, z), slows for corners, stops at the end. Runs `max` seconds of game
  * time in 1/30 s frames. */
-async function driveTo(target, { max = 30, stopAt = 2.5, until, top = 75 } = {}) {
+async function driveTo(target, { max = 30, stopAt = 2.5, until, untilPage, top = 75 } = {}) {
   let stuck = 0,
     backing = 0;
   const way = await route(target);
+  if (!VIDEO && untilPage) {
+    // the same driver run inside the page, a game second (30 frames) per call: far fewer round trips
+    await p.evaluate((way, stopAt, top) => (window.__drv = { way, w: 0, stuck: 0, backing: 0, t: 0, stopAt, top }), way, stopAt, top);
+    for (let t = 0; t < max; t += 1) {
+      const res = await p.evaluate((untilPage, max) => {
+        const D = window.__drv,
+          T = window.__taxi;
+        for (let k = 0; k < 30 && D.t < max; k++, D.t += 1 / 30) {
+          const wp = D.way[D.w],
+            last = D.w === D.way.length - 1,
+            nx = D.way[D.w + 1];
+          const car = T.car;
+          const pos = car.body.translation();
+          const f = car.forward();
+          const dx = wp.x - pos.x,
+            dz = wp.z - pos.z;
+          const d = Math.hypot(dx, dz);
+          const ang = Math.atan2(f.x * dz - f.z * dx, f.x * dx + f.z * dz);
+          const kmh = car.kmh();
+          let turn = 0;
+          if (nx) turn = Math.abs(Math.atan2(dx * (nx.z - wp.z) - dz * (nx.x - wp.x), dx * (nx.x - wp.x) + dz * (nx.z - wp.z)));
+          let want = last ? Math.min(D.top, Math.max(6, d * 2.2)) : turn > 0.5 ? Math.min(D.top, Math.max(28, d * 1.6)) : D.top;
+          if (Math.abs(ang) > 0.8) want *= 0.5;
+          let c;
+          if (last && d < D.stopAt) c = { throttle: 0, brake: kmh > 1 ? 1 : 0, steer: 0 };
+          else {
+            c = { throttle: kmh < want ? 1 : 0, brake: kmh > want + 12 ? 1 : 0, steer: Math.max(-1, Math.min(1, ang * 2)) };
+            if (!last && d < 7) D.w++;
+          }
+          D.stuck = c.throttle && kmh < 2 ? D.stuck + 1 / 30 : 0;
+          if (D.stuck > 0.8) D.backing = 1.2;
+          if (D.backing > 0) {
+            D.backing -= 1 / 30;
+            D.stuck = 0;
+            c = { throttle: 0, brake: 1, steer: -c.steer };
+          }
+          T.ff(1 / 30, c);
+          const r = T.run();
+          if (untilPage === 'rider' ? !!r?.rider : r?.rides === 1) return true;
+        }
+        return false;
+      }, untilPage, max);
+      if (res) return true;
+    }
+    return false;
+  }
   let w = 0;
   for (let t = 0; t < max; t += 1 / 30) {
     const wp = way[w];
@@ -315,7 +404,7 @@ try {
     const box = document.querySelector('[data-testid=taxi-pops]');
     new MutationObserver(() => box.querySelectorAll('.taxi-pop').forEach((e) => window.__popLog.push(e.innerText))).observe(box, { childList: true, subtree: true });
   });
-  const picked = await driveTo(nearest, { max: 30, until: async () => !!(await run()).rider });
+  const picked = await driveTo(nearest, { max: 30, untilPage: 'rider', until: async () => !!(await run()).rider });
   await settle();
   r = await run();
   await new Promise((res) => setTimeout(res, 300));
@@ -393,7 +482,7 @@ try {
   }, dest);
   const time0 = r.time;
   const money1 = r.money;
-  const dropped = await driveTo(dest, { max: OSM ? 25 : 15, stopAt: 2, until: async () => (await run()).rides === 1 });
+  const dropped = await driveTo(dest, { max: OSM ? 25 : 15, stopAt: 2, untilPage: 'rides1', until: async () => (await run()).rides === 1 });
   await settle();
   r = await run();
   const dropPop = await p.$eval('[data-testid=taxi-pops]', (e) => e.innerText).catch(() => '');
@@ -573,7 +662,7 @@ try {
     await shot('g1-start');
     const gsp = await p.evaluate(() => window.__taxi.level.spawn.p);
     const gNear = r.waiting.reduce((a, b) => (Math.hypot(a.x - gsp.x, a.z - gsp.z) < Math.hypot(b.x - gsp.x, b.z - gsp.z) ? a : b));
-    const gPicked = await driveTo(gNear, { max: 30, until: async () => !!(await run()).rider });
+    const gPicked = await driveTo(gNear, { max: 30, untilPage: 'rider', until: async () => !!(await run()).rider });
     r = await run();
     ok('G-03', 'grid city: the simple driver picks up the nearest passenger within 30 s', gPicked && r.first !== null && r.first < 30, `picked at ${r.first?.toFixed(1)} s`);
     await shot('g2-pickup');
