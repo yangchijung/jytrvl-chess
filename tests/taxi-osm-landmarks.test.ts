@@ -17,7 +17,8 @@ describe('Rush Taxi OSM landmarks', () => {
     for (const l of D.landmarks) {
       const m = LM.models.get(l.id);
       expect(m, l.id).toBeDefined();
-      expect(m!.prims.length, l.id).toBeGreaterThanOrEqual(3);
+      // a detailed hero model may be a few free-geometry parts
+      expect(m!.prims.length >= 3 || m!.prims.some((p) => p.t === 'mesh'), l.id).toBe(true);
     }
     const dome = LM.models.get('formosa')!;
     const j = formosaJunction(D)!;
@@ -105,12 +106,13 @@ describe('Rush Taxi OSM landmarks', () => {
     const t = LM.models.get('tower85')!;
     const top = Math.max(...t.prims.map((p) => primFoot(p).y1));
     expect(top).toBeCloseTo(347 * TOWER85_SCALE, 0);
-    const legs = t.prims.filter((p) => p.t === 'box' && p.sy > 50 && primFoot(p).y0 < 20);
+    const legs = t.prims.filter((p) => ((p.t === 'box' && p.sy > 50) || (p.t === 'mesh' && p.y1 - p.y0 > 50)) && primFoot(p).y0 < 20);
     expect(legs.length).toBe(2);
   });
 
   it('stays inside its triangle budget', () => {
-    const tris = LM.prims.reduce((a, p) => a + primTriangles(p), 0);
+    // the detailed hero models (free-geometry parts) are budgeted per slice in tests/taxi-hero-*.test.ts
+    const tris = LM.prims.filter((p) => p.t !== 'mesh').reduce((a, p) => a + primTriangles(p), 0);
     expect(tris).toBeLessThan(25000);
   });
 
