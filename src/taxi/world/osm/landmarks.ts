@@ -20,13 +20,14 @@ import type { Prim, Shape, Sign } from '../level';
 import type { Spot } from '../../gameplay/rules';
 import { skylineTower85, skylineMusicCenter, skylineCsc } from './hero/skyline';
 import { KAOHSIUNG, type OsmCityData, type OsmLandmark, type OsmRoad, type Ring, type XZ } from './data';
+import * as harbour from './hero/harbour';
 
 /** parts whose underside is at least this high (m) may span a road (gate lintels, the station canopy) */
 export const HIGH = 5.5;
 /** the least gap (m) between any low part and a road's carriageway edge */
 export const ROAD_GAP = 0.5;
 /** what a building model keeps clear of a carriageway edge: the pavement and the name board on the kerb */
-const CLEAR = 4.2;
+export const CLEAR = 4.2;
 /** the 85 Sky Tower is drawn at this share of its real height (347 m) */
 export const TOWER85_SCALE = 0.6;
 
@@ -58,7 +59,7 @@ const C = {
   trunk: '#6D4C41',
   black: '#2B2E33',
 };
-const WAREHOUSE_WALLS = ['#C9A27A', '#B5653E', '#D9C9A3', '#9AA393', '#C58B5A'];
+export const WAREHOUSE_WALLS = ['#C9A27A', '#B5653E', '#D9C9A3', '#9AA393', '#C58B5A'];
 const AWNINGS = ['#D9534F', '#E8B04A', '#3F7FBF', '#E07B39', '#5E9E4E'];
 
 /** small deterministic hash → [0, 1) */
@@ -586,7 +587,7 @@ export class Kit {
 // ---------------------------------------------------------------------------------------------------------------
 // painted characters (Pier-2's warehouse numbers): seven-segment glyphs of thin boxes on a wall
 // ---------------------------------------------------------------------------------------------------------------
-const GLYPH: Record<string, string> = {
+export const GLYPH: Record<string, string> = {
   '0': 'abcdef', '1': 'bc', '2': 'abdeg', '3': 'abcdg', '4': 'bcfg', '5': 'acdfg', '6': 'acdefg', '7': 'abc', '8': 'abcdefg', '9': 'abcdfg',
   C: 'adef', P: 'abefg', E: 'adefg', A: 'abcefg',
 };
@@ -638,7 +639,7 @@ export interface Ctx {
 export type Builder = (ctx: Ctx, lm: OsmLandmark, m: Model) => Kit[] | null;
 
 /** turns a rectangle so that its local +v (the front) points at the nearest road; keeps L along u */
-function faceRoad(site: Site, r: Rect, keepLong = false): Rect {
+export function faceRoad(site: Site, r: Rect, keepLong = false): Rect {
   const hit = site.nearest(r.cx, r.cz);
   if (!hit) return r;
   const fx = hit.x - r.cx,
@@ -1391,8 +1392,15 @@ const generic: Builder = (ctx, lm, m) => {
 };
 
 const BUILDERS: Record<string, Builder> = {
-  tower85, musiccenter, pier2, mainstation, oldstation, lovepier, culturalcenter, sanfeng, cityhall, csc, greatharbor, centralpark, historymuseum,
+  tower85, musiccenter, mainstation, oldstation, culturalcenter, sanfeng, cityhall, csc, centralpark, historymuseum,
   liuhe: nightmarket, nanhua: nightmarket, guanghua: nightmarket,
+  pier2: harbour.pier2,
+  pier2tower: harbour.pier2tower,
+  lovepier: harbour.lovepier,
+  gloriouspier: harbour.gloriouspier,
+  greatharbor: harbour.greatharbor,
+  harbormuseum: harbour.harbormuseum,
+  xinguangpier: harbour.xinguangpier,
 };
 // the detailed hero models (hero/*.ts), one line per landmark
 BUILDERS.tower85 = skylineTower85;

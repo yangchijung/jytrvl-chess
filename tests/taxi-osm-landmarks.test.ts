@@ -111,9 +111,10 @@ describe('Rush Taxi OSM landmarks', () => {
   });
 
   it('stays inside its triangle budget', () => {
-    // the detailed hero models (free-geometry parts) are budgeted per slice in tests/taxi-hero-*.test.ts
-    const tris = LM.prims.filter((p) => p.t !== 'mesh').reduce((a, p) => a + primTriangles(p), 0);
-    expect(tris).toBeLessThan(25000);
+    // the whole landmark set: the remaining box models plus the detailed hero models (each slice also has its own
+    // budget in tests/taxi-hero-*.test.ts: skyline 25k; harbour, transit, culture 20k each)
+    const tris = LM.prims.reduce((a, p) => a + primTriangles(p), 0);
+    expect(tris).toBeLessThan(110000);
   });
 
   it('replaces the mapped boxes it covers, in the level', () => {
