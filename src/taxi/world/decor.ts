@@ -594,8 +594,10 @@ export function drawDecor(scene: THREE.Scene, level: Level) {
         g.setAttribute('aFg', new THREE.BufferAttribute(new Float32Array(Array.from({ length: n }, () => [cf.r, cf.g, cf.b]).flat()), 3));
         parts.push(g);
       }
-      // the board's edge frame
-      const f = new THREE.BoxGeometry(Math.abs(Math.cos(s.yaw)) * 0.96 + 0.1, 3.08, Math.abs(Math.sin(s.yaw)) * 0.96 + 0.1);
+      // the board's edge frame, turned with the board (an axis-aligned frame swallowed the boards on the real map's
+      // slanting streets)
+      const f = new THREE.BoxGeometry(1.06, 3.08, 0.1);
+      f.rotateY(s.yaw);
       f.translate(s.x, s.y, s.z);
       const n = f.getAttribute('position').count;
       f.setAttribute('aBg', new THREE.BufferAttribute(new Float32Array(n * 3).fill(0.25), 3));
