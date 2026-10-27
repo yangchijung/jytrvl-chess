@@ -123,8 +123,21 @@ describe('Rush Taxi hero models: transit', () => {
     // (the ridge tiles on top are boxes of their own)
     const roof = irimoya(12, 8, 5);
     expect(outward(roof.pos, [0, 0.8, 0], 5 - 0.7)).toBe(0);
+    // the pavilion: the glazed base faces out; above it, the only faces turned to the middle are the hands' inner faces
     const pv = pavilion(0, 13, 8);
-    expect(outward(pv.pos, [-1.2, 0.1, 0])).toBe(0);
+    expect(outward(pv.pos, [-1.2, 0.1, 0], 2.7)).toBe(0);
+    const inner = new THREE.Color('#6F9A9C');
+    let toMiddle = 0;
+    for (let i = 0; i < pv.pos.length; i += 9) {
+      const q = pv.pos;
+      const n = new THREE.Vector3(q[i + 3] - q[i], q[i + 4] - q[i + 1], q[i + 5] - q[i + 2]).cross(new THREE.Vector3(q[i + 6] - q[i], q[i + 7] - q[i + 1], q[i + 8] - q[i + 2]));
+      const cz = (q[i + 2] + q[i + 5] + q[i + 8]) / 3,
+        cy = (q[i + 1] + q[i + 4] + q[i + 7]) / 3;
+      if (cy < 3 || n.z * cz >= 0 || Math.abs(n.z) < Math.abs(n.x) || Math.abs(n.z) < Math.abs(n.y)) continue;
+      toMiddle++;
+      expect(pv.col[(i / 3) * 3]).toBeCloseTo(inner.r, 4);
+    }
+    expect(toMiddle).toBe(16); // 4 rows × 2 triangles × 2 hands
     // the canopy: tops face up, undersides down
     const c = canopyGeo(100, 60, [{ u: 10, v: 5 }]);
     let up = 0,
