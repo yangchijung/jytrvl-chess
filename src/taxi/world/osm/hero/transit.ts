@@ -468,43 +468,94 @@ export const gushanstation: Builder = (ctx, lm, m) => {
 // ---------------------------------------------------------------------------------------------------------------
 // Formosa Boulevard Station: the four glass entrances (the dome itself is underground)
 // ---------------------------------------------------------------------------------------------------------------
-const PAV = { hw: 2.6, hb: 6.2, hf: 10.5, tip: 2.4 };
-/** one entrance pavilion ("Prayer"): two folded glass roofs rising to a ridge that leans forward over the entrance (+x);
- * L × W plus the leaning tip, centred */
+const PAV = { base: 2.8, top: 10.8, hb: 6.2, tip: 2.4 };
+/** pale glass with a hint of the dome's colour below (by day it reads as glass; at night that colour glows) */
+const TINT = DOME.map((c) => '#' + new THREE.Color('#A3D0CB').lerp(new THREE.Color(c), 0.6).getHexString());
+const HAND = {
+  glass: ['#A3D0CB', '#97C6C8'],
+  inner: '#6F9A9C',
+  mullion: '#5E7F86',
+  frame: '#E8EEEC',
+};
+/**
+ * one entrance pavilion ("Prayer", Shin Takamatsu): two thin, slightly curved glass hands leaning together over a
+ * glazed base, palms meeting at a narrow slit along the ridge, the fingertips leaning out over the entrance (+x);
+ * L × W plus the leaning tip, centred
+ */
 export function pavilion(seed = 0, L = 13, W = 7.6) {
-  const { hw, hb, hf, tip } = PAV;
+  const { base, top, tip } = PAV;
   const g = new Geo();
   const sx = -tip / 2;
   const P = (x: number, y: number, z: number): V => [x + sx, y, z];
-  const RB = P(-L / 2, hb, 0),
-    RT = P(L / 2 + tip, hf, 0);
-  const E = (i: number, s: number) => P((i * L) / 2, hw, (s * W) / 2);
-  const CB = (s: number) => P(-L / 2, hw + (hb - hw) * 0.5 + 0.6, s * W * 0.26);
-  const CF = (s: number) => P(L / 2 + tip * 0.5, hw + (hf - hw) * 0.5 + 0.8, s * W * 0.26);
-  const glass = (s: number, upper: boolean) => (i: number): [string, number] =>
-    upper && i === 1 + ((seed + (s > 0 ? 2 : 0)) % 3) ? [DOME[(seed + i + (s > 0 ? 1 : 0)) % DOME.length], 0.4] : [(i + (upper ? 1 : 0)) % 2 ? T.pavGlass : T.pavGlass2, 0];
+  const SEG = 4,
+    TH = 0.32,
+    SLIT = 0.42;
+  const foot = W / 2 - 0.25;
+  const x0 = (t: number) => -L / 2 + 1.4 * t,
+    x1 = (t: number) => L / 2 + tip * t;
+  // the hand's outer face across the pavilion: leaning in, bowed slightly outwards like a palm
+  const prof = (t: number) => {
+    const z = SLIT + (foot - SLIT) * (1 - t) * (1 + 0.35 * t);
+    const y = base + (top - base) * t;
+    // the outward normal of the curve in (z, y)
+    const e = 1e-3;
+    const z2 = SLIT + (foot - SLIT) * (1 - (t + e)) * (1 + 0.35 * (t + e));
+    const dz = z2 - z,
+      dy = ((top - base) * e);
+    const n = Math.hypot(dz, dy);
+    return { z, y, nz: dy / n, ny: -dz / n };
+  };
+  const pal = (seed: number, row: number) => (i: number): [string, number] => {
+    // the upper half glows in the dome's colours at night; by day it is pale glass with a hint of the tint
+    if (row >= SEG / 2 && (i + row + seed) % 2 === 0) return [TINT[(i + seed + row) % TINT.length], 0.6];
+    return [HAND.glass[(i + row) % 2], row >= SEG / 2 ? 0.22 : 0];
+  };
   for (const s of [-1, 1]) {
-    // the two folds of each "hand"
-    g.bays(E(-1, s), E(1, s), CF(s), CB(s), 5, 0.25, glass(s, false), T.pavFrame, [0, 0.6, s]);
-    g.bays(CB(s), CF(s), RT, RB, 5, 0.25, glass(s, true), T.pavFrame, [0, 0.3, s]);
-    // the low glass side walls
-    g.bays(P(-L / 2, 0.25, (s * W) / 2), P(L / 2, 0.25, (s * W) / 2), E(1, s), E(-1, s), 6, 0.2, (i) => [i % 2 ? T.pavGlass : T.pavGlass2, 0], T.pavFrame, [0, 0, s]);
+    const O = (t: number, x: number): V => {
+      const p = prof(t);
+      return P(x, p.y, s * p.z);
+    };
+    const I = (t: number, x: number): V => {
+      const p = prof(t);
+      return P(x, p.y - p.ny * TH, s * (p.z - p.nz * TH));
+    };
+    for (let k = 0; k < SEG; k++) {
+      const a = k / SEG,
+        b = (k + 1) / SEG;
+      const pa = prof(a);
+      // the outer glass between mullions, the plain inner face, the light frame on the front and back edges
+      g.bays(O(a, x0(a)), O(a, x1(a)), O(b, x1(b)), O(b, x0(b)), 6, 0.18, pal(seed + (s > 0 ? 1 : 0), k), HAND.mullion, [0, pa.ny, s * pa.nz]);
+      g.poly([I(a, x0(a)), I(a, x1(a)), I(b, x1(b)), I(b, x0(b))], HAND.inner, [0, -pa.ny, -s * pa.nz]);
+      g.poly([O(a, x1(a)), O(b, x1(b)), I(b, x1(b)), I(a, x1(a))], HAND.frame, [1, 0, 0]);
+      g.poly([O(a, x0(a)), O(b, x0(b)), I(b, x0(b)), I(a, x0(a))], HAND.frame, [-1, 0, 0]);
+    }
+    // the fingertip edge along the ridge, lit pale against the sky
+    g.poly([O(1, x0(1)), O(1, x1(1)), I(1, x1(1)), I(1, x0(1))], HAND.frame, [0, 1, 0]);
   }
-  // the gable ends: glass, the front one leaning out over the entrance, the dome's colours showing through its middle
-  const EM = P(L / 2, hw, 0);
-  g.poly([EM, E(1, -1), CF(-1)], T.pavGlass, [1, 0.3, 0]);
-  g.poly([EM, CF(-1), RT], DOME[seed % DOME.length], [1, 0.3, 0], 0.35);
-  g.poly([EM, RT, CF(1)], DOME[(seed + 2) % DOME.length], [1, 0.3, 0], 0.35);
-  g.poly([EM, CF(1), E(1, 1)], T.pavGlass, [1, 0.3, 0]);
-  g.poly([E(-1, -1), CB(-1), RB, CB(1), E(-1, 1)], T.pavGlass, [-1, 0, 0]);
-  // the entrance (lit at night) and the back wall
-  g.poly([P(L / 2, 0.25, -W / 2), P(L / 2, 0.25, W / 2), E(1, 1), E(1, -1)], T.pavFrame, [1, 0, 0]);
-  g.poly([P(L / 2 + 0.04, 0.25, -W * 0.3), P(L / 2 + 0.04, 0.25, W * 0.3), P(L / 2 + 0.04, hw - 0.3, W * 0.3), P(L / 2 + 0.04, hw - 0.3, -W * 0.3)], T.lamp, [1, 0, 0], 0.55);
-  g.poly([P(-L / 2, 0.25, -W / 2), P(-L / 2, 0.25, W / 2), E(-1, 1), E(-1, -1)], T.pavGlass2, [-1, 0, 0]);
-  // the ridge beam and the granite plinth
-  const ridge = [RB, RT, P(L / 2 + tip, hf + 0.3, 0), P(-L / 2, hb + 0.3, 0)];
-  g.poly(ridge, T.pavFrame, [0, 0, 1]);
-  g.poly(ridge, T.pavFrame, [0, 0, -1]);
+  // the glazed gables between the hands, set back from the frames; the dome's colours show through at night
+  for (const e of [1, -1]) {
+    const X = (t: number) => (e > 0 ? x1(t) - 0.12 : x0(t) + 0.12);
+    const pts: V[] = [];
+    for (let k = 0; k <= SEG; k++) {
+      const p = prof(k / SEG);
+      pts.push(P(X(k / SEG), p.y - p.ny * TH, -(p.z - p.nz * TH)));
+    }
+    for (let k = SEG; k >= 0; k--) {
+      const p = prof(k / SEG);
+      pts.push(P(X(k / SEG), p.y - p.ny * TH, p.z - p.nz * TH));
+    }
+    const EM = P(X(0), base, 0);
+    for (let i = 0; i + 1 < pts.length; i++) {
+      const lit = e > 0 && i % 3 === 1;
+      g.poly([EM, pts[i], pts[i + 1]], lit ? TINT[(seed + i) % TINT.length] : HAND.glass[i % 2], [e, 0, 0], lit ? 0.5 : 0);
+    }
+  }
+  // the glazed base: glass bays between mullions, the entrance at the front, a light cornice under the hands
+  for (const s of [-1, 1]) g.bays(P(-L / 2, 0.25, (s * W) / 2), P(L / 2, 0.25, (s * W) / 2), P(L / 2, base, (s * W) / 2), P(-L / 2, base, (s * W) / 2), 6, 0.18, (i) => [HAND.glass[i % 2], 0], HAND.mullion, [0, 0, s]);
+  g.bays(P(-L / 2, 0.25, -W / 2), P(-L / 2, 0.25, W / 2), P(-L / 2, base, W / 2), P(-L / 2, base, -W / 2), 3, 0.18, (i) => [HAND.glass[i % 2], 0], HAND.mullion, [-1, 0, 0]);
+  g.poly([P(L / 2, 0.25, -W / 2), P(L / 2, 0.25, W / 2), P(L / 2, base, W / 2), P(L / 2, base, -W / 2)], HAND.mullion, [1, 0, 0]);
+  g.poly([P(L / 2 + 0.04, 0.25, -W * 0.32), P(L / 2 + 0.04, 0.25, W * 0.32), P(L / 2 + 0.04, base - 0.35, W * 0.32), P(L / 2 + 0.04, base - 0.35, -W * 0.32)], T.lamp, [1, 0, 0], 0.55);
+  g.box(sx, base - 0.02, 0, L + 0.3, 0.3, W + 0.3, HAND.frame);
   g.box(sx, 0, 0, L + 0.8, 0.25, W + 0.8, '#8E9089');
   return g;
 }
