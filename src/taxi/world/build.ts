@@ -13,7 +13,7 @@ import { buildingLook } from './facade';
 import { nearField } from './nearfield';
 import { buildSurfacePhysics, drawSurfaces, groupOfPoint } from './osm/surfaces';
 import { addOcclusionFade, OCC_NEAR, OCC_NEAR_BOARD } from '../fx/occlusion';
-import { brightenBasic } from '../fx/nightGlow';
+import { brightenBasic, glowAttribute } from '../fx/nightGlow';
 import { roadMaterial, withGlassReflection } from '../fx/surfaces';
 
 type R = typeof RAPIER_NS;
@@ -69,6 +69,20 @@ function roofGeometry(L: number, W: number, H: number, hip = 0) {
 }
 
 function primGeometry(p: Prim) {
+  if (p.t === 'mesh') {
+    // free geometry (detailed landmark models): local triangles, turned and moved into place; per-vertex glow
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(p.pos, 3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(p.col, 3));
+    g.setAttribute('aGlow', new THREE.Float32BufferAttribute(p.glow ?? new Array(p.pos.length / 3).fill(0), 1));
+    // same attributes and indexing as the other primitives, so everything merges into one mesh per square
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array((p.pos.length / 3) * 2), 2));
+    g.setIndex(Array.from({ length: p.pos.length / 3 }, (_, i) => i));
+    g.computeVertexNormals();
+    if (p.yaw) g.rotateY(p.yaw);
+    g.translate(p.x, p.y, p.z);
+    return g;
+  }
   let g: THREE.BufferGeometry;
   // square prisms: `r` is the half side, so the corner radius is r·√2 and the corners turn onto the diagonals
   const sq = (n?: number) => (n === 4 ? Math.SQRT2 : 1);
@@ -92,6 +106,7 @@ function primGeometry(p: Prim) {
   const col = new Float32Array(n * 3);
   for (let i = 0; i < n; i++) col.set([c.r, c.g, c.b], i * 3);
   g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  g.setAttribute('aGlow', new THREE.BufferAttribute(new Float32Array(n), 1));
   return g;
 }
 
@@ -113,6 +128,7 @@ function pitchGeometry(p: Pitch) {
   g.setAttribute('color', new THREE.BufferAttribute(col, 3));
   // same attributes and indexing as the landmark primitives, so they merge into one mesh
   g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array((pos.length / 3) * 2), 2));
+  g.setAttribute('aGlow', new THREE.Float32BufferAttribute(new Float32Array(pos.length / 3), 1));
   g.setIndex(Array.from({ length: pos.length / 3 }, (_, i) => i));
   return g;
 }
@@ -346,7 +362,7 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
   // (the real-map city splits them per drawn square, like the ground, so the view and the shadow pass cull them)
   const merged = [...level.prims.map(primGeometry), ...(ms?.pitched ?? []).map(pitchGeometry)];
   if (merged.length) {
-    const lmMat = addOcclusionFade(addFakeAO(new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }), 'base'), { near: OCC_NEAR });
+    const lmMat = glowAttribute(addOcclusionFade(addFakeAO(new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }), 'base'), { near: OCC_NEAR }), 1.3);
     const sets = new Map<number, THREE.BufferGeometry[]>();
     merged.forEach((g, i) => {
       const p = level.prims[i];

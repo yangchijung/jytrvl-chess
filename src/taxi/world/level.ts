@@ -18,6 +18,10 @@ export type { Shape };
  * corner radius); `rt` is a cylinder's top radius (a taper; default `r`); `sx` stretches it along its own x.
  * `gab` is a pitched roof: base L (x) × W (z) at y − H/2, ridge at y + H/2, ridge shortened by `hip` at each end
  * (0 = gable ends, W/2 = a full hip roof).
+ * `mesh` is free geometry (the detailed landmark models): non-indexed triangles in local metres around (x, y, z),
+ * turned by `yaw`; `col` is linear-sRGB-free plain RGB 0…1 per vertex (same length as `pos`); `glow` (optional, one
+ * value per vertex, 0…1) makes those vertices light up at night (lit windows, signs); `hx`/`hz`/`y0`/`y1` give the
+ * local bounding box (x half size, z half size, bottom and top) used for the placement checks.
  */
 export type Prim =
   | { t: 'box'; x: number; y: number; z: number; sx: number; sy: number; sz: number; color: string; yaw?: number }
@@ -25,7 +29,8 @@ export type Prim =
   | { t: 'cone'; x: number; y: number; z: number; r: number; h: number; color: string; yaw?: number; seg?: number; sx?: number }
   | { t: 'sph'; x: number; y: number; z: number; r: number; color: string; seg?: number }
   | { t: 'tor'; x: number; y: number; z: number; R: number; tube: number; color: string; yaw: number }
-  | { t: 'gab'; x: number; y: number; z: number; L: number; W: number; H: number; color: string; yaw?: number; hip?: number };
+  | { t: 'gab'; x: number; y: number; z: number; L: number; W: number; H: number; color: string; yaw?: number; hip?: number }
+  | { t: 'mesh'; x: number; y: number; z: number; yaw?: number; pos: number[]; col: number[]; glow?: number[]; hx: number; hz: number; y0: number; y1: number };
 
 export interface Rect {
   x: number;

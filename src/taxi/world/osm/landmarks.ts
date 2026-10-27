@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 // Rush Taxi — the real-map city's landmarks: low-poly, flat-coloured models of the famous places, at their real
 // positions, sizes and orientation, built from the level primitives (world/level.ts `Prim`, merged into a few meshes
 // by world/build.ts) plus hidden collider shapes.
@@ -279,6 +280,8 @@ export function primFoot(p: Prim): Foot {
       return { x: p.x, z: p.z, hx: p.L / 2, hz: p.W / 2, ang: -(p.yaw ?? 0), y0: p.y - p.H / 2, y1: p.y + p.H / 2 };
     case 'tor':
       return { x: p.x, z: p.z, hx: p.R + p.tube, hz: p.tube, ang: -p.yaw, y0: p.y - p.R - p.tube, y1: p.y + p.R + p.tube };
+    case 'mesh':
+      return { x: p.x, z: p.z, hx: p.hx, hz: p.hz, ang: -(p.yaw ?? 0), y0: p.y + p.y0, y1: p.y + p.y1 };
   }
 }
 export function shapeFoot(s: Shape): Foot | null {
@@ -330,6 +333,7 @@ export function footProblem(f: Foot, site: Site, overWater = false): 'road' | 'w
 export function primTriangles(p: Prim) {
   if (p.t === 'box') return 12;
   if (p.t === 'gab') return 6;
+  if (p.t === 'mesh') return p.pos.length / 9;
   if (p.t === 'cyl') return 4 * (p.seg ?? 18);
   if (p.t === 'cone') return 2 * (p.seg ?? 18);
   if (p.t === 'sph') {
@@ -536,6 +540,35 @@ export class Kit {
   ring(u: number, v: number, y: number, R: number, tube: number, color: string, a = 0) {
     const [x, z] = this.at(u, v);
     this.prims.push({ t: 'tor', x, y, z, R, tube, color, yaw: this.yaw(a) });
+  }
+  /**
+   * free geometry (a detailed model part) standing at local (u, v) with its base at y0, turned by the local angle a.
+   * `geo` is any three.js geometry in metres with y up, its own origin at the foot; vertex colours come from its
+   * `color` attribute or else `color`; vertices listed in `glow` (a 0…1 attribute named `aGlow`, or a whole-part value)
+   * light up at night. Colliders are separate: add `wall()` boxes for the solid parts.
+   */
+  mesh(u: number, v: number, y0: number, geo: THREE.BufferGeometry, o: { a?: number; color?: string; glow?: number } = {}) {
+    const g = geo.index ? geo.toNonIndexed() : geo;
+    const pos = Array.from(g.getAttribute('position').array as ArrayLike<number>);
+    const n = pos.length / 3;
+    const ca = g.getAttribute('color');
+    const base = new THREE.Color(o.color ?? '#CCCCCC');
+    const col: number[] = [];
+    for (let i = 0; i < n; i++) col.push(ca ? ca.getX(i) : base.r, ca ? ca.getY(i) : base.g, ca ? ca.getZ(i) : base.b);
+    const ga = g.getAttribute('aGlow');
+    const glow = ga ? Array.from({ length: n }, (_, i) => ga.getX(i)) : o.glow ? new Array(n).fill(o.glow) : undefined;
+    let hx = 0,
+      hz = 0,
+      y0b = Infinity,
+      y1b = -Infinity;
+    for (let i = 0; i < n; i++) {
+      hx = Math.max(hx, Math.abs(pos[i * 3]));
+      hz = Math.max(hz, Math.abs(pos[i * 3 + 2]));
+      y0b = Math.min(y0b, pos[i * 3 + 1]);
+      y1b = Math.max(y1b, pos[i * 3 + 1]);
+    }
+    const [x, z] = this.at(u, v);
+    this.prims.push({ t: 'mesh', x, y: y0, z, yaw: this.yaw(o.a), pos, col, glow, hx, hz, y0: y0b, y1: y1b });
   }
   /** a hidden collider box only */
   wall(u: number, v: number, y0: number, L: number, W: number, H: number) {
