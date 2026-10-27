@@ -234,7 +234,7 @@ function put(k: Kit, g: Geo, u = 0, v = 0) {
 const T85 = {
   glass: '#3A7480', // blue-green glass
   glassDeep: '#2F646E',
-  lit: '#8DB3AA',
+  lit: '#B9BCA4',
   spandrel: '#BAC6C9',
   fin: '#E9EDED',
   podium: '#BFC5C4',
@@ -248,10 +248,10 @@ const MUS = {
   white: '#F3F4F1',
   pale: '#DCE0DF',
   grey: '#B9BFC0',
-  glass: '#9DB4BE',
+  glass: '#AFC2CA',
   glassDeep: '#5F7A86',
   lit: '#E4DCC4',
-  led: '#DDF1F8',
+  led: '#EEF7FA',
 };
 const CSC = {
   panel: '#B9C0C5',
@@ -281,7 +281,7 @@ export function skylineTower85(ctx: Ctx, lm: OsmLandmark, m: Model): Kit[] | nul
     floor: 4.8,
     glassFrac: 0.72,
     segLen: 6,
-    litRate: 0.42,
+    litRate: 0.36,
     seed,
     fins: { every: 5.5, w: 0.45, d: 0.35, color: T85.fin },
     ...extra,
@@ -391,7 +391,7 @@ function facetTower(g: Geo, hx: number, hz: number, y0: number, h: number, seed:
     const sw = 0.94 + 0.08 * Math.sin(t * Math.PI * 1.4) + (t > 0.8 ? 0.16 * (t - 0.8) * 5 : 0);
     rings.push(base(sw, (j % 2 ? 1 : -1) * 0.07, j));
   }
-  const skin: Skin = { wall: MUS.white, glass: MUS.glass, lit: MUS.lit, floor: 4.2, glassFrac: 0.4, segLen: 5, maxSeg: 3, litRate: 0.4, litGlow: 0.8, seed, top: null };
+  const skin: Skin = { wall: MUS.white, glass: MUS.glass, lit: MUS.lit, floor: 4.2, glassFrac: 0.36, segLen: 5, maxSeg: 3, litRate: 0.4, litGlow: 0.8, seed, top: null };
   for (let j = 0; j < n; j++) {
     const ya = y0 + (h * j) / n,
       yb = y0 + (h * (j + 1)) / n;
@@ -603,7 +603,7 @@ export function skylineCsc(ctx: Ctx, lm: OsmLandmark, m: Model): Kit[] | null {
   const mods = 10,
     modH = 12.3,
     gap = 1.0;
-  const twist = (2.0 * Math.PI) / 180;
+  const twist = (2.6 * Math.PI) / 180;
   // the cluster's half side, so the most-turned module (and its step-out) stays inside the site
   const amax = twist * (mods + 1);
   const S = Math.min(13, (half - 0.6) / (Math.cos(amax) + Math.sin(amax)));
@@ -624,7 +624,7 @@ export function skylineCsc(ctx: Ctx, lm: OsmLandmark, m: Model): Kit[] | null {
     const n = mods + (a + b === 0 ? 1 : 0);
     for (let i = 0; i < n; i++) {
       const ang = twist * i;
-      const out = i % 2 ? 0.45 : 0; // the stepped cubes: every other module stands a little proud
+      const out = i % 2 ? 0.7 : 0; // the stepped cubes: every other module stands a little proud
       const cx = a * (q + out * 0.7),
         cz = b * (q + out * 0.7);
       const y0 = i * modH,
