@@ -32,6 +32,28 @@ function colored(g: THREE.BufferGeometry, color: string) {
 const bx = (w: number, h: number, d: number, x: number, y: number, z: number, color: string) => colored(new THREE.BoxGeometry(w, h, d).translate(x, y, z), color);
 const cyl = (r0: number, r1: number, h: number, x: number, y: number, z: number, color: string, seg = 10) => colored(new THREE.CylinderGeometry(r0, r1, h, seg).translate(x, y, z), color);
 const vc = () => new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+/** a merged-in box without its top and bottom faces (stand frames: only the sides are ever seen) */
+function open4(g: THREE.BufferGeometry) {
+  // non-indexed BoxGeometry order: +x, −x, +y, −y, +z, −z, six vertices each
+  const pos = g.getAttribute('position'),
+    col = g.getAttribute('color');
+  const keep = [0, 1, 4, 5];
+  const out = new THREE.BufferGeometry();
+  const P: number[] = [],
+    C: number[] = [],
+    N: number[] = [];
+  const nrm = g.getAttribute('normal');
+  for (const f of keep)
+    for (let i = f * 6; i < f * 6 + 6; i++) {
+      P.push(pos.getX(i), pos.getY(i), pos.getZ(i));
+      C.push(col.getX(i), col.getY(i), col.getZ(i));
+      N.push(nrm.getX(i), nrm.getY(i), nrm.getZ(i));
+    }
+  out.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
+  out.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3));
+  out.setAttribute('color', new THREE.Float32BufferAttribute(C, 3));
+  return out;
+}
 
 type Item = { x: number; y: number; z: number; yaw?: number; s?: THREE.Vector3; color?: string };
 /** one instanced mesh per 230 m tile, so the parts of the city behind the camera are skipped (frustum culling) */
@@ -109,8 +131,9 @@ export function buildingMaterial() {
       .replace(
         '#include <common>',
         `#include <common>
-        attribute float aLook;
-        varying vec3 vW; varying vec3 vNW; varying float vRoof; varying float vLook; varying vec3 vOrg; varying vec3 vExt;`,
+        attribute float aLook; attribute vec4 aSt;
+        varying vec3 vW; varying vec3 vNW; varying float vRoof; varying float vLook; varying vec3 vOrg; varying vec3 vExt;
+        varying vec4 vSt; varying vec3 vLoc; varying vec3 vSz; varying vec2 vAx;`,
       )
       .replace(
         '#include <begin_vertex>',
@@ -122,13 +145,17 @@ export function buildingMaterial() {
         vRoof = (bm * vec4(0.0, 0.5, 0.0, 1.0)).y;
         vOrg = (bm * vec4(0.0, -0.5, 0.0, 1.0)).xyz;
         vExt = vec3(abs(bm[0].x) + abs(bm[2].x), length(bm[1].xyz), abs(bm[0].z) + abs(bm[2].z));
-        vLook = aLook;`,
+        vLook = aLook;
+        vSt = aSt; vLoc = position;
+        vSz = vec3(length(bm[0].xyz), length(bm[1].xyz), length(bm[2].xyz));
+        vAx = normalize(bm[0].xz);`,
       );
     sh.fragmentShader = sh.fragmentShader
       .replace(
         '#include <common>',
         `#include <common>
         varying vec3 vW; varying vec3 vNW; varying float vRoof; varying float vLook; varying vec3 vOrg; varying vec3 vExt;
+        varying vec4 vSt; varying vec3 vLoc; varying vec3 vSz; varying vec2 vAx;
         uniform float uNight;
         float hsh(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
         float box2(vec2 p, vec2 a, vec2 b) { vec2 s = step(a, p) * step(p, b); return s.x * s.y; }
@@ -156,9 +183,16 @@ export function buildingMaterial() {
           float r7 = hsh(vec2(vr * 71.3, 3.9)), r8 = hsh(vec2(vr * 37.1, 7.3)), r9 = hsh(vec2(vr * 53.9, 5.1));
           // per-building hue and brightness jitter, so neighbours never match
           paint *= (0.88 + 0.2 * r1) * mix(vec3(1.05, 1.0, 0.93), vec3(0.94, 1.0, 1.06), r2);
-          bool xFace = abs(vNW.x) > 0.5;
-          float W = xFace ? vExt.z : vExt.x;
-          float u = (xFace ? vW.z - vOrg.z : vW.x - vOrg.x) + 0.5 * W; // 0..W along the face
+          // the face in the box's own frame (exact for turned boxes too): width W, u = 0..W along it
+          bool zFace = abs(vLoc.z) > 0.499 && abs(vLoc.x) < 0.499;
+          float W = zFace ? vSz.x : vSz.z;
+          float u = ((zFace ? vLoc.x : vLoc.z) + 0.5) * W;
+          // street facade data (facade.ts STREET): the front face, arcade depth, finish, type
+          float fcode = floor(vSt.x + 0.5);
+          bool frontF = fcode != 0.0 && (abs(fcode) < 1.5 ? vLoc.z * fcode > 0.499 : vLoc.x * fcode * 0.5 > 0.499);
+          bool sideF = fcode != 0.0 && !frontF;
+          int fin = int(vSt.z + 0.5);
+          int btype = int(vSt.w + 0.5);
           float y = vW.y - vOrg.y;                                       // above the building's foot
           float top = vRoof - vW.y;
           vec2 fuv = fwidth(vec2(u, y)) + 1e-4;
@@ -178,6 +212,14 @@ export function buildingMaterial() {
             float rib = look == 3 ? mix(0.9 + 0.1 * step(0.5, fract(u / 0.7)), 0.95, smoothstep(0.1, 0.3, fuv.x / 0.7))
                                   : 0.92 + 0.08 * step(0.03, min(g.x, g.y));
             diffuseColor.rgb = mix(conc, paint, 0.22) * rib;
+            if (look != 3) {
+              // the parapet seen from above: a pale coping round the edge, its shadow on the roof inside
+              float e = min((0.5 - abs(vLoc.x)) * vSz.x, (0.5 - abs(vLoc.z)) * vSz.z);
+              float fe = fwidth(e) + 1e-4;
+              float cop = 1.0 - smoothstep(0.22 - fe, 0.22 + fe, e);
+              float shd = (1.0 - smoothstep(0.5 - fe, 0.5 + fe, e)) * (1.0 - cop);
+              diffuseColor.rgb = mix(diffuseColor.rgb * (1.0 - 0.22 * shd), paint * 1.04, cop);
+            }
           } else if (look == 3) {
             // warehouse: sun-faded corrugated sheet
             vec3 faded = r4 < 0.5 ? pick5(r5, vec3(0.42, 0.60, 0.60), vec3(0.47, 0.58, 0.70), vec3(0.68, 0.45, 0.33), vec3(0.82, 0.79, 0.70), vec3(0.52, 0.63, 0.50)) : paint;
@@ -256,18 +298,108 @@ export function buildingMaterial() {
             }
             cw = W / max(1.0, floor(W / cw));
             // wall finish: paint, or 二丁掛 tile in a running bond
-            bool tile = look == 1 ? r4 < 0.4 : r3 < 0.6;
+            // a set finish (fill.ts, by district) or the variant's pick
+            bool tile = fin > 0 ? fin != 5 : look == 1 ? r4 < 0.4 : r3 < 0.6;
             vec3 wall = paint;
-            if (tile) {
-              vec3 tc = pick5(r4, vec3(0.87, 0.81, 0.68), vec3(0.64, 0.32, 0.25), vec3(0.63, 0.79, 0.71), vec3(0.64, 0.65, 0.66), vec3(0.82, 0.70, 0.63));
-              wall = mix(tc, paint, 0.2) * (0.94 + 0.12 * r1);
+            if (tile && fin == 3) {
+              // 馬賽克: small white or off-white squares, a few tinted, grey grout
+              vec3 tc = mix(vec3(0.90, 0.90, 0.87), vec3(0.84, 0.86, 0.85), r4);
+              wall = mix(tc, paint, 0.12) * (0.95 + 0.08 * r1);
+              vec2 tq = vec2(u, y) / 0.11;
+              vec2 fq = fuv / 0.11;
+              float tv = hsh(floor(tq) + vr * 3.0);
+              wall *= mix(0.96 + 0.07 * tv, 1.0, smoothstep(0.2, 0.5, max(fq.x, fq.y)));
+              wall *= 1.0 - 0.09 * max(line1(tq.x, 0.08, fq.x), line1(tq.y, 0.08, fq.y));
+            } else if (tile) {
+              // 二丁掛 tile in a running bond: cream, brick red, mint, grey, beige (or the set finish)
+              vec3 tc = fin == 1 ? vec3(0.87, 0.81, 0.68) : fin == 2 ? vec3(0.62, 0.31, 0.24) : fin == 4 ? vec3(0.62, 0.63, 0.64)
+                      : pick5(r4, vec3(0.87, 0.81, 0.68), vec3(0.64, 0.32, 0.25), vec3(0.63, 0.79, 0.71), vec3(0.64, 0.65, 0.66), vec3(0.82, 0.70, 0.63));
+              wall = mix(tc, paint, fin > 0 ? 0.12 : 0.2) * (0.94 + 0.12 * r1);
               vec2 tq = vec2(u / 0.48, y / 0.16);
               tq.x += 0.5 * step(0.5, fract(tq.y * 0.5));
               vec2 fq = fuv / vec2(0.48, 0.16);
               wall *= 1.0 - 0.13 * max(line1(tq.x, 0.05, fq.x), line1(tq.y, 0.08, fq.y));
+            } else if (fin == 5) {
+              // painted render, weathered in soft vertical patches
+              wall *= 0.95 + 0.07 * hsh(vec2(floor(u / 1.7), vr * 5.0)) - 0.05 * hsh(vec2(floor(u / 0.9), floor(y / 2.5) + vr));
             }
             vec3 c = wall;
-            if (y < ground) {
+            if (y < ground && frontF && vSt.y > 0.05) {
+              // 騎樓: the ground floor D metres behind a row of columns. Ray-cast from this point on the facade
+              // into the recess: the shop fronts at the back, the ceiling with its tube lights, the tiled floor, and
+              // the side of a column the ray passes (no geometry; the collider is still the whole box)
+              float D = vSt.y;
+              float nbay = max(1.0, floor(W / 3.6));
+              float bw = W / nbay;
+              float cw2 = min(0.3, bw * 0.09);
+              float Ho = ground - 0.5; // the beam's soffit
+              float bu = fract(u / bw) * bw;
+              bool colF = bu < cw2 || bu > bw - cw2;
+              if (colF || y > Ho) {
+                c = wall * (y > Ho ? 0.97 : 0.93);
+                if (colF && y < 0.8) c = wall * 0.72; // tiled column foot
+                if (y > Ho && y < Ho + 0.08) c = wall * 0.6; // the beam's lower edge in shade
+              } else {
+                vec3 V = normalize(vW - cameraPosition);
+                vec3 tdir = zFace ? vec3(vAx.x, 0.0, vAx.y) : vec3(-vAx.y, 0.0, vAx.x);
+                float din = max(-dot(V, vNW), 0.04);
+                float Vu = dot(V, tdir);
+                float Hc = Ho + 0.3;
+                float tb = D / din;
+                float tc = V.y > 1e-4 ? (Hc - y) / V.y : 1e5;
+                float tf = V.y < -1e-4 ? -y / V.y : 1e5;
+                float th = min(tb, min(tc, tf));
+                float tcol = 0.45 / din; // the columns are 0.45 m deep
+                float bc = fract((u + Vu * tcol) / bw) * bw;
+                float dh = th * din, uh = u + Vu * th, yh = y + V.y * th;
+                float shade = 0.6 - 0.2 * dh / D;
+                if (tcol < th && (bc < cw2 || bc > bw - cw2)) {
+                  c = wall * 0.5; // a column's side
+                  shade = 1.0;
+                } else if (th == tb) {
+                  // the shop fronts at the back
+                  float bi = floor(uh / bw), bf = fract(uh / bw);
+                  float hb = hsh(vec2(bi, vr * 7.0 + 1.0)), hb2 = hsh(vec2(bi, vr * 9.0 + 4.0));
+                  if (yh > Hc - 0.7) {
+                    // the shop's lightbox sign over the opening
+                    vec3 sg = pick5(hb2, vec3(0.82, 0.22, 0.18), vec3(0.96, 0.84, 0.30), vec3(0.22, 0.46, 0.76), vec3(0.95, 0.95, 0.92), vec3(0.26, 0.60, 0.36));
+                    c = sg * 1.25;
+                    nglow = sg * 0.95;
+                    if (bf < 0.05 || bf > 0.95) c = vec3(0.32), nglow = vec3(0.0);
+                  } else if (btype == 1 && bi == floor(nbay * 0.5)) {
+                    // a walk-up's stair door: a dark entrance behind an iron gate
+                    c = vec3(0.16, 0.16, 0.15) * (1.0 + 0.6 * line1(uh / 0.14, 0.12, fwidth(uh) / 0.14 + 1e-3));
+                    nglow = coolL * 0.25;
+                  } else if (hb < 0.28) {
+                    // roller shutter pulled down
+                    c = pick4(hb2, vec3(0.74, 0.76, 0.77), vec3(0.42, 0.58, 0.48), vec3(0.47, 0.55, 0.64), vec3(0.85, 0.82, 0.72));
+                    c *= 1.0 - 0.12 * line1(yh / 0.12, 0.2, fwidth(yh) / 0.12 + 1e-3);
+                  } else {
+                    // open shop, lit inside: warm or cool light, shelves
+                    vec3 lit = hb2 < 0.6 ? vec3(0.98, 0.88, 0.64) : vec3(0.88, 0.93, 0.95);
+                    c = lit * (1.0 - 0.25 * line1(yh / 0.65, 0.04, fwidth(yh) / 0.65 + 1e-3)) * 1.25;
+                    glow = lit * 0.08;
+                    nglow = (hb2 < 0.6 ? warmL : coolL) * 1.05;
+                    if (bf < 0.04 || bf > 0.96) c = wall * 0.8, glow = vec3(0.0), nglow = vec3(0.0);
+                  }
+                } else if (th == tc) {
+                  // the ceiling, a fluorescent tube across each bay
+                  c = vec3(0.74, 0.74, 0.72);
+                  float ub = abs(fract(uh / bw) - 0.5) * bw;
+                  if (ub < 0.55 && abs(dh - D * 0.55) < 0.06) c = vec3(1.2), nglow = coolL * 1.4;
+                  else nglow = coolL * 0.18;
+                } else {
+                  // floor tiles, lit from the shops at night
+                  vec2 g = floor(vec2(uh, dh) / 0.3);
+                  c = vec3(0.62, 0.58, 0.52) * (0.9 + 0.1 * mod(g.x + g.y, 2.0));
+                  nglow = warmL * 0.2 * (0.3 + dh / D);
+                }
+                c *= shade;
+              }
+            } else if (y < ground && sideF) {
+              // a frontage house's side and back: party walls, plain at street level
+              c = wall * 0.97;
+            } else if (y < ground) {
               // street level: the arcade (騎樓) with shop fronts between the columns
               float nbay = max(1.0, floor(W / 3.8));
               float bi = floor(u / (W / nbay)), bf = fract(u / (W / nbay));
@@ -294,7 +426,7 @@ export function buildingMaterial() {
             } else {
               vec2 cell = vec2(u / cw, (y - ground) / fh);
               vec2 f = fract(cell), ci = floor(cell);
-              bool balc = look == 0 ? r8 < 0.45 : look == 2 ? r8 < 0.2 : false;
+              bool balc = btype == 2 ? zFace : look == 0 ? r8 < 0.45 : look == 2 ? r8 < 0.2 : false;
               if (box2(f, wa, wb) > 0.5) {
                 float pr = hsh(ci + vr * 17.0);
                 vec3 w = glass * (0.8 + 0.35 * pr);
@@ -314,7 +446,20 @@ export function buildingMaterial() {
                   c *= 1.0 - 0.16 * (1.0 - smoothstep(0.0, 1.3, below)) * st * (0.4 + 0.6 * r9);
                 }
               }
-              if (balc) {
+              if (balc && btype == 2) {
+                // an apartment's balcony across the whole floor: the slab's bright edge, a rail of bars (or a solid
+                // parapet), the sliding doors and wall behind in the shade of the slab above
+                float fy = f.y * fh;
+                vec3 slab = vec3(0.88, 0.88, 0.86);
+                if (fy < 0.16) c = slab * (fy < 0.03 ? 0.7 : 1.05);
+                else if (fy < 1.1) {
+                  float bars = r6 < 0.5 ? line1(u / 0.13, 0.16, fuv.x / 0.13) : 1.0;
+                  vec3 rail = r6 < 0.5 ? mix(vec3(0.30, 0.32, 0.34), vec3(0.75, 0.77, 0.78), step(0.5, r9)) : slab * 0.96;
+                  c = mix(c * 0.55, rail, bars);
+                  if (fy > 1.0) c = r6 < 0.5 ? rail * 0.9 : slab * 0.8;
+                  nglow *= 1.0 - 0.7 * bars;
+                } else c *= fy > fh - 0.3 ? 0.45 : 0.62;
+              } else if (balc) {
                 // balcony slab and rail along the foot of each floor, shade under the next slab
                 if (f.y < 0.28) {
                   c = mix(wall, vec3(0.86, 0.86, 0.84), 0.35);
@@ -322,10 +467,17 @@ export function buildingMaterial() {
                   if (f.y > 0.25) c *= 1.08;
                 } else if (f.y > 0.95) c *= 0.8;
               }
-              // 鐵窗: painted iron window cages
-              bool hasCage = look == 0 ? r2 > 0.3 : look == 2 ? r2 > 0.85 : false;
+              // 鐵窗: painted iron window cages that stick out from the wall: a sheet hood on top, a shadow below
+              bool hasCage = btype == 2 ? false : look == 0 ? r2 > 0.3 : look == 2 ? r2 > 0.85 : false;
               vec2 ca = wa - vec2(0.05, 0.04), cb = wb + vec2(0.05, 0.03);
-              if (hasCage && hsh(ci + vr * 3.0 + 0.7) > 0.15 && box2(f, ca, cb) > 0.5) {
+              bool caged = hasCage && hsh(ci + vr * 3.0 + 0.7) > 0.15;
+              if (caged && f.x > ca.x && f.x < cb.x + 0.04) {
+                float fy = f.y * fh;
+                if (fy < ca.y * fh && fy > ca.y * fh - 0.24) c *= 0.62 + 0.3 * (ca.y * fh - fy) / 0.24; // its shadow
+                else if (fy > cb.y * fh && fy < cb.y * fh + 0.14) { c = mix(vec3(0.62, 0.64, 0.66), vec3(0.55, 0.36, 0.26), step(0.6, r7)) * (fy > cb.y * fh + 0.1 ? 0.75 : 1.0); nglow = vec3(0.0); } // rain hood
+                else if (f.x > cb.x && fy > ca.y * fh && fy < cb.y * fh) c *= 0.75; // side shadow
+              }
+              if (caged && box2(f, ca, cb) > 0.5) {
                 vec3 cage = pick5(r9, vec3(0.86, 0.87, 0.85), vec3(0.56, 0.27, 0.21), vec3(0.30, 0.50, 0.38), vec3(0.33, 0.46, 0.60), vec3(0.70, 0.72, 0.72));
                 vec2 p = (f - ca) / (cb - ca);
                 vec2 fp = fuv / (vec2(cw, fh) * (cb - ca));
@@ -333,6 +485,17 @@ export function buildingMaterial() {
                 float edge = 1.0 - box2(p, vec2(0.04), vec2(0.96));
                 c = mix(c * 0.85, cage, max(bars, edge));
                 nglow *= 1.0 - 0.8 * max(bars, edge); // the cage in front of a lit window
+              }
+            }
+            if (btype == 1 && frontF && y >= ground && abs(u - 0.5 * W) < 0.85) {
+              // a walk-up's stair core: a plain strip, a vent-block window at every half landing
+              c = wall * 0.97;
+              float ly = (y - ground) / fh - 0.5;
+              float lf = fract(ly);
+              if (abs(u - 0.5 * W) < 0.5 && lf > 0.3 && lf < 0.7) {
+                vec2 vb = vec2(u, y) / 0.2;
+                c = mix(vec3(0.82, 0.82, 0.78), vec3(0.25, 0.27, 0.28), max(line1(vb.x, 0.18, fuv.x / 0.2), line1(vb.y, 0.18, fuv.y / 0.2)));
+                nglow = coolL * 0.4 * step(0.35, hsh(vec2(floor(ly), vr * 11.0)));
               }
             }
             // parapet band under the roof edge, a dark coping on top
@@ -387,11 +550,18 @@ export function drawDecor(scene: THREE.Scene, level: Level) {
   const add = (o: THREE.Object3D | null) => o && scene.add(o);
 
   // ---------- rooftops ----------
-  const tankGeo = mergeGeometries([cyl(0.62, 0.62, 1.3, 0, 1.45, 0, '#C9CED6', 12), cyl(0.64, 0.64, 0.08, 0, 2.12, 0, '#AEB4BC', 12), ...[-1, 1].flatMap((sx) => [-1, 1].map((sz) => bx(0.08, 0.8, 0.08, sx * 0.45, 0.4, sz * 0.45, '#5D6B78')))]);
+  // (8 sides on two crossed stand frames: 48 triangles, a third of the old 12-sided tank with a rim on four legs, so
+  // every roof can carry one)
+  const tankGeo = mergeGeometries([cyl(0.62, 0.62, 1.3, 0, 1.45, 0, '#C9CED6', 8), open4(bx(1.0, 0.8, 0.08, 0, 0.4, 0, '#5D6B78')), open4(bx(0.08, 0.8, 1.0, 0, 0.4, 0, '#5D6B78'))]);
   // tanks, sheds and air conditioners are many and small (thousands in the real-map city): only the ones near the
   // camera are drawn, one draw call per kind (see nearfield.ts)
-  add(nearField(tankGeo, vc(), d.tanks, 300));
-  add(nearField(new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0), new THREE.MeshLambertMaterial({ flatShading: true }), d.sheds.map((s) => ({ x: s.x, y: s.y, z: s.z, s: new THREE.Vector3(s.w, s.h, s.d), color: s.color })), 300));
+  // (one or two on nearly every roof: drawn within 200 m, where they still read as more than a dot)
+  add(nearField(tankGeo, vc(), d.tanks, 200));
+  // sheds and the rooftop kit (stair towers, parapets, tank cages, solar heaters, masts: world/osm/fill.ts) share one
+  // box mesh, turned with their building; no bottom face (never seen), 10 triangles each
+  const roofBox = new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0);
+  roofBox.setIndex([...Array.from(roofBox.index!.array).slice(0, 18), ...Array.from(roofBox.index!.array).slice(24)]);
+  add(nearField(roofBox, new THREE.MeshLambertMaterial({ flatShading: true }), d.sheds.map((s) => ({ x: s.x, y: s.y, z: s.z, yaw: s.yaw, tilt: s.tilt, s: new THREE.Vector3(s.w, s.h, s.d), color: s.color })), 300));
   // ---------- walls: air conditioners (a dark fan on the front) ----------
   const acGeo = mergeGeometries([bx(0.8, 0.55, 0.42, 0, 0, 0, '#D5D8DC'), colored(new THREE.CircleGeometry(0.2, 10).translate(0.12, 0, 0.215), '#4A4F57')]);
   add(nearField(acGeo, vc(), d.acs, 200));
@@ -433,8 +603,10 @@ export function drawDecor(scene: THREE.Scene, level: Level) {
         g.setAttribute('aFg', new THREE.BufferAttribute(new Float32Array(Array.from({ length: n }, () => [cf.r, cf.g, cf.b]).flat()), 3));
         parts.push(g);
       }
-      // the board's edge frame
-      const f = new THREE.BoxGeometry(Math.abs(Math.cos(s.yaw)) * 0.96 + 0.1, 3.08, Math.abs(Math.sin(s.yaw)) * 0.96 + 0.1);
+      // the board's edge frame, turned with the board (an axis-aligned frame swallowed the boards on the real map's
+      // slanting streets)
+      const f = new THREE.BoxGeometry(1.06, 3.08, 0.1);
+      f.rotateY(s.yaw);
       f.translate(s.x, s.y, s.z);
       const n = f.getAttribute('position').count;
       f.setAttribute('aBg', new THREE.BufferAttribute(new Float32Array(n * 3).fill(0.25), 3));

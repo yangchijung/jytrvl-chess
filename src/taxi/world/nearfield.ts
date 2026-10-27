@@ -9,6 +9,8 @@ export interface NearItem {
   y: number;
   z: number;
   yaw?: number;
+  /** then a tip about the item's own x axis (radians) */
+  tilt?: number;
   /** scale (default 1, 1, 1) */
   s?: THREE.Vector3;
   color?: string;
@@ -55,11 +57,15 @@ export function nearField(geo: THREE.BufferGeometry, mat: THREE.Material, items:
     up = new THREE.Vector3(0, 1, 0),
     one = new THREE.Vector3(1, 1, 1),
     p = new THREE.Vector3(),
+    qt = new THREE.Quaternion(),
+    ax = new THREE.Vector3(1, 0, 0),
     c = new THREE.Color();
   items.forEach((it, k) => {
     xs[k] = it.x;
     zs[k] = it.z;
-    m4.compose(p.set(it.x, it.y, it.z), q.setFromAxisAngle(up, it.yaw ?? 0), it.s ?? one);
+    q.setFromAxisAngle(up, it.yaw ?? 0);
+    if (it.tilt) q.multiply(qt.setFromAxisAngle(ax, it.tilt));
+    m4.compose(p.set(it.x, it.y, it.z), q, it.s ?? one);
     m4.toArray(mats, k * 16);
     if (cols) {
       c.set(it.color ?? '#FFFFFF');
