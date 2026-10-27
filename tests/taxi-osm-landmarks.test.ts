@@ -36,7 +36,8 @@ describe('Rush Taxi OSM landmarks', () => {
         zs = m.prims.map((p) => p.z);
       const cx = (Math.min(...xs) + Math.max(...xs)) / 2,
         cz = (Math.min(...zs) + Math.max(...zs)) / 2;
-      const reach = l.id === 'pier2' ? 220 : l.id === 'musiccenter' ? 120 : 70;
+      // the Exhibition Center stands at its mapped hall on the harbour, 140 m south of the landmark's point
+      const reach = l.id === 'pier2' ? 220 : l.id === 'musiccenter' ? 120 : l.id === 'exhibition' ? 170 : 70;
       expect(Math.hypot(cx - l.x, cz - l.z), l.id).toBeLessThan(reach);
     }
   });

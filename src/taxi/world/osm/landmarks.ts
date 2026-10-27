@@ -19,6 +19,7 @@ import * as THREE from 'three';
 import type { Prim, Shape, Sign } from '../level';
 import type { Spot } from '../../gameplay/rules';
 import { skylineTower85, skylineMusicCenter, skylineCsc } from './hero/skyline';
+import * as transit from './hero/transit';
 import { KAOHSIUNG, type OsmCityData, type OsmLandmark, type OsmRoad, type Ring, type XZ } from './data';
 import * as harbour from './hero/harbour';
 
@@ -31,7 +32,7 @@ export const CLEAR = 4.2;
 /** the 85 Sky Tower is drawn at this share of its real height (347 m) */
 export const TOWER85_SCALE = 0.6;
 
-const C = {
+export const C = {
   white: '#F2F3F0',
   offwhite: '#E6E2D8',
   stone: '#BDB6A8',
@@ -1406,6 +1407,12 @@ const BUILDERS: Record<string, Builder> = {
 BUILDERS.tower85 = skylineTower85;
 BUILDERS.musiccenter = skylineMusicCenter;
 BUILDERS.csc = skylineCsc;
+// the transit slice's detailed models (hero/transit.ts)
+BUILDERS.mainstation = transit.mainstation;
+BUILDERS.oldstation = transit.oldstation;
+BUILDERS.sankuaicuo = transit.sankuaicuo;
+BUILDERS.gushanstation = transit.gushanstation;
+BUILDERS.exhibition = transit.exhibition;
 /** big models first, so the small ones fit round them */
 const ORDER = ['tower85', 'musiccenter', 'mainstation', 'oldstation', 'csc', 'culturalcenter', 'cityhall', 'sanfeng', 'pier2', 'liuhe', 'nanhua', 'guanghua', 'historymuseum'];
 
@@ -1454,7 +1461,7 @@ export function landmarkModels(data: OsmCityData = KAOHSIUNG, spots: Spot[] = []
     finish(m, (BUILDERS[lm.id] ?? generic)(ctx, lm, m));
   }
   const dome: Model = { id: 'formosa', prims: [], shapes: [], covers: [], replaces: [], signs: [] };
-  finish(dome, formosaDome(ctx, dome));
+  finish(dome, transit.formosaGates(ctx, dome) ?? formosaDome(ctx, dome));
 
   // ---------- the mapped buildings the models stand on ----------
   const covers = [...models.values()].flatMap((m) => m.covers);
