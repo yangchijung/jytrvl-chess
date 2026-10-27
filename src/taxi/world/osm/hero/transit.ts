@@ -143,7 +143,11 @@ export function irimoya(L: number, W: number, H: number, o: { alongV?: boolean; 
   const E = (i: number, k: number) => P((i * l) / 2, lift, (k * w) / 2);
   const I = (i: number, k: number) => P(i * (l / 2 - a), h1, k * (w / 2 - b));
   const R = (i: number) => P(i * (l / 2 - a), H, 0);
-  for (const k of [-1, 1]) g.poly([E(-1, k), E(1, k), I(1, k), R(1), R(-1), I(-1, k)], tile, O(0, 0.6, k));
+  // each long slope: the hipped band along the eaves, and the gabled part above it (convex pieces)
+  for (const k of [-1, 1]) {
+    g.poly([E(-1, k), E(1, k), I(1, k), I(-1, k)], tile, O(0, 0.6, k));
+    g.poly([I(-1, k), I(1, k), R(1), R(-1)], tile, O(0, 0.6, k));
+  }
   for (const i of [-1, 1]) {
     g.poly([E(i, 1), E(i, -1), I(i, -1), I(i, 1)], tile, O(i, 0.6, 0));
     g.poly([I(i, 1), I(i, -1), R(i)], gable, O(i, 0, 0));
@@ -236,7 +240,9 @@ export const oldstation: Builder = (ctx, lm, m) => {
   const f = faceRoad(ctx.site, base, true);
   const k = new Kit(m.id, f.cx, f.cz, f.ang);
   imperialCrown(k, f.L, f.W);
-  m.covers.push(rectRing(f));
+  // the building and the entrance porch at its front
+  const [px, pz] = k.at(0, 1.9);
+  m.covers.push(rectRing({ ...f, cx: px, cz: pz, W: f.W + 3.8 }));
   return [k];
 };
 

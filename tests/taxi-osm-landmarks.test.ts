@@ -35,7 +35,8 @@ describe('Rush Taxi OSM landmarks', () => {
         zs = m.prims.map((p) => p.z);
       const cx = (Math.min(...xs) + Math.max(...xs)) / 2,
         cz = (Math.min(...zs) + Math.max(...zs)) / 2;
-      const reach = l.id === 'pier2' ? 220 : l.id === 'musiccenter' ? 120 : 70;
+      // the Exhibition Center stands at its mapped hall on the harbour, 140 m south of the landmark's point
+      const reach = l.id === 'pier2' ? 220 : l.id === 'musiccenter' ? 120 : l.id === 'exhibition' ? 170 : 70;
       expect(Math.hypot(cx - l.x, cz - l.z), l.id).toBeLessThan(reach);
     }
   });
@@ -111,7 +112,8 @@ describe('Rush Taxi OSM landmarks', () => {
 
   it('stays inside its triangle budget', () => {
     const tris = LM.prims.reduce((a, p) => a + primTriangles(p), 0);
-    expect(tris).toBeLessThan(25000);
+    // the plain models (about 20k) plus the detailed hero models' budgets (skyline 25k, harbour, transit, culture 20k each)
+    expect(tris).toBeLessThan(105000);
   });
 
   it('replaces the mapped boxes it covers, in the level', () => {
