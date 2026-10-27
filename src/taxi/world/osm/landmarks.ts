@@ -20,6 +20,8 @@ import type { Prim, Shape, Sign } from '../level';
 import type { Spot } from '../../gameplay/rules';
 import { skylineTower85, skylineMusicCenter, skylineCsc } from './hero/skyline';
 import * as transit from './hero/transit';
+import * as culture from './hero/culture';
+import { swallowRoofGeo } from './hero/culture';
 import { KAOHSIUNG, type OsmCityData, type OsmLandmark, type OsmRoad, type Ring, type XZ } from './data';
 import * as harbour from './hero/harbour';
 
@@ -1037,14 +1039,8 @@ const culturalcenter: Builder = (ctx, lm, m) => {
 
 // ---------- Sanfeng Temple: red walls and columns, gold trim, swallowtail ridges on the roofs ----------
 function swallowRoof(k: Kit, v: number, y0: number, L: number, W: number, H: number) {
-  k.roof(0, v, y0, L, W, H, C.tile, 0);
-  k.box(0, v, y0 + H - 0.1, L * 0.86, 0.5, 0.7, C.gold);
-  for (const s of [-1, 1]) {
-    // the up-turned swallowtail ends of the ridge
-    k.box(s * (L * 0.43 + 0.5), v, y0 + H + 0.2, 1.4, 0.45, 0.5, C.gold);
-    k.cone(s * (L * 0.43 + 1.3), v, y0 + H + 0.2, 0.5, 2.2, C.gold, { seg: 4 });
-  }
-  k.sph(0, v, y0 + H + 1.1, 0.6, C.gold, 8);
+  // the curved swallowtail roof (hero/culture.ts): curved slopes, the ridge sweeping up into split tails
+  k.mesh(0, v, y0, swallowRoofGeo(L, W, H).geometry());
 }
 const sanfeng: Builder = (ctx, lm, m) => {
   const r = place(ctx, lm, { L: 30, W: 34 });
@@ -1413,6 +1409,13 @@ BUILDERS.oldstation = transit.oldstation;
 BUILDERS.sankuaicuo = transit.sankuaicuo;
 BUILDERS.gushanstation = transit.gushanstation;
 BUILDERS.exhibition = transit.exhibition;
+// the culture slice's detailed models (hero/culture.ts)
+BUILDERS.culturalcenter = culture.culturalcenter;
+BUILDERS.sanfeng = culture.sanfeng;
+BUILDERS.oldcouncil = culture.oldcouncil;
+BUILDERS.historymuseum = culture.historymuseum;
+BUILDERS.cityhall = culture.cityhall;
+BUILDERS.literature = culture.literature;
 /** big models first, so the small ones fit round them */
 const ORDER = ['tower85', 'musiccenter', 'mainstation', 'oldstation', 'csc', 'culturalcenter', 'cityhall', 'sanfeng', 'pier2', 'liuhe', 'nanhua', 'guanghua', 'historymuseum'];
 
