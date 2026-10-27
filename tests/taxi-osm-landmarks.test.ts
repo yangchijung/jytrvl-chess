@@ -111,7 +111,8 @@ describe('Rush Taxi OSM landmarks', () => {
 
   it('stays inside its triangle budget', () => {
     const tris = LM.prims.reduce((a, p) => a + primTriangles(p), 0);
-    expect(tris).toBeLessThan(25000);
+    // the box models (about 20k) plus the hero slices' detailed models (skyline 25k; harbour, transit, culture 20k each)
+    expect(tris).toBeLessThan(110000);
   });
 
   it('replaces the mapped boxes it covers, in the level', () => {
