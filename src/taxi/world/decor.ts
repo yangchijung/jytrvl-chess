@@ -446,7 +446,20 @@ export function buildingMaterial() {
                   c *= 1.0 - 0.16 * (1.0 - smoothstep(0.0, 1.3, below)) * st * (0.4 + 0.6 * r9);
                 }
               }
-              if (balc) {
+              if (balc && btype == 2) {
+                // an apartment's balcony across the whole floor: the slab's bright edge, a rail of bars (or a solid
+                // parapet), the sliding doors and wall behind in the shade of the slab above
+                float fy = f.y * fh;
+                vec3 slab = vec3(0.88, 0.88, 0.86);
+                if (fy < 0.16) c = slab * (fy < 0.03 ? 0.7 : 1.05);
+                else if (fy < 1.1) {
+                  float bars = r6 < 0.5 ? line1(u / 0.13, 0.16, fuv.x / 0.13) : 1.0;
+                  vec3 rail = r6 < 0.5 ? mix(vec3(0.30, 0.32, 0.34), vec3(0.75, 0.77, 0.78), step(0.5, r9)) : slab * 0.96;
+                  c = mix(c * 0.55, rail, bars);
+                  if (fy > 1.0) c = r6 < 0.5 ? rail * 0.9 : slab * 0.8;
+                  nglow *= 1.0 - 0.7 * bars;
+                } else c *= fy > fh - 0.3 ? 0.45 : 0.62;
+              } else if (balc) {
                 // balcony slab and rail along the foot of each floor, shade under the next slab
                 if (f.y < 0.28) {
                   c = mix(wall, vec3(0.86, 0.86, 0.84), 0.35);
@@ -455,7 +468,7 @@ export function buildingMaterial() {
                 } else if (f.y > 0.95) c *= 0.8;
               }
               // 鐵窗: painted iron window cages that stick out from the wall: a sheet hood on top, a shadow below
-              bool hasCage = btype == 2 ? r2 > 0.65 : look == 0 ? r2 > 0.3 : look == 2 ? r2 > 0.85 : false;
+              bool hasCage = btype == 2 ? false : look == 0 ? r2 > 0.3 : look == 2 ? r2 > 0.85 : false;
               vec2 ca = wa - vec2(0.05, 0.04), cb = wb + vec2(0.05, 0.03);
               bool caged = hasCage && hsh(ci + vr * 3.0 + 0.7) > 0.15;
               if (caged && f.x > ca.x && f.x < cb.x + 0.04) {
