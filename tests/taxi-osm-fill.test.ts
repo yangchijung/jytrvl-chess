@@ -182,7 +182,8 @@ describe('fill of central Kaohsiung', () => {
     expect(F.decor.tanks.length).toBeGreaterThan(300);
     expect(F.decor.tanks.length).toBeLessThanOrEqual(1200);
     expect(F.decor.shopSigns.length).toBeGreaterThan(300);
-    expect(F.decor.shopSigns.length).toBeLessThanOrEqual(1500);
+    // (stacked boards on the shopping streets: up to two per building, 2nd–4th floor)
+    expect(F.decor.shopSigns.length).toBeLessThanOrEqual(2300);
     expect(F.decor.acs.length).toBeGreaterThan(1000);
     expect(F.decor.sheds.length).toBeGreaterThan(300);
     // tanks stand on a roof: on top of some fill building's ground box

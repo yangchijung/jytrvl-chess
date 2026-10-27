@@ -64,3 +64,47 @@ bool facadeIsGlass(float look, vec3 org) {
   return int(facadeStyle(look)) == ${LOOK_TOWER} && facadeHash(vec2(facadeVariant(look, org) * 43.7, 8.9)) < ${GLASS_TOWER_SHARE.toFixed(2)};
 }
 `;
+
+// ---------------------------------------------------------------- street facades (real-map fill)
+// A fill building's box can carry `st` = [face, arcade, finish, type] (Shape.st), written into the per-instance
+// `aSt` attribute. The facade shader then draws, on that one face only:
+// - the 騎樓 arcade: the ground floor recessed `arcade` metres behind a row of columns, ray-cast in the shader
+//   (back wall with shop fronts, ceiling with tube lights, tiled floor, the columns' sides), no extra geometry;
+// - the finish: a tile or paint typical of Kaohsiung instead of the variant's pick;
+// - the type: a walk-up's stair core (a strip of staggered landing windows), an apartment's balconies.
+
+export const FINISH_AUTO = 0;
+/** 二丁掛 cream tile */
+export const FINISH_CREAM = 1;
+/** brick-red 二丁掛 */
+export const FINISH_BRICK = 2;
+/** white or off-white 馬賽克 mosaic */
+export const FINISH_MOSAIC = 3;
+/** grey tile */
+export const FINISH_GREY = 4;
+/** painted render (the paint colour) */
+export const FINISH_PAINT = 5;
+
+export const TYPE_PLAIN = 0;
+export const TYPE_WALKUP = 1;
+export const TYPE_APARTMENT = 2;
+export const TYPE_LUXURY = 3;
+
+/**
+ * the `st` face code of the box face that points along the world direction (fx, fz), for a fill box whose length
+ * axis is (c, s) (build.ts turns it by yaw = −atan2(s, c), so its local x is (c, s) and its local z is (−s, c))
+ */
+export function faceCode(c: number, s: number, fx: number, fz: number): number {
+  const along = fx * c + fz * s,
+    across = -fx * s + fz * c;
+  return Math.abs(across) >= Math.abs(along) ? (across > 0 ? 1 : -1) : along > 0 ? 2 : -2;
+}
+
+/** the outward world direction (x, z) of face `code` of a box turned by `yaw` (the inverse of faceCode) */
+export function faceDir(code: number, yaw: number): [number, number] {
+  const c = Math.cos(yaw),
+    s = Math.sin(yaw);
+  // local x → (cos yaw, −sin yaw), local z → (sin yaw, cos yaw)
+  const k = Math.sign(code);
+  return Math.abs(code) === 1 ? [k * s, k * c] : [k * c, -k * s];
+}

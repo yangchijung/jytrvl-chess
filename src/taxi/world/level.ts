@@ -80,7 +80,7 @@ export interface Decor {
   /** rooftop water tanks (stainless, on a stand): position on the roof */
   tanks: { x: number; y: number; z: number }[];
   /** rooftop sheet-metal extensions */
-  sheds: { x: number; y: number; z: number; w: number; d: number; h: number; color: string }[];
+  sheds: { x: number; y: number; z: number; w: number; d: number; h: number; color: string; /** turn about y (default 0: axis-aligned) */ yaw?: number; /** then tip about the box's own x (solar panels) */ tilt?: number; /** what it is (the real-map fill's rooftop kit; plain sheet sheds leave it out) */ kind?: 'stair' | 'cage' | 'solar' | 'antenna' | 'rail' }[];
   /** air-conditioner boxes on the walls; yaw = the wall's outward direction */
   acs: { x: number; y: number; z: number; yaw: number }[];
   /** vertical shop signboards sticking out over the pavement; yaw = the board's face direction */

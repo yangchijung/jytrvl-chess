@@ -260,7 +260,7 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
   quads(level.marks, 0.045, 'paint');
 
   // ---------- plain boxes (buildings, rails, walls, decks) in one instanced mesh ----------
-  type Inst = { p: [number, number, number]; size: [number, number, number]; color: string; yaw?: number; look?: number };
+  type Inst = { p: [number, number, number]; size: [number, number, number]; color: string; yaw?: number; look?: number; st?: [number, number, number, number] };
   const all = level.shapes.filter((s): s is Extract<Shape, { kind: 'box' }> => s.kind === 'box' && !s.dynamic && !s.hidden);
   const ms = level.massing;
   const boxes: Inst[] = [...all.filter((s) => s.look === undefined), ...(ms?.slabs ?? []).map((b) => ({ p: [b.x, b.y, b.z] as [number, number, number], size: [b.w, b.h, b.d] as [number, number, number], color: b.color }))];
@@ -284,6 +284,8 @@ export function buildScene(scene: THREE.Scene, level: Level, lang: 'zh' | 'en') 
     const ix = Array.from(geo.index!.array);
     geo.setIndex([...ix.slice(0, 18), ...ix.slice(24)]);
     geo.setAttribute('aLook', new THREE.InstancedBufferAttribute(new Float32Array(part.map((s) => buildingLook(s.look ?? 0, s.p[0], s.p[2]))), 1));
+    // street facades (fill.ts): front face, arcade depth, finish, type; zeros = the plain shader
+    geo.setAttribute('aSt', new THREE.InstancedBufferAttribute(new Float32Array(part.flatMap((s) => s.st ?? [0, 0, 0, 0])), 4));
     const inst = new THREE.InstancedMesh(geo, bldMat!, part.length);
     inst.name = 'buildings';
     faded.set(inst, 0);
