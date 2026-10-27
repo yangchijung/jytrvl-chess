@@ -111,7 +111,7 @@ describe('Rush Taxi OSM landmarks', () => {
 
   it('stays inside its triangle budget', () => {
     const tris = LM.prims.reduce((a, p) => a + primTriangles(p), 0);
-    expect(tris).toBeLessThan(25000);
+    expect(tris).toBeLessThan(25000 + 20000); // + the culture slice's detailed models
   });
 
   it('replaces the mapped boxes it covers, in the level', () => {

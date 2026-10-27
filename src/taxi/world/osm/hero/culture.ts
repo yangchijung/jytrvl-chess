@@ -44,6 +44,8 @@ const K = {
   win: '#4E5D68',
   /** lit windows: warm by day too (lights on inside), glowing at night */
   lit: '#CDB57E',
+  /** big glazed lobbies: pale glass by day, lit at night */
+  lobby: '#8FAFC0',
   cream: '#E8DCBB',
   creamDark: '#CBBC97',
   roofGreen: '#4C5B55',
@@ -74,6 +76,21 @@ function win(G: Geo, x: number, y0: number, z: number, w: number, h: number, nx:
 /** a square column (no top or bottom: it stands under a roof) */
 function sqCol(G: Geo, x: number, y0: number, z: number, s: number, h: number, color: string) {
   G.box(x, y0, z, s, h, s, color, { top: false });
+}
+
+/** a model built in several mesh parts (each keeps its own footprint for the checks) */
+function parts(k: Kit) {
+  const list: Geo[] = [];
+  return {
+    next() {
+      const g = new Geo();
+      list.push(g);
+      return g;
+    },
+    done() {
+      for (const g of list) if (g.tris) k.mesh(0, 0, 0, g.geometry());
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -455,10 +472,10 @@ export function sanfeng(ctx: Ctx, lm: OsmLandmark, m: Model): Kit[] | null {
     const yMid = yb + 6.2,
       ySide = yb + 5.3;
     G.box(0, yb + 5.4, -0.3, midA * 2 - 0.8, yMid - yb - 5.4 + 0.1, dF - 2.6, K.red);
-    const mid = swallowRoofGeo(midA * 2, dF + 2.2, 2.6, { dragons: true, wallX: midA - 0.5, wallBase: -(yMid - yb - 5.4) - 0.2 });
+    const mid = swallowRoofGeo(midA * 2, dF + 1.5, 2.1, { dragons: true, wallX: midA - 0.5, wallBase: -(yMid - yb - 5.4) - 0.2 });
     addAt(G, mid, 0, yMid, -0.3);
     for (const s of [-1, 1]) {
-      const side = swallowRoofGeo(sideA * 2, dF + 1.8, 2.2, { wallX: sideA - 0.4, wallBase: -0.2 });
+      const side = swallowRoofGeo(sideA * 2, dF + 1.2, 1.8, { wallX: sideA - 0.4, wallBase: -0.2 });
       addAt(G, side, s * sideX, ySide, -0.4);
     }
     // red lanterns under the front eaves
@@ -476,8 +493,8 @@ export function sanfeng(ctx: Ctx, lm: OsmLandmark, m: Model): Kit[] | null {
     G.box(0, plat, 0, wM + 1, 0.9, dM, K.stone, { top: '#C9C2B4' });
     const ba = wM / 2 - 1,
       bb = hz - 1;
-    const up: RoofO = { a: ba + 1.0, b: bb + 1.4, ra: ba + 1.0, rb: 0, y0: yb + 8.0, H: 3.2, thick: 0.32, color: K.tile };
-    const yWall = roofUnderY(up, 1.4 / (bb + 1.4)) + 0.05;
+    const up: RoofO = { a: ba + 1.0, b: bb + 1.1, ra: ba + 1.0, rb: 0, y0: yb + 8.0, H: 2.8, thick: 0.32, color: K.tile };
+    const yWall = roofUnderY(up, 1.1 / (bb + 1.1)) + 0.05;
     G.box(0, yb, 0, 2 * ba, yWall - yb, 2 * bb, K.red);
     // doors and windows on the front wall
     for (const x of [-ba * 0.62, 0, ba * 0.62]) {
@@ -580,7 +597,8 @@ export function historymuseum(ctx: Ctx, lm: OsmLandmark, m: Model): Kit[] | null
   const H = 3 * fh + 0.6; // three storeys
   const fd = Math.min(12, W * 0.55); // the front block's depth
   const fz = hd - 4.2 - fd / 2; // its centre (the porch stands in front)
-  const G = new Geo();
+  const P = parts(k);
+  let G = P.next();
   // the front block, the corner pavilions, the rear wings (a U round a courtyard)
   G.box(0, 0, fz, 2 * hw - 1, 0.6, fd + 1, K.creamDark);
   G.box(0, 0.6, fz, 2 * hw - 2, H - 0.6, fd, K.cream);
@@ -613,6 +631,7 @@ export function historymuseum(ctx: Ctx, lm: OsmLandmark, m: Model): Kit[] | null
     }
     for (const s of [-1, 1]) for (const d of [-1, 1]) win(G, s * (hw - 1 - pw / 2) + d * 1.3, y, fz + 0.4 + fd / 2 + 0.4, 1.0, 2.3, 0, 1, 0.3);
   }
+  G = P.next();
   // the central tower and its two-tier pagoda roof
   const ts = 9;
   const tH = H + 7.5;
@@ -641,6 +660,7 @@ export function historymuseum(ctx: Ctx, lm: OsmLandmark, m: Model): Kit[] | null
   const t2: RoofO = { z: fz, a: t2b + 1.6, b: t2b + 1.6, ra: 0, rb: 0, y0: tH + 4.0, H: 3.6, lift: 0.6, thick: 0.3, color: K.roofGreen, stripe: K.roofGreen2, under: K.creamDark, fascia: K.roofGreen, ns: 4, nt: 8 };
   roof(G, t2);
   G.lathe(0, tH + 7.5, fz, [[0, 0], [0.35, 0.05], [0.2, 0.4], [0.3, 0.6], [0.08, 0.9], [0.05, 2.0], [0, 2.1]], 8, K.bronzeLight);
+  G = P.next();
   // the porte-cochère in front of the tower
   const pz0 = fz + fd / 2,
     pz1 = hd - 0.6;
@@ -650,8 +670,8 @@ export function historymuseum(ctx: Ctx, lm: OsmLandmark, m: Model): Kit[] | null
   G.box(0, 5.2, pzc, 9.6, 0.9, pd, K.creamDark, { bottom: true });
   G.box(0, 6.1, pzc + pd / 2 - 0.15, 9.6, 0.6, 0.3, K.cream);
   G.box(0, 0, pzc - pd / 2 + 1.4, 8, 0.5, 2.8, K.creamDark);
-  G.panel(0, 0.6, fz + fd / 2, 3.4, 3.6, 0, 1, K.lit, 0.9);
-  k.mesh(0, 0, 0, G.geometry());
+  G.panel(0, 0.6, fz + fd / 2, 3.4, 3.6, 0, 1, K.lobby, 0.8);
+  P.done();
   k.wall(0, fz, 0, 2 * hw - 2, fd, H);
   for (const s of [-1, 1]) k.wall(s * 4.2, pzc, 0, 0.9, pd, 4);
   m.covers.push(rectRing(r));
@@ -671,13 +691,15 @@ export function oldcouncil(ctx: Ctx, lm: OsmLandmark, m: Model): Kit[] | null {
     hd = W / 2 - 0.8;
   const fh = 3.8,
     H = 3 * fh + 0.5;
-  const G = new Geo();
+  const P = parts(k);
+  let G = P.next();
   G.box(0, 0, 0, 2 * hw + 0.6, 0.5, 2 * hd + 0.6, K.brown);
   G.box(0, 0.5, 0, 2 * hw, H - 0.5, 2 * hd, K.councilWall);
   // horizontal bands between the floors, and the cornice
   for (let f = 1; f < 3; f++) G.box(0, 0.5 + f * fh - 0.15, 0, 2 * hw + 0.2, 0.3, 2 * hd + 0.2, K.creamDark);
   G.box(0, H, 0, 2 * hw + 0.5, 0.5, 2 * hd + 0.5, K.brown);
   G.box(0, H + 0.5, 0, 2 * hw, 0.6, 2 * hd, K.councilWall);
+  G = P.next();
   // windows: square below, arched on the top floor; front and back
   const n = Math.max(4, Math.floor((2 * hw) / 2.6));
   for (let f = 0; f < 3; f++)
@@ -687,6 +709,7 @@ export function oldcouncil(ctx: Ctx, lm: OsmLandmark, m: Model): Kit[] | null {
       for (const s of [-1, 1]) win(G, x, 0.5 + f * fh + 0.8, s * hd, 1.2, f === 2 ? 2.5 : 2.1, 0, s, 0.3, f === 2);
     }
   for (const s of [-1, 1]) for (let f = 0; f < 3; f++) for (const d of [-1, 1]) win(G, s * hw, 0.5 + f * fh + 0.8, d * hd * 0.45, 1.2, f === 2 ? 2.5 : 2.1, s, 0, 0.3, f === 2);
+  G = P.next();
   // the central tower, slightly forward, with its arched lookout and stepped crown
   const ts = 7.4,
     tz = hd - ts / 2 + 0.8,
@@ -707,7 +730,7 @@ export function oldcouncil(ctx: Ctx, lm: OsmLandmark, m: Model): Kit[] | null {
   G.box(0, tH + 0.5, tz, ts - 1.2, 1.2, ts - 1.2, K.councilWall);
   G.box(0, tH + 1.7, tz, ts - 2.6, 0.9, ts - 2.6, K.creamDark);
   G.cyl(0, tH + 2.6, tz, 0.07, 4, 4, K.white);
-  k.mesh(0, 0, 0, G.geometry());
+  P.done();
   k.wall(0, 0, 0, 2 * hw, 2 * hd, H);
   m.covers.push(rectRing(r));
   return [k];
@@ -722,11 +745,13 @@ export function cityhall(ctx: Ctx, lm: OsmLandmark, m: Model): Kit[] | null {
   const k = new Kit(m.id, r.cx, r.cz, r.ang);
   const L = r.L,
     W = r.W;
-  const G = new Geo();
+  const P = parts(k);
+  let G = P.next();
   // the podium with its glazed lobby
   G.box(0, 0, 0, L, 6, W * 0.86, K.stone, { top: '#9FA39C' });
-  G.panel(0, 0.4, W * 0.43, L * 0.6, 4.4, 0, 1, K.lit, 0.7);
+  G.panel(0, 0.4, W * 0.43, L * 0.6, 4.4, 0, 1, K.lobby, 0.7);
   for (const s of [-1, 1]) G.panel(s * L * 0.4, 0.4, W * 0.43, L * 0.12, 4.4, 0, 1, K.glassDark, 0);
+  G = P.next();
   // the wings: floors of strip windows, some lit at night
   const ww = L * 0.34,
     wd = W * 0.7,
@@ -749,6 +774,7 @@ export function cityhall(ctx: Ctx, lm: OsmLandmark, m: Model): Kit[] | null {
       }
     }
   }
+  G = P.next();
   // the middle block, its glass spine and the roof frame
   const mw = L * 0.3,
     md = W * 0.62;
@@ -766,7 +792,7 @@ export function cityhall(ctx: Ctx, lm: OsmLandmark, m: Model): Kit[] | null {
   G.box(0, 5, W * 0.43 + 1.5, 14, 0.5, 3, K.white, { bottom: true });
   // flagpoles in the forecourt
   for (const i of [-1, 0, 1]) G.cyl(i * 4, 0, W * 0.43 + 2, 0.12, 12, 6, K.white);
-  k.mesh(0, 0, 0, G.geometry());
+  P.done();
   k.wall(0, 0, 0, L, W * 0.86, 6);
   for (const s of [-1, 1]) k.wall(s * L * 0.31, wz, 6, ww, wd, 26);
   m.covers.push(rectRing(r));
@@ -784,14 +810,16 @@ export function literature(ctx: Ctx, lm: OsmLandmark, m: Model): Kit[] | null {
     W = Math.min(r.W, 24);
   const hw = L / 2 - 0.6,
     hd = W / 2 - 0.6;
-  const G = new Geo();
+  const P = parts(k);
+  let G = P.next();
   G.box(0, 0, 0, 2 * hw + 1, 0.3, 2 * hd + 1, K.paving);
   // the glass ground floor, set back under the upper floor
   G.box(0, 0.3, 0, 2 * hw - 1.6, 4, 2 * hd - 1.6, K.glassDark);
   for (const s of [-1, 1]) {
-    G.panel(0, 0.6, s * (hd - 0.8), 2 * hw - 2.4, 3.2, 0, s, K.lit, 0.85);
-    G.panel(s * (hw - 0.8), 0.6, 0, 2 * hd - 2.4, 3.2, s, 0, K.lit, 0.85);
+    G.panel(0, 0.6, s * (hd - 0.8), 2 * hw - 2.4, 3.2, 0, s, K.lobby, 0.75);
+    G.panel(s * (hw - 0.8), 0.6, 0, 2 * hd - 2.4, 3.2, s, 0, K.lobby, 0.75);
   }
+  G = P.next();
   // corner posts, the white upper floor and its timber louvres
   for (const a of [-1, 1]) for (const b of [-1, 1]) G.box(a * (hw - 0.4), 0.3, b * (hd - 0.4), 0.6, 4.1, 0.6, K.white, { top: false });
   G.box(0, 4.3, 0, 2 * hw, 4.4, 2 * hd, K.white, { bottom: true });
@@ -799,12 +827,13 @@ export function literature(ctx: Ctx, lm: OsmLandmark, m: Model): Kit[] | null {
     G.panel(0, 5.0, s * hd, 2 * hw - 2, 3.0, 0, s, K.win, 0);
     const n = Math.floor((2 * hw - 2) / 0.9);
     for (let i = 0; i <= n; i++) G.box(-hw + 1 + (i * (2 * hw - 2)) / n, 5.0, s * (hd + 0.2), 0.16, 3.0, 0.25, K.wood, { top: false });
-    G.panel(s * hw, 5.4, 0, 2 * hd - 3, 2.2, s, 0, K.lit, 0.7);
+    G.panel(s * hw, 5.4, 0, 2 * hd - 3, 2.2, s, 0, K.lobby, 0.6);
   }
+  G = P.next();
   // the thin roof slab with its overhang, and a reading terrace's railing
   G.box(0, 8.7, 0, 2 * hw + 1.4, 0.35, 2 * hd + 1.4, K.white, { bottom: true });
   G.box(0, 9.05, -hd * 0.3, 2 * hw - 2, 0.9, 0.08, '#9AA6B1');
-  k.mesh(0, 0, 0, G.geometry());
+  P.done();
   k.wall(0, 0, 0, 2 * hw - 1.6, 2 * hd - 1.6, 8.7);
   m.covers.push(rectRing(r));
   return [k];
