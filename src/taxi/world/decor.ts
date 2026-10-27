@@ -537,7 +537,7 @@ export function drawDecor(scene: THREE.Scene, level: Level) {
   const add = (o: THREE.Object3D | null) => o && scene.add(o);
 
   // ---------- rooftops ----------
-  // (10 sides, an open rim band and two crossed stand frames: 64 triangles, under half the old 12-sided tank on four
+  // (10 sides, an open rim band and two crossed stand frames: 76 triangles, about half the old 12-sided tank on four
   // legs, which pays for the rooftop kit below)
   const tankGeo = mergeGeometries([
     cyl(0.62, 0.62, 1.3, 0, 1.45, 0, '#C9CED6', 10),

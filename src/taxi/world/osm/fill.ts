@@ -377,8 +377,8 @@ export function finishFor(zone: Zone, r: number) {
 export function arcadeChance(zone: Zone, rank: number) {
   if (zone === 'port') return 0;
   if (zone === 'shop') return 0.9;
-  if (zone === 'old') return rank >= 2 ? 0.85 : 0.3;
-  if (zone === 'down') return rank >= 2 ? 0.8 : 0.35;
+  if (zone === 'old') return rank >= 2 ? 0.92 : 0.5;
+  if (zone === 'down') return rank >= 2 ? 0.85 : 0.4;
   return rank >= 3 ? 0.55 : 0.1;
 }
 /** arcade depth (m): the ground floor's shop fronts this far behind the columns */
@@ -447,11 +447,41 @@ export function mappedBoxes(data: OsmCityData): Obb[] {
   return out;
 }
 
+/**
+ * street facades for the mapped footprints (osm/level.ts): the face nearest a road within `reach` of its kerb, and
+ * on a house in an arcade district an arcade by the same odds as the fill's. Returns null when no face is on a street.
+ * (x, z, L, W, ang) is the footprint's oriented box as in the data; the level turns it by yaw = −ang.
+ */
+export function streetFacer(data: OsmCityData) {
+  const roads = new RoadIndex(data);
+  return (obb: readonly number[], look: number, district: string | undefined, reach = 6): NonNullable<BoxShape['st']> | null => {
+    const [x, z, L, W, ang] = obb;
+    const c = Math.cos(ang),
+      s = Math.sin(ang);
+    let best: { fc: number; rank: number; d: number; len: number; depth: number } | null = null;
+    for (const fc of [1, -1, 2, -2]) {
+      // outward direction of the face, and its half depth from the centre
+      const k = Math.sign(fc);
+      const [dx, dz] = Math.abs(fc) === 1 ? [-s * k, c * k] : [c * k, s * k];
+      const half = Math.abs(fc) === 1 ? W / 2 : L / 2;
+      const hit = roads.at(x + dx * (half + 1), z + dz * (half + 1), reach);
+      if (!hit.rank) continue;
+      if (!best || hit.rank > best.rank || (hit.rank === best.rank && hit.d < best.d)) best = { fc, rank: hit.rank, d: hit.d, len: Math.abs(fc) === 1 ? L : W, depth: half * 2 };
+    }
+    if (!best) return null;
+    const zone = zoneOf({ district });
+    const h = hashN(x, z, 7);
+    const house = look === LOOK_HOUSE;
+    const arc = house && best.len >= 6 && best.depth >= 8 && h < arcadeChance(zone, best.rank) ? Math.min(ARCADE_DEPTH[0] + hashN(x, z, 8) * (ARCADE_DEPTH[1] - ARCADE_DEPTH[0]), best.depth * 0.4) : 0;
+    return [best.fc, arc, house ? finishFor(zone, hashN(x, z, 9)) : 0, TYPE_PLAIN];
+  };
+}
+
 export function fillBlocks(data: OsmCityData, opt: FillOptions = {}): FillResult {
-  const maxTanks = opt.maxTanks ?? 900;
+  const maxTanks = opt.maxTanks ?? 1500;
   const maxSigns = opt.maxSigns ?? 2200;
   const maxAcs = opt.maxAcs ?? 5000;
-  const maxKit = opt.maxKit ?? 9000;
+  const maxKit = opt.maxKit ?? 11000;
   const shapes: Shape[] = [];
   const pitched: Pitch[] = [];
   const decor: FillResult['decor'] = {
@@ -668,6 +698,11 @@ export function fillBlocks(data: OsmCityData, opt: FillOptions = {}): FillResult
       const fc = face ? faceCode(tx, tz, face.nx, face.nz) : 0;
       const finish = finishFor(zone, r(k, 80));
       const arcadeDepth = () => Math.min(ARCADE_DEPTH[0] + r(k, 82) * (ARCADE_DEPTH[1] - ARCADE_DEPTH[0]), b.hw * 2 * 0.4);
+      // this lot's own front is on a street (a long block edge can leave the road behind), and no nearer street
+      // runs behind it: only then an arcade
+      const fr = face ? roads.at(fx + face.nx * 1.5, fz + face.nz * 1.5, 14) : null;
+      const br = face ? roads.at(b.x - face.nx * (b.hw + 1.5), b.z - face.nz * (b.hw + 1.5), 14) : null;
+      const onStreet = !!fr && fr.rank > 0 && fr.d <= 12 && (!br!.rank || br!.d > fr.d);
       if (row.kind === 'shed') {
         const H = 7 + r(k, 11) * 4;
         box(id, b, 0, H, color, LOOK_WAREHOUSE, r(k, 12));
@@ -744,7 +779,7 @@ export function fillBlocks(data: OsmCityData, opt: FillOptions = {}): FillResult
           const look = r(k, 28) < 0.75 ? LOOK_TOWER : LOOK_HALL;
           const H = storeys(look, N);
           // older mid-rise office blocks on the main roads keep the arcade too (the glass ones draw a lobby instead)
-          const arc = face && zone !== 'res' && r(k, 81) < 0.5 ? arcadeDepth() : 0;
+          const arc = face && onStreet && zone !== 'res' && r(k, 81) < 0.5 ? arcadeDepth() : 0;
           box(id, b, 0, H, color, look, r(k, 22), false, [fc, arc, finish, TYPE_PLAIN]);
           if (face) acsOn(face, fx, fz, tx, tz, b.hl * 2, H, k, look === LOOK_TOWER ? 0 : 3);
           roofDecor(b, H, k, false);
@@ -756,7 +791,7 @@ export function fillBlocks(data: OsmCityData, opt: FillOptions = {}): FillResult
         // 苓雅 / 前鎮: a mid-rise 大樓 apartment, balconies on every floor, a caged water tank on the roof
         const N = 7 + Math.floor(r(k, 21) * 6);
         const H = storeys(LOOK_HOUSE, N);
-        const arc = rank >= 3 && r(k, 81) < 0.65 ? arcadeDepth() : 0;
+        const arc = onStreet && rank >= 3 && r(k, 81) < 0.65 ? arcadeDepth() : 0;
         box(id, b, 0, H, color, LOOK_HOUSE, r(k, 32), false, [fc, arc, finish, TYPE_APARTMENT]);
         acsOn(face, fx, fz, tx, tz, b.hl * 2, H, k, N - 1);
         if (arc) signs(face, fx, fz, tx, tz, b, H, k, false, true);
@@ -772,7 +807,7 @@ export function fillBlocks(data: OsmCityData, opt: FillOptions = {}): FillResult
       const H = storeys(LOOK_HOUSE, bn);
       // the 騎樓: the ground floor set back behind columns, on street fronts (walk-ups only on the bigger roads)
       const arcP = walkup ? (rank >= 3 ? 0.6 : 0) : arcadeChance(zone, rank);
-      const arc = front && face && bn >= 2 && b.hw * 2 >= 8 && r(k, 81) < arcP ? arcadeDepth() : 0;
+      const arc = front && face && onStreet && bn >= 2 && b.hw * 2 >= 8 && r(k, 81) < arcP ? arcadeDepth() : 0;
       const type = walkup ? TYPE_WALKUP : TYPE_PLAIN;
       box(id, b, 0, H, color, LOOK_HOUSE, r(k, 32), false, [fc, arc, finish, type]);
       let top = H;
@@ -830,13 +865,14 @@ export function fillBlocks(data: OsmCityData, opt: FillOptions = {}): FillResult
         if (!balc) signs(face, fx, fz, tx, tz, b, H, k, zone === 'shop' || (arc > 0 && rank >= 3) || (arc > 0 && zone === 'old' && rank >= 2), rank >= 2);
         if (!balc) acsOn(face, fx, fz, tx, tz, b.hl * 2, H, k, bn - 1);
       }
-      roofDecor(roofBox, top, k, !walkup && (zone === 'old' || zone === 'res'));
-      // the rooftop kit: stair towers on the walk-ups and taller houses, parapets, solar heaters, masts
+      const shed = roofDecor(roofBox, top, k, !walkup && (zone === 'old' || zone === 'res' || zone === 'down'), face);
+      // the rooftop kit: stair towers on the walk-ups and taller houses (none under a 頂樓加蓋, which holds the
+      // stair), parapets, solar heaters, masts
       kit(roofBox, top, k, face, {
-        stair: walkup ? 1 : N >= 4 && r(k, 84) < 0.55 ? 1 : 0,
-        parapet: face !== null && r(k, 85) < 0.5,
-        solar: zone !== 'down' && r(k, 86) < 0.16,
-        mast: r(k, 83) < 0.14,
+        stair: shed ? 0 : walkup ? 1 : N >= 3 && r(k, 84) < 0.7 ? 1 : 0,
+        parapet: face !== null && r(k, 85) < 0.6,
+        solar: !shed && r(k, 86) < (zone === 'down' ? 0.1 : 0.22),
+        mast: r(k, 83) < 0.2,
         color,
       });
     }
@@ -931,32 +967,36 @@ export function fillBlocks(data: OsmCityData, opt: FillOptions = {}): FillResult
       }
     }
 
-    function shedOn(b: Obb, y: number, k: number) {
-      // the decor draws sheds axis-aligned: a square small enough to stay on a rotated roof
-      const s = Math.min(b.hl, b.hw) * 2 * 0.5;
-      const off = (r(k, 60) - 0.5) * Math.max(0, b.hl * 2 - s * 1.5);
+    /** 頂樓加蓋: a sheet-metal room over the back of the roof, turned with the building */
+    function shedOn(b: Obb, y: number, k: number, face: { nx: number; nz: number } | null = null): Decor['sheds'][number] {
+      const w = b.hl * 2 * (0.55 + r(k, 65) * 0.3),
+        d = b.hw * 2 * (0.45 + r(k, 66) * 0.25);
+      const vf = face && faceCode(b.c, b.s, face.nx, face.nz) === -1 ? -1 : 1;
+      const off = (r(k, 60) - 0.5) * (b.hl * 2 - w);
+      const v = -vf * Math.max(0, b.hw - d / 2 - 0.3);
       return {
-        x: b.x + b.c * off,
+        x: b.x + b.c * off - b.s * v,
         y,
-        z: b.z + b.s * off,
-        w: s,
-        d: s,
-        h: 2.4,
+        z: b.z + b.s * off + b.c * v,
+        w,
+        d,
+        h: 2.5,
         color: SHED[Math.floor(r(k, 61) * SHED.length)],
+        yaw: -Math.atan2(b.s, b.c),
       };
     }
 
-    function roofDecor(b: Obb, y: number, k: number, sheds: boolean) {
-      if (Math.min(b.hl, b.hw) * 2 >= 3.2)
-        tankC.push({
-          r: r(k, 62),
-          p: {
-            x: b.x + b.c * (r(k, 63) - 0.5) * Math.max(0, b.hl * 2 - 2.6),
-            y,
-            z: b.z + b.s * (r(k, 63) - 0.5) * Math.max(0, b.hl * 2 - 2.6),
-          },
-        });
-      if (sheds && Math.min(b.hl, b.hw) * 2 >= 4 && r(k, 64) < 0.3) decor.sheds.push(shedOn(b, y, k));
+    /** a water tank and, now and then, a 頂樓加蓋 (the tank then stands on its roof); true when a shed was added */
+    function roofDecor(b: Obb, y: number, k: number, sheds: boolean, face: { nx: number; nz: number } | null = null) {
+      const shed = sheds && Math.min(b.hl, b.hw) * 2 >= 4 && r(k, 64) < 0.34 ? shedOn(b, y, k, face) : null;
+      if (shed) decor.sheds.push(shed);
+      if (Math.min(b.hl, b.hw) * 2 >= 3.2) {
+        const p = shed
+          ? { x: shed.x, y: y + shed.h, z: shed.z }
+          : { x: b.x + b.c * (r(k, 63) - 0.5) * Math.max(0, b.hl * 2 - 2.6), y, z: b.z + b.s * (r(k, 63) - 0.5) * Math.max(0, b.hl * 2 - 2.6) };
+        tankC.push({ r: r(k, 62), p });
+      }
+      return !!shed;
     }
   });
 

@@ -180,7 +180,8 @@ describe('fill of central Kaohsiung', () => {
 
   it('feeds tanks, sheds, air conditioners and shop signs within the triangle caps', () => {
     expect(F.decor.tanks.length).toBeGreaterThan(300);
-    expect(F.decor.tanks.length).toBeLessThanOrEqual(1200);
+    // (tanks are 76 triangles now, half the old ones: a higher cap)
+    expect(F.decor.tanks.length).toBeLessThanOrEqual(1600);
     expect(F.decor.shopSigns.length).toBeGreaterThan(300);
     // (stacked boards on the shopping streets: up to two per building, 2nd–4th floor)
     expect(F.decor.shopSigns.length).toBeLessThanOrEqual(2300);
