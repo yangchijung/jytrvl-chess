@@ -30,7 +30,7 @@ const P = {
   sheetLight: '#8A867E',
   door: '#5F6A74',
   doorDark: '#4B545C',
-  window: '#A39A7A',
+  window: '#C2B184',
   windowDark: '#5E6A72',
   glass: '#7F97A3',
   glassPale: '#B9CCD6',
@@ -92,6 +92,9 @@ export const RAIL_CLEAR = 2.6;
 
 /** which local side (+v or −v) of a kit's rectangle the water is on, or 0 */
 function waterSide(ctx: Ctx, k: Kit, L: number, W: number): 1 | -1 | 0 {
+  return waterSideAt(ctx, k, L, W).side;
+}
+function waterSideAt(ctx: Ctx, k: Kit, L: number, W: number): { side: 1 | -1 | 0; d: number } {
   let best: 1 | -1 | 0 = 0,
     bd = Infinity;
   for (const s of [1, -1] as const)
@@ -108,7 +111,16 @@ function waterSide(ctx: Ctx, k: Kit, L: number, W: number): 1 | -1 | 0 {
         break;
       }
     }
-  return best;
+  return { side: best, d: bd };
+}
+/** a pier's kit turned so that one long side (±v) faces the water when the water lies off an end */
+function quayKit(ctx: Ctx, id: string, r: Rect) {
+  const a = new Kit(id, r.cx, r.cz, r.ang),
+    b = new Kit(id, r.cx, r.cz, r.ang + Math.PI / 2);
+  const wa = waterSideAt(ctx, a, r.L, r.W),
+    wb = waterSideAt(ctx, b, r.W, r.L);
+  if (wb.side && (!wa.side || wb.d + 3 < wa.d)) return { k: b, L: r.W, W: r.L, quay: wb.side };
+  return { k: a, L: r.L, W: r.W, quay: wa.side };
 }
 
 /** paints `text` in seven-segment strokes (landmarks.ts GLYPH) on a wall facing side·z at z = side·zw */
@@ -258,7 +270,7 @@ export function warehouseGeo(L: number, W: number, H: number, wall: string, roof
   for (const s of [-1, 1] as const)
     for (let i = 0; i < nw; i++) {
       const u = -hx + (L / nw) * (i + 0.5);
-      if (s === side && (Math.abs(u) < labelW / 2 + 1 || wy0 < dh + 0.8 + gh)) continue;
+      if (s === side && Math.abs(u) < labelW / 2 + 1) continue;
       const lit = hash(seed, i, s) < 0.6 ? 0.9 : 0.15;
       const z = s * (hz + 0.03);
       g.quad([u - 0.9, wy0, z], [u + 0.9, wy0, z], [u + 0.9, wy1, z], [u - 0.9, wy1, z], P.window, [0, 0, s], lit);
@@ -627,12 +639,11 @@ export function gloryPierGeo(L: number, W: number, quay: 1 | -1 | 0) {
 export function gloriouspier(ctx: Ctx, lm: OsmLandmark, m: Model): Kit[] | null {
   const r = place(ctx, lm, { L: 30, W: 14 }, { ring: null, clear: 3 });
   if (!r) return null;
-  const k = new Kit(m.id, r.cx, r.cz, r.ang);
-  const quay = waterSide(ctx, k, r.L, r.W);
-  put(k, gloryPierGeo(r.L, r.W, quay));
-  const cl = Math.min(r.L * 0.7, 30),
-    cw = Math.min(r.W * 0.4, 5.5);
-  for (const x of breaks(-cl / 2 + 1.5, cl / 2 - 1.5, 6)) for (const s of [-1, 1]) k.wall(x, (quay || 1) * r.W * 0.08 + s * (cw / 2 - 0.6), 0, 0.4, 0.4, 6);
+  const { k, L, W, quay } = quayKit(ctx, m.id, r);
+  put(k, gloryPierGeo(L, W, quay));
+  const cl = Math.min(L * 0.7, 30),
+    cw = Math.min(W * 0.4, 5.5);
+  for (const x of breaks(-cl / 2 + 1.5, cl / 2 - 1.5, 6)) for (const s of [-1, 1]) k.wall(x, (quay || 1) * W * 0.08 + s * (cw / 2 - 0.6), 0, 0.4, 0.4, 6);
   m.covers.push(rectRing(r));
   return [k];
 }
@@ -849,13 +860,12 @@ export function xinguangGeo(L: number, W: number, quay: 1 | -1 | 0) {
 export function xinguangpier(ctx: Ctx, lm: OsmLandmark, m: Model): Kit[] | null {
   const r = place(ctx, lm, { L: 20, W: 10 }, { ring: null, clear: 3 });
   if (!r) return null;
-  const k = new Kit(m.id, r.cx, r.cz, r.ang);
-  const quay = waterSide(ctx, k, r.L, r.W);
-  put(k, xinguangGeo(r.L, r.W, quay));
-  const kl = Math.min(7, r.L * 0.35),
-    kw = Math.min(4, r.W * 0.45);
-  k.wall(0, -(quay || 1) * (r.W / 2 - kw / 2 - 0.6), 0, kl, kw, 3.3);
-  if (quay) k.wall(0, quay * (r.W / 2 - 0.15), 0, r.L, 0.3, 1.1);
+  const { k, L, W, quay } = quayKit(ctx, m.id, r);
+  put(k, xinguangGeo(L, W, quay));
+  const kl = Math.min(7, L * 0.35),
+    kw = Math.min(4, W * 0.45);
+  k.wall(0, -(quay || 1) * (W / 2 - kw / 2 - 0.6), 0, kl, kw, 3.3);
+  if (quay) k.wall(0, quay * (W / 2 - 0.15), 0, L, 0.3, 1.1);
   m.covers.push(rectRing(r));
   return [k];
 }
