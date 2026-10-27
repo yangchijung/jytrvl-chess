@@ -180,8 +180,8 @@ describe('fill of central Kaohsiung', () => {
 
   it('feeds tanks, sheds, air conditioners and shop signs within the triangle caps', () => {
     expect(F.decor.tanks.length).toBeGreaterThan(300);
-    // (tanks are 76 triangles now, half the old ones: a higher cap)
-    expect(F.decor.tanks.length).toBeLessThanOrEqual(1600);
+    // (tanks are 48 triangles now, a third of the old ones: a higher cap)
+    expect(F.decor.tanks.length).toBeLessThanOrEqual(3200);
     expect(F.decor.shopSigns.length).toBeGreaterThan(300);
     // (stacked boards on the shopping streets: up to two per building, 2nd–4th floor)
     expect(F.decor.shopSigns.length).toBeLessThanOrEqual(2300);
@@ -197,9 +197,11 @@ describe('fill of central Kaohsiung', () => {
     const L = osmLevel();
     expect(L.decor).not.toBeNull();
     for (const k of ['tanks', 'sheds', 'acs', 'shopSigns', 'scooters', 'lamps', 'signals', 'palms', 'curbs', 'boats'] as const) expect(Array.isArray(L.decor![k])).toBe(true);
-    // (nothing generated where a landmark model stands: a few percent fewer)
-    expect(L.decor!.tanks.length).toBeLessThanOrEqual(F.decor.tanks.length);
-    expect(L.decor!.tanks.length).toBeGreaterThan(F.decor.tanks.length * 0.95);
+    // (nothing generated where a landmark model stands: a few percent fewer; the mapped houses' roofs add theirs)
+    const fillTanks = L.decor!.tanks.filter((t) => F.decor.tanks.some((u) => u.x === t.x && u.z === t.z && u.y === t.y)).length;
+    expect(fillTanks).toBeLessThanOrEqual(F.decor.tanks.length);
+    expect(fillTanks).toBeGreaterThan(F.decor.tanks.length * 0.95);
+    expect(L.decor!.tanks.length).toBeGreaterThan(fillTanks);
     expect(L.massing!.pitched.length).toBeLessThanOrEqual(F.pitched.length);
     expect(L.massing!.pitched.length).toBeGreaterThan(F.pitched.length * 0.95);
     expect(L.shapes.length).toBeGreaterThan(F.shapes.length);

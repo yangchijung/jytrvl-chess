@@ -13,7 +13,7 @@ import type { Shape } from '../greybox';
 import type { Place, Spot } from '../../gameplay/rules';
 import { LOOK_HALL, LOOK_HOUSE, LOOK_TOWER, LOOK_WAREHOUSE } from '../facade';
 import { KAOHSIUNG, RANK, type OsmCityData, type OsmRoad, type XZ } from './data';
-import { fillBlocks, streetFacer } from './fill';
+import { fillBlocks, mappedRoofs, streetFacer } from './fill';
 import { buildRoadNet } from './roadnet';
 import { sidewalkLoops, surfaceTests } from './walks';
 import { clearSigns, inFoot, landmarkModels, primFoot } from './landmarks';
@@ -340,7 +340,9 @@ export function osmLevel(data: OsmCityData = KAOHSIUNG): Level {
   shapes.push(...fill.shapes.filter((s) => free(s.p[0], s.p[2])));
   fill.pitched = fill.pitched.filter((p) => free(p.x, p.z));
   for (const k of ['tanks', 'sheds', 'acs', 'shopSigns'] as const) (fill.decor[k] as { x: number; z: number }[]) = (fill.decor[k] as { x: number; z: number }[]).filter((d) => free(d.x, d.z));
-  const decor = { ...fill.decor, scooters: [], lamps: [], signals: [], palms: [], curbs: [], boats: [] };
+  // the mapped houses' roofs get the same tanks and rooftop kit as the filled ones
+  const mr = mappedRoofs(kept);
+  const decor = { ...fill.decor, tanks: [...fill.decor.tanks, ...mr.tanks], sheds: [...fill.decor.sheds, ...mr.sheds], scooters: [], lamps: [], signals: [], palms: [], curbs: [], boats: [] };
   // ---------- traffic: lanes, turns and traffic lights on the real streets ----------
   const roadnet = buildRoadNet(data);
 

@@ -21,7 +21,7 @@ import type { Shape } from '../greybox';
 import type { Decor } from '../level';
 import type { Pitch } from '../massing';
 import { storeys } from '../massing';
-import { encodeLook, faceCode, FINISH_BRICK, FINISH_CREAM, FINISH_GREY, FINISH_MOSAIC, FINISH_PAINT, LOOK_HALL, LOOK_HOUSE, LOOK_TOWER, LOOK_WAREHOUSE, TYPE_APARTMENT, TYPE_LUXURY, TYPE_PLAIN, TYPE_WALKUP } from '../facade';
+import { encodeLook, faceCode, faceDir, FINISH_BRICK, FINISH_CREAM, FINISH_GREY, FINISH_MOSAIC, FINISH_PAINT, LOOK_HALL, LOOK_HOUSE, LOOK_TOWER, LOOK_WAREHOUSE, TYPE_APARTMENT, TYPE_LUXURY, TYPE_PLAIN, TYPE_WALKUP } from '../facade';
 import { SHOP_WORDS, SIGN_COLORS } from '../city';
 import { RANK, type OsmBlock, type OsmCityData, type Poly, type Ring, type XZ } from './data';
 
@@ -385,7 +385,85 @@ export function arcadeChance(zone: Zone, rank: number) {
 export const ARCADE_DEPTH: [number, number] = [3.0, 3.8];
 
 /** the rooftop kit's colours */
-const KIT = { cage: '#98A2A8', panel: '#2F4258', heater: '#DADDE1', mast: '#5D6B78' };
+const KIT_COLORS = { cage: '#98A2A8', panel: '#2F4258', heater: '#DADDE1', mast: '#5D6B78' };
+
+export interface KitOptions {
+  stair?: number;
+  parapet?: boolean;
+  cage?: boolean;
+  solar?: boolean;
+  mast?: boolean;
+  color: string;
+}
+
+/**
+ * the rooftop kit on a roof at height y, turned with the building: stair towers (樓梯間) at the back, a front
+ * parapet (女兒牆), a caged water tank, a solar water heater (tilted panel + tank on its frame), a TV mast. The parts
+ * keep out of one another: stairs at the back corners, the heater at the other end, the mast by the front parapet.
+ */
+export function roofKit(b: Obb, y: number, rnd: (...k: number[]) => number, face: { nx: number; nz: number } | null, o: KitOptions, push: (p: Decor['sheds'][number]) => void, pushTank: (p: Decor['tanks'][number]) => void) {
+  const yaw = -Math.atan2(b.s, b.c);
+  // v > 0 is the box's local +z; the street side is vf
+  const vf = face && faceCode(b.c, b.s, face.nx, face.nz) === -1 ? -1 : 1;
+  const at = (u: number, v: number) => ({ x: b.x + b.c * u - b.s * v, z: b.z + b.s * u + b.c * v });
+  const put = (u: number, v: number, dy: number, w: number, h: number, d: number, color: string, kind: NonNullable<Decor['sheds'][number]['kind']>, tilt?: number) => {
+    const p = at(u, v);
+    const it: Decor['sheds'][number] = { x: p.x, y: y + dy, z: p.z, w, d, h, color, yaw, kind };
+    if (tilt) it.tilt = tilt;
+    push(it);
+  };
+  const L = b.hl * 2,
+    W = b.hw * 2;
+  if (o.parapet && L >= 3.2) put(0, vf * (b.hw - 0.09), 0, L, 0.9, 0.18, o.color, 'rail');
+  const stairs = L >= 4.4 && W >= 6 ? Math.min(o.stair ?? 0, L >= 9 ? 2 : 1) : 0;
+  // a single stair tower's end (+1 / −1) along the roof
+  const end = rnd(91) < 0.5 ? -1 : 1;
+  for (let i = 0; i < stairs; i++) put((stairs === 2 ? (i ? 1 : -1) : end) * (b.hl - 1.5), -vf * (b.hw - 1.7), 0, 2.4, 2.7, 2.8, o.color, 'stair');
+  let cageU = NaN;
+  if (o.cage && L >= 8 && W >= 8) {
+    cageU = (rnd(92) - 0.5) * Math.max(0, L - 9);
+    put(cageU, 0, 0, 3.6, 2.4, 3.6, KIT_COLORS.cage, 'cage');
+    pushTank({ ...at(cageU, 0), y: y + 2.4 });
+  }
+  if (o.solar && L >= 5 && W >= 5 && !(Math.abs(cageU) < 4)) {
+    // at the end away from a single stair tower, in the middle between two
+    const su = stairs === 2 ? 0 : stairs === 1 ? -end * (b.hl - 1.3) : (rnd(93) - 0.5) * (L - 2.6);
+    // the panel tips about its foot line: its low edge rests on the roof; the tank stands on its frame behind
+    put(su, 0.6 * vf, 0.4, 2.2, 0.08, 1.4, KIT_COLORS.panel, 'solar', 0.55 * vf);
+    put(su, -0.5 * vf, 0, 2.0, 1.0, 0.55, KIT_COLORS.heater, 'solar');
+  }
+  if (o.mast && L >= 3 && W >= 3) {
+    const mu = (rnd(94) - 0.5) * (L - 1.2);
+    put(mu, vf * (b.hw - 0.8), 0, 0.1, 3.4, 0.1, KIT_COLORS.mast, 'antenna');
+    put(mu, vf * (b.hw - 0.8), 2.9, 1.4, 0.07, 0.07, KIT_COLORS.mast, 'antenna');
+  }
+}
+
+/**
+ * water tanks and the rooftop kit for the mapped footprints that are houses or halls (osm/level.ts), so the mapped
+ * old town's roofs look like the filled ones. Deterministic from each box's position.
+ */
+export function mappedRoofs(shapes: Shape[]): Pick<Decor, 'tanks' | 'sheds'> {
+  const tanks: Decor['tanks'] = [],
+    sheds: Decor['sheds'] = [];
+  for (const s of shapes) {
+    if (s.kind !== 'box' || !/^b\d+$/.test(s.id) || s.look === undefined) continue;
+    const style = Math.floor(s.look);
+    const H = s.size[1];
+    if ((style !== LOOK_HOUSE && style !== LOOK_HALL) || H > 40 || s.size[0] < 4 || s.size[2] < 4) continue;
+    const yaw = s.yaw ?? 0;
+    const b: Obb = { x: s.p[0], z: s.p[2], hl: s.size[0] / 2, hw: s.size[2] / 2, c: Math.cos(yaw), s: -Math.sin(yaw) };
+    const rnd = (...k: number[]) => hashN(b.x, b.z, 31, ...k);
+    let face: { nx: number; nz: number } | null = null;
+    if (s.st && s.st[0]) {
+      const [nx, nz] = faceDir(s.st[0], yaw);
+      face = { nx, nz };
+    }
+    if (rnd(1) < 0.8) tanks.push({ x: b.x + b.c * (rnd(2) - 0.5) * (s.size[0] - 2.6), y: H, z: b.z + b.s * (rnd(2) - 0.5) * (s.size[0] - 2.6) });
+    roofKit(b, H, rnd, face, { stair: H < 24 && rnd(3) < 0.75 ? 1 : 0, parapet: !!face && rnd(4) < 0.6, solar: rnd(5) < 0.18, mast: rnd(6) < 0.2, color: s.color }, (p) => sheds.push(p), (p) => tanks.push(p));
+  }
+  return { tanks, sheds };
+}
 
 /** the luxury tower roads (podium + tower) */
 const LUX_ROAD = /^(中華|博愛)/;
@@ -478,7 +556,7 @@ export function streetFacer(data: OsmCityData) {
 }
 
 export function fillBlocks(data: OsmCityData, opt: FillOptions = {}): FillResult {
-  const maxTanks = opt.maxTanks ?? 1500;
+  const maxTanks = opt.maxTanks ?? 3200;
   const maxSigns = opt.maxSigns ?? 2200;
   const maxAcs = opt.maxAcs ?? 5000;
   const maxKit = opt.maxKit ?? 11000;
@@ -903,50 +981,9 @@ export function fillBlocks(data: OsmCityData, opt: FillOptions = {}): FillResult
       }
     }
 
-    /** the rooftop kit, turned with the building: stair towers (樓梯間), a front parapet (女兒牆), a caged water tank,
-     *  a solar water heater (tilted panel + tank), a TV mast. One building's parts share one thinning draw. */
-    function kit(b: Obb, y: number, k: number, face: { nx: number; nz: number } | null, o: { stair?: number; parapet?: boolean; cage?: boolean; solar?: boolean; mast?: boolean; color: string }) {
-      const yaw = -Math.atan2(b.s, b.c);
+    function kit(b: Obb, y: number, k: number, face: { nx: number; nz: number } | null, o: KitOptions) {
       const rk = r(k, 90);
-      // v > 0 is the box's local +z; the street side is vf
-      const vf = face ? (faceCode(b.c, b.s, face.nx, face.nz) === -1 ? -1 : 1) : 1;
-      const at = (u: number, v: number) => ({ x: b.x + b.c * u - b.s * v, z: b.z + b.s * u + b.c * v });
-      const put = (u: number, v: number, dy: number, w: number, h: number, d: number, color: string, kind: NonNullable<Decor['sheds'][number]['kind']>, tilt?: number) => {
-        const p = at(u, v);
-        const it: Decor['sheds'][number] = { x: p.x, y: y + dy, z: p.z, w, d, h, color, yaw, kind };
-        if (tilt) it.tilt = tilt;
-        kitC.push({ r: rk, p: it });
-      };
-      const L = b.hl * 2,
-        W = b.hw * 2;
-      // keep-out along the roof (u) for the parts placed so far, so they do not stand in one another
-      let uUsed = -b.hl;
-      if (o.parapet && L >= 3.2) put(0, vf * (b.hw - 0.09), 0, L, 0.9, 0.18, o.color, 'rail');
-      const stairs = Math.min(o.stair ?? 0, L >= 9 ? 2 : 1);
-      if (stairs && L >= 4.4 && W >= 6) {
-        for (let i = 0; i < stairs; i++) {
-          const su = (i === 0 ? -1 : 1) * (b.hl - 1.5) * (stairs === 1 && r(k, 91) < 0.5 ? -1 : 1);
-          put(su, -vf * (b.hw - 1.7), 0, 2.4, 2.7, 2.8, o.color, 'stair');
-          if (su < 0) uUsed = Math.max(uUsed, su + 1.4);
-        }
-      }
-      if (o.cage && L >= 8 && W >= 8) {
-        const cu = (r(k, 92) - 0.5) * Math.max(0, L - 9);
-        put(cu, 0, 0, 3.6, 2.4, 3.6, KIT.cage, 'cage');
-        tankC.push({ r: rk, p: { ...at(cu, 0), y: y + 2.4 } });
-      }
-      if (o.solar && L >= 5 && W >= 5) {
-        const su = Math.min(b.hl - 1.3, Math.max(uUsed + 1.3, (r(k, 93) - 0.3) * (L - 3)));
-        // the panel tips about its foot line: its low edge rests on the roof; the tank stands on its frame behind
-        put(su, 0.6 * vf, 0.4, 2.2, 0.08, 1.4, KIT.panel, 'solar', 0.55 * vf);
-        put(su, -0.5 * vf, 0, 2.0, 1.0, 0.55, KIT.heater, 'solar');
-      }
-      if (o.mast && L >= 3) {
-        const mu = (r(k, 94) - 0.5) * (L - 1.2),
-          mv = (r(k, 95) - 0.5) * (W - 1.2);
-        put(mu, mv, 0, 0.1, 3.4, 0.1, KIT.mast, 'antenna');
-        put(mu, mv, 2.9, 1.4, 0.07, 0.07, KIT.mast, 'antenna');
-      }
+      roofKit(b, y, (...a) => r(k, ...a), face, o, (p) => kitC.push({ r: rk, p }), (p) => tankC.push({ r: rk, p }));
     }
 
     function acsOn(face: { nx: number; nz: number }, fx: number, fz: number, tx: number, tz: number, len: number, H: number, k: number, floors: number) {

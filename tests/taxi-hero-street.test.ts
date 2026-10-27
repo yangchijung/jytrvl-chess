@@ -151,7 +151,7 @@ describe('street buildings of central Kaohsiung', () => {
   });
 
   it('stays within the triangle budget near the camera', () => {
-    // what the street detail costs where the camera is: roof boxes 10 triangles (near field, 300 m), tanks 76 (300 m),
+    // what the street detail costs where the camera is: roof boxes 10 triangles (near field, 300 m), tanks 48 (200 m),
     // air conditioners 22 (200 m), shop signs 16 (merged per 460 m square, drawn to 480 m from its centre)
     const d = L.decor!;
     const probes: [number, number][] = [
@@ -163,10 +163,11 @@ describe('street buildings of central Kaohsiung', () => {
     ];
     const near = <T extends { x: number; z: number }>(a: T[], x: number, z: number, r: number) => a.filter((p) => Math.hypot(p.x - x, p.z - z) < r).length;
     for (const [x, z] of probes) {
-      const cost = near(d.sheds, x, z, 300) * 10 + near(d.tanks, x, z, 300) * 76 + near(d.acs, x, z, 200) * 22 + near(d.shopSigns, x, z, 480) * 16;
-      // the old detail (12-triangle sheds, 144-triangle tanks, 1,400 signs) peaked at 20.9k (鹽埕); the street slice
-      // may add at most 12k of it here (and the scene as measured in the browser stays within +20k)
-      expect(cost).toBeLessThan(33000);
+      const cost = near(d.sheds, x, z, 300) * 10 + near(d.tanks, x, z, 200) * 48 + near(d.acs, x, z, 200) * 22 + near(d.shopSigns, x, z, 480) * 16;
+      // the old detail (12-triangle sheds, 144-triangle tanks within 300 m, 1,400 signs) peaked at 20.9k (鹽埕); the
+      // street slice may add at most 9k here (fewer, wider fill buildings pay for part of it: the whole scene as
+      // measured in the browser stays within +20k of before)
+      expect(cost).toBeLessThan(30000);
     }
   });
 });

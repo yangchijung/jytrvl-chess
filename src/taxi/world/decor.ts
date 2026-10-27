@@ -537,17 +537,13 @@ export function drawDecor(scene: THREE.Scene, level: Level) {
   const add = (o: THREE.Object3D | null) => o && scene.add(o);
 
   // ---------- rooftops ----------
-  // (10 sides, an open rim band and two crossed stand frames: 76 triangles, about half the old 12-sided tank on four
-  // legs, which pays for the rooftop kit below)
-  const tankGeo = mergeGeometries([
-    cyl(0.62, 0.62, 1.3, 0, 1.45, 0, '#C9CED6', 10),
-    colored(new THREE.CylinderGeometry(0.645, 0.645, 0.1, 10, 1, true).translate(0, 2.06, 0), '#AEB4BC'),
-    open4(bx(1.0, 0.8, 0.08, 0, 0.4, 0, '#5D6B78')),
-    open4(bx(0.08, 0.8, 1.0, 0, 0.4, 0, '#5D6B78')),
-  ]);
+  // (8 sides on two crossed stand frames: 48 triangles, a third of the old 12-sided tank with a rim on four legs, so
+  // every roof can carry one)
+  const tankGeo = mergeGeometries([cyl(0.62, 0.62, 1.3, 0, 1.45, 0, '#C9CED6', 8), open4(bx(1.0, 0.8, 0.08, 0, 0.4, 0, '#5D6B78')), open4(bx(0.08, 0.8, 1.0, 0, 0.4, 0, '#5D6B78'))]);
   // tanks, sheds and air conditioners are many and small (thousands in the real-map city): only the ones near the
   // camera are drawn, one draw call per kind (see nearfield.ts)
-  add(nearField(tankGeo, vc(), d.tanks, 300));
+  // (one or two on nearly every roof: drawn within 200 m, where they still read as more than a dot)
+  add(nearField(tankGeo, vc(), d.tanks, 200));
   // sheds and the rooftop kit (stair towers, parapets, tank cages, solar heaters, masts: world/osm/fill.ts) share one
   // box mesh, turned with their building; no bottom face (never seen), 10 triangles each
   const roofBox = new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0);
