@@ -16,7 +16,7 @@ import { Geo, shade, type V3 } from './harbour-geo';
 const P = {
   white: '#F2F3F0',
   offwhite: '#E6E2D8',
-  cream: '#E3D7BC',
+  cream: '#EDE3CC',
   stone: '#BDB6A8',
   paving: '#B8B1A3',
   pavingDark: '#A39C8F',
@@ -173,7 +173,7 @@ export function warehouseGeo(L: number, W: number, H: number, wall: string, roof
   // the roof
   const tone = (i: number) => {
     const r = hash(seed, i * 3.7);
-    return r < 0.18 ? P.sheetDark : r > 0.85 ? P.rust : r > 0.6 ? P.sheetLight : P.sheet;
+    return r < 0.18 ? P.sheetDark : r > 0.92 ? P.rust : r > 0.66 ? P.sheetLight : P.sheet;
   };
   const ov = 0.45,
     t = 0.2;
@@ -422,7 +422,9 @@ export function lookoutGeo(S: number, H: number) {
   const h = S / 2;
   g.box(-h - 0.6, h + 0.6, 0, 0.4, -h - 0.6, h + 0.6, P.stone);
   // the stair core
-  g.box(-h * 0.45, h * 0.45, 0.4, H - 3.2, -h * 0.45, h * 0.45, P.concrete, { low: shade(P.concrete, 0.8) });
+  g.box(-h * 0.45, h * 0.45, 0.4, H - 3.2, -h * 0.45, h * 0.45, P.offwhite, { low: shade(P.offwhite, 0.85) });
+  // the glazed lift shaft on the core's front, its cab lit at night
+  g.box(-h * 0.25, h * 0.25, 0.4, H - 3.4, h * 0.45, h * 0.45 + 0.08, P.glass, { skip: ['b', '-z'], glow: 0.25 });
   g.cut();
   // corner columns
   for (const a of [-1, 1]) for (const b of [-1, 1]) g.box(a * h - 0.22, a * h + 0.22, 0.4, H, b * h - 0.22, b * h + 0.22, P.white, { skip: ['b'] });
@@ -441,7 +443,7 @@ export function lookoutGeo(S: number, H: number) {
       g.tube([ax, y0, az], [bx, y1, bz], 0.07, 4, P.steel);
       g.tube([bx, y0, bz], [ax, y1, az], 0.07, 4, P.steel);
     }
-    if (i > 0) g.box(-h + 0.2, h - 0.2, y0 - 0.2, y0, -h + 0.2, h - 0.2, P.steelDark, { skip: [] });
+    if (i > 0) g.box(-h + 0.2, h - 0.2, y0 - 0.2, y0, -h + 0.2, h - 0.2, P.steel, { skip: [] });
   }
   g.cut();
   // the top deck: slab, glass balustrade, LED line under the slab, slim roof on the columns
@@ -531,14 +533,16 @@ export function lovePierGeo(L: number, W: number, rail: 1 | -1 | 0) {
     { x: L * 0.33, h: 10, r: 4.4 },
   ];
   const zm = -(rail || 1) * W * 0.15;
-  for (const s of sails) {
+  for (const [si, s] of sails.entries()) {
+    // the clews alternate a little, so the row of sails reads from every side
+    const tw = (rail || 1) * (si === 1 ? 0.22 : 0.4);
     const lean = 0.9;
     const foot: V3 = [s.x - s.r * 0.5, y, zm];
     const top: V3 = [foot[0] - lean, y + s.h, zm];
     g.tube(foot, top, 0.2, 8, P.steel, { rb: 0.12 });
     const tack: V3 = [foot[0] + 0.2, y + 2.6, zm];
-    const clew: V3 = [s.x + s.r * 0.65, y + 2.9, zm + (rail || 1) * W * 0.18];
-    sailGeo(g, tack, [top[0] + 0.2, top[1] - 0.4, zm], clew, [0.6, 0, (rail || 1) * 1.1]);
+    const clew: V3 = [s.x + s.r * 0.85, y + 3.1, zm + tw * W];
+    sailGeo(g, tack, [top[0] + 0.2, top[1] - 0.4, zm], clew, [0.4, 0, Math.sign(tw) * 1.3]);
     // stays from the mast top to the deck, and the sheet from the clew
     g.tube(top, [foot[0] - s.r * 0.55, y, zm - 0.6], 0.03, 4, P.steelDark);
     g.tube(clew, [clew[0] + 0.4, y, clew[2]], 0.03, 4, P.steelDark);
