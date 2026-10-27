@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 // Rush Taxi — the real-map city's landmarks: low-poly, flat-coloured models of the famous places, at their real
 // positions, sizes and orientation, built from the level primitives (world/level.ts `Prim`, merged into a few meshes
 // by world/build.ts) plus hidden collider shapes.
@@ -17,18 +18,23 @@
 // Plain data only (no Three.js, no Rapier), so unit tests can check it.
 import type { Prim, Shape, Sign } from '../level';
 import type { Spot } from '../../gameplay/rules';
+import { skylineTower85, skylineMusicCenter, skylineCsc } from './hero/skyline';
+import * as transit from './hero/transit';
+import * as culture from './hero/culture';
+import { swallowRoofGeo } from './hero/culture';
 import { KAOHSIUNG, type OsmCityData, type OsmLandmark, type OsmRoad, type Ring, type XZ } from './data';
+import * as harbour from './hero/harbour';
 
 /** parts whose underside is at least this high (m) may span a road (gate lintels, the station canopy) */
 export const HIGH = 5.5;
 /** the least gap (m) between any low part and a road's carriageway edge */
 export const ROAD_GAP = 0.5;
 /** what a building model keeps clear of a carriageway edge: the pavement and the name board on the kerb */
-const CLEAR = 4.2;
+export const CLEAR = 4.2;
 /** the 85 Sky Tower is drawn at this share of its real height (347 m) */
 export const TOWER85_SCALE = 0.6;
 
-const C = {
+export const C = {
   white: '#F2F3F0',
   offwhite: '#E6E2D8',
   stone: '#BDB6A8',
@@ -56,11 +62,11 @@ const C = {
   trunk: '#6D4C41',
   black: '#2B2E33',
 };
-const WAREHOUSE_WALLS = ['#C9A27A', '#B5653E', '#D9C9A3', '#9AA393', '#C58B5A'];
+export const WAREHOUSE_WALLS = ['#C9A27A', '#B5653E', '#D9C9A3', '#9AA393', '#C58B5A'];
 const AWNINGS = ['#D9534F', '#E8B04A', '#3F7FBF', '#E07B39', '#5E9E4E'];
 
 /** small deterministic hash → [0, 1) */
-function hash(...k: number[]) {
+export function hash(...k: number[]) {
   let x = 2166136261;
   for (const v of k) {
     x ^= Math.round(v * 10) + 0x9e3779b9 + (x << 6) + (x >>> 2);
@@ -279,6 +285,8 @@ export function primFoot(p: Prim): Foot {
       return { x: p.x, z: p.z, hx: p.L / 2, hz: p.W / 2, ang: -(p.yaw ?? 0), y0: p.y - p.H / 2, y1: p.y + p.H / 2 };
     case 'tor':
       return { x: p.x, z: p.z, hx: p.R + p.tube, hz: p.tube, ang: -p.yaw, y0: p.y - p.R - p.tube, y1: p.y + p.R + p.tube };
+    case 'mesh':
+      return { x: p.x, z: p.z, hx: p.hx, hz: p.hz, ang: -(p.yaw ?? 0), y0: p.y + p.y0, y1: p.y + p.y1 };
   }
 }
 export function shapeFoot(s: Shape): Foot | null {
@@ -330,6 +338,7 @@ export function footProblem(f: Foot, site: Site, overWater = false): 'road' | 'w
 export function primTriangles(p: Prim) {
   if (p.t === 'box') return 12;
   if (p.t === 'gab') return 6;
+  if (p.t === 'mesh') return p.pos.length / 9;
   if (p.t === 'cyl') return 4 * (p.seg ?? 18);
   if (p.t === 'cone') return 2 * (p.seg ?? 18);
   if (p.t === 'sph') {
@@ -537,6 +546,40 @@ export class Kit {
     const [x, z] = this.at(u, v);
     this.prims.push({ t: 'tor', x, y, z, R, tube, color, yaw: this.yaw(a) });
   }
+  /**
+   * free geometry (a detailed model part) standing at local (u, v) with its base at y0, turned by the local angle a.
+   * `geo` is any three.js geometry in metres with y up, its own origin at the foot; vertex colours come from its
+   * `color` attribute or else `color`; vertices listed in `glow` (a 0…1 attribute named `aGlow`, or a whole-part value)
+   * light up at night. Colliders are separate: add `wall()` boxes for the solid parts.
+   */
+  mesh(u: number, v: number, y0: number, geo: THREE.BufferGeometry, o: { a?: number; color?: string; glow?: number } = {}) {
+    const g = geo.index ? geo.toNonIndexed() : geo;
+    const pos = Array.from(g.getAttribute('position').array as ArrayLike<number>);
+    const n = pos.length / 3;
+    const ca = g.getAttribute('color');
+    const base = new THREE.Color(o.color ?? '#CCCCCC');
+    const col: number[] = [];
+    for (let i = 0; i < n; i++) col.push(ca ? ca.getX(i) : base.r, ca ? ca.getY(i) : base.g, ca ? ca.getZ(i) : base.b);
+    const ga = g.getAttribute('aGlow');
+    const glow = ga ? Array.from({ length: n }, (_, i) => ga.getX(i)) : o.glow ? new Array(n).fill(o.glow) : undefined;
+    let hx = 0,
+      hz = 0,
+      y0b = Infinity,
+      y1b = -Infinity;
+    for (let i = 0; i < n; i++) {
+      hx = Math.max(hx, Math.abs(pos[i * 3]));
+      hz = Math.max(hz, Math.abs(pos[i * 3 + 2]));
+      y0b = Math.min(y0b, pos[i * 3 + 1]);
+      y1b = Math.max(y1b, pos[i * 3 + 1]);
+    }
+    const [x, z] = this.at(u, v);
+    this.prims.push({ t: 'mesh', x, y: y0, z, yaw: this.yaw(o.a), pos, col, glow, hx, hz, y0: y0b, y1: y1b });
+  }
+  /** a hidden collider cylinder only */
+  pillar(u: number, v: number, y0: number, r: number, H: number) {
+    const [x, z] = this.at(u, v);
+    this.shapes.push({ kind: 'cyl', id: this.sid(), p: [x, y0 + H / 2, z], r, h: H, color: '#000000', hidden: true });
+  }
   /** a hidden collider box only */
   wall(u: number, v: number, y0: number, L: number, W: number, H: number) {
     const [x, z] = this.at(u, v);
@@ -547,7 +590,7 @@ export class Kit {
 // ---------------------------------------------------------------------------------------------------------------
 // painted characters (Pier-2's warehouse numbers): seven-segment glyphs of thin boxes on a wall
 // ---------------------------------------------------------------------------------------------------------------
-const GLYPH: Record<string, string> = {
+export const GLYPH: Record<string, string> = {
   '0': 'abcdef', '1': 'bc', '2': 'abdeg', '3': 'abcdg', '4': 'bcfg', '5': 'acdfg', '6': 'acdefg', '7': 'abc', '8': 'abcdefg', '9': 'abcdfg',
   C: 'adef', P: 'abefg', E: 'adefg', A: 'abcefg',
 };
@@ -588,7 +631,7 @@ export interface Model {
   overWater?: boolean;
   signs: Sign[];
 }
-interface Ctx {
+export interface Ctx {
   data: OsmCityData;
   site: Site;
   /** ground already taken by the models built so far */
@@ -596,10 +639,10 @@ interface Ctx {
   /** kerb spots where people wait: kept free */
   spots: { x: number; z: number }[];
 }
-type Builder = (ctx: Ctx, lm: OsmLandmark, m: Model) => Kit[] | null;
+export type Builder = (ctx: Ctx, lm: OsmLandmark, m: Model) => Kit[] | null;
 
 /** turns a rectangle so that its local +v (the front) points at the nearest road; keeps L along u */
-function faceRoad(site: Site, r: Rect, keepLong = false): Rect {
+export function faceRoad(site: Site, r: Rect, keepLong = false): Rect {
   const hit = site.nearest(r.cx, r.cz);
   if (!hit) return r;
   const fx = hit.x - r.cx,
@@ -618,7 +661,7 @@ function faceRoad(site: Site, r: Rect, keepLong = false): Rect {
   return best;
 }
 /** the model's rectangle: the mapped footprint, or `def` (L × W) turned to the nearest road and set back from it */
-function place(ctx: Ctx, lm: OsmLandmark, def: { L: number; W: number }, o: { cap?: { L: number; W: number }; keepLong?: boolean; clear?: number; ring?: Ring | null } = {}): Rect | null {
+export function place(ctx: Ctx, lm: OsmLandmark, def: { L: number; W: number }, o: { cap?: { L: number; W: number }; keepLong?: boolean; clear?: number; ring?: Ring | null } = {}): Rect | null {
   const { site } = ctx;
   const clear = o.clear ?? CLEAR;
   const ring = o.ring !== undefined ? o.ring : lm.poly;
@@ -996,14 +1039,8 @@ const culturalcenter: Builder = (ctx, lm, m) => {
 
 // ---------- Sanfeng Temple: red walls and columns, gold trim, swallowtail ridges on the roofs ----------
 function swallowRoof(k: Kit, v: number, y0: number, L: number, W: number, H: number) {
-  k.roof(0, v, y0, L, W, H, C.tile, 0);
-  k.box(0, v, y0 + H - 0.1, L * 0.86, 0.5, 0.7, C.gold);
-  for (const s of [-1, 1]) {
-    // the up-turned swallowtail ends of the ridge
-    k.box(s * (L * 0.43 + 0.5), v, y0 + H + 0.2, 1.4, 0.45, 0.5, C.gold);
-    k.cone(s * (L * 0.43 + 1.3), v, y0 + H + 0.2, 0.5, 2.2, C.gold, { seg: 4 });
-  }
-  k.sph(0, v, y0 + H + 1.1, 0.6, C.gold, 8);
+  // the curved swallowtail roof (hero/culture.ts): curved slopes, the ridge sweeping up into split tails
+  k.mesh(0, v, y0, swallowRoofGeo(L, W, H).geometry());
 }
 const sanfeng: Builder = (ctx, lm, m) => {
   const r = place(ctx, lm, { L: 30, W: 34 });
@@ -1352,9 +1389,33 @@ const generic: Builder = (ctx, lm, m) => {
 };
 
 const BUILDERS: Record<string, Builder> = {
-  tower85, musiccenter, pier2, mainstation, oldstation, lovepier, culturalcenter, sanfeng, cityhall, csc, greatharbor, centralpark, historymuseum,
+  tower85, musiccenter, mainstation, oldstation, culturalcenter, sanfeng, cityhall, csc, centralpark, historymuseum,
   liuhe: nightmarket, nanhua: nightmarket, guanghua: nightmarket,
+  pier2: harbour.pier2,
+  pier2tower: harbour.pier2tower,
+  lovepier: harbour.lovepier,
+  gloriouspier: harbour.gloriouspier,
+  greatharbor: harbour.greatharbor,
+  harbormuseum: harbour.harbormuseum,
+  xinguangpier: harbour.xinguangpier,
 };
+// the detailed hero models (hero/*.ts), one line per landmark
+BUILDERS.tower85 = skylineTower85;
+BUILDERS.musiccenter = skylineMusicCenter;
+BUILDERS.csc = skylineCsc;
+// the transit slice's detailed models (hero/transit.ts)
+BUILDERS.mainstation = transit.mainstation;
+BUILDERS.oldstation = transit.oldstation;
+BUILDERS.sankuaicuo = transit.sankuaicuo;
+BUILDERS.gushanstation = transit.gushanstation;
+BUILDERS.exhibition = transit.exhibition;
+// the culture slice's detailed models (hero/culture.ts)
+BUILDERS.culturalcenter = culture.culturalcenter;
+BUILDERS.sanfeng = culture.sanfeng;
+BUILDERS.oldcouncil = culture.oldcouncil;
+BUILDERS.historymuseum = culture.historymuseum;
+BUILDERS.cityhall = culture.cityhall;
+BUILDERS.literature = culture.literature;
 /** big models first, so the small ones fit round them */
 const ORDER = ['tower85', 'musiccenter', 'mainstation', 'oldstation', 'csc', 'culturalcenter', 'cityhall', 'sanfeng', 'pier2', 'liuhe', 'nanhua', 'guanghua', 'historymuseum'];
 
@@ -1403,7 +1464,7 @@ export function landmarkModels(data: OsmCityData = KAOHSIUNG, spots: Spot[] = []
     finish(m, (BUILDERS[lm.id] ?? generic)(ctx, lm, m));
   }
   const dome: Model = { id: 'formosa', prims: [], shapes: [], covers: [], replaces: [], signs: [] };
-  finish(dome, formosaDome(ctx, dome));
+  finish(dome, transit.formosaGates(ctx, dome) ?? formosaDome(ctx, dome));
 
   // ---------- the mapped buildings the models stand on ----------
   const covers = [...models.values()].flatMap((m) => m.covers);

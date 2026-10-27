@@ -4,7 +4,7 @@
 
 /** `hidden` shapes only collide (their look is drawn elsewhere, e.g. a landmark's merged mesh) */
 export type Shape =
-  | { kind: 'box'; id: string; p: [number, number, number]; size: [number, number, number]; yaw?: number; color: string; dynamic?: boolean; hidden?: boolean; /** a building, drawn with windows: 0 house, 1 tower, 2 hall, 3 warehouse */ look?: number; /** drawn only, no collider (upper volumes, balconies, canopies the car cannot reach) */ nocollide?: boolean }
+  | { kind: 'box'; id: string; p: [number, number, number]; size: [number, number, number]; yaw?: number; color: string; dynamic?: boolean; hidden?: boolean; /** a building, drawn with windows: 0 house, 1 tower, 2 hall, 3 warehouse */ look?: number; /** drawn only, no collider (upper volumes, balconies, canopies the car cannot reach) */ nocollide?: boolean; /** street facade (real-map fill, see facade.ts STREET_*): [front face in the box's frame (0 none, ±1 = ±z, ±2 = ±x), arcade depth m (0 = none), finish (0 = the shader's pick, else FINISH_*), type (0 plain, 1 walk-up, 2 apartment, 3 luxury tower)] */ st?: [number, number, number, number] }
   | { kind: 'wedge'; id: string; p: [number, number, number]; size: [number, number, number]; yaw?: number; color: string }
   | { kind: 'cyl'; id: string; p: [number, number, number]; r: number; h: number; color: string; hidden?: boolean }
   | { kind: 'ball'; id: string; p: [number, number, number]; r: number; color: string; hidden?: boolean };

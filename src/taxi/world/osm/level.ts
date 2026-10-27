@@ -13,7 +13,7 @@ import type { Shape } from '../greybox';
 import type { Place, Spot } from '../../gameplay/rules';
 import { LOOK_HALL, LOOK_HOUSE, LOOK_TOWER, LOOK_WAREHOUSE } from '../facade';
 import { KAOHSIUNG, RANK, type OsmCityData, type OsmRoad, type XZ } from './data';
-import { fillBlocks } from './fill';
+import { fillBlocks, mappedRoofs, streetFacer } from './fill';
 import { buildRoadNet } from './roadnet';
 import { sidewalkLoops, surfaceTests } from './walks';
 import { clearSigns, inFoot, landmarkModels, primFoot } from './landmarks';
@@ -186,12 +186,18 @@ export function osmLevel(data: OsmCityData = KAOHSIUNG): Level {
   const districtAt = (x: number, z: number) => data.districts.find((d) => d.poly.some((p) => pointInRing(x, z, p[0])))?.zh;
 
   // ---------- buildings from the mapped footprints ----------
+  // (with the street face, finish and arcade of the fill's houses, so mapped and filled rows match)
+  const facer = streetFacer(data);
   data.buildings.forEach((b, i) => {
     const [cx, cz, L, W, ang] = b.obb;
     if (L < 2 || W < 2) return;
     const dz = districtAt(cx, cz);
     const h = heightOf(b, dz);
-    shapes.push({ kind: 'box', id: `b${i}`, p: [cx, h / 2, cz], size: [L, h, W], yaw: -ang, color: '#D8D2C4', look: styleFor(dz, undefined, b.kind, h) });
+    const look = styleFor(dz, undefined, b.kind, h);
+    const s: Shape = { kind: 'box', id: `b${i}`, p: [cx, h / 2, cz], size: [L, h, W], yaw: -ang, color: '#D8D2C4', look };
+    const st = facer(b.obb, look, dz);
+    if (st) s.st = st;
+    shapes.push(s);
   });
 
   // ---------- bridge railings (solid) ----------
@@ -334,7 +340,9 @@ export function osmLevel(data: OsmCityData = KAOHSIUNG): Level {
   shapes.push(...fill.shapes.filter((s) => free(s.p[0], s.p[2])));
   fill.pitched = fill.pitched.filter((p) => free(p.x, p.z));
   for (const k of ['tanks', 'sheds', 'acs', 'shopSigns'] as const) (fill.decor[k] as { x: number; z: number }[]) = (fill.decor[k] as { x: number; z: number }[]).filter((d) => free(d.x, d.z));
-  const decor = { ...fill.decor, scooters: [], lamps: [], signals: [], palms: [], curbs: [], boats: [] };
+  // the mapped houses' roofs get the same tanks and rooftop kit as the filled ones
+  const mr = mappedRoofs(kept);
+  const decor = { ...fill.decor, tanks: [...fill.decor.tanks, ...mr.tanks], sheds: [...fill.decor.sheds, ...mr.sheds], scooters: [], lamps: [], signals: [], palms: [], curbs: [], boats: [] };
   // ---------- traffic: lanes, turns and traffic lights on the real streets ----------
   const roadnet = buildRoadNet(data);
 

@@ -426,9 +426,12 @@ export async function startGame(canvas: HTMLCanvasElement, onHud: (h: HudState) 
     if (menu) {
       // the menu's background: a slow aerial orbit over the Love River (radius and height keep the draw calls in the
       // tablet budget: 290 m / 150 m saw the whole grid city, 165 calls and 377k triangles)
+      // real-map city: round the Love River mouth (Music Center, True Love Pier, Pier-2, the harbour), with the 85
+      // tower on the skyline; mostly water and low sheds there, so it stays in budget
       orbit += dt * 0.045;
-      chase.cam.position.set(Math.cos(orbit) * 130, 170, Math.sin(orbit) * 130);
-      chase.cam.lookAt(0, 0, 0);
+      const [ox, oz, or, oh] = level.osm ? [-560, -60, 170, 120] : [0, 0, 130, 170];
+      chase.cam.position.set(ox + Math.cos(orbit) * or, oh, oz + Math.sin(orbit) * or);
+      chase.cam.lookAt(ox, 10, oz);
       if (Math.abs(chase.cam.fov - 55) > 0.1) {
         chase.cam.fov = 55;
         chase.cam.updateProjectionMatrix();

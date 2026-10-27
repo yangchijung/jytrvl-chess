@@ -49,6 +49,19 @@ export const CAR_LIGHT_GLOW = [
   { mask: 'step(0.4, vColor.r) * step(vColor.g, 0.06) * step(vColor.b, 0.06)', gain: 2.2 },
 ];
 
+/**
+ * per-vertex glow: meshes that carry a float attribute `aGlow` (0…1, e.g. lit windows of the landmark models) add
+ * `colour × aGlow × uNight × gain` to the emissive light; meshes without the attribute read 0 (WebGL default)
+ */
+export function glowAttribute<M extends Patchable>(mat: M, gain: number): M {
+  return chain(mat, `glowattr${gain}`, (sh) => {
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float aGlow;\nvarying float vGlow;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvGlow = aGlow;');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying float vGlow;')
+      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>\n#ifdef USE_COLOR\ntotalEmissiveRadiance += vColor.rgb * vGlow * uNight * ${gain.toFixed(3)};\n#endif`);
+  });
+}
+
 /** an unlit material gets up to `1 + gain` times brighter at night (values above 1 feed the desktop bloom) */
 export function brightenBasic<M extends Patchable>(mat: M, gain: number): M {
   return chain(mat, `bright${gain}`, (sh) => {

@@ -17,7 +17,8 @@ describe('Rush Taxi OSM landmarks', () => {
     for (const l of D.landmarks) {
       const m = LM.models.get(l.id);
       expect(m, l.id).toBeDefined();
-      expect(m!.prims.length, l.id).toBeGreaterThanOrEqual(3);
+      // a detailed hero model may be a few free-geometry parts
+      expect(m!.prims.length >= 3 || m!.prims.some((p) => p.t === 'mesh'), l.id).toBe(true);
     }
     const dome = LM.models.get('formosa')!;
     const j = formosaJunction(D)!;
@@ -35,7 +36,8 @@ describe('Rush Taxi OSM landmarks', () => {
         zs = m.prims.map((p) => p.z);
       const cx = (Math.min(...xs) + Math.max(...xs)) / 2,
         cz = (Math.min(...zs) + Math.max(...zs)) / 2;
-      const reach = l.id === 'pier2' ? 220 : l.id === 'musiccenter' ? 120 : 70;
+      // the Exhibition Center stands at its mapped hall on the harbour, 140 m south of the landmark's point
+      const reach = l.id === 'pier2' ? 220 : l.id === 'musiccenter' ? 120 : l.id === 'exhibition' ? 170 : 70;
       expect(Math.hypot(cx - l.x, cz - l.z), l.id).toBeLessThan(reach);
     }
   });
@@ -105,13 +107,15 @@ describe('Rush Taxi OSM landmarks', () => {
     const t = LM.models.get('tower85')!;
     const top = Math.max(...t.prims.map((p) => primFoot(p).y1));
     expect(top).toBeCloseTo(347 * TOWER85_SCALE, 0);
-    const legs = t.prims.filter((p) => p.t === 'box' && p.sy > 50 && primFoot(p).y0 < 20);
+    const legs = t.prims.filter((p) => ((p.t === 'box' && p.sy > 50) || (p.t === 'mesh' && p.y1 - p.y0 > 50)) && primFoot(p).y0 < 20);
     expect(legs.length).toBe(2);
   });
 
   it('stays inside its triangle budget', () => {
+    // the whole landmark set: the remaining box models plus the detailed hero models (each slice also has its own
+    // budget in tests/taxi-hero-*.test.ts: skyline 25k; harbour, transit, culture 20k each)
     const tris = LM.prims.reduce((a, p) => a + primTriangles(p), 0);
-    expect(tris).toBeLessThan(25000);
+    expect(tris).toBeLessThan(110000);
   });
 
   it('replaces the mapped boxes it covers, in the level', () => {
