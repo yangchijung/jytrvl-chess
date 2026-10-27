@@ -757,7 +757,12 @@ try {
       for (let k = 0; k < 12; k++) one();
       return +((performance.now() - t) / 12).toFixed(1);
     });
-    const cab = await tp.evaluate(() => window.__taxi.cabColour());
+    // the first read can land before the high tier's programs have compiled (an all-black frame): read again
+    let cab = await tp.evaluate(() => window.__taxi.cabColour());
+    for (let k = 0; k < 3 && cab && cab.plain.every((c) => c === 0); k++) {
+      await tp.evaluate(() => window.__taxi.ff(0.5, {}));
+      cab = await tp.evaluate(() => window.__taxi.cabColour());
+    }
     await tp.close();
     return { menu, drive, ms, cab, errs };
   };
