@@ -27,16 +27,18 @@ export class Geo {
     if (!c) this.cc.set(s, (c = new THREE.Color(s)));
     return c;
   }
-  tri(a: V, b: V, c: V, color: string, g = 0) {
+  /** one triangle; `g` is the night glow, for the whole triangle or per corner */
+  tri(a: V, b: V, c: V, color: string, g: number | [number, number, number] = 0) {
     const k = this.rgb(color);
-    for (const p of [a, b, c]) {
+    [a, b, c].forEach((p, i) => {
       this.pos.push(p[0], p[1], p[2]);
       this.col.push(k.r, k.g, k.b);
-      this.glow.push(g);
-    }
+      this.glow.push(typeof g === 'number' ? g : g[i]);
+    });
   }
-  /** a flat (or nearly flat) polygon, fanned from its first corner, its front face turned towards the direction `out` */
-  poly(pts: V[], color: string, out: V, g = 0) {
+  /** a flat (or nearly flat) polygon, fanned from its first corner, its front face turned towards the direction `out`;
+   * the glow for the whole polygon or per corner */
+  poly(pts: V[], color: string, out: V, g: number | number[] = 0) {
     let nx = 0,
       ny = 0,
       nz = 0;
@@ -47,8 +49,10 @@ export class Geo {
       ny += (a[2] - b[2]) * (a[0] + b[0]);
       nz += (a[0] - b[0]) * (a[1] + b[1]);
     }
-    const p = nx * out[0] + ny * out[1] + nz * out[2] < 0 ? [...pts].reverse() : pts;
-    for (let i = 1; i + 1 < p.length; i++) this.tri(p[0], p[i], p[i + 1], color, g);
+    const flip = nx * out[0] + ny * out[1] + nz * out[2] < 0;
+    const p = flip ? [...pts].reverse() : pts;
+    const gl = typeof g === 'number' ? null : flip ? [...g].reverse() : g;
+    for (let i = 1; i + 1 < p.length; i++) this.tri(p[0], p[i], p[i + 1], color, gl ? [gl[0], gl[i], gl[i + 1]] : (g as number));
   }
   /** an axis-aligned box from its foot centre */
   box(x: number, y0: number, z: number, sx: number, sy: number, sz: number, color: string, g = 0) {
@@ -108,8 +112,8 @@ const T = {
   skylight: '#A8C8D8',
   canopyUnder: '#ECEEEA',
   canopyEdge: '#F6F7F3',
-  pavGlass: '#86AFC6',
-  pavGlass2: '#6F9BB5',
+  pavGlass: '#8DB6CC',
+  pavGlass2: '#77A2BC',
   pavFrame: '#39434C',
   door: '#2A3036',
   lamp: '#F4E3B5',
@@ -117,8 +121,8 @@ const T = {
   roofGrey: '#D5DBDF',
   roofUnder: '#C9CED2',
 };
-/** stained-glass colours of the Dome of Light, glowing faintly through the entrance roofs at night */
-const DOME = ['#D9A23A', '#C2453B', '#3F6FB0', '#4E9A6A'];
+/** glass tinted by the Dome of Light's stained glass below: close to plain glass by day, its colours glow at night */
+const DOME = ['#C4AC74', '#B98A84', '#7E9AC6', '#84AE96'];
 
 // ---------------------------------------------------------------------------------------------------------------
 // the hipped-and-gabled roof (入母屋): eaves L × W at y 0 with the corners turned up, hips to h1, a gable to the ridge
@@ -186,19 +190,19 @@ export function imperialCrown(k: Kit, L: number, W: number) {
   }
   // the clock above the entrance
   const cg = new Geo();
-  cg.box(0, -1.35, 0, 2.7, 2.7, 0.24, T.creamDark);
+  cg.box(0, -1.15, 0, 2.3, 2.3, 0.24, T.creamDark);
   const ring: V[] = [],
     face: V[] = [];
   for (let i = 0; i < 16; i++) {
     const a = (i / 16) * Math.PI * 2;
-    ring.push([Math.cos(a) * 1.15, Math.sin(a) * 1.15, 0.16]);
-    face.push([Math.cos(a) * 0.98, Math.sin(a) * 0.98, 0.19]);
+    ring.push([Math.cos(a) * 1.0, Math.sin(a) * 1.0, 0.16]);
+    face.push([Math.cos(a) * 0.85, Math.sin(a) * 0.85, 0.19]);
   }
   cg.poly(ring, T.ridge, [0, 0, 1]);
   cg.poly(face, '#F7F3E6', [0, 0, 1], 0.55);
-  cg.poly([[-0.05, 0, 0.22], [0.05, 0, 0.22], [0.05, 0.75, 0.22], [-0.05, 0.75, 0.22]], T.ridge, [0, 0, 1]);
-  cg.poly([[0, -0.05, 0.22], [0.55, -0.05, 0.22], [0.55, 0.05, 0.22], [0, 0.05, 0.22]], T.ridge, [0, 0, 1]);
-  k.mesh(0, W / 2 + 0.12, 7.6, cg.geometry());
+  cg.poly([[-0.05, 0, 0.22], [0.05, 0, 0.22], [0.05, 0.75, 0.22], [-0.05, 0.65, 0.22]], T.ridge, [0, 0, 1]);
+  cg.poly([[0, -0.05, 0.22], [0.48, -0.05, 0.22], [0.48, 0.05, 0.22], [0, 0.05, 0.22]], T.ridge, [0, 0, 1]);
+  k.mesh(0, W / 2 + 0.12, 8.05, cg.geometry());
   // the wings: lower, set back, with a row of tall windows between pilasters and their own tiled roofs
   for (const s of [-1, 1]) {
     const u = s * (cL / 2 + wL / 2);
@@ -211,6 +215,8 @@ export function imperialCrown(k: Kit, L: number, W: number) {
       for (const f of [-1, 1]) k.box(wu, wv + f * (wW / 2 + 0.05), 1.9, 1.2, 0.12, 3.0, T.window);
       k.box(wu - pitch / 2, wv + wW / 2 + 0.1, 0.7, 0.45, 0.2, wH - 0.5, T.creamDark);
     }
+    // the wing's end wall: two windows
+    for (const e of [-0.22, 0.22]) k.box(s * (L / 2 + 0.05), wv + e * wW, 1.9, 0.12, 1.2, 3.0, T.window);
     k.mesh(u, wv, 0.7 + wH, irimoya(wL + 1.4, wW + 1.8, 3.6, { hip: 0.7 }).geometry());
   }
   // the entrance porch: three openings under a small tiled roof
@@ -219,13 +225,13 @@ export function imperialCrown(k: Kit, L: number, W: number) {
   k.box(0, pv, 0.7, pL, 3, 4.2, T.cream);
   for (const i of [-1, 0, 1]) k.box((i * pL) / 3.2, pv + 1.55, 0.7, 1.7, 0.12, 2.9, T.door);
   k.box(0, pv, 4.9, pL + 0.4, 3.4, 0.35, T.creamDark);
-  k.mesh(0, pv, 5.25, irimoya(pL + 1.2, 4.2, 2.2).geometry());
+  k.mesh(0, pv, 5.25, irimoya(pL + 1.2, 4.2, 1.5).geometry());
 }
 export const oldstation: Builder = (ctx, lm, m) => {
   const r = place(ctx, lm, { L: 34, W: 13 }, { ring: null });
   const p = lm.poly ? rectOfRing(lm.poly) : null;
-  // keep the mapped centre and angle, use the full building width
-  const base: Rect | null = p ? fitRect(ctx.site, { ...p, L: 34, W: 13 }, CLEAR, 14, 10) : r;
+  // keep the mapped centre; the mapped polygon is the deep central hall, so the wings run across its long side
+  const base: Rect | null = p ? fitRect(ctx.site, { ...p, ang: p.ang + Math.PI / 2, L: 34, W: 13 }, CLEAR, 14, 10) : r;
   if (!base) return null;
   const f = faceRoad(ctx.site, base, true);
   const k = new Kit(m.id, f.cx, f.cz, f.ang);
@@ -255,8 +261,8 @@ export interface Funnel {
 }
 /** the canopy: a thin undulating slab, planted on top, white beneath, dipping into glazed funnels onto the columns */
 export function canopyGeo(L: number, W: number, funnels: Funnel[], o: { base?: number; NI?: number; NJ?: number; seed?: number } = {}) {
-  const NI = o.NI ?? 36,
-    NJ = o.NJ ?? 24,
+  const NI = o.NI ?? 44,
+    NJ = o.NJ ?? 30,
     base = o.base ?? 14.5,
     seed = o.seed ?? 0.7;
   const bottom = 7.3;
@@ -281,13 +287,13 @@ export function canopyGeo(L: number, W: number, funnels: Funnel[], o: { base?: n
   for (let i = 0; i < NI; i++)
     for (let j = 0; j < NJ; j++) {
       const q = [grid[i][j], grid[i + 1][j], grid[i + 1][j + 1], grid[i][j + 1]];
-      const w = Math.max(...q.map((p) => p.w));
+      const w = (q[0].w + q[1].w + q[2].w + q[3].w) / 4;
       const r = Math.max(Math.abs(-1 + (2 * i + 1) / NI), Math.abs(-1 + (2 * j + 1) / NJ));
       // top: the glazed funnel bowls, a white rim at the edge, garden beds and footpaths between
-      const top = w > 0.3 ? T.skylight : r > 0.94 ? T.canopyEdge : j % 6 === 3 || i % 9 === 4 ? T.path : (i + j) % 3 ? T.garden : T.garden2;
+      const top = w > 0.4 ? T.skylight : r > 0.95 ? T.canopyEdge : j % 7 === 3 || i % 11 === 5 ? T.path : (i + j) % 3 ? T.garden : T.garden2;
       g.poly(q.map((p): V => [p.u, p.top, p.v]), top, [0, 1, 0]);
       // beneath: white, lit softly round the funnels at night
-      g.poly(q.map((p): V => [p.u, p.bot, p.v]), T.canopyUnder, [0, -1, 0], w > 0.3 ? 0.35 : 0);
+      g.poly(q.map((p): V => [p.u, p.bot, p.v]), T.canopyUnder, [0, -1, 0], q.map((p) => 0.3 * p.w ** 3));
     }
   // the thin edge all round
   const edge = (p: (typeof grid)[number][number], q: (typeof grid)[number][number]) => {
@@ -441,6 +447,11 @@ export const gushanstation: Builder = (ctx, lm, m) => {
   for (let i = 0; i <= n; i++) k.box(-hl * 0.36 + (i * hl * 0.72) / n, fv + 0.14, 0.4, 0.22, 0.2, H - 0.8, C.white);
   k.mesh(0, fv + 0.12, H - 0.9, new THREE.BoxGeometry(hl * 0.72, 0.5, 0.08).translate(0, 0.25, 0), { color: T.lamp, glow: 0.6 });
   k.box(0, fv + 0.1, 0.4, Math.min(3.6, hl * 0.2), 0.14, 2.6, T.door);
+  // a clerestory band of windows round the back and the ends, a grey plinth course
+  const bv = -0.4 - hw / 2;
+  k.box(0, bv - 0.05, H - 1.6, hl * 0.86, 0.12, 1.1, C.glass);
+  for (const s of [-1, 1]) k.box(s * (hl / 2 + 0.05), -0.4, H - 1.6, 0.12, hw * 0.7, 1.1, C.glass);
+  k.box(0, -0.4, 0.4, hl + 0.16, hw + 0.16, 0.6, '#9EA3A6');
   // the arched roof over the hall and the canopy at the front, on slender columns
   k.mesh(0, 0, 0.4 + H, archSlab(L - 0.2, W - 0.2, Math.min(1.8, W * 0.16), 0.35, C.white, '#B9C1C7').geometry());
   for (const s of [-1, 1]) k.cyl(s * (L / 2 - 1.2), W / 2 - 0.5, 0.4, 0.14, H, C.white, { seg: 6 });
@@ -451,10 +462,11 @@ export const gushanstation: Builder = (ctx, lm, m) => {
 // ---------------------------------------------------------------------------------------------------------------
 // Formosa Boulevard Station: the four glass entrances (the dome itself is underground)
 // ---------------------------------------------------------------------------------------------------------------
-const PAV = { L: 13, W: 7.6, hw: 2.6, hb: 6, hf: 10, tip: 2.4 };
-/** one entrance pavilion: two folded glass roofs rising to a ridge that leans forward over the entrance (+x); centred */
-export function pavilion(seed = 0) {
-  const { L, W, hw, hb, hf, tip } = PAV;
+const PAV = { hw: 2.6, hb: 6.2, hf: 10.5, tip: 2.4 };
+/** one entrance pavilion ("Prayer"): two folded glass roofs rising to a ridge that leans forward over the entrance (+x);
+ * L × W plus the leaning tip, centred */
+export function pavilion(seed = 0, L = 13, W = 7.6) {
+  const { hw, hb, hf, tip } = PAV;
   const g = new Geo();
   const sx = -tip / 2;
   const P = (x: number, y: number, z: number): V => [x + sx, y, z];
@@ -472,11 +484,16 @@ export function pavilion(seed = 0) {
     // the low glass side walls
     g.bays(P(-L / 2, 0.25, (s * W) / 2), P(L / 2, 0.25, (s * W) / 2), E(1, s), E(-1, s), 6, 0.2, (i) => [i % 2 ? T.pavGlass : T.pavGlass2, 0], T.pavFrame, [0, 0, s]);
   }
-  // the gable ends: glass, the front one leaning out over the entrance
-  g.poly([E(1, -1), CF(-1), RT, CF(1), E(1, 1)], T.pavGlass2, [1, 0.3, 0]);
+  // the gable ends: glass, the front one leaning out over the entrance, the dome's colours showing through its middle
+  const EM = P(L / 2, hw, 0);
+  g.poly([EM, E(1, -1), CF(-1)], T.pavGlass, [1, 0.3, 0]);
+  g.poly([EM, CF(-1), RT], DOME[seed % DOME.length], [1, 0.3, 0], 0.35);
+  g.poly([EM, RT, CF(1)], DOME[(seed + 2) % DOME.length], [1, 0.3, 0], 0.35);
+  g.poly([EM, CF(1), E(1, 1)], T.pavGlass, [1, 0.3, 0]);
   g.poly([E(-1, -1), CB(-1), RB, CB(1), E(-1, 1)], T.pavGlass, [-1, 0, 0]);
   // the entrance (lit at night) and the back wall
-  g.poly([P(L / 2, 0.25, -W / 2), P(L / 2, 0.25, W / 2), E(1, 1), E(1, -1)], T.door, [1, 0, 0], 0.3);
+  g.poly([P(L / 2, 0.25, -W / 2), P(L / 2, 0.25, W / 2), E(1, 1), E(1, -1)], T.pavFrame, [1, 0, 0]);
+  g.poly([P(L / 2 + 0.04, 0.25, -W * 0.3), P(L / 2 + 0.04, 0.25, W * 0.3), P(L / 2 + 0.04, hw - 0.3, W * 0.3), P(L / 2 + 0.04, hw - 0.3, -W * 0.3)], T.lamp, [1, 0, 0], 0.55);
   g.poly([P(-L / 2, 0.25, -W / 2), P(-L / 2, 0.25, W / 2), E(-1, 1), E(-1, -1)], T.pavGlass2, [-1, 0, 0]);
   // the ridge beam and the granite plinth
   const ridge = [RB, RT, P(L / 2 + tip, hf + 0.3, 0), P(-L / 2, hb + 0.3, 0)];
@@ -485,47 +502,44 @@ export function pavilion(seed = 0) {
   g.box(sx, 0, 0, L + 0.8, 0.25, W + 0.8, '#8E9089');
   return g;
 }
+/** Formosa Boulevard's four entrances ("Prayer", mapped at the junction's corners), facing the junction */
 export function formosaGates(ctx: Ctx, m: Model) {
   const j = formosaJunction(ctx.data);
   if (!j) return null;
   const { site } = ctx;
-  const road = site.nearest(j[0], j[1], (r) => (r.name ?? '').startsWith('中山')) ?? site.nearest(j[0], j[1]);
-  const a0 = road ? Math.atan2(road.dz, road.dx) : 0;
-  const hx = PAV.L / 2 + PAV.tip / 2 + 0.4,
-    hz = PAV.W / 2 + 0.6;
+  const B = ctx.data.buildings;
+  const gates = B.map((b, i) => ({ b, i })).filter(({ b }) => (b.name ?? '') === '祈禱' && Math.hypot(b.obb[0] - j[0], b.obb[1] - j[1]) < 80);
+  if (!gates.length) return null;
   const kits: Kit[] = [];
-  const placed: [number, number, number][] = [];
-  for (let q = 0; q < 4; q++) {
-    const a = a0 + Math.PI / 4 + (q * Math.PI) / 2;
-    const dx = Math.cos(a),
-      dz = Math.sin(a);
-    let best: [number, number, number] | null = null;
-    for (let d = 12; d <= 38 && !best; d += 2)
-      for (const lat of [0, 4, -4, 8, -8]) {
-        const x = j[0] + dx * d - dz * lat,
-          z = j[1] + dz * d + dx * lat;
-        const ang = Math.atan2(j[1] - z, j[0] - x);
-        const f = { x, z, hx, hz, ang, y0: 0, y1: 10 };
-        if (footProblem(f, site)) continue;
-        const pts = footSamples(f, 2);
-        if (pts.some(([px, pz]) => site.roadGap(px, pz) < 1.5 || ctx.taken.some((t) => pointInRing(px, pz, t)))) continue;
-        if (ctx.spots.some((s) => Math.hypot(s.x - x, s.z - z) < hx + 3)) continue;
-        if (placed.some(([px, pz]) => Math.hypot(px - x, pz - z) < 2 * hx)) continue;
-        best = [x, z, ang];
-        break;
-      }
-    if (!best) continue;
-    placed.push(best);
-    const k = new Kit(`${m.id}-${q}`, best[0], best[1], best[2]);
-    k.mesh(0, 0, 0, pavilion(q).geometry());
-    k.wall(-PAV.tip / 2, 0, 0, PAV.L, PAV.W, PAV.hb);
-    m.covers.push(rectRing({ cx: best[0], cz: best[1], L: 2 * hx, W: 2 * hz, ang: best[2] }));
+  gates.forEach(({ b, i }, q) => {
+    const [cx, cz, bl, bw, ba] = b.obb;
+    // the entrance (+u) towards the junction, along whichever side of the plot points there best
+    const tx = j[0] - cx,
+      tz = j[1] - cz;
+    const along = Math.abs(Math.cos(ba) * tx + Math.sin(ba) * tz) >= Math.abs(-Math.sin(ba) * tx + Math.cos(ba) * tz);
+    let ang = along ? ba : ba + Math.PI / 2;
+    if (Math.cos(ang) * tx + Math.sin(ang) * tz < 0) ang += Math.PI;
+    const r0: Rect = { cx, cz, L: along ? bl : bw, W: along ? bw : bl, ang };
+    const r = fitRect(site, r0, 1, 8, 6, ctx.taken);
+    if (!r) return;
+    const L = Math.min(15, r.L - PAV.tip - 0.8),
+      W = Math.min(11, r.W - 1.6);
+    if (L < 6 || W < 4) return;
+    const k = new Kit(`${m.id}-${q}`, r.cx, r.cz, r.ang);
+    k.mesh(0, 0, 0, pavilion(q, L, W).geometry());
+    k.wall(-PAV.tip / 2, 0, 0, L, W, PAV.hb);
+    m.replaces.push(i);
+    m.covers.push(rectRing(r));
+    // the station's mapped outline buildings that the pavilion stands in go too (the station is underground)
+    B.forEach((o, oi) => {
+      if (oi !== i && o.kind === 'transportation' && pointInRing(r.cx, r.cz, o.poly)) m.replaces.push(oi);
+    });
     kits.push(k);
-  }
+  });
   if (!kits.length) return null;
-  // the name board beside the first entrance, on its side away from the traffic, facing the nearest road
-  const k = kits[0];
-  const cands = [k.at(0, hz + 1.6), k.at(0, -hz - 1.6), k.at(-hx - 1.6, 0)];
+  // the name board beside the nearest entrance, on its side away from the traffic, facing the nearest road
+  const k = [...kits].sort((p, q) => Math.hypot(p.cx - j[0], p.cz - j[1]) - Math.hypot(q.cx - j[0], q.cz - j[1]))[0];
+  const cands = [k.at(0, 7.5), k.at(0, -7.5), k.at(-9.5, 0)];
   const [sx, sz] = cands.sort((p, q) => site.roadGap(q[0], q[1]) - site.roadGap(p[0], p[1]))[0];
   const hit = site.nearest(sx, sz);
   const yaw = hit ? Math.atan2(hit.x - sx, hit.z - sz) : 0;
@@ -536,13 +550,14 @@ export function formosaGates(ctx: Ctx, m: Model) {
 // ---------------------------------------------------------------------------------------------------------------
 // the Exhibition Center: the long harbourside hall under the wave roof
 // ---------------------------------------------------------------------------------------------------------------
-/** the wave roof over L × W (u along the harbour), rising and rolling towards +v; and the glass hall walls up to it */
-export function exhibitionGeo(L: number, W: number, o: { NI?: number; NJ?: number } = {}) {
+/** the wave roof over L × W (u along the harbour), rising and rolling towards the sea side (`sea` = ±1 along v); and the glass hall walls up to it */
+export function exhibitionGeo(L: number, W: number, o: { NI?: number; NJ?: number; sea?: number } = {}) {
   const NI = o.NI ?? 40,
-    NJ = o.NJ ?? 14;
+    NJ = o.NJ ?? 14,
+    sea = o.sea ?? 1;
   const top = (u: number, v: number) => {
     const un = (2 * u) / L,
-      vn = (2 * v) / W;
+      vn = (2 * v * sea) / W;
     return 17 + 5 * Math.sin(Math.PI * 1.1 * (un + 1) + 0.3) * (0.6 + 0.4 * vn) + 2.5 * (vn + 1) / 2 + 1.1 * Math.sin(Math.PI * vn * 1.5 + un * 2);
   };
   const th = (v: number) => 0.6 + 0.8 * (1 - ((2 * v) / W) ** 2);
@@ -599,7 +614,16 @@ export const exhibition: Builder = (ctx, lm, m) => {
   const k = new Kit(m.id, r.cx, r.cz, r.ang);
   const L = Math.min(r.L, 150),
     W = Math.min(r.W, 70);
-  const { roof, walls, hl, hw, under } = exhibitionGeo(L, W);
+  // the roof rises and rolls towards the harbour
+  const seaAt = (s: number) => {
+    for (let d = W / 2; d < W / 2 + 300; d += 4) {
+      const [x, z] = k.at(0, s * d);
+      if (ctx.site.inWater(x, z)) return d;
+    }
+    return Infinity;
+  };
+  const sea = seaAt(-1) < seaAt(1) ? -1 : 1;
+  const { roof, walls, hl, hw, under } = exhibitionGeo(L, W, { sea });
   k.box(0, 0, 0, hl + 2, hw + 2, 0.3, C.stone);
   k.mesh(0, 0, 0.3, walls.geometry());
   k.mesh(0, 0, 0.3, roof.geometry());
