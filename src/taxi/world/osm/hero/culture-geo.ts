@@ -268,6 +268,16 @@ export function roof(G: Geo, o: RoofO) {
   const ns = o.ns ?? 4,
     nt = o.nt ?? 10,
     th = o.thick ?? 0.35;
+  // the soffit follows the slope in half as many rows (the chords stay well inside the roof's thickness)
+  const nu = Math.max(1, Math.ceil(ns / 2));
+  const U = (k: Slope, s: number, t: number): V3 => {
+    const f = s * nu,
+      i = Math.min(nu - 1, Math.floor(f)),
+      w = f - i;
+    const a = roofPt(o, k, i / nu, t, th),
+      b = roofPt(o, k, (i + 1) / nu, t, th);
+    return [a[0] + (b[0] - a[0]) * w, a[1] + (b[1] - a[1]) * w, a[2] + (b[2] - a[2]) * w];
+  };
   const sl = [...(o.slopes ?? 'fblr')] as Slope[];
   const under = o.under ?? '#5B4A3C',
     fascia = o.fascia ?? under;
@@ -282,17 +292,21 @@ export function roof(G: Geo, o: RoofO) {
         const s0 = i / ns,
           s1 = (i + 1) / ns;
         G.quad(roofPt(o, k, s0, t0), roofPt(o, k, s0, t1), roofPt(o, k, s1, t1), roofPt(o, k, s1, t0), c, 0, UP);
-        G.quad(roofPt(o, k, s0, t0, th), roofPt(o, k, s0, t1, th), roofPt(o, k, s1, t1, th), roofPt(o, k, s1, t0, th), under, 0, DOWN);
+      }
+      for (let i = 0; i < nu; i++) {
+        const s0 = i / nu,
+          s1 = (i + 1) / nu;
+        G.quad(U(k, s0, t0), U(k, s0, t1), U(k, s1, t1), U(k, s1, t0), under, 0, DOWN);
       }
       // the fascia along the eave
-      G.quad(roofPt(o, k, 0, t0), roofPt(o, k, 0, t1), roofPt(o, k, 0, t1, th), roofPt(o, k, 0, t0, th), fascia, o.fasciaGlow ?? 0, OUT[k]);
-      if (open) G.quad(roofPt(o, k, 1, t0), roofPt(o, k, 1, t1), roofPt(o, k, 1, t1, th), roofPt(o, k, 1, t0, th), under, 0, [-OUT[k][0], 0.2, -OUT[k][2]]);
+      G.quad(roofPt(o, k, 0, t0), roofPt(o, k, 0, t1), U(k, 0, t1), U(k, 0, t0), fascia, o.fasciaGlow ?? 0, OUT[k]);
+      if (open) G.quad(roofPt(o, k, 1, t0), roofPt(o, k, 1, t1), U(k, 1, t1), U(k, 1, t0), under, 0, [-OUT[k][0], 0.2, -OUT[k][2]]);
     }
     if (gable)
       for (const t of [0, 1]) {
         const p0 = roofPt(o, k, 0, t);
         const side: V3 = [Math.sign(p0[0] - (o.x ?? 0)), 0, 0];
-        for (let i = 0; i < ns; i++) G.quad(roofPt(o, k, i / ns, t), roofPt(o, k, (i + 1) / ns, t), roofPt(o, k, (i + 1) / ns, t, th), roofPt(o, k, i / ns, t, th), fascia, 0, side);
+        for (let i = 0; i < ns; i++) G.quad(roofPt(o, k, i / ns, t), roofPt(o, k, (i + 1) / ns, t), U(k, (i + 1) / ns, t), U(k, i / ns, t), fascia, 0, side);
       }
   }
 }

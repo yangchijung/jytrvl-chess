@@ -184,9 +184,9 @@ function swallowRidge(G: Geo, o: RoofO, o2: { rw: number; rh: number; tail: numb
         [e[0] + d * 0.9 * tail, e[1] + 0.75 * tail, e[2] + zs * 0.22 * tail],
         [e[0] + d * 1.02 * tail, e[1] + 1.15 * tail, e[2] + zs * 0.3 * tail],
       ];
-      const pts = curve(ctrl, 7);
-      const rr = pts.map((_, j) => Math.max(0.06, rw * (1 - j / 8.5)));
-      const hh = pts.map((_, j) => Math.max(0.06, rh * 0.9 * (1 - j / 8)));
+      const pts = curve(ctrl, 5);
+      const rr = pts.map((_, j) => Math.max(0.06, rw * (1 - j / 6.5)));
+      const hh = pts.map((_, j) => Math.max(0.06, rh * 0.9 * (1 - j / 6)));
       G.tube(pts, rr, 4, K.tile2, 0, { rh: hh });
       // a gold tip
       const t = pts[pts.length - 1];
@@ -241,7 +241,7 @@ function pagoda(G: Geo, x: number, y: number, z: number, r: number) {
 }
 /** a red lantern hanging with its top at y */
 function lantern(G: Geo, x: number, y: number, z: number, s = 1) {
-  G.lathe(x, y - 0.95 * s, z, [[0, 0], [0.12 * s, 0], [0.32 * s, 0.18 * s], [0.38 * s, 0.45 * s], [0.32 * s, 0.72 * s], [0.12 * s, 0.85 * s], [0, 0.85 * s]], 6, K.lantern, 0.9, [K.gold, K.lantern, K.lantern, K.lantern, K.lantern, K.gold]);
+  G.lathe(x, y - 0.95 * s, z, [[0, 0], [0.3 * s, 0.12 * s], [0.38 * s, 0.45 * s], [0.3 * s, 0.75 * s], [0, 0.85 * s]], 6, K.lantern, 0.9);
   G.box(x, y - 0.12 * s, z, 0.04, 0.12 * s, 0.04, K.black, { top: false });
 }
 
